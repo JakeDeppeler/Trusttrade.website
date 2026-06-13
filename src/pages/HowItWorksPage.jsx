@@ -24,7 +24,14 @@ function FlowStep({ n, title, body, details, screenshot, pull }) {
       <div className="flow-visual">
         <div className="phone">
           <div className="phone-screen">
-            <img src={screenshot} alt="" />
+            <img
+              src={screenshot}
+              alt=""
+              loading="lazy"
+              decoding="async"
+              width={1284}
+              height={2778}
+            />
           </div>
         </div>
         {pull && <div className="flow-pull">{pull}</div>}
@@ -50,9 +57,9 @@ export default function HowItWorksPage() {
         italicWord="Done."
         lede="Three taps from 'something's wrong' to a tradie in the diary with a price in writing. Here's exactly what happens in between, on both sides of the app."
         meta={[
-          { k: "Time to quote", v: "~3 minutes" },
           { k: "Steps for you", v: "Three" },
           { k: "Cost to use", v: "Free for homeowners" },
+          { k: "Quote format", v: "Fixed call-out, in writing" },
           { k: "Coverage", v: "VIC at launch" },
         ]}
       />

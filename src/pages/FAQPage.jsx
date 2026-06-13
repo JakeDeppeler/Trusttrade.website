@@ -181,16 +181,35 @@ export default function FAQPage() {
                   <div className="faq-grid">
                     {sec.items.map((item, i) => {
                       const id = sec.id + "-" + i;
+                      const isOpen = !!openIds[id];
+                      const panelId = `faq-a-${id}`;
+                      const buttonId = `faq-q-${id}`;
                       return (
                         <div
                           key={id}
-                          className={"faq-item " + (openIds[id] ? "open" : "")}
+                          className={"faq-item " + (isOpen ? "open" : "")}
                         >
-                          <button className="faq-q" onClick={() => toggle(id)}>
+                          <button
+                            type="button"
+                            className="faq-q"
+                            id={buttonId}
+                            aria-expanded={isOpen}
+                            aria-controls={panelId}
+                            onClick={() => toggle(id)}
+                          >
                             <span>{item.q}</span>
-                            <span className="plus">+</span>
+                            <span className="plus" aria-hidden="true">+</span>
                           </button>
-                          <div className="faq-a">{item.a}</div>
+                          <div
+                            id={panelId}
+                            role="region"
+                            aria-labelledby={buttonId}
+                            className="faq-a"
+                          >
+                            <div className="faq-a-inner">
+                              <div className="faq-a-text">{item.a}</div>
+                            </div>
+                          </div>
                         </div>
                       );
                     })}

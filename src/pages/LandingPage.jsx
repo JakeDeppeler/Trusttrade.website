@@ -1,47 +1,11 @@
 import { useEffect, useState } from "react";
-import { MobileNavMenu, PAGE_LINKS, PageFooter } from "../components/PageChrome.jsx";
+import { PageFooter, PageHeader } from "../components/PageChrome.jsx";
 import PageLink from "../components/PageLink.jsx";
 
 function scrollToWaitlist() {
   const el = document.getElementById("waitlist");
   if (!el) return;
   el.scrollIntoView({ behavior: "smooth", block: "start" });
-}
-
-function LandingHeader({ onJoin }) {
-  const [scrolled, setScrolled] = useState(false);
-  useEffect(() => {
-    const f = () => setScrolled(window.scrollY > 16);
-    f();
-    window.addEventListener("scroll", f, { passive: true });
-    return () => window.removeEventListener("scroll", f);
-  }, []);
-  return (
-    <header className={"header " + (scrolled ? "scrolled" : "")}>
-      <div className="container">
-        <a href="#top" className="brand">
-          Trust Trade<span className="reg">®</span>
-        </a>
-        <nav className="nav-links">
-          {PAGE_LINKS.map((l) => (
-            <PageLink key={l.href} href={l.href}>
-              {l.label}
-            </PageLink>
-          ))}
-        </nav>
-        <div className="header-cta">
-          <span className="header-pill">
-            <span className="dot"></span>
-            Coming soon · iOS &amp; Android
-          </span>
-          <button className="btn btn-primary btn-sm header-cta-btn" onClick={onJoin}>
-            Get early access
-          </button>
-          <MobileNavMenu />
-        </div>
-      </div>
-    </header>
-  );
 }
 
 function Hero({ onJoin }) {
@@ -73,13 +37,8 @@ function Hero({ onJoin }) {
               </button>
             </div>
             <div className="hero-trust-row">
-              <div className="avatars">
-                <span>J</span>
-                <span>A</span>
-                <span>M</span>
-                <span>K</span>
-              </div>
-              <div>Just getting started · No spam, ever.</div>
+              <div className="hero-trust-dot" aria-hidden="true"></div>
+              <div>Founding 50 spots open · No spam, ever</div>
             </div>
           </div>
           <div className="phone-stage">
@@ -87,14 +46,21 @@ function Hero({ onJoin }) {
               <span className="swatch"></span>Verified, insured
             </div>
             <div className="phone-tag tag-2">
-              <span className="swatch"></span>3 min response
+              <span className="swatch"></span>Licence checked
             </div>
             <div className="phone-tag tag-3">
-              <span className="swatch"></span>Fixed call-out fee
+              <span className="swatch"></span>Quote in writing
             </div>
             <div className="phone">
               <div className="phone-screen">
-                <img src="/assets/app-home.png" alt="Trust Trade app home screen" />
+                <img
+                  src="/assets/app-home.png"
+                  alt="Trust Trade app home screen"
+                  width={1284}
+                  height={2778}
+                  fetchPriority="high"
+                  decoding="async"
+                />
               </div>
             </div>
           </div>
@@ -213,7 +179,14 @@ function HowItWorks() {
               trade you actually need.
             </p>
             <div className="step-visual">
-              <img src="/assets/app-home.png" alt="Trust Trade homeowner home screen" />
+              <img
+                src="/assets/app-home.png"
+                alt="Trust Trade homeowner home screen"
+                loading="lazy"
+                decoding="async"
+                width={1284}
+                height={2778}
+              />
             </div>
           </div>
           <div className="step">
@@ -224,7 +197,14 @@ function HowItWorks() {
               of mates who can do the job.
             </p>
             <div className="step-visual">
-              <img src="/assets/app-browse.png" alt="Browse tradies screen" />
+              <img
+                src="/assets/app-browse.png"
+                alt="Browse tradies screen"
+                loading="lazy"
+                decoding="async"
+                width={1284}
+                height={2778}
+              />
             </div>
           </div>
           <div className="step">
@@ -235,7 +215,14 @@ function HowItWorks() {
               confirmation. Name, time, address, all logged.
             </p>
             <div className="step-visual">
-              <img src="/assets/app-quote.png" alt="Call-out fee approved in chat" />
+              <img
+                src="/assets/app-quote.png"
+                alt="Call-out fee approved in chat"
+                loading="lazy"
+                decoding="async"
+                width={1284}
+                height={2778}
+              />
             </div>
           </div>
         </div>
@@ -380,6 +367,26 @@ function Features() {
               Name, address, time, price. All logged in your inbox. If something goes sideways,
               the record's there for both sides.
             </p>
+            <div className="feat-visual feat-receipt">
+              <div className="receipt-card">
+                <div className="receipt-row">
+                  <span className="k">Job</span>
+                  <span className="v">Gas hot water · repair</span>
+                </div>
+                <div className="receipt-row">
+                  <span className="k">Tradie</span>
+                  <span className="v">Sample Plumbing · VIC-licence verified</span>
+                </div>
+                <div className="receipt-row">
+                  <span className="k">Call-out</span>
+                  <span className="v accent">$200 · approved</span>
+                </div>
+                <div className="receipt-row receipt-stamp">
+                  <span className="check">✓</span>
+                  <span>Logged on both accounts</span>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -468,14 +475,21 @@ function ForTradiesSection({ onJoin }) {
             </div>
             <div className="phone">
               <div className="phone-screen">
-                <img src="/assets/app-inbox.png" alt="Tradie inbox: every job in one place" />
+                <img
+                  src="/assets/app-inbox.png"
+                  alt="Tradie inbox: every job in one place"
+                  loading="lazy"
+                  decoding="async"
+                  width={1284}
+                  height={2778}
+                />
               </div>
             </div>
             <div className="floater bottom-left">
               <div className="label">Approved</div>
               <strong>$200 ex GST</strong>
               <div style={{ color: "var(--text-dim)", marginTop: 4, fontSize: 12 }}>
-                On site within 3 hrs
+                Logged on the record
               </div>
             </div>
           </div>
@@ -552,7 +566,7 @@ function WaitlistMoment() {
             <div className="eyebrow" style={{ marginBottom: 24 }}>
               — The waitlist
             </div>
-            <h2 className="h-1" style={{ fontSize: "clamp(44px, 6.5vw, 92px)" }}>
+            <h2 className="h-1">
               Be first in.
               <br />
               <span className="it">Lock in early.</span>
@@ -716,15 +730,38 @@ function FAQSection() {
           </div>
         </div>
         <div className="faq-grid">
-          {LANDING_FAQS.map((item, i) => (
-            <div key={i} className={"faq-item " + (open === i ? "open" : "")}>
-              <button className="faq-q" onClick={() => setOpen(open === i ? -1 : i)}>
-                <span>{item.q}</span>
-                <span className="plus">+</span>
-              </button>
-              <div className="faq-a">{item.a}</div>
-            </div>
-          ))}
+          {LANDING_FAQS.map((item, i) => {
+            const isOpen = open === i;
+            const panelId = `landing-faq-a-${i}`;
+            const buttonId = `landing-faq-q-${i}`;
+            return (
+              <div key={i} className={"faq-item " + (isOpen ? "open" : "")}>
+                <button
+                  type="button"
+                  className="faq-q"
+                  id={buttonId}
+                  aria-expanded={isOpen}
+                  aria-controls={panelId}
+                  onClick={() => setOpen(isOpen ? -1 : i)}
+                >
+                  <span>{item.q}</span>
+                  <span className="plus" aria-hidden="true">
+                    +
+                  </span>
+                </button>
+                <div
+                  id={panelId}
+                  role="region"
+                  aria-labelledby={buttonId}
+                  className="faq-a"
+                >
+                  <div className="faq-a-inner">
+                    <div className="faq-a-text">{item.a}</div>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
         </div>
       </div>
     </section>
@@ -751,7 +788,7 @@ function MobileStickyCTA({ onJoin }) {
 export default function LandingPage() {
   return (
     <>
-      <LandingHeader onJoin={scrollToWaitlist} />
+      <PageHeader current="Trust Trade Landing.html" />
       <Hero onJoin={scrollToWaitlist} />
       <TrustStrip />
       <Hooks />

@@ -72,7 +72,7 @@ const TIMELINE = [
   {
     when: "May 2026",
     title: "Public waitlist opens.",
-    body: "Where we are now. Waitlist building, Founding 50 spots filling fast (9 already gone), iOS build in TestFlight with a small alpha cohort.",
+    body: "Where we are now. Waitlist open, Founding 50 spots up for grabs, iOS build in TestFlight with a small alpha cohort.",
   },
   {
     when: "Q4 2026",

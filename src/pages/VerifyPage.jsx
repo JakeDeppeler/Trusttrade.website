@@ -83,23 +83,23 @@ const DISPUTE_STEPS = [
 ];
 
 const DOC_ROWS = [
-  { k: "Business", v: <>Advanced Gas &amp; Aircon Pty Ltd</> },
+  { k: "Business", v: <>Sample Tradie Pty Ltd <span className="v muted">· example</span></> },
   {
     k: "ABN",
     v: (
       <>
-        12 345 678 901 <span className="v muted">· Active</span>
+        00 000 000 000 <span className="v muted">· sample · Active</span>
       </>
     ),
   },
-  { k: "Trade licence", v: "PIC-119283 (Plumbing — Gas)" },
-  { k: "Issuer", v: "VBA · checked 12 May 2026" },
-  { k: "Public liability", v: "$20m · WFI Insurance" },
-  { k: "PL expiry", v: "17 Sep 2026" },
-  { k: "Workers' comp", v: "Active · 3 employees" },
-  { k: "Identity check", v: "Matched · Apr 2026" },
+  { k: "Trade licence", v: "Sample — Plumbing (Gas)" },
+  { k: "Issuer", v: "State regulator · re-checked quarterly" },
+  { k: "Public liability", v: "$20m · sample insurer" },
+  { k: "PL expiry", v: "Logged · auto-reminded" },
+  { k: "Workers' comp", v: "Active · matched to ABN" },
+  { k: "Identity check", v: "Document + selfie match" },
   { k: "Disciplinary", v: "No active orders" },
-  { k: "Last re-check", v: "Q2 2026 · Next: Q3 2026" },
+  { k: "Last re-check", v: "Logged on every quarter" },
 ];
 
 const CREAM_CALLOUT_STYLE = {
@@ -120,9 +120,9 @@ export default function VerifyPage() {
         lede="Every tradie on Trust Trade gets checked four ways before the first job ever lands in front of you. Licence, insurance, ABN, conduct. We do the boring bit so you don't have to."
         meta={[
           { k: "Checks at apply", v: "Four mandatory" },
+          { k: "Outcome", v: "Pass or no listing" },
           { k: "Re-check cycle", v: "Quarterly" },
-          { k: "Rejection rate", v: "~22% (so far)" },
-          { k: "Time to verify", v: "48-72 hrs" },
+          { k: "Time to verify", v: "48–72 hrs" },
         ]}
       />
 

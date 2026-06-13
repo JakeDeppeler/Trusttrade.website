@@ -163,7 +163,14 @@ export default function ForHomeownersPage() {
               </div>
               <div className="phone">
                 <div className="phone-screen">
-                  <img src="/assets/app-home.png" alt="Trust Trade app home" />
+                  <img
+                    src="/assets/app-home.png"
+                    alt="Trust Trade app home"
+                    width={1284}
+                    height={2778}
+                    fetchPriority="high"
+                    decoding="async"
+                  />
                 </div>
               </div>
             </div>

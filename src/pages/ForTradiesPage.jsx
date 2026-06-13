@@ -166,7 +166,14 @@ export default function ForTradiesPage() {
               </div>
               <div className="phone">
                 <div className="phone-screen">
-                  <img src="/assets/app-inbox.png" alt="Tradie inbox: every job in one place" />
+                  <img
+                    src="/assets/app-inbox.png"
+                    alt="Tradie inbox: every job in one place"
+                    width={1284}
+                    height={2778}
+                    fetchPriority="high"
+                    decoding="async"
+                  />
                 </div>
               </div>
             </div>
@@ -340,7 +347,14 @@ export default function ForTradiesPage() {
             <div className="flow-visual">
               <div className="phone">
                 <div className="phone-screen">
-                  <img src="/assets/app-profile.png" alt="A tradie's public profile in the Trust Trade app" />
+                  <img
+                    src="/assets/app-profile.png"
+                    alt="A tradie's public profile in the Trust Trade app"
+                    loading="lazy"
+                    decoding="async"
+                    width={1284}
+                    height={2778}
+                  />
                 </div>
               </div>
             </div>
@@ -365,7 +379,14 @@ export default function ForTradiesPage() {
             <div className="flow-visual">
               <div className="phone">
                 <div className="phone-screen">
-                  <img src="/assets/app-insights.png" alt="Tradie insights dashboard in the Trust Trade app" />
+                  <img
+                    src="/assets/app-insights.png"
+                    alt="Tradie insights dashboard in the Trust Trade app"
+                    loading="lazy"
+                    decoding="async"
+                    width={1284}
+                    height={2778}
+                  />
                 </div>
               </div>
             </div>
@@ -438,7 +459,7 @@ export default function ForTradiesPage() {
                 textTransform: "uppercase",
               }}
             >
-              41 / 50 spots remaining
+              First 50 in. Then the badge is gone.
             </div>
           </div>
         </div>

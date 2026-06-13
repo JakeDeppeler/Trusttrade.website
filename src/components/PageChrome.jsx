@@ -106,7 +106,7 @@ export function ScrollToTop() {
 export function PageHeader({ current }) {
   const [scrolled, setScrolled] = useState(false);
   useEffect(() => {
-    const f = () => setScrolled(window.scrollY > 16);
+    const f = () => setScrolled(window.scrollY > 32);
     f();
     window.addEventListener("scroll", f, { passive: true });
     return () => window.removeEventListener("scroll", f);
@@ -184,12 +184,12 @@ export function PageWaitlistFooterCTA({
     <section className="page-cta-block">
       <div className="container">
         <div className="page-cta-inner">
-          <div>
+          <div className="page-cta-text">
             <div className="eyebrow accent">— Pre-register</div>
-            <h2 className="h-1" style={{ marginTop: 14 }}>
+            <h2 className="h-1">
               {headline} <span className="it">{subhead}</span>
             </h2>
-            <p className="lede" style={{ marginTop: 20, maxWidth: "44ch" }}>
+            <p className="lede">
               Web access opens for waitlist members before public launch. Founding-member pricing,
               verified badge on day one, no spam.
             </p>
@@ -222,8 +222,12 @@ export function PageFooter() {
               trades.
             </p>
             <div className="footer-app">
-              <div className="app-badge">
-                <span className="glyph"></span>
+              <div className="app-badge" aria-label="App Store · Coming Q4 2026">
+                <span className="glyph" aria-hidden="true">
+                  <svg width="18" height="20" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M17.05 12.94c.02-2.34 1.92-3.47 2-3.52-1.09-1.6-2.79-1.82-3.4-1.85-1.43-.15-2.81.86-3.54.86-.74 0-1.86-.84-3.06-.82-1.57.02-3.03.92-3.84 2.33-1.65 2.86-.42 7.08 1.18 9.4.78 1.13 1.71 2.4 2.93 2.35 1.18-.05 1.63-.76 3.05-.76 1.42 0 1.82.76 3.06.74 1.27-.02 2.07-1.15 2.84-2.29.9-1.31 1.27-2.59 1.29-2.65-.03-.01-2.47-.95-2.51-3.79zM14.74 5.72c.66-.8 1.1-1.91.98-3.02-.95.04-2.09.63-2.77 1.43-.61.71-1.14 1.84-1 2.94 1.06.08 2.13-.54 2.79-1.35z" />
+                  </svg>
+                </span>
                 <div>
                   <strong>App Store</strong>
                   <span style={{ color: "var(--text-dim)" }}>
@@ -231,8 +235,12 @@ export function PageFooter() {
                   </span>
                 </div>
               </div>
-              <div className="app-badge">
-                <span className="glyph">▶</span>
+              <div className="app-badge" aria-label="Google Play · Coming Q4 2026">
+                <span className="glyph" aria-hidden="true">
+                  <svg width="18" height="20" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M3.6 2.3c-.4.4-.6.9-.6 1.7v16c0 .8.2 1.3.6 1.7L13 12 3.6 2.3zM14 13l2.6 2.6-9.4 5.5c-.4.2-.7.3-1 .3l7.8-8.4zm0-2L6.2 2.6c.3 0 .6.1 1 .3l9.4 5.5L14 11zm6.8 2.6L17.6 15 15 12.4l2.6-2.6 3.2 1.7c.9.5.9 1.9 0 2.1z" />
+                  </svg>
+                </span>
                 <div>
                   <strong>Google Play</strong>
                   <span style={{ color: "var(--text-dim)" }}>
@@ -265,8 +273,8 @@ export function PageFooter() {
             <ul>
               <li><PageLink href="About.html">About</PageLink></li>
               <li><a href="mailto:jake@trusttrade.au">Support</a></li>
-              <li><a href="#">Privacy</a></li>
-              <li><a href="#">Terms</a></li>
+              <li><a href="mailto:jake@trusttrade.au?subject=Privacy%20question">Privacy</a></li>
+              <li><a href="mailto:jake@trusttrade.au?subject=Terms%20question">Terms</a></li>
             </ul>
           </div>
         </div>

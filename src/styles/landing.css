@@ -5651,3 +5651,493 @@ body.theme-cream .page-cta-block .btn-ghost:hover {
     justify-content: flex-start;
   }
 }
+
+/* =====================================================================
+ * v4: WHITE background + BROWN boxes (user request, 2026-06-13).
+ * Goal: simpler, cleaner, more premium. White breathes; dark brown
+ * boxes create the "pop" and break up the page.
+ *
+ * Structure: same body.theme-cream class (kept for compatibility) —
+ * but every value inside now describes the white palette. Overrides
+ * all earlier cream-theme rules by living at the end of the file.
+ * ===================================================================== */
+
+body.theme-cream {
+  /* Backgrounds — mostly pure white, with subtle warm variants for
+   * gentle section separation. */
+  --bg: #ffffff;
+  --bg-1: #fafaf7;
+  --bg-2: #f5f2eb;
+  --bg-3: #ebe6d9;
+  --bg-brown: #29211a;
+  --bg-brown-deep: #1f1813;
+
+  /* Text — near-black with warm undertone, dimmed variants keep the
+   * warm-brown character instead of pure grey. */
+  --text: #15110d;
+  --text-dim: #5d503e;
+  --text-faint: #a89a82;
+
+  /* Hairlines and shadows tuned for a white surface. */
+  --line: rgba(21, 17, 13, 0.06);
+  --line-strong: rgba(21, 17, 13, 0.14);
+  --shadow-card:
+    0 1px 2px rgba(21, 17, 13, 0.04),
+    0 12px 28px -14px rgba(21, 17, 13, 0.10);
+  --shadow-card-hover:
+    0 2px 6px rgba(21, 17, 13, 0.06),
+    0 24px 48px -14px rgba(21, 17, 13, 0.18);
+  --shadow-brown-card:
+    0 1px 2px rgba(21, 17, 13, 0.08),
+    0 24px 48px -20px rgba(21, 17, 13, 0.42);
+
+  background: var(--bg);
+  color: var(--text);
+}
+
+/* ===== Header — clean, minimal, no backdrop blur ===== */
+body.theme-cream .header {
+  background: rgba(255, 255, 255, 0.88);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border-bottom-color: transparent;
+}
+body.theme-cream .header.scrolled {
+  background: rgba(255, 255, 255, 0.96);
+  border-bottom-color: var(--line);
+  box-shadow: 0 4px 20px -12px rgba(21, 17, 13, 0.1);
+}
+body.theme-cream .header .brand {
+  color: var(--text);
+  font-weight: 700;
+}
+body.theme-cream .nav-links a {
+  color: var(--text-dim);
+  font-weight: 500;
+  font-size: 14px;
+}
+body.theme-cream .nav-links a:hover,
+body.theme-cream .nav-links a.current {
+  color: var(--text);
+}
+/* Drop the "Coming soon" pill — it's visual noise on the clean header */
+body.theme-cream .header-pill {
+  display: none;
+}
+body.theme-cream .header-cta-btn {
+  font-size: 13px;
+  padding: 8px 16px;
+  border-radius: 999px;
+}
+
+/* ===== Hero — white with soft warm aurora ===== */
+body.theme-cream .hero.hero-centered {
+  background: var(--bg);
+  padding-top: clamp(96px, 10vw, 160px);
+}
+body.theme-cream .hero-aurora {
+  background:
+    radial-gradient(50% 60% at 30% 20%, rgba(242, 169, 0, 0.14), transparent 60%),
+    radial-gradient(45% 50% at 70% 15%, rgba(240, 185, 70, 0.10), transparent 60%);
+  filter: blur(60px);
+}
+body.theme-cream .hero-eyebrow-pill {
+  background: rgba(21, 17, 13, 0.04);
+  border-color: var(--line);
+  color: var(--text-dim);
+}
+body.theme-cream .hero-title-xl {
+  color: var(--text);
+}
+body.theme-cream .hero-subhead {
+  color: var(--text-dim);
+}
+
+/* Hero floating cards on white — sharper shadow so they lift off. */
+body.theme-cream .hero-float-card {
+  background: #ffffff;
+  border-color: var(--line);
+  box-shadow:
+    0 20px 48px -20px rgba(21, 17, 13, 0.28),
+    0 8px 20px -8px rgba(21, 17, 13, 0.14);
+}
+body.theme-cream .hero-float-card strong {
+  color: var(--text);
+}
+body.theme-cream .hero-float-card span {
+  color: var(--text-dim);
+}
+
+/* ===== Integrations row — subtle warm strip on white ===== */
+body.theme-cream .integrations-row {
+  background: var(--bg-1);
+  border-color: var(--line);
+}
+body.theme-cream .integrations-head p {
+  color: var(--text-dim);
+}
+body.theme-cream .integration-pill {
+  background: #ffffff;
+  border-color: var(--line);
+  box-shadow: var(--shadow-card);
+}
+body.theme-cream .integration-pill:hover {
+  border-color: var(--accent);
+  box-shadow: var(--shadow-card-hover);
+}
+body.theme-cream .integration-full {
+  color: var(--text);
+}
+body.theme-cream .integration-tag {
+  color: var(--text-faint);
+}
+
+/* ===== Feature stories — clean white; phones on soft amber glow ===== */
+body.theme-cream .feature-stories {
+  background: var(--bg);
+}
+body.theme-cream .story-visual::before {
+  background:
+    radial-gradient(ellipse at 50% 50%, rgba(242, 169, 0, 0.16), transparent 55%),
+    radial-gradient(ellipse at 60% 80%, rgba(242, 169, 0, 0.06), transparent 65%);
+}
+body.theme-cream .story-title {
+  color: var(--text);
+}
+body.theme-cream .story-lede {
+  color: var(--text-dim);
+}
+/* Story overlay mock cards on white */
+body.theme-cream .story-float-card {
+  background: #ffffff;
+  border-color: var(--line);
+  box-shadow:
+    0 20px 48px -20px rgba(21, 17, 13, 0.28),
+    0 8px 20px -8px rgba(21, 17, 13, 0.14);
+}
+body.theme-cream .story-float-card strong {
+  color: var(--text);
+}
+body.theme-cream .story-float-card span {
+  color: var(--text-dim);
+}
+
+/* ===== Behind the scenes — DARK BROWN CARDS ON WHITE (user's ask) ===== */
+body.theme-cream .behind-scenes {
+  background: var(--bg);
+}
+body.theme-cream .behind-head .h-1 {
+  color: var(--text);
+}
+body.theme-cream .behind-head .lede {
+  color: var(--text-dim);
+}
+body.theme-cream .behind-item {
+  background: var(--bg-brown);
+  border: 1px solid var(--bg-brown-deep);
+  color: #f5eedf;
+  box-shadow: var(--shadow-brown-card);
+  position: relative;
+  overflow: hidden;
+}
+body.theme-cream .behind-item::before {
+  content: "";
+  position: absolute;
+  inset: -50% -50% auto auto;
+  width: 100%;
+  height: 200%;
+  background: radial-gradient(
+    ellipse at 30% 30%,
+    rgba(242, 169, 0, 0.14),
+    transparent 60%
+  );
+  filter: blur(30px);
+  pointer-events: none;
+}
+body.theme-cream .behind-item > * {
+  position: relative;
+  z-index: 1;
+}
+body.theme-cream .behind-item:hover {
+  background: var(--bg-brown-deep);
+  transform: translateY(-4px);
+  box-shadow:
+    0 2px 6px rgba(21, 17, 13, 0.1),
+    0 32px 64px -20px rgba(21, 17, 13, 0.55);
+  border-color: #15110d;
+}
+body.theme-cream .behind-eyebrow {
+  color: var(--accent);
+}
+body.theme-cream .behind-title {
+  color: #f5eedf;
+}
+body.theme-cream .behind-body {
+  color: rgba(245, 238, 223, 0.72);
+}
+
+/* ===== Additional features — white with soft glow behind phone ===== */
+body.theme-cream .additional-features {
+  background: var(--bg);
+}
+body.theme-cream .additional-item h4 {
+  color: var(--text);
+}
+body.theme-cream .additional-item p {
+  color: var(--text-dim);
+}
+body.theme-cream .additional-visual::before {
+  background:
+    radial-gradient(ellipse at 50% 50%, rgba(242, 169, 0, 0.18), transparent 55%);
+}
+
+/* ===== Privacy break — full DARK BROWN section (bevel's dark break) ===== */
+body.theme-cream .privacy-break {
+  background: var(--bg-brown);
+  color: #f5eedf;
+  padding: clamp(100px, 12vw, 160px) 0;
+}
+body.theme-cream .privacy-decor {
+  background:
+    radial-gradient(circle at 20% 30%, rgba(242, 169, 0, 0.18), transparent 30%),
+    radial-gradient(circle at 80% 70%, rgba(242, 169, 0, 0.14), transparent 30%),
+    radial-gradient(circle at 50% 90%, rgba(245, 238, 223, 0.04), transparent 30%);
+  filter: blur(24px);
+}
+body.theme-cream .privacy-inner .eyebrow.accent {
+  color: var(--accent);
+}
+body.theme-cream .privacy-inner .h-1 {
+  color: #f5eedf;
+}
+body.theme-cream .privacy-inner .h-1 .it {
+  color: var(--accent);
+}
+body.theme-cream .privacy-inner .lede {
+  color: rgba(245, 238, 223, 0.75);
+}
+body.theme-cream .privacy-attr strong {
+  color: #f5eedf;
+}
+body.theme-cream .privacy-attr span {
+  color: rgba(245, 238, 223, 0.55);
+}
+body.theme-cream .privacy-avatar {
+  background: var(--accent);
+  color: var(--bg-brown);
+  box-shadow: 0 8px 24px -8px rgba(242, 169, 0, 0.5);
+}
+
+/* ===== Voice cards — clean white cards for readability ===== */
+body.theme-cream .voice-cards {
+  background: var(--bg);
+}
+body.theme-cream .voice-card {
+  background: #ffffff;
+  border-color: var(--line);
+  box-shadow: var(--shadow-card);
+}
+body.theme-cream .voice-card:hover {
+  box-shadow: var(--shadow-card-hover);
+  border-color: var(--line-strong);
+}
+body.theme-cream .voice-eyebrow {
+  color: var(--accent);
+}
+body.theme-cream .voice-card blockquote {
+  color: var(--text);
+}
+body.theme-cream .voice-attr {
+  border-top-color: var(--line);
+}
+body.theme-cream .voice-attr strong {
+  color: var(--text);
+}
+body.theme-cream .voice-attr span {
+  color: var(--text-faint);
+}
+body.theme-cream .voice-avatar {
+  background: var(--accent);
+  color: var(--bg-brown);
+}
+
+/* ===== Trust strip, hooks, steps — white cards where they render ===== */
+body.theme-cream .trust-strip {
+  background: var(--bg);
+}
+body.theme-cream .trust-item .num {
+  color: var(--text);
+}
+body.theme-cream .trust-item .lbl {
+  color: var(--text-dim);
+}
+body.theme-cream .trust-item:hover .num {
+  color: var(--accent);
+}
+body.theme-cream .hook {
+  background: #ffffff;
+  border-color: var(--line);
+  box-shadow: var(--shadow-card);
+}
+body.theme-cream .hook:hover {
+  box-shadow: var(--shadow-card-hover);
+  border-color: var(--line-strong);
+}
+body.theme-cream .hook-ticker {
+  color: var(--accent);
+}
+body.theme-cream .hook-title {
+  color: var(--text);
+}
+body.theme-cream .hook-body {
+  color: var(--text-dim);
+}
+body.theme-cream .step {
+  background: #ffffff;
+  border-color: var(--line);
+  box-shadow: var(--shadow-card);
+}
+body.theme-cream .step h3 {
+  color: var(--text);
+}
+body.theme-cream .step p {
+  color: var(--text-dim);
+}
+body.theme-cream .step-num {
+  color: var(--accent);
+}
+
+/* ===== Sub-page PageHero on white ===== */
+body.theme-cream .page-hero.page-hero-centered {
+  background: var(--bg);
+}
+body.theme-cream .page-hero-decor {
+  background:
+    radial-gradient(50% 60% at 30% 20%, rgba(242, 169, 0, 0.12), transparent 60%),
+    radial-gradient(45% 50% at 70% 15%, rgba(240, 185, 70, 0.08), transparent 60%);
+}
+body.theme-cream .page-hero-eyebrow {
+  background: rgba(21, 17, 13, 0.04);
+  border-color: var(--line);
+  color: var(--text-dim);
+}
+body.theme-cream .page-hero-title-xl {
+  color: var(--text);
+}
+body.theme-cream .page-hero-subhead {
+  color: var(--text-dim);
+}
+body.theme-cream .page-hero-meta-strip {
+  border-top-color: var(--line);
+}
+body.theme-cream .page-hero-meta-strip-item .k {
+  color: var(--text-faint);
+}
+body.theme-cream .page-hero-meta-strip-item .v {
+  color: var(--text);
+}
+
+/* ===== Block + section-head + mid-head defaults on white ===== */
+body.theme-cream .block,
+body.theme-cream .page-section {
+  background: var(--bg);
+}
+body.theme-cream .section-head .h-1,
+body.theme-cream .mid-head .h-1,
+body.theme-cream .h-3 {
+  color: var(--text);
+}
+body.theme-cream .lede {
+  color: var(--text-dim);
+}
+body.theme-cream .h-1 .it,
+body.theme-cream .h-display .it,
+body.theme-cream .story-title .it {
+  color: var(--accent);
+}
+body.theme-cream .eyebrow {
+  color: var(--text-faint);
+}
+body.theme-cream .eyebrow.accent {
+  color: var(--accent);
+}
+
+/* ===== Comparison table on white ===== */
+body.theme-cream .compare-table {
+  border-color: var(--line);
+}
+body.theme-cream .compare-table th,
+body.theme-cream .compare-table td {
+  border-color: var(--line);
+  color: var(--text);
+}
+body.theme-cream .compare-table thead th {
+  color: var(--text);
+  background: var(--bg-1);
+}
+body.theme-cream .compare-table thead th.us {
+  background: rgba(242, 169, 0, 0.1);
+  color: var(--text);
+}
+body.theme-cream .compare-table tbody td.them {
+  color: var(--text-dim);
+}
+body.theme-cream .compare-table tbody td.us {
+  color: var(--text);
+  background: rgba(242, 169, 0, 0.04);
+}
+
+/* ===== Waitlist block — stays accent yellow (strong CTA moment) ===== */
+body.theme-cream .waitlist-block {
+  background: var(--accent);
+}
+body.theme-cream .waitlist-card {
+  background: #ffffff;
+  border-color: var(--line);
+  box-shadow: var(--shadow-card-hover);
+}
+
+/* ===== FAQ — cards on white ===== */
+body.theme-cream .faq-item {
+  border-color: var(--line);
+}
+body.theme-cream .faq-q {
+  color: var(--text);
+}
+body.theme-cream .faq-q .plus {
+  color: var(--text-faint);
+  border-color: var(--line-strong);
+}
+body.theme-cream .faq-a {
+  color: var(--text-dim);
+}
+
+/* ===== Footer stays dark brown (editorial end-cap) ===== */
+body.theme-cream .footer {
+  background: #15110d;
+  color: #f5eedf;
+}
+
+/* ===== Buttons — dark primary on white ===== */
+body.theme-cream .btn-primary {
+  background: var(--text);
+  color: #ffffff;
+  border-color: var(--text);
+}
+body.theme-cream .btn-primary:hover {
+  background: #000000;
+  border-color: #000000;
+}
+body.theme-cream .btn-dark {
+  background: var(--text);
+  color: #ffffff;
+}
+body.theme-cream .btn-ghost {
+  border-color: var(--line-strong);
+  color: var(--text);
+  background: transparent;
+}
+body.theme-cream .btn-ghost:hover {
+  background: rgba(21, 17, 13, 0.04);
+  border-color: var(--text);
+}

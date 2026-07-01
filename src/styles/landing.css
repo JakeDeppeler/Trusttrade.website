@@ -4094,3 +4094,541 @@ textarea:focus-visible {
   }
 }
 
+
+/* =====================================================================
+ * Theme: cream primary (bevel-inspired).
+ * Activated via <body class="theme-cream"> from LandingPage.jsx. Only
+ * the homepage runs on this palette; sub-pages stay dark.
+ *
+ * Same 6-brand-colour palette as the app, but inverted for editorial
+ * use — app is dark-primary/cream-accent, marketing is cream-primary/
+ * dark-accent. Yellow (#f2a900) stays as the shared brand accent so
+ * a homeowner never feels like they've switched brands mid-flow.
+ * ===================================================================== */
+
+body.theme-cream {
+  --bg: #f5eedf;
+  --bg-1: #ede4cf;
+  --bg-2: #ffffff;
+  --bg-3: #e5daba;
+  --text: #29211a;
+  --text-dim: #6a5b49;
+  --text-faint: #a89a82;
+  --line: rgba(41, 33, 26, 0.08);
+  --line-strong: rgba(41, 33, 26, 0.16);
+  --shadow-card:
+    0 1px 2px rgba(41, 33, 26, 0.04),
+    0 8px 24px -12px rgba(41, 33, 26, 0.12);
+  --shadow-card-hover:
+    0 2px 6px rgba(41, 33, 26, 0.06),
+    0 24px 48px -16px rgba(41, 33, 26, 0.18);
+  --focus-ring: 0 0 0 2px var(--bg), 0 0 0 4px var(--accent);
+  color: var(--text);
+  background: var(--bg);
+}
+
+/* Header — translucent cream, dark text, faint hairline once scrolled. */
+body.theme-cream .header {
+  background: rgba(245, 238, 223, 0.72);
+  backdrop-filter: blur(14px) saturate(140%);
+  -webkit-backdrop-filter: blur(14px) saturate(140%);
+  border-bottom-color: transparent;
+}
+body.theme-cream .header.scrolled {
+  background: rgba(245, 238, 223, 0.9);
+  border-bottom-color: var(--line);
+  box-shadow: 0 10px 30px -24px rgba(41, 33, 26, 0.18);
+}
+body.theme-cream .header .brand,
+body.theme-cream .nav-links a {
+  color: var(--text);
+}
+body.theme-cream .header-pill {
+  background: rgba(41, 33, 26, 0.04);
+  color: var(--text-dim);
+  border: 1px solid var(--line);
+}
+body.theme-cream .header-pill .dot {
+  background: var(--success);
+}
+
+/* Hero — big editorial cream stage with a soft warm aurora behind the
+ * headline. */
+body.theme-cream .hero {
+  background: var(--bg);
+  padding-top: clamp(72px, 8vw, 128px);
+  padding-bottom: clamp(80px, 10vw, 160px);
+  position: relative;
+  overflow: hidden;
+}
+body.theme-cream .hero::before {
+  content: "";
+  position: absolute;
+  inset: -20% -10% 40% -10%;
+  background:
+    radial-gradient(50% 50% at 20% 30%, rgba(242, 169, 0, 0.18), transparent 60%),
+    radial-gradient(40% 40% at 80% 20%, rgba(240, 185, 70, 0.14), transparent 60%),
+    radial-gradient(45% 45% at 50% 80%, rgba(41, 33, 26, 0.04), transparent 70%);
+  filter: blur(40px);
+  z-index: 0;
+  pointer-events: none;
+}
+body.theme-cream .hero .container {
+  position: relative;
+  z-index: 1;
+}
+body.theme-cream .hero h1 {
+  color: var(--text);
+  letter-spacing: -0.035em;
+  font-size: clamp(56px, 8vw, 120px);
+  line-height: 0.98;
+}
+body.theme-cream .hero .lede {
+  color: var(--text-dim);
+  font-size: clamp(17px, 1.4vw, 20px);
+}
+body.theme-cream .glow-wrap .it {
+  color: var(--accent);
+}
+body.theme-cream .glow-wrap::after {
+  background: radial-gradient(
+    ellipse at 50% 60%,
+    rgba(242, 169, 0, 0.28),
+    transparent 65%
+  );
+}
+body.theme-cream .hero-trust-row {
+  color: var(--text-dim);
+}
+body.theme-cream .phone {
+  background: linear-gradient(160deg, #1b1410, #050402 60%, #1b1410);
+  box-shadow:
+    0 0 0 1px rgba(41, 33, 26, 0.12) inset,
+    0 0 0 2px rgba(41, 33, 26, 0.06),
+    0 60px 120px -40px rgba(41, 33, 26, 0.35),
+    0 30px 60px -20px rgba(41, 33, 26, 0.22);
+}
+body.theme-cream .phone-tag {
+  background: rgba(255, 255, 255, 0.92);
+  color: var(--text);
+  border: 1px solid var(--line);
+  box-shadow: 0 8px 20px -8px rgba(41, 33, 26, 0.18);
+  backdrop-filter: blur(8px);
+}
+
+/* Buttons — dark primary button on cream (inverse of dark mode). Ghost
+ * button uses brown border. */
+body.theme-cream .btn-primary {
+  background: var(--text);
+  color: var(--bg);
+  border-color: var(--text);
+}
+body.theme-cream .btn-primary:hover {
+  background: #1a1512;
+  border-color: #1a1512;
+}
+body.theme-cream .btn-dark {
+  background: var(--text);
+  color: var(--bg);
+}
+body.theme-cream .btn-ghost {
+  border-color: var(--line-strong);
+  color: var(--text);
+}
+body.theme-cream .btn-ghost:hover {
+  background: rgba(41, 33, 26, 0.04);
+  border-color: var(--text);
+}
+
+/* Integrations row — subtle warm band, dark chips */
+body.theme-cream .integrations-row {
+  background: rgba(41, 33, 26, 0.035);
+  border-color: var(--line);
+}
+body.theme-cream .integrations-head p {
+  color: var(--text-dim);
+}
+body.theme-cream .integration-pill {
+  background: #ffffff;
+  border-color: var(--line);
+  box-shadow: var(--shadow-card);
+}
+body.theme-cream .integration-pill:hover {
+  border-color: var(--accent);
+  background: #fffdf5;
+  box-shadow: var(--shadow-card-hover);
+}
+body.theme-cream .integration-full {
+  color: var(--text);
+}
+body.theme-cream .integration-tag {
+  color: var(--text-faint);
+}
+
+/* Trust strip — cream */
+body.theme-cream .trust-strip {
+  background: var(--bg);
+  border-color: var(--line);
+}
+body.theme-cream .trust-item {
+  border-color: var(--line);
+}
+body.theme-cream .trust-item .num {
+  color: var(--text);
+}
+body.theme-cream .trust-item .lbl {
+  color: var(--text-dim);
+}
+body.theme-cream .trust-item:hover .num {
+  color: var(--accent);
+}
+
+/* Hooks — cards get pure white background + soft shadow (very bevel) */
+body.theme-cream .hooks-section {
+  background: var(--bg);
+  border-color: var(--line);
+}
+body.theme-cream .hook {
+  background: #ffffff;
+  border-color: var(--line);
+  box-shadow: var(--shadow-card);
+}
+body.theme-cream .hook:hover {
+  background: #fffdf5;
+  border-color: var(--line-strong);
+  box-shadow: var(--shadow-card-hover);
+}
+body.theme-cream .hook-ticker {
+  color: var(--accent);
+}
+body.theme-cream .hook-title {
+  color: var(--text);
+}
+body.theme-cream .hook-body {
+  color: var(--text-dim);
+}
+
+/* Section blocks + section heads use cream too. Eyebrow.accent keeps
+ * yellow. */
+body.theme-cream .block,
+body.theme-cream .page-section {
+  background: var(--bg);
+}
+body.theme-cream .section-head .h-1,
+body.theme-cream .mid-head .h-1 {
+  color: var(--text);
+}
+body.theme-cream .h-1 .it,
+body.theme-cream .h-display .it,
+body.theme-cream .story-title .it {
+  color: var(--accent);
+}
+body.theme-cream .lede {
+  color: var(--text-dim);
+}
+body.theme-cream .h-3 {
+  color: var(--text);
+}
+body.theme-cream .eyebrow {
+  color: var(--text-faint);
+}
+body.theme-cream .eyebrow.accent {
+  color: var(--accent);
+}
+
+/* Steps (HowItWorks) — white step cards with subtle shadow */
+body.theme-cream .step {
+  background: #ffffff;
+  border-color: var(--line);
+  box-shadow: var(--shadow-card);
+}
+body.theme-cream .step h3 {
+  color: var(--text);
+}
+body.theme-cream .step p {
+  color: var(--text-dim);
+}
+body.theme-cream .step-num {
+  color: var(--accent);
+}
+body.theme-cream .step .step-visual {
+  background:
+    radial-gradient(ellipse at 50% 95%, rgba(242, 169, 0, 0.10), transparent 60%),
+    linear-gradient(180deg, transparent, rgba(41, 33, 26, 0.03));
+}
+
+/* LightBreaker — was already cream on dark. Now the whole page is cream,
+ * so we turn this into a big dark editorial pull-quote card, echoing
+ * bevel's dark privacy break. */
+body.theme-cream .light-breaker {
+  background: transparent;
+  padding: clamp(60px, 8vw, 120px) 0;
+}
+body.theme-cream .light-breaker-inner {
+  background: #29211a;
+  color: var(--bg);
+  border-radius: var(--radius-lg);
+  padding: clamp(32px, 5vw, 64px);
+  position: relative;
+  overflow: hidden;
+  box-shadow:
+    0 1px 2px rgba(41, 33, 26, 0.1),
+    0 40px 80px -30px rgba(41, 33, 26, 0.4);
+}
+body.theme-cream .light-breaker-inner::before {
+  content: "";
+  position: absolute;
+  inset: -50% -10% auto auto;
+  width: 60%;
+  height: 200%;
+  background: radial-gradient(
+    ellipse at 30% 50%,
+    rgba(242, 169, 0, 0.24),
+    transparent 60%
+  );
+  filter: blur(30px);
+  pointer-events: none;
+}
+body.theme-cream .light-breaker-quote {
+  color: #f5eedf;
+  position: relative;
+  z-index: 1;
+}
+body.theme-cream .light-breaker-quote .it {
+  color: var(--accent);
+}
+body.theme-cream .light-breaker-attr {
+  position: relative;
+  z-index: 1;
+}
+body.theme-cream .light-breaker-attr .avatar {
+  background: var(--accent);
+  color: #29211a;
+}
+body.theme-cream .light-breaker-attr .who strong {
+  color: #f5eedf;
+}
+body.theme-cream .light-breaker-attr .who span {
+  color: rgba(245, 238, 223, 0.6);
+}
+body.theme-cream .light-breaker .eyebrow {
+  color: rgba(245, 238, 223, 0.6);
+}
+body.theme-cream .light-breaker .eyebrow.accent {
+  color: var(--accent);
+}
+
+/* Feature stories — cream. The story-audience mono ticker becomes the
+ * dark brand accent; bullets stay yellow-dash. Story visual glow tightens. */
+body.theme-cream .story-audience {
+  color: var(--accent);
+}
+body.theme-cream .story-eyebrow {
+  color: var(--text-faint);
+}
+body.theme-cream .story-title {
+  color: var(--text);
+}
+body.theme-cream .story-lede {
+  color: var(--text-dim);
+}
+body.theme-cream .story-bullets li {
+  color: var(--text-dim);
+}
+body.theme-cream .story-visual::before {
+  background:
+    radial-gradient(ellipse at 50% 50%, rgba(242, 169, 0, 0.24), transparent 55%),
+    radial-gradient(ellipse at 60% 80%, rgba(242, 169, 0, 0.08), transparent 65%);
+}
+
+/* Tradies-section — this WAS cream-on-dark. Now the whole page is cream,
+ * so we flip this section to warm-brown for contrast — bevel's dark
+ * privacy break moment. Yellow content becomes a punchy accent inside it. */
+body.theme-cream .tradies-section {
+  background: linear-gradient(160deg, #29211a 0%, #1f1813 100%);
+  color: var(--bg);
+  border-radius: 0;
+  padding: clamp(60px, 8vw, 120px) 0;
+  position: relative;
+  overflow: hidden;
+}
+body.theme-cream .tradies-section::before {
+  content: "";
+  position: absolute;
+  inset: auto -10% -30% auto;
+  width: 60%;
+  height: 80%;
+  background: radial-gradient(
+    ellipse at 60% 40%,
+    rgba(242, 169, 0, 0.2),
+    transparent 60%
+  );
+  filter: blur(40px);
+  pointer-events: none;
+}
+body.theme-cream .tradies-section .container {
+  position: relative;
+  z-index: 1;
+}
+body.theme-cream .tradies-section .eyebrow {
+  color: var(--accent);
+}
+body.theme-cream .tradies-section .h-1 {
+  color: #f5eedf;
+}
+body.theme-cream .tradies-section .h-1 .it {
+  color: var(--accent);
+}
+body.theme-cream .tradies-section .lede {
+  color: rgba(245, 238, 223, 0.75);
+}
+body.theme-cream .tradies-section .tradies-list .item h4 {
+  color: #f5eedf;
+}
+body.theme-cream .tradies-section .tradies-list .item p {
+  color: rgba(245, 238, 223, 0.65);
+}
+body.theme-cream .tradies-section .tradies-list .item .n {
+  color: var(--accent);
+}
+body.theme-cream .tradies-section .btn-dark {
+  background: var(--accent);
+  color: var(--on-accent);
+}
+body.theme-cream .tradies-section .btn-dark:hover {
+  background: #ffb929;
+}
+body.theme-cream .tradies-section .btn-ghost {
+  border-color: rgba(245, 238, 223, 0.24);
+  color: #f5eedf;
+}
+body.theme-cream .tradies-section .btn-ghost:hover {
+  background: rgba(245, 238, 223, 0.08);
+  border-color: rgba(245, 238, 223, 0.5);
+}
+body.theme-cream .tradies-visual {
+  background: rgba(245, 238, 223, 0.05);
+}
+body.theme-cream .tradies-visual .floater {
+  background: rgba(41, 33, 26, 0.9);
+  color: var(--bg);
+  border: 1px solid rgba(245, 238, 223, 0.16);
+}
+
+/* Waitlist block — keep the accent-yellow moment; strong CTA fold */
+body.theme-cream .waitlist-block {
+  background: var(--accent);
+}
+body.theme-cream .waitlist-block h2,
+body.theme-cream .waitlist-block h2 .it,
+body.theme-cream .waitlist-block .lede {
+  color: var(--on-accent);
+}
+body.theme-cream .waitlist-block .eyebrow {
+  color: var(--on-accent);
+}
+body.theme-cream .waitlist-card {
+  background: #ffffff;
+  border: 1px solid var(--line);
+  box-shadow: var(--shadow-card-hover);
+}
+body.theme-cream .waitlist-card input,
+body.theme-cream .waitlist-card select {
+  background: var(--bg);
+  color: var(--text);
+  border-color: var(--line-strong);
+}
+body.theme-cream .waitlist-card input::placeholder {
+  color: var(--text-faint);
+}
+body.theme-cream .waitlist-card label {
+  color: var(--text);
+}
+body.theme-cream .waitlist-card .btn {
+  background: var(--text);
+  color: var(--bg);
+  border-color: var(--text);
+}
+body.theme-cream .waitlist-card .small {
+  color: var(--text-dim);
+}
+body.theme-cream .waitlist-meta {
+  color: var(--on-accent);
+}
+body.theme-cream .waitlist-success {
+  background: #ffffff;
+  color: var(--text);
+}
+body.theme-cream .waitlist-success h3 {
+  color: var(--text);
+}
+body.theme-cream .waitlist-success p {
+  color: var(--text-dim);
+}
+
+/* FAQ — cards get shadow treatment on cream */
+body.theme-cream .faq-grid {
+  border-color: var(--line);
+}
+body.theme-cream .faq-item {
+  border-color: var(--line);
+}
+body.theme-cream .faq-q {
+  color: var(--text);
+}
+body.theme-cream .faq-q:hover {
+  color: var(--accent);
+}
+body.theme-cream .faq-q .plus {
+  color: var(--text-faint);
+  border-color: var(--line-strong);
+}
+body.theme-cream .faq-item.open .faq-q .plus {
+  background: var(--accent);
+  color: var(--on-accent);
+  border-color: var(--accent);
+}
+body.theme-cream .faq-a {
+  color: var(--text-dim);
+}
+
+/* Footer — stays dark brown as an editorial end-cap under the cream
+ * body. Bevel does the exact same move. */
+body.theme-cream .footer {
+  background: #15110d;
+  color: #f5eedf;
+  border-top-color: transparent;
+}
+body.theme-cream .footer .brand,
+body.theme-cream .footer h5,
+body.theme-cream .footer a,
+body.theme-cream .footer strong {
+  color: #f5eedf;
+}
+body.theme-cream .footer p,
+body.theme-cream .footer .footer-bottom {
+  color: rgba(245, 238, 223, 0.6);
+}
+body.theme-cream .footer .app-badge {
+  background: rgba(245, 238, 223, 0.06);
+  border-color: rgba(245, 238, 223, 0.12);
+}
+
+/* Mobile sticky CTA — dark button on cream needs a bit more depth */
+body.theme-cream .mobile-sticky .btn {
+  background: var(--text);
+  color: var(--bg);
+  border-color: var(--text);
+  box-shadow:
+    0 0 0 1px rgba(41, 33, 26, 0.1),
+    0 16px 40px -12px rgba(41, 33, 26, 0.35);
+}
+
+/* Selection */
+body.theme-cream ::selection {
+  background: var(--text);
+  color: var(--bg);
+}
+
+/* Any leftover strong-white text (e.g. accidental hardcoded "white" bits)
+ * defers to var(--text). No known instances but future-proof. */

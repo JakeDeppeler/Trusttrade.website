@@ -8,6 +8,19 @@ function scrollToWaitlist() {
   el.scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
+/**
+ * Pilot: the marketing homepage runs on a cream palette (inverted from the
+ * app's dark palette) for a bevel.health-inspired editorial feel. Toggled
+ * on <body> so every rule scoped under body.theme-cream in landing.css
+ * kicks in only for this page. Unmount cleans up so sub-pages stay dark.
+ */
+function useCreamTheme() {
+  useEffect(() => {
+    document.body.classList.add("theme-cream");
+    return () => document.body.classList.remove("theme-cream");
+  }, []);
+}
+
 function Hero({ onJoin }) {
   return (
     <section className="hero" id="top">
@@ -794,6 +807,7 @@ function MobileStickyCTA({ onJoin }) {
 }
 
 export default function LandingPage() {
+  useCreamTheme();
   return (
     <>
       <PageHeader current="Trust Trade Landing.html" />

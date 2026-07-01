@@ -70,6 +70,152 @@ function Hero({ onJoin }) {
   );
 }
 
+const REGULATORS = [
+  { short: "VBA", full: "Victorian Building Authority", tag: "Licence · builders + plumbers" },
+  { short: "ESV", full: "Energy Safe Victoria", tag: "Licence · electrical + gas" },
+  { short: "ASIC", full: "ABN Register", tag: "Business status" },
+  { short: "IP Australia", full: "Trademarks Register", tag: "Trading name" },
+];
+
+function IntegrationsRow() {
+  return (
+    <section className="integrations-row" aria-label="Regulators we verify against">
+      <div className="container">
+        <div className="integrations-head">
+          <div className="eyebrow accent">— Verified against</div>
+          <p>Every licence, insurance certificate and ABN is checked at the source before a tradie is listed. Not honour-system.</p>
+        </div>
+        <ul className="integrations-list">
+          {REGULATORS.map((r) => (
+            <li key={r.short} className="integration-pill">
+              <span className="integration-short">{r.short}</span>
+              <span className="integration-body">
+                <span className="integration-full">{r.full}</span>
+                <span className="integration-tag">{r.tag}</span>
+              </span>
+            </li>
+          ))}
+        </ul>
+      </div>
+    </section>
+  );
+}
+
+const FEATURE_STORIES = [
+  {
+    audience: "For homeowners",
+    eyebrow: "Verified profile",
+    title: "Every tradie",
+    italic: "checked before you meet them.",
+    body: "Licence numbers verified at the state regulator. Public liability and workers' comp on file. Reviews from real bookings, not internet drive-bys. You see the receipts, not just star ratings.",
+    bullets: [
+      "Verified badge from the regulator, not us",
+      "Story · Gallery · Reviews · Services on one page",
+      "One-tap message or call from the profile",
+    ],
+    screenshot: "/assets/app-profile.png",
+    alt: "A verified tradie's public profile — cover photo, licence badge, story and reviews",
+  },
+  {
+    audience: "For homeowners",
+    eyebrow: "Fixed quote",
+    reverse: true,
+    title: "Call-out fees in writing.",
+    italic: "You approve before they roll.",
+    body: "The tradie sends a fixed call-out fee — one number, one line — through the chat. You tap Approve, or you don't. Every quote and every message is on the record on both accounts.",
+    bullets: [
+      "No hand-shake guessing, no \"I think they said $200\"",
+      "Booking confirmation logs ABN, address, fee, time",
+      "One thread per job — no scrolling for the right SMS",
+    ],
+    screenshot: "/assets/app-quote.png",
+    alt: "A chat thread with a $120 call-out fee approved in writing",
+  },
+  {
+    audience: "For tradies",
+    eyebrow: "Your inbox",
+    title: "Every job",
+    italic: "in one place.",
+    body: "New enquiries, active jobs, quoted work and completed receipts all live in one inbox. Emergencies pin to the top. No more \"which Sarah was the laundry tap one?\" — every job has its own thread.",
+    bullets: [
+      "Emergencies pinned. Everything else sorted by newest.",
+      "One thread per job, from enquiry to receipt",
+      "Customer name + verified mobile attached",
+    ],
+    screenshot: "/assets/app-inbox.png",
+    alt: "The tradie inbox showing new enquiries, quoted, and booked jobs in one place",
+  },
+  {
+    audience: "For tradies",
+    eyebrow: "Real numbers",
+    reverse: true,
+    title: "Numbers behind",
+    italic: "your listing.",
+    body: "Profile views, enquiries, tap-to-calls, first-reply time, lifetime reviews — all week-on-week. Plus a listing health score with a checklist of what to fix to climb the Browse ranking. Not a vanity dashboard.",
+    bullets: [
+      "Profile views + enquiries: last 7 days vs all time",
+      "Health score with fix-it checklist",
+      "First-reply time vs your trade average",
+    ],
+    screenshot: "/assets/app-insights.png",
+    alt: "The tradie insights dashboard — profile views chart and listing health score",
+  },
+];
+
+function FeatureStories() {
+  return (
+    <section className="block feature-stories" id="features">
+      <div className="container">
+        <div className="section-head">
+          <div className="eyebrow accent">— Inside the app</div>
+          <div>
+            <h2 className="h-1">
+              Built like the trades you'd <span className="it">actually recommend.</span>
+            </h2>
+          </div>
+        </div>
+
+        <div className="story-grid">
+          {FEATURE_STORIES.map((s) => (
+            <article
+              key={s.title + s.italic}
+              className={"story" + (s.reverse ? " story-reverse" : "")}
+            >
+              <div className="story-body">
+                <div className="story-audience">— {s.audience}</div>
+                <div className="story-eyebrow">{s.eyebrow}</div>
+                <h3 className="story-title">
+                  {s.title} <span className="it">{s.italic}</span>
+                </h3>
+                <p className="story-lede">{s.body}</p>
+                <ul className="story-bullets">
+                  {s.bullets.map((b) => (
+                    <li key={b}>{b}</li>
+                  ))}
+                </ul>
+              </div>
+              <div className="story-visual">
+                <div className="phone">
+                  <div className="phone-screen">
+                    <img
+                      src={s.screenshot}
+                      alt={s.alt}
+                      loading="lazy"
+                      decoding="async"
+                      width={1284}
+                      height={2778}
+                    />
+                  </div>
+                </div>
+              </div>
+            </article>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
 function TrustStrip() {
   return (
     <section className="trust-strip">
@@ -248,144 +394,6 @@ function LightBreaker() {
             <div className="who">
               <strong>Jake</strong>
               <span>Mech plumber · Founder</span>
-            </div>
-          </div>
-        </div>
-      </div>
-    </section>
-  );
-}
-
-function Features() {
-  return (
-    <section className="block" id="features">
-      <div className="container">
-        <div className="section-head">
-          <div className="eyebrow accent">— Why Trust Trade</div>
-          <div>
-            <h2 className="h-1">
-              Built like the trades you'd <span className="it">actually recommend.</span>
-            </h2>
-          </div>
-        </div>
-        <div className="bento">
-          <div className="feat feat-1 feat-verified">
-            <div className="feat-eyebrow">Verified · Step 0</div>
-            <h3>Every tradie checked before they're listed.</h3>
-            <p>
-              Licence numbers verified with the regulator. Public liability and workers' comp on
-              file. Reviews from real, confirmed jobs — not rideshare-style spam.
-            </p>
-            <div className="feat-visual">
-              <div className="verified-stack">
-                <div className="verified-card">
-                  <div className="badge">✓ VERIFIED</div>
-                  Advanced Gas &amp; Aircon
-                  <div className="meta">HVAC · 3.2 km</div>
-                </div>
-                <div className="verified-card dark">
-                  <div className="badge">✓ VERIFIED</div>
-                  JT Valley Electrics
-                  <div className="meta">Electrician · 28.6 km</div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div className="feat feat-2 feat-ai">
-            <div className="feat-eyebrow">Ask AI</div>
-            <h3>Describe it in plain English.</h3>
-            <p>We work out the trade — and route you to the right one.</p>
-            <div className="ai-bubble">
-              "Hot water's running cold and there's a hissing noise from the cylinder."
-              <br />
-              <br />
-              <span style={{ color: "var(--accent)", fontWeight: 600 }}>
-                Sounds like a plumber — gas hot water specialist.
-              </span>
-              <span className="typing">
-                <span></span>
-                <span></span>
-                <span></span>
-              </span>
-            </div>
-          </div>
-
-          <div className="feat feat-3 feat-price">
-            <div className="feat-eyebrow">Fixed quotes</div>
-            <h3>Call-out fees in writing. Approved up front.</h3>
-            <p>
-              The tradie sets a fixed call-out fee per job. You approve it before they roll. No
-              surprise upcharges on the day.
-            </p>
-            <div className="price-card">
-              <div>
-                <div className="label">Call-out fee</div>
-                <div className="amount">
-                  $200 <span className="ex">ex GST</span>
-                </div>
-                <div className="approved">✓ APPROVED · 3 hr ETA</div>
-              </div>
-            </div>
-          </div>
-
-          <div className="feat feat-4 feat-msg">
-            <div className="feat-eyebrow">In-app chat</div>
-            <h3>One thread per job.</h3>
-            <p>
-              Every booking has its own conversation. ETA pings, photos, receipts. All in one place
-              instead of six different SMS threads.
-            </p>
-            <div className="msg-thread">
-              <div className="bubble in">On my way — 20 min ETA</div>
-              <div className="bubble out">Sweet, gate's unlocked</div>
-              <div className="bubble in">Done. Receipt emailed.</div>
-            </div>
-          </div>
-
-          <div className="feat feat-5 feat-near">
-            <div className="feat-eyebrow">Nearest first</div>
-            <h3>See who's around the corner.</h3>
-            <p>
-              Filter by trade, distance and availability. Verified locals appear first so you're not
-              chasing someone 25km away.
-            </p>
-            <div className="near-card">
-              <div className="avatar">A</div>
-              <div>
-                <div className="name">Advanced Gas &amp; Aircon</div>
-                <div className="trade">HVAC · ★ 5.0 (4)</div>
-              </div>
-              <div className="km">3.2 km</div>
-            </div>
-          </div>
-
-          <div className="feat feat-6">
-            <div className="feat-eyebrow">Receipts</div>
-            <h3>Both sides protected.</h3>
-            <p>
-              Name, address, time, price. All logged in your inbox. If something goes sideways,
-              the record's there for both sides.
-            </p>
-            <div className="feat-visual feat-receipt">
-              <div className="receipt-card">
-                <div className="receipt-row">
-                  <span className="k">Job</span>
-                  <span className="v">Gas hot water · repair</span>
-                </div>
-                <div className="receipt-row">
-                  <span className="k">Tradie</span>
-                  <span className="v">Sample Plumbing · VIC-licence verified</span>
-                </div>
-                <div className="receipt-row">
-                  <span className="k">Call-out</span>
-                  <span className="v accent">$200 · approved</span>
-                </div>
-                <div className="receipt-row receipt-stamp">
-                  <span className="check">✓</span>
-                  <span>Logged on both accounts</span>
-                </div>
-              </div>
             </div>
           </div>
         </div>
@@ -790,11 +798,12 @@ export default function LandingPage() {
     <>
       <PageHeader current="Trust Trade Landing.html" />
       <Hero onJoin={scrollToWaitlist} />
+      <IntegrationsRow />
       <TrustStrip />
       <Hooks />
       <HowItWorks />
       <LightBreaker />
-      <Features />
+      <FeatureStories />
       <ForTradiesSection onJoin={scrollToWaitlist} />
       <WaitlistMoment />
       <FAQSection />

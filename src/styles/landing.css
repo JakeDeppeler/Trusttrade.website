@@ -3847,3 +3847,250 @@ textarea:focus-visible {
   margin: 0;
   max-width: 44ch;
 }
+
+/* =====================================================================
+ * Bevel-inspired layer — regulator integrations row + alternating
+ * feature stories. Ported 2026-06-13.
+ * ===================================================================== */
+
+/* Integrations row — sits directly under the hero. A subtle warm band
+ * with a short lede on the left and 4 monospace pill logos on the right.
+ * Matches bevel.health's "wearable brands" row but with Australian
+ * regulator names since we don't ship a logo file. */
+.integrations-row {
+  background: var(--bg-1);
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+  padding: 44px 0;
+}
+.integrations-row .container {
+  display: grid;
+  grid-template-columns: minmax(220px, 320px) 1fr;
+  gap: 48px;
+  align-items: center;
+}
+.integrations-head p {
+  margin: 12px 0 0;
+  color: var(--text-dim);
+  font-size: 14px;
+  line-height: 1.55;
+  max-width: 36ch;
+}
+.integrations-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+}
+.integration-pill {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-md);
+  background: var(--bg);
+  transition:
+    border-color var(--dur) var(--ease),
+    background-color var(--dur) var(--ease);
+}
+.integration-pill:hover {
+  border-color: var(--accent);
+  background: rgba(242, 169, 0, 0.04);
+}
+.integration-short {
+  font-family: var(--font-mono);
+  font-weight: 700;
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  padding: 6px 8px;
+  border-radius: 6px;
+  background: var(--accent);
+  color: var(--on-accent);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.integration-body {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.integration-full {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 13px;
+  color: var(--text);
+  letter-spacing: -0.01em;
+  line-height: 1.2;
+}
+.integration-tag {
+  font-size: 11px;
+  color: var(--text-faint);
+  letter-spacing: 0.02em;
+}
+@media (max-width: 979px) {
+  .integrations-row .container {
+    grid-template-columns: 1fr;
+    gap: 24px;
+  }
+  .integrations-list {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+@media (max-width: 559px) {
+  .integrations-list {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Feature stories — replaces the bento grid. Each story is a wide 2-col
+ * row: text on one side, big phone screenshot on the other. Every second
+ * story flips so the eye ping-pongs down the page (bevel's core rhythm). */
+.feature-stories {
+  padding-top: 100px;
+  padding-bottom: 100px;
+}
+.feature-stories .section-head {
+  margin-bottom: 56px;
+}
+.story-grid {
+  display: grid;
+  gap: 80px;
+}
+.story {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 64px;
+  align-items: center;
+  padding: 24px 0;
+  position: relative;
+}
+.story-reverse .story-body {
+  order: 2;
+}
+.story-body {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  max-width: 46ch;
+}
+.story-audience {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin-bottom: -8px;
+}
+.story-eyebrow {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+}
+.story-title {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: clamp(32px, 4.2vw, 56px);
+  line-height: 1.02;
+  letter-spacing: -0.03em;
+  margin: 0;
+  color: var(--text);
+}
+.story-title .it {
+  font-style: italic;
+  color: var(--accent);
+  font-weight: 800;
+}
+.story-lede {
+  color: var(--text-dim);
+  font-size: 17px;
+  line-height: 1.6;
+  margin: 0;
+  max-width: 44ch;
+}
+.story-bullets {
+  list-style: none;
+  padding: 0;
+  margin: 8px 0 0;
+  display: grid;
+  gap: 10px;
+}
+.story-bullets li {
+  position: relative;
+  padding-left: 22px;
+  color: var(--text-dim);
+  font-size: 14.5px;
+  line-height: 1.5;
+}
+.story-bullets li::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 8px;
+  width: 12px;
+  height: 2px;
+  background: var(--accent);
+  border-radius: 2px;
+}
+.story-visual {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  position: relative;
+  padding: 24px 0;
+}
+/* Give the phone a soft ambient glow behind it — echoes bevel's
+ * "floating device" treatment. */
+.story-visual::before {
+  content: "";
+  position: absolute;
+  inset: 8% 12%;
+  background:
+    radial-gradient(ellipse at 50% 50%, rgba(242, 169, 0, 0.12), transparent 60%),
+    radial-gradient(ellipse at 60% 80%, rgba(242, 169, 0, 0.06), transparent 70%);
+  filter: blur(20px);
+  z-index: 0;
+  opacity: 0.9;
+}
+.story-visual .phone {
+  position: relative;
+  z-index: 1;
+  width: min(360px, 82%);
+  transition: transform var(--dur) var(--ease);
+}
+.story:hover .story-visual .phone {
+  transform: translateY(-4px);
+}
+@media (max-width: 979px) {
+  .feature-stories {
+    padding-top: 60px;
+    padding-bottom: 60px;
+  }
+  .feature-stories .section-head {
+    margin-bottom: 32px;
+  }
+  .story-grid {
+    gap: 56px;
+  }
+  .story,
+  .story-reverse {
+    grid-template-columns: 1fr;
+    gap: 32px;
+    padding: 0;
+  }
+  .story-reverse .story-body {
+    order: initial;
+  }
+  .story-body {
+    max-width: none;
+  }
+  .story-visual .phone {
+    width: min(280px, 78vw);
+  }
+}
+

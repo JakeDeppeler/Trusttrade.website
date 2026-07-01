@@ -8,19 +8,6 @@ function scrollToWaitlist() {
   el.scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
-/**
- * Pilot: the marketing homepage runs on a cream palette (inverted from the
- * app's dark palette) for a bevel.health-inspired editorial feel. Toggled
- * on <body> so every rule scoped under body.theme-cream in landing.css
- * kicks in only for this page. Unmount cleans up so sub-pages stay dark.
- */
-function useCreamTheme() {
-  useEffect(() => {
-    document.body.classList.add("theme-cream");
-    return () => document.body.classList.remove("theme-cream");
-  }, []);
-}
-
 function Hero({ onJoin }) {
   return (
     <section className="hero" id="top">
@@ -114,113 +101,116 @@ function IntegrationsRow() {
   );
 }
 
+/* -----------------------------------------------------------------
+ * Feature stories — bevel's core feature-block pattern. All left-text
+ * right-phone (no alternation, matches bevel exactly). One short
+ * eyebrow, one big headline, one line of body. No bullets, no chips.
+ * -----------------------------------------------------------------*/
 const FEATURE_STORIES = [
   {
-    audience: "For homeowners",
     eyebrow: "Verified profile",
-    title: "Every tradie",
-    italic: "checked before you meet them.",
-    body: "Licence numbers verified at the state regulator. Public liability and workers' comp on file. Reviews from real bookings, not internet drive-bys. You see the receipts, not just star ratings.",
-    bullets: [
-      "Verified badge from the regulator, not us",
-      "Story · Gallery · Reviews · Services on one page",
-      "One-tap message or call from the profile",
-    ],
+    headline: "See who you're actually hiring.",
+    body: "Every tradie's licence is checked at the state regulator before they're listed. What you see is the receipt.",
     screenshot: "/assets/app-profile.png",
-    alt: "A verified tradie's public profile — cover photo, licence badge, story and reviews",
+    alt: "A verified tradie's public profile in the Trust Trade app",
   },
   {
-    audience: "For homeowners",
     eyebrow: "Fixed quote",
-    reverse: true,
-    title: "Call-out fees in writing.",
-    italic: "You approve before they roll.",
-    body: "The tradie sends a fixed call-out fee — one number, one line — through the chat. You tap Approve, or you don't. Every quote and every message is on the record on both accounts.",
-    bullets: [
-      "No hand-shake guessing, no \"I think they said $200\"",
-      "Booking confirmation logs ABN, address, fee, time",
-      "One thread per job — no scrolling for the right SMS",
-    ],
+    headline: "The price is the price.",
+    body: "Call-out fees are quoted in writing, in the chat, before anyone rolls. You approve or you don't.",
     screenshot: "/assets/app-quote.png",
-    alt: "A chat thread with a $120 call-out fee approved in writing",
+    alt: "A chat thread with a fixed call-out fee approved in writing",
   },
   {
-    audience: "For tradies",
-    eyebrow: "Your inbox",
-    title: "Every job",
-    italic: "in one place.",
-    body: "New enquiries, active jobs, quoted work and completed receipts all live in one inbox. Emergencies pin to the top. No more \"which Sarah was the laundry tap one?\" — every job has its own thread.",
-    bullets: [
-      "Emergencies pinned. Everything else sorted by newest.",
-      "One thread per job, from enquiry to receipt",
-      "Customer name + verified mobile attached",
-    ],
+    eyebrow: "One inbox",
+    headline: "Every job in one place.",
+    body: "New enquiries, quoted work, and completed jobs live in a single inbox. Emergencies pin to the top.",
     screenshot: "/assets/app-inbox.png",
-    alt: "The tradie inbox showing new enquiries, quoted, and booked jobs in one place",
+    alt: "The tradie inbox in the Trust Trade app",
   },
   {
-    audience: "For tradies",
     eyebrow: "Real numbers",
-    reverse: true,
-    title: "Numbers behind",
-    italic: "your listing.",
-    body: "Profile views, enquiries, tap-to-calls, first-reply time, lifetime reviews — all week-on-week. Plus a listing health score with a checklist of what to fix to climb the Browse ranking. Not a vanity dashboard.",
-    bullets: [
-      "Profile views + enquiries: last 7 days vs all time",
-      "Health score with fix-it checklist",
-      "First-reply time vs your trade average",
-    ],
+    headline: "Numbers behind your listing.",
+    body: "Profile views, enquiries, first-reply time — plus a health score that tells you what to fix next.",
     screenshot: "/assets/app-insights.png",
-    alt: "The tradie insights dashboard — profile views chart and listing health score",
+    alt: "The tradie insights dashboard",
   },
 ];
 
 function FeatureStories() {
   return (
-    <section className="block feature-stories" id="features">
+    <section className="feature-stories" id="features">
       <div className="container">
-        <div className="section-head">
-          <div className="eyebrow accent">— Inside the app</div>
-          <div>
-            <h2 className="h-1">
-              Built like the trades you'd <span className="it">actually recommend.</span>
-            </h2>
-          </div>
-        </div>
-
-        <div className="story-grid">
-          {FEATURE_STORIES.map((s) => (
-            <article
-              key={s.title + s.italic}
-              className={"story" + (s.reverse ? " story-reverse" : "")}
-            >
-              <div className="story-body">
-                <div className="story-audience">— {s.audience}</div>
-                <div className="story-eyebrow">{s.eyebrow}</div>
-                <h3 className="story-title">
-                  {s.title} <span className="it">{s.italic}</span>
-                </h3>
-                <p className="story-lede">{s.body}</p>
-                <ul className="story-bullets">
-                  {s.bullets.map((b) => (
-                    <li key={b}>{b}</li>
-                  ))}
-                </ul>
-              </div>
-              <div className="story-visual">
-                <div className="phone">
-                  <div className="phone-screen">
-                    <img
-                      src={s.screenshot}
-                      alt={s.alt}
-                      loading="lazy"
-                      decoding="async"
-                      width={1284}
-                      height={2778}
-                    />
-                  </div>
+        {FEATURE_STORIES.map((s) => (
+          <article className="story" key={s.headline}>
+            <div className="story-body">
+              <div className="story-eyebrow">{s.eyebrow}</div>
+              <h3 className="story-title">{s.headline}</h3>
+              <p className="story-lede">{s.body}</p>
+            </div>
+            <div className="story-visual">
+              <div className="phone">
+                <div className="phone-screen">
+                  <img
+                    src={s.screenshot}
+                    alt={s.alt}
+                    loading="lazy"
+                    decoding="async"
+                    width={1284}
+                    height={2778}
+                  />
                 </div>
               </div>
+            </div>
+          </article>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+/* -----------------------------------------------------------------
+ * Behind the scenes — bevel's "Bevel Intelligence" analog. A big
+ * section-head introducing a narrative theme, then 3 sub-features
+ * as compact left-text/right-mini-visual rows.
+ * -----------------------------------------------------------------*/
+const BEHIND_SCENES = [
+  {
+    eyebrow: "Trade routing",
+    headline: "Describe it in plain English.",
+    body: "Type or dictate what's wrong. We work out which trade you actually need before you're routed anywhere.",
+  },
+  {
+    eyebrow: "Checked at source",
+    headline: "Verified at the regulator.",
+    body: "Licence numbers cross-checked with VBA, ESV, ASIC, IP Australia. Re-checked quarterly on every listed tradie.",
+  },
+  {
+    eyebrow: "On the record",
+    headline: "Every job leaves a paper trail.",
+    body: "Name, ABN, address, time, price. Auto-logged on both accounts the moment a job is marked complete.",
+  },
+];
+
+function BehindTheScenes() {
+  return (
+    <section className="behind-scenes">
+      <div className="container">
+        <div className="behind-head">
+          <div className="eyebrow accent">— Behind the scenes</div>
+          <h2 className="h-1">
+            More than a directory. <span className="it">A system.</span>
+          </h2>
+          <p className="lede">
+            Under the hood: AI-powered trade routing, live regulator checks, and a full audit trail on every job.
+          </p>
+        </div>
+        <div className="behind-grid">
+          {BEHIND_SCENES.map((s) => (
+            <article className="behind-item" key={s.headline}>
+              <div className="behind-eyebrow">— {s.eyebrow}</div>
+              <h3 className="behind-title">{s.headline}</h3>
+              <p className="behind-body">{s.body}</p>
             </article>
           ))}
         </div>
@@ -229,186 +219,141 @@ function FeatureStories() {
   );
 }
 
-function TrustStrip() {
+/* -----------------------------------------------------------------
+ * Additional features — bevel's "And that's not all" 2-column grid
+ * of smaller features, paired with a phone screenshot on the right.
+ * -----------------------------------------------------------------*/
+const ADDITIONAL_FEATURES = [
+  { title: "Nearest first", body: "Sort verified locals by distance. No 25 km commute quotes." },
+  { title: "Emergency filter", body: "Filter by who can be there today — verified and available." },
+  { title: "Reviews from real jobs", body: "Only confirmed bookings can leave a review. No bot armies." },
+  { title: "In-app chat", body: "One thread per job. ETA pings, photos, receipts — one place." },
+  { title: "Fixed call-out fees", body: "Every tradie sets their own. In writing, approved up front." },
+  { title: "Multi-postcode reach", body: "Tradies choose their radius. 5 km, 25 km, or the whole metro." },
+  { title: "Founding 50 pricing", body: "First 50 tradies in lock in lifetime founding rates." },
+  { title: "Human dispute mediation", body: "Both sides have the record. We mediate within 48 hours." },
+];
+
+function AdditionalFeatures() {
   return (
-    <section className="trust-strip">
+    <section className="additional-features">
       <div className="container">
-        <div className="trust-strip-grid">
-          <PageLink href="About.html" className="trust-item">
-            <div className="num">
-              100<span className="sm">%</span>
+        <div className="additional-head">
+          <div className="eyebrow accent">— And that's not all</div>
+          <h2 className="h-1">
+            Small stuff that <span className="it">adds up.</span>
+          </h2>
+        </div>
+        <div className="additional-inner">
+          <ul className="additional-grid">
+            {ADDITIONAL_FEATURES.map((f) => (
+              <li className="additional-item" key={f.title}>
+                <h4>{f.title}</h4>
+                <p>{f.body}</p>
+              </li>
+            ))}
+          </ul>
+          <div className="additional-visual">
+            <div className="phone">
+              <div className="phone-screen">
+                <img
+                  src="/assets/app-insights-detail.png"
+                  alt="Detailed tradie insights — profile views, enquiries, calls, emails, reviews"
+                  loading="lazy"
+                  decoding="async"
+                  width={1284}
+                  height={2778}
+                />
+              </div>
             </div>
-            <div className="lbl">Tradies verified before they land in front of you.</div>
-          </PageLink>
-          <PageLink href="About.html" className="trust-item">
-            <div className="num">
-              4
-            </div>
-            <div className="lbl">Hard checks before a tradie's listed. Licence, insurance, ABN, conduct.</div>
-          </PageLink>
-          <PageLink href="About.html" className="trust-item">
-            <div className="num">
-              $0
-            </div>
-            <div className="lbl">Surcharge for homeowners. Free to use, no commission on tradies.</div>
-          </PageLink>
-          <PageLink href="About.html" className="trust-item">
-            <div className="num">
-              <span className="it">20<span className="sm">+</span></span>
-            </div>
-            <div className="lbl">
-              Verification points we check on every tradie. So you actually know who to trust.
-            </div>
-          </PageLink>
+          </div>
         </div>
       </div>
     </section>
   );
 }
 
-const DIFFERENTIATOR_HOOKS = [
+/* -----------------------------------------------------------------
+ * Privacy break — bevel's "Built for privacy" moment reframed as
+ * "Built by a tradie" (the equivalent trust anchor for a pre-launch
+ * marketplace). Decorative background band.
+ * -----------------------------------------------------------------*/
+function PrivacyBreak() {
+  return (
+    <section className="privacy-break">
+      <div className="privacy-decor" aria-hidden="true" />
+      <div className="container">
+        <div className="privacy-inner">
+          <div className="eyebrow accent">— Why we're doing this</div>
+          <h2 className="h-1">
+            Built by a tradie. <span className="it">For the trades.</span>
+          </h2>
+          <p className="lede">
+            I'm a mechanical plumber. I've quoted the work, I've done the work, I've seen the aftermath when it goes wrong. Trust Trade is the app I wish had existed when I started — from both sides of the front door.
+          </p>
+          <div className="privacy-attr">
+            <div className="privacy-avatar" aria-hidden="true">J</div>
+            <div>
+              <strong>Jake</strong>
+              <span>Mech plumber · Founder · Melbourne</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/* -----------------------------------------------------------------
+ * Founder voice cards — bevel's testimonial carousel adapted. No real
+ * users pre-launch, so we run founder pull-quotes as the honest
+ * equivalent trust signal. Three-card grid.
+ * -----------------------------------------------------------------*/
+const FOUNDER_VOICES = [
   {
-    ticker: "Hook 01",
-    title: "Verified at the regulator.",
-    body: "Every tradie's licence is checked at the source — VBA, ESV, VBPRB. Not honour-system. Not self-reported. Re-checked quarterly.",
+    title: "The problem",
+    quote:
+      "I've quoted jobs where the customer showed me a competitor's estimate and I could tell it was a chancer with no licence, no insurance, hoping to be gone before it fell over. That's who Trust Trade exists to route around.",
+    when: "Founder's note · May 2026",
   },
   {
-    ticker: "Hook 02",
-    title: "No job posting. No bidding wars.",
-    body: "We don't auction your job to a queue of tradies. You browse verified locals, pick the one you trust, and contact them direct. They quote a fixed call-out fee — you say yes or you don't.",
+    title: "Why cheap costs more",
+    quote:
+      "You save $200 up front on a dodgy tiler. You lose $2,000 fixing the waterproofing eighteen months later. Cheap tradies aren't cheap. They're just the first bill.",
+    when: "Founder's note · June 2026",
   },
   {
-    ticker: "Hook 03",
-    title: "Built by a mech plumber.",
-    body: "Started at the bottom, now I see both sides — on the tools and on the quotes. Same problem every time: people don't know who to trust. So I built one place where they can.",
-  },
-  {
-    ticker: "Hook 04",
-    title: "Receipts, not promises.",
-    body: "Every booking is logged. Quote, ETA, address, fee, chat — all on the record. If something goes sideways, both sides have the receipts.",
+    title: "What we're not",
+    quote:
+      "We're not a job-posting site. We don't sell your details to five people who then hound you at 7am. You browse, you pick, you contact. That's the whole model.",
+    when: "Founder's note · June 2026",
   },
 ];
 
-function Hooks() {
+function FounderVoiceCards() {
   return (
-    <section className="hooks-section">
+    <section className="voice-cards">
       <div className="container">
-        <div className="hooks-head">
-          <div className="eyebrow accent">— What's different</div>
+        <div className="voice-head">
+          <div className="eyebrow accent">— From the tools</div>
           <h2 className="h-1">
-            Four things <span className="it">we won't trade away.</span>
+            Notes from the <span className="it">workshop floor.</span>
           </h2>
         </div>
-        <div className="hooks-grid">
-          {DIFFERENTIATOR_HOOKS.map((h) => (
-            <div className="hook" key={h.ticker}>
-              <div className="hook-ticker">— {h.ticker}</div>
-              <h3 className="hook-title">{h.title}</h3>
-              <p className="hook-body">{h.body}</p>
-            </div>
+        <div className="voice-grid">
+          {FOUNDER_VOICES.map((v) => (
+            <article className="voice-card" key={v.title}>
+              <div className="voice-eyebrow">— {v.title}</div>
+              <blockquote>{v.quote}</blockquote>
+              <div className="voice-attr">
+                <div className="voice-avatar" aria-hidden="true">J</div>
+                <div>
+                  <strong>Jake</strong>
+                  <span>{v.when}</span>
+                </div>
+              </div>
+            </article>
           ))}
-        </div>
-      </div>
-    </section>
-  );
-}
-
-function HowItWorks() {
-  return (
-    <section className="block" id="how">
-      <div className="container">
-        <div className="section-head">
-          <div className="eyebrow accent">— Homeowners</div>
-          <div>
-            <h2 className="h-1">
-              Three taps. Real humans. <span className="it">Done proper.</span>
-            </h2>
-            <p className="lede" style={{ marginTop: 18 }}>
-              No quote-form rodeo. No five tradies SMS-blasting you at 7am. Tell us what's broken;
-              we'll route you to someone who can fix it today.
-            </p>
-          </div>
-        </div>
-        <div className="steps">
-          <div className="step">
-            <div className="step-num">01</div>
-            <h3 className="h-3">Tell us what's wrong.</h3>
-            <p>
-              Leaking tap. Tripping fuse. Planning a reno. Plain English. Our AI works out which
-              trade you actually need.
-            </p>
-            <div className="step-visual">
-              <img
-                src="/assets/app-home.png"
-                alt="Trust Trade homeowner home screen"
-                loading="lazy"
-                decoding="async"
-                width={1284}
-                height={2778}
-              />
-            </div>
-          </div>
-          <div className="step">
-            <div className="step-num">02</div>
-            <h3 className="h-3">Routed to vetted locals.</h3>
-            <p>
-              Insured, licenced, reviewed. Nearest first. No marketplace mosh-pit. Just a shortlist
-              of mates who can do the job.
-            </p>
-            <div className="step-visual">
-              <img
-                src="/assets/app-browse.png"
-                alt="Browse tradies screen"
-                loading="lazy"
-                decoding="async"
-                width={1284}
-                height={2778}
-              />
-            </div>
-          </div>
-          <div className="step">
-            <div className="step-num">03</div>
-            <h3 className="h-3">Approve. Book it in.</h3>
-            <p>
-              Fixed call-out fee, in writing, up front. Tap Approve and you've got a booking
-              confirmation. Name, time, address, all logged.
-            </p>
-            <div className="step-visual">
-              <img
-                src="/assets/app-quote.png"
-                alt="Call-out fee approved in chat"
-                loading="lazy"
-                decoding="async"
-                width={1284}
-                height={2778}
-              />
-            </div>
-          </div>
-        </div>
-      </div>
-    </section>
-  );
-}
-
-function LightBreaker() {
-  return (
-    <section className="light-breaker">
-      <div className="container">
-        <div className="light-breaker-inner">
-          <div className="eyebrow accent">— From the founder</div>
-          <blockquote className="light-breaker-quote">
-            "I'm a mechanical plumber. Started at the bottom — apprentice, on the tools. Now I
-            see both sides: still doing the work, and running the quoting side. Same problem
-            every time:{" "}<span className="it">people don't know who to trust.</span> That's
-            what I built Trust Trade to fix."
-          </blockquote>
-          <div className="light-breaker-attr">
-            <div className="avatar">J</div>
-            <div className="who">
-              <strong>Jake</strong>
-              <span>Mech plumber · Founder</span>
-            </div>
-          </div>
         </div>
       </div>
     </section>
@@ -807,21 +752,21 @@ function MobileStickyCTA({ onJoin }) {
 }
 
 export default function LandingPage() {
-  useCreamTheme();
   return (
     <>
       <PageHeader current="Trust Trade Landing.html" />
       <Hero onJoin={scrollToWaitlist} />
       <IntegrationsRow />
-      <TrustStrip />
-      <Hooks />
-      <HowItWorks />
-      <LightBreaker />
       <FeatureStories />
+      <BehindTheScenes />
+      <AdditionalFeatures />
+      <PrivacyBreak />
+      <FounderVoiceCards />
       <ForTradiesSection onJoin={scrollToWaitlist} />
       <WaitlistMoment />
       <FAQSection />
       <PageFooter />
+      <MobileStickyCTA onJoin={scrollToWaitlist} />
     </>
   );
 }

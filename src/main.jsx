@@ -13,6 +13,11 @@ import AboutPage from "./pages/AboutPage.jsx";
 import "./styles/landing.css";
 import "./styles/pages.css";
 
+// Marketing site runs on the cream-primary/dark-accent inversion of the
+// app's brand palette. Set once at boot so every page inherits — do it
+// before the first render so there's no theme flash.
+document.body.classList.add("theme-cream");
+
 ReactDOM.createRoot(document.getElementById("root")).render(
   <React.StrictMode>
     <BrowserRouter>

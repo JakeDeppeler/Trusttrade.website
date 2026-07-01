@@ -144,30 +144,63 @@ export function PageHeader({ current }) {
   );
 }
 
-export function PageHero({ eyebrow, title, italicWord, lede, meta }) {
+/**
+ * Bevel-style centered page hero. Every sub-page uses this as the opener.
+ * Big centered eyebrow-pill + huge italic-accented headline + centered
+ * subhead + optional CTA row. Meta rows still supported (used by old
+ * dark theme; on cream they render as a subtle 4-up strip below the
+ * subhead).
+ */
+export function PageHero({
+  eyebrow,
+  title,
+  italicWord,
+  lede,
+  meta,
+  ctaLabel,
+  ctaHref = "Trust Trade Landing.html#waitlist",
+  secondaryLabel,
+  secondaryHref,
+}) {
   return (
-    <section className="page-hero">
+    <section className="page-hero page-hero-centered">
+      <div className="page-hero-decor" aria-hidden="true" />
       <div className="container">
-        <div className="page-hero-grid">
-          <div>
-            <div className="eyebrow accent">— {eyebrow}</div>
-            <h1 className="h-display page-hero-title">
-              {title} {italicWord && <span className="it">{italicWord}</span>}
-            </h1>
-          </div>
-          <div className="page-hero-side">
-            {lede && <p className="lede">{lede}</p>}
-            {meta && (
-              <div className="page-hero-meta">
-                {meta.map((m, i) => (
-                  <div key={i} className="page-hero-meta-row">
-                    <div className="k">{m.k}</div>
-                    <div className="v">{m.v}</div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
+        <div className="page-hero-centered-inner">
+          {eyebrow && (
+            <div className="page-hero-eyebrow">
+              <span className="dot" aria-hidden="true" />
+              {eyebrow}
+            </div>
+          )}
+          <h1 className="page-hero-title-xl">
+            {title} {italicWord && <span className="it">{italicWord}</span>}
+          </h1>
+          {lede && <p className="page-hero-subhead">{lede}</p>}
+          {(ctaLabel || secondaryLabel) && (
+            <div className="page-hero-cta-row">
+              {ctaLabel && (
+                <PageLink href={ctaHref} className="btn btn-primary btn-lg">
+                  {ctaLabel}
+                </PageLink>
+              )}
+              {secondaryLabel && (
+                <PageLink href={secondaryHref} className="btn btn-ghost btn-lg">
+                  {secondaryLabel}
+                </PageLink>
+              )}
+            </div>
+          )}
+          {meta && (
+            <div className="page-hero-meta-strip">
+              {meta.map((m, i) => (
+                <div key={i} className="page-hero-meta-strip-item">
+                  <div className="k">{m.k}</div>
+                  <div className="v">{m.v}</div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
     </section>

@@ -1,6 +1,13 @@
 import { useEffect, useState } from "react";
 import { PageFooter, PageHeader } from "../components/PageChrome.jsx";
 import PageLink from "../components/PageLink.jsx";
+import {
+  FeatureStories,
+  BehindTheScenes,
+  AdditionalFeatures,
+  PrivacyBreak,
+  VoiceCards,
+} from "../components/BevelSections.jsx";
 
 function scrollToWaitlist() {
   const el = document.getElementById("waitlist");
@@ -10,57 +17,71 @@ function scrollToWaitlist() {
 
 function Hero({ onJoin }) {
   return (
-    <section className="hero" id="top">
+    <section className="hero hero-centered" id="top">
+      <div className="hero-aurora" aria-hidden="true" />
       <div className="container">
-        <div className="hero-grid">
-          <div>
-            <h1 className="h-display">
-              Find a tradie.
-              <br />
-              <span className="glow-wrap">
-                <span className="it">Done proper.</span>
-              </span>
-            </h1>
-            <p className="lede" style={{ marginTop: 32 }}>
-              Built by a mechanical plumber who started at the bottom and now sees both sides —
-              on the tools and quoting the work. The same problem keeps showing up: people don't
-              know who to trust. Verified, insured, recommended local tradies — landing on your
-              phone soon.
-            </p>
-            <div className="hero-cta-row">
-              <button
-                type="button"
-                className="btn btn-primary btn-lg"
-                onClick={onJoin}
-              >
-                Get on the list →
-              </button>
-            </div>
-            <div className="hero-trust-row">
-              <div className="hero-trust-dot" aria-hidden="true"></div>
-              <div>Founding 50 spots open · No spam, ever</div>
-            </div>
+        <div className="hero-centered-inner">
+          <div className="hero-eyebrow-pill">
+            <span className="dot" aria-hidden="true" />
+            The Australian tradie standard
           </div>
-          <div className="phone-stage">
-            <div className="phone-tag tag-1">
-              <span className="swatch"></span>Verified, insured
-            </div>
-            <div className="phone-tag tag-2">
-              <span className="swatch"></span>Licence checked
-            </div>
-            <div className="phone-tag tag-3">
-              <span className="swatch"></span>Quote in writing
-            </div>
-            <div className="phone">
-              <div className="phone-screen">
-                <img
-                  src="/assets/app-home.png"
-                  alt="Trust Trade app home screen"
-                  width={1284}
-                  height={2778}
-                  fetchPriority="high"
-                  decoding="async"
-                />
+          <h1 className="hero-title-xl">
+            Find a tradie.
+            <br />
+            <span className="glow-wrap">
+              <span className="it">Done proper.</span>
+            </span>
+          </h1>
+          <p className="hero-subhead">
+            Verified, insured local tradies. Fixed call-out fees in writing. Every job on the record.
+          </p>
+          <div className="hero-cta-row centered">
+            <button
+              type="button"
+              className="btn btn-primary btn-lg"
+              onClick={onJoin}
+            >
+              Join the waitlist →
+            </button>
+          </div>
+          <div className="hero-trust-row centered">
+            <div className="hero-trust-dot" aria-hidden="true"></div>
+            <div>Founding 50 spots open · No spam, ever</div>
+          </div>
+          <div className="hero-devices">
+            <div className="hero-phone-container">
+              <div className="hero-float-card float-tl">
+                <div className="float-icon" aria-hidden="true">✓</div>
+                <div>
+                  <strong>Licence verified</strong>
+                  <span>VBA · re-checked quarterly</span>
+                </div>
+              </div>
+              <div className="hero-float-card float-tr">
+                <div className="float-badge" aria-hidden="true">$200</div>
+                <div>
+                  <strong>Call-out approved</strong>
+                  <span>In writing · both sides</span>
+                </div>
+              </div>
+              <div className="hero-float-card float-br">
+                <div className="float-dot" aria-hidden="true"><span /></div>
+                <div>
+                  <strong>0.4 km away</strong>
+                  <span>Available today · 4.9 ★ (12)</span>
+                </div>
+              </div>
+              <div className="phone">
+                <div className="phone-screen">
+                  <img
+                    src="/assets/app-home.png"
+                    alt="Trust Trade app home screen"
+                    width={1284}
+                    height={2778}
+                    fetchPriority="high"
+                    decoding="async"
+                  />
+                </div>
               </div>
             </div>
           </div>
@@ -106,13 +127,22 @@ function IntegrationsRow() {
  * right-phone (no alternation, matches bevel exactly). One short
  * eyebrow, one big headline, one line of body. No bullets, no chips.
  * -----------------------------------------------------------------*/
-const FEATURE_STORIES = [
+/* Content for the shared BevelSections components on the homepage. */
+const HOMEPAGE_STORIES = [
   {
     eyebrow: "Verified profile",
     headline: "See who you're actually hiring.",
     body: "Every tradie's licence is checked at the state regulator before they're listed. What you see is the receipt.",
     screenshot: "/assets/app-profile.png",
     alt: "A verified tradie's public profile in the Trust Trade app",
+    overlayCards: [
+      {
+        position: "tl",
+        icon: "✓",
+        title: "Licence verified",
+        sub: "VBA · re-checked quarterly",
+      },
+    ],
   },
   {
     eyebrow: "Fixed quote",
@@ -120,6 +150,15 @@ const FEATURE_STORIES = [
     body: "Call-out fees are quoted in writing, in the chat, before anyone rolls. You approve or you don't.",
     screenshot: "/assets/app-quote.png",
     alt: "A chat thread with a fixed call-out fee approved in writing",
+    overlayCards: [
+      {
+        position: "br",
+        badge: "$120",
+        badgeStyle: "float-badge-approved",
+        title: "Call-out approved",
+        sub: "In writing · both sides",
+      },
+    ],
   },
   {
     eyebrow: "One inbox",
@@ -127,6 +166,14 @@ const FEATURE_STORIES = [
     body: "New enquiries, quoted work, and completed jobs live in a single inbox. Emergencies pin to the top.",
     screenshot: "/assets/app-inbox.png",
     alt: "The tradie inbox in the Trust Trade app",
+    overlayCards: [
+      {
+        position: "tr",
+        icon: "!",
+        title: "Emergency pinned",
+        sub: "Hot water · Pakenham",
+      },
+    ],
   },
   {
     eyebrow: "Real numbers",
@@ -134,47 +181,18 @@ const FEATURE_STORIES = [
     body: "Profile views, enquiries, first-reply time — plus a health score that tells you what to fix next.",
     screenshot: "/assets/app-insights.png",
     alt: "The tradie insights dashboard",
+    overlayCards: [
+      {
+        position: "tl",
+        icon: "↗",
+        title: "+18% this week",
+        sub: "Profile views vs last 7d",
+      },
+    ],
   },
 ];
 
-function FeatureStories() {
-  return (
-    <section className="feature-stories" id="features">
-      <div className="container">
-        {FEATURE_STORIES.map((s) => (
-          <article className="story" key={s.headline}>
-            <div className="story-body">
-              <div className="story-eyebrow">{s.eyebrow}</div>
-              <h3 className="story-title">{s.headline}</h3>
-              <p className="story-lede">{s.body}</p>
-            </div>
-            <div className="story-visual">
-              <div className="phone">
-                <div className="phone-screen">
-                  <img
-                    src={s.screenshot}
-                    alt={s.alt}
-                    loading="lazy"
-                    decoding="async"
-                    width={1284}
-                    height={2778}
-                  />
-                </div>
-              </div>
-            </div>
-          </article>
-        ))}
-      </div>
-    </section>
-  );
-}
-
-/* -----------------------------------------------------------------
- * Behind the scenes — bevel's "Bevel Intelligence" analog. A big
- * section-head introducing a narrative theme, then 3 sub-features
- * as compact left-text/right-mini-visual rows.
- * -----------------------------------------------------------------*/
-const BEHIND_SCENES = [
+const HOMEPAGE_BEHIND_SCENES = [
   {
     eyebrow: "Trade routing",
     headline: "Describe it in plain English.",
@@ -192,38 +210,7 @@ const BEHIND_SCENES = [
   },
 ];
 
-function BehindTheScenes() {
-  return (
-    <section className="behind-scenes">
-      <div className="container">
-        <div className="behind-head">
-          <div className="eyebrow accent">— Behind the scenes</div>
-          <h2 className="h-1">
-            More than a directory. <span className="it">A system.</span>
-          </h2>
-          <p className="lede">
-            Under the hood: AI-powered trade routing, live regulator checks, and a full audit trail on every job.
-          </p>
-        </div>
-        <div className="behind-grid">
-          {BEHIND_SCENES.map((s) => (
-            <article className="behind-item" key={s.headline}>
-              <div className="behind-eyebrow">— {s.eyebrow}</div>
-              <h3 className="behind-title">{s.headline}</h3>
-              <p className="behind-body">{s.body}</p>
-            </article>
-          ))}
-        </div>
-      </div>
-    </section>
-  );
-}
-
-/* -----------------------------------------------------------------
- * Additional features — bevel's "And that's not all" 2-column grid
- * of smaller features, paired with a phone screenshot on the right.
- * -----------------------------------------------------------------*/
-const ADDITIONAL_FEATURES = [
+const HOMEPAGE_ADDITIONAL = [
   { title: "Nearest first", body: "Sort verified locals by distance. No 25 km commute quotes." },
   { title: "Emergency filter", body: "Filter by who can be there today — verified and available." },
   { title: "Reviews from real jobs", body: "Only confirmed bookings can leave a review. No bot armies." },
@@ -234,82 +221,7 @@ const ADDITIONAL_FEATURES = [
   { title: "Human dispute mediation", body: "Both sides have the record. We mediate within 48 hours." },
 ];
 
-function AdditionalFeatures() {
-  return (
-    <section className="additional-features">
-      <div className="container">
-        <div className="additional-head">
-          <div className="eyebrow accent">— And that's not all</div>
-          <h2 className="h-1">
-            Small stuff that <span className="it">adds up.</span>
-          </h2>
-        </div>
-        <div className="additional-inner">
-          <ul className="additional-grid">
-            {ADDITIONAL_FEATURES.map((f) => (
-              <li className="additional-item" key={f.title}>
-                <h4>{f.title}</h4>
-                <p>{f.body}</p>
-              </li>
-            ))}
-          </ul>
-          <div className="additional-visual">
-            <div className="phone">
-              <div className="phone-screen">
-                <img
-                  src="/assets/app-insights-detail.png"
-                  alt="Detailed tradie insights — profile views, enquiries, calls, emails, reviews"
-                  loading="lazy"
-                  decoding="async"
-                  width={1284}
-                  height={2778}
-                />
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </section>
-  );
-}
-
-/* -----------------------------------------------------------------
- * Privacy break — bevel's "Built for privacy" moment reframed as
- * "Built by a tradie" (the equivalent trust anchor for a pre-launch
- * marketplace). Decorative background band.
- * -----------------------------------------------------------------*/
-function PrivacyBreak() {
-  return (
-    <section className="privacy-break">
-      <div className="privacy-decor" aria-hidden="true" />
-      <div className="container">
-        <div className="privacy-inner">
-          <div className="eyebrow accent">— Why we're doing this</div>
-          <h2 className="h-1">
-            Built by a tradie. <span className="it">For the trades.</span>
-          </h2>
-          <p className="lede">
-            I'm a mechanical plumber. I've quoted the work, I've done the work, I've seen the aftermath when it goes wrong. Trust Trade is the app I wish had existed when I started — from both sides of the front door.
-          </p>
-          <div className="privacy-attr">
-            <div className="privacy-avatar" aria-hidden="true">J</div>
-            <div>
-              <strong>Jake</strong>
-              <span>Mech plumber · Founder · Melbourne</span>
-            </div>
-          </div>
-        </div>
-      </div>
-    </section>
-  );
-}
-
-/* -----------------------------------------------------------------
- * Founder voice cards — bevel's testimonial carousel adapted. No real
- * users pre-launch, so we run founder pull-quotes as the honest
- * equivalent trust signal. Three-card grid.
- * -----------------------------------------------------------------*/
-const FOUNDER_VOICES = [
+const HOMEPAGE_VOICES = [
   {
     title: "The problem",
     quote:
@@ -329,36 +241,6 @@ const FOUNDER_VOICES = [
     when: "Founder's note · June 2026",
   },
 ];
-
-function FounderVoiceCards() {
-  return (
-    <section className="voice-cards">
-      <div className="container">
-        <div className="voice-head">
-          <div className="eyebrow accent">— From the tools</div>
-          <h2 className="h-1">
-            Notes from the <span className="it">workshop floor.</span>
-          </h2>
-        </div>
-        <div className="voice-grid">
-          {FOUNDER_VOICES.map((v) => (
-            <article className="voice-card" key={v.title}>
-              <div className="voice-eyebrow">— {v.title}</div>
-              <blockquote>{v.quote}</blockquote>
-              <div className="voice-attr">
-                <div className="voice-avatar" aria-hidden="true">J</div>
-                <div>
-                  <strong>Jake</strong>
-                  <span>{v.when}</span>
-                </div>
-              </div>
-            </article>
-          ))}
-        </div>
-      </div>
-    </section>
-  );
-}
 
 function ForTradiesSection({ onJoin }) {
   return (
@@ -757,12 +639,34 @@ export default function LandingPage() {
       <PageHeader current="Trust Trade Landing.html" />
       <Hero onJoin={scrollToWaitlist} />
       <IntegrationsRow />
-      <FeatureStories />
-      <BehindTheScenes />
-      <AdditionalFeatures />
-      <PrivacyBreak />
-      <FounderVoiceCards />
-      <ForTradiesSection onJoin={scrollToWaitlist} />
+      <FeatureStories stories={HOMEPAGE_STORIES} />
+      <BehindTheScenes
+        eyebrow="Behind the scenes"
+        title="More than a directory."
+        italicWord="A system."
+        subhead="Under the hood: AI-powered trade routing, live regulator checks, and a full audit trail on every job."
+        items={HOMEPAGE_BEHIND_SCENES}
+      />
+      <AdditionalFeatures
+        eyebrow="And that's not all"
+        title="Small stuff that"
+        italicWord="adds up."
+        items={HOMEPAGE_ADDITIONAL}
+        screenshot="/assets/app-insights-detail.png"
+        alt="Detailed tradie insights — profile views, enquiries, calls, emails, reviews"
+      />
+      <PrivacyBreak
+        eyebrow="Why we're doing this"
+        title="Built by a tradie."
+        italicWord="For the trades."
+        body="I'm a mechanical plumber. I've quoted the work, I've done the work, I've seen the aftermath when it goes wrong. Trust Trade is the app I wish had existed when I started — from both sides of the front door."
+      />
+      <VoiceCards
+        eyebrow="From the tools"
+        title="Notes from the"
+        italicWord="workshop floor."
+        quotes={HOMEPAGE_VOICES}
+      />
       <WaitlistMoment />
       <FAQSection />
       <PageFooter />

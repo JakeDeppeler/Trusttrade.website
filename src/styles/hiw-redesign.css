@@ -387,3 +387,70 @@
   transition: width 1.4s cubic-bezier(.22,.85,.24,1);
 }
 .meter.in .meter-fill { width: var(--pct, 70%); }
+
+/* ============================================================
+   Download end-CTA card ("Get it done proper.") — matches the
+   How It Works design's closing section: a dark card with an
+   App Store button + QR, on the cream page.
+   ============================================================ */
+.final { padding: clamp(72px, 9vw, 130px) 0; }
+.final-card {
+  position: relative;
+  border-radius: var(--radius-xl);
+  overflow: hidden;
+  background: #17110A;
+  color: #F3ECDD;
+  padding: clamp(48px, 7vw, 90px) clamp(28px, 5vw, 72px);
+  box-shadow: 0 50px 100px -40px rgba(23, 17, 10, 0.5);
+  text-align: left;
+}
+.final-photo {
+  position: absolute; inset: 0; z-index: 0; opacity: 0.9;
+  background-image: repeating-linear-gradient(135deg, rgba(242, 184, 31, 0.10) 0 2px, transparent 2px 11px);
+}
+.final-photo::after {
+  content: attr(data-note);
+  position: absolute; right: 22px; bottom: 18px;
+  font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase;
+  color: rgba(243, 236, 221, 0.35);
+}
+.final-card::after {
+  content: ""; position: absolute; inset: 0; z-index: 1; pointer-events: none;
+  background:
+    radial-gradient(80% 100% at 20% 30%, rgba(23, 17, 10, 0.4), transparent 70%),
+    linear-gradient(90deg, #17110A 0%, rgba(23, 17, 10, 0.6) 55%, transparent 100%);
+}
+.final-inner { position: relative; z-index: 2; max-width: 640px; }
+.final-inner .eyebrow { color: var(--accent); margin-bottom: 20px; }
+.final-inner .eyebrow.dot::before { background: var(--accent); }
+.final-inner .h-1 { color: #F3ECDD; }
+.final-inner .h-1 .it { color: var(--accent); font-style: italic; }
+.final-inner .lede { color: rgba(243, 236, 221, 0.75); margin: 22px 0 34px; max-width: 46ch; }
+.final-actions { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+.appstore-btn {
+  display: inline-flex; align-items: center; gap: 12px;
+  height: 58px; padding: 0 24px 0 20px;
+  background: #F3ECDD; color: #17110A;
+  border-radius: 14px;
+  transition: transform .15s ease, background .2s ease, box-shadow .2s ease;
+  box-shadow: 0 14px 30px -12px rgba(0, 0, 0, 0.5);
+}
+.appstore-btn:hover { background: #FFFFFF; transform: translateY(-1px); }
+.appstore-btn:active { transform: translateY(0); }
+.appstore-btn .glyph { display: inline-flex; line-height: 0; }
+.appstore-btn .as-txt { display: flex; flex-direction: column; line-height: 1.05; text-align: left; }
+.appstore-btn .as-txt .small { font-size: 11px; opacity: 0.72; letter-spacing: 0.02em; }
+.appstore-btn .as-txt .big {
+  font-family: var(--font-display); font-weight: 700; font-size: 19px; letter-spacing: -0.01em;
+}
+.final-qr {
+  display: none; align-items: center; gap: 14px; margin-left: 8px;
+  padding: 10px 14px; border: 1px solid rgba(243, 236, 221, 0.18); border-radius: 14px;
+}
+.final-qr .qr {
+  width: 54px; height: 54px; border-radius: 8px; flex-shrink: 0;
+  background: conic-gradient(from 0deg, #F3ECDD 0 25%, #17110A 0 50%, #F3ECDD 0 75%, #17110A 0) 0 0/18px 18px;
+  background-color: #F3ECDD;
+}
+.final-qr .qr-txt { font-size: 12px; color: rgba(243, 236, 221, 0.7); line-height: 1.35; max-width: 130px; }
+@media (min-width: 640px) { .final-qr { display: flex; } }

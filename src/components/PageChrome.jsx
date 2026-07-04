@@ -242,6 +242,50 @@ export function PageWaitlistFooterCTA({
   );
 }
 
+// Download end-CTA card ("Get it done proper.") — the closing section on the
+// How It Works page, matching the design. Dark card + App Store button + QR.
+export function PageDownloadCTA({
+  eyebrow = "Ready when you are",
+  title = "Get it",
+  italic = "done proper.",
+  lede = "Verified, insured, recommended local tradies — landing on your phone soon. Download Trust Trade and find the right human, first time.",
+  photoNote = "Photo · tradie ute + toolbox, warm dusk",
+}) {
+  return (
+    <section className="final" id="download">
+      <div className="container">
+        <div className="final-card reveal reveal-scale">
+          <div className="final-photo" data-note={photoNote} aria-hidden="true" />
+          <div className="final-inner">
+            <div className="eyebrow dot">{eyebrow}</div>
+            <h2 className="h-1">
+              {title} <span className="it">{italic}</span>
+            </h2>
+            <p className="lede">{lede}</p>
+            <div className="final-actions">
+              <PageLink className="appstore-btn" href="Trust Trade Landing.html#waitlist">
+                <span className="glyph" aria-hidden="true">
+                  <svg width="22" height="24" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M17.05 12.94c.02-2.34 1.92-3.47 2-3.52-1.09-1.6-2.79-1.82-3.4-1.85-1.43-.15-2.81.86-3.54.86-.74 0-1.86-.84-3.06-.82-1.57.02-3.03.92-3.84 2.33-1.65 2.86-.42 7.08 1.18 9.4.78 1.13 1.71 2.4 2.93 2.35 1.18-.05 1.63-.76 3.05-.76 1.42 0 1.82.76 3.06.74 1.27-.02 2.07-1.15 2.84-2.29.9-1.31 1.27-2.59 1.29-2.65-.03-.01-2.47-.95-2.51-3.79zM14.74 5.72c.66-.8 1.1-1.91.98-3.02-.95.04-2.09.63-2.77 1.43-.61.71-1.14 1.84-1 2.94 1.06.08 2.13-.54 2.79-1.35z" />
+                  </svg>
+                </span>
+                <span className="as-txt">
+                  <span className="small">Download on the</span>
+                  <span className="big">App Store</span>
+                </span>
+              </PageLink>
+              <div className="final-qr" aria-hidden="true">
+                <div className="qr" />
+                <div className="qr-txt">Scan to download when we launch in the App Store.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
 export function PageFooter() {
   return (
     <footer className="footer">

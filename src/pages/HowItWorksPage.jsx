@@ -1,8 +1,8 @@
 import {
+  PageDownloadCTA,
   PageFooter,
   PageHeader,
   PageHero,
-  PageWaitlistFooterCTA,
 } from "../components/PageChrome.jsx";
 import PageLink from "../components/PageLink.jsx";
 import { usePageReveal, DevRow, Marquee, FaqAccordion } from "../components/RedesignSections.jsx";
@@ -342,22 +342,7 @@ export default function HowItWorksPage() {
         </div>
       </section>
 
-      <section className="page-section bordered">
-        <div className="container">
-          <div className="page-nav-prevnext">
-            <PageLink href="Trust Trade Landing.html">
-              <span>← Back to overview</span>
-              <strong>Trust Trade home</strong>
-            </PageLink>
-            <PageLink href="How we verify.html" className="next">
-              <span>Next →</span>
-              <strong>How we verify tradies</strong>
-            </PageLink>
-          </div>
-        </div>
-      </section>
-
-      <PageWaitlistFooterCTA />
+      <PageDownloadCTA />
       <PageFooter />
     </>
   );

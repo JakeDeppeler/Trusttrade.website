@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { PageFooter, PageHeader } from "../components/PageChrome.jsx";
+import { PageDownloadCTA, PageFooter, PageHeader } from "../components/PageChrome.jsx";
 import PageLink from "../components/PageLink.jsx";
 import { usePageReveal } from "../components/RedesignSections.jsx";
 import "../styles/hiw-redesign.css";
@@ -1304,6 +1304,7 @@ export default function LandingPage() {
         <Reviews />
       </div>
       <WaitlistMoment />
+      <PageDownloadCTA />
       <PageFooter />
       <MobileStickyCTA onJoin={scrollToWaitlist} />
     </>

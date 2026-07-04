@@ -1,0 +1,106 @@
+/* ============================================================
+   Site chrome to match the Trust Trade design mockups:
+   floating "island" pill header + toolbox mascot logo + the hero
+   meta rendered as a bordered stat bar. Imported after landing.css
+   so these override the base header/hero styling. Site-wide.
+   ============================================================ */
+
+/* ---- Floating island header ---- */
+body.theme-cream .header {
+  position: fixed;
+  top: clamp(10px, 1.4vw, 18px);
+  left: 50%;
+  right: auto;
+  transform: translateX(-50%);
+  width: calc(100% - 24px);
+  max-width: 1060px;
+  z-index: 60;
+  padding: 0;
+  border: 0;
+  border-bottom: 0 !important;
+  background: transparent !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  box-shadow: none;
+  transition: max-width .5s cubic-bezier(.22, .85, .24, 1);
+}
+body.theme-cream .header.scrolled {
+  max-width: 900px;
+  background: transparent !important;
+  border-bottom-color: transparent !important;
+  box-shadow: none;
+}
+.header .container {
+  max-width: none;
+  padding: 0 12px 0 20px;
+  height: 62px;
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 14px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.82);
+  border: 1px solid var(--line-strong);
+  box-shadow:
+    0 14px 44px -16px rgba(23, 17, 10, 0.18),
+    0 1px 0 rgba(255, 255, 255, 0.6) inset;
+  backdrop-filter: blur(20px) saturate(160%);
+  -webkit-backdrop-filter: blur(20px) saturate(160%);
+  transition: height .45s cubic-bezier(.22, .85, .24, 1), background .3s ease;
+}
+.header.scrolled .container {
+  height: 54px;
+  background: rgba(255, 255, 255, 0.94);
+}
+body.theme-cream .header .brand {
+  align-items: center;
+  gap: 8px;
+  font-size: 19px;
+}
+.header .nav-links { justify-self: center; }
+.header .header-cta { justify-self: end; }
+
+/* ---- Toolbox mascot logo ---- */
+.brand-mascot {
+  height: 32px;
+  width: auto;
+  display: block;
+  flex-shrink: 0;
+}
+.footer-brand .brand-mascot { height: 38px; }
+
+/* ---- Hero meta as a bordered stat bar ---- */
+body.theme-cream .page-hero-meta-strip {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0;
+  padding: 0;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  overflow: hidden;
+  background: var(--bg-2);
+  box-shadow:
+    0 1px 2px rgba(23, 17, 10, 0.03),
+    0 18px 40px -30px rgba(23, 17, 10, 0.16);
+  margin-top: clamp(32px, 4vw, 56px);
+  width: 100%;
+  max-width: 900px;
+}
+body.theme-cream .page-hero-meta-strip-item {
+  flex: 1 1 0;
+  min-width: 150px;
+  padding: 18px 28px;
+  text-align: center;
+  border-right: 1px solid var(--line);
+}
+body.theme-cream .page-hero-meta-strip-item:last-child { border-right: none; }
+@media (max-width: 640px) {
+  body.theme-cream .page-hero-meta-strip { flex-direction: column; max-width: 360px; }
+  body.theme-cream .page-hero-meta-strip-item {
+    border-right: none;
+    border-bottom: 1px solid var(--line);
+  }
+  body.theme-cream .page-hero-meta-strip-item:last-child { border-bottom: none; }
+}

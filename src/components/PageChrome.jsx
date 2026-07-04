@@ -116,6 +116,7 @@ export function PageHeader({ current }) {
     <header className={"header " + (scrolled ? "scrolled" : "")}>
       <div className="container">
         <PageLink href="Trust Trade Landing.html" className="brand">
+          <img className="brand-mascot" src="/assets/mascot-toolbox.png" alt="" aria-hidden="true" />
           Trust Trade<span className="reg">®</span>
         </PageLink>
         <nav className="nav-links">
@@ -248,6 +249,7 @@ export function PageFooter() {
         <div className="footer-top">
           <div className="footer-brand">
             <div className="brand">
+              <img className="brand-mascot" src="/assets/mascot-toolbox.png" alt="" aria-hidden="true" />
               Trust Trade<span className="reg">®</span>
             </div>
             <p>

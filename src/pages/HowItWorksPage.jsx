@@ -86,7 +86,8 @@ export default function HowItWorksPage() {
       <section className="page-section" style={{ paddingBottom: 40 }}>
         <div className="container">
           <div className="mid-head reveal">
-            <div className="eyebrow accent">— The homeowner flow</div>
+            <div className="eyebrow accent">
+The homeowner flow</div>
             <h2 className="h-1">
               From mess to <span className="it">mended.</span>
             </h2>
@@ -157,7 +158,8 @@ export default function HowItWorksPage() {
       <section className="page-section bordered" id="verify">
         <div className="container">
           <div className="mid-head reveal">
-            <div className="eyebrow accent">— How we verify</div>
+            <div className="eyebrow accent">
+How we verify</div>
             <h2 className="h-1">
               Vetted four ways <span className="it">before they're listed.</span>
             </h2>
@@ -186,7 +188,8 @@ export default function HowItWorksPage() {
       <section className="page-section bordered">
         <div className="container">
           <div className="mid-head reveal">
-            <div className="eyebrow accent">— What you see on a profile</div>
+            <div className="eyebrow accent">
+What you see on a profile</div>
             <h2 className="h-1">
               Every claim <span className="it">links to a check.</span>
             </h2>
@@ -243,7 +246,8 @@ export default function HowItWorksPage() {
       <section className="page-section bordered" style={{ paddingBottom: 40 }}>
         <div className="container">
           <div className="mid-head reveal">
-            <div className="eyebrow accent">— The tradie side</div>
+            <div className="eyebrow accent">
+The tradie side</div>
             <h2 className="h-1">
               A clear job ticket. <span className="it">Not a bidding war.</span>
             </h2>
@@ -278,7 +282,8 @@ export default function HowItWorksPage() {
       <section className="page-section bordered">
         <div className="container">
           <div className="mid-head reveal">
-            <div className="eyebrow accent">— After the job</div>
+            <div className="eyebrow accent">
+After the job</div>
             <h2 className="h-1">
               Receipts, reviews, <span className="it">repeat.</span>
             </h2>
@@ -325,7 +330,8 @@ export default function HowItWorksPage() {
       <section className="page-section bordered" id="faq">
         <div className="container">
           <div className="mid-head reveal">
-            <div className="eyebrow accent">— Questions</div>
+            <div className="eyebrow accent">
+Questions</div>
             <h2 className="h-1">
               Everything else, <span className="it">answered.</span>
             </h2>

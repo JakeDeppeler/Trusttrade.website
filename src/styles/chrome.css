@@ -175,3 +175,50 @@ body.theme-cream .page-hero-meta-strip-item:last-child { border-right: none; }
   .bevel-hero .hero-trio .phone.side { display: none; }
   .bevel-hero .hero-trio .phone.center { transform: none; }
 }
+
+/* ============================================================
+   Detail-page tweaks (match the design):
+   centred section intros + white cards instead of cream.
+   ============================================================ */
+body.theme-cream .mid-head {
+  text-align: center;
+  align-items: center;
+  max-width: 820px;
+  margin-left: auto;
+  margin-right: auto;
+}
+body.theme-cream .mid-head .eyebrow,
+body.theme-cream .mid-head .lede {
+  margin-left: auto;
+  margin-right: auto;
+}
+
+/* Cards render white (the design uses #fff, not cream) */
+body.theme-cream .verify-doc,
+body.theme-cream .proof-card,
+body.theme-cream .team-card,
+body.theme-cream .tradie-perk,
+body.theme-cream .stat-cell,
+body.theme-cream .vs-col,
+body.theme-cream .dev-chip,
+body.theme-cream .meter,
+body.theme-cream .page-hero-meta-strip,
+body.theme-cream .faq-item {
+  background: #ffffff;
+}
+body.theme-cream .vs-col.us {
+  background: radial-gradient(120% 90% at 100% 0%, rgba(242, 169, 0, 0.10), transparent 60%), #ffffff;
+}
+
+/* Space out FAQ category groups */
+.faq-groups { display: flex; flex-direction: column; gap: 44px; }
+
+/* Footer single outline App Store button (matches the design) */
+.footer-store { display: flex; }
+.appstore-btn.light {
+  background: #ffffff;
+  color: #17110A;
+  border: 1px solid var(--line-strong);
+  box-shadow: none;
+}
+.appstore-btn.light:hover { background: #f6f5f2; }

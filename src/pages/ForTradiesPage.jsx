@@ -20,7 +20,7 @@ const TRADIE_FAQ_GROUPS = [
   {
     name: "Joining & pricing",
     items: [
-      { q: "What does it cost to join as a tradie?", a: "Free to apply, free to be listed at launch. Founding members (the first 500 verified tradies) lock in lifetime founding-member pricing on any future paid tiers. Standard fees come in after public launch in 2027." },
+      { q: "What does it cost to join as a tradie?", a: "Free to apply, free to be listed at launch. Founding members (the first 100 verified tradies) lock in lifetime founding-member pricing on any future paid tiers. Standard fees come in after public launch in 2027." },
       { q: "Do you take a cut of my job?", a: "No. Trust Trade doesn't sit between you and your customer's money. You invoice them direct, you get paid direct. We're the paper trail and the routing layer — not a middleman." },
       { q: "How do I get verified?", a: "Apply via the waitlist, upload your licence, insurance certificate of currency, ABN, and ID. We check with the relevant state regulator and confirm the documents. Two reference jobs (two past customers willing to vouch in writing). Usually 48-72 hours end to end." },
       { q: "Can I set my own call-out fee?", a: "Yes — per job, every job. Your default rate is saved, but you can override it on any specific job before sending. No platform-set minimums, no algorithmic discount." },
@@ -80,7 +80,7 @@ export default function ForTradiesPage() {
               the lead-gen rort and the race-to-the-bottom bidding.
             </p>
             <div className="page-hero-cta-row">
-              <PageLink href="Trust Trade Landing.html#waitlist" className="btn btn-primary btn-lg">
+              <PageLink href="Trust Trade Landing.html#download" className="btn btn-primary btn-lg">
                 Apply to join →
               </PageLink>
               <a href="#tradie-faq" className="btn btn-ghost btn-lg">
@@ -89,7 +89,7 @@ export default function ForTradiesPage() {
             </div>
             <div className="ftr-hero-ticks">
               <span><span className="tk">✓</span> Free to apply</span>
-              <span><span className="tk">✓</span> Founding-500 perks</span>
+              <span><span className="tk">✓</span> Founding-100 perks</span>
               <span><span className="tk">✓</span> No lock-in</span>
             </div>
           </div>
@@ -102,7 +102,7 @@ export default function ForTradiesPage() {
       <section className="page-section">
         <div className="container">
           <div className="reveal">
-            <div className="eyebrow accent" style={{ marginBottom: 22 }}>— The rort</div>
+            <div className="eyebrow accent" style={{ marginBottom: 22 }}>The rort</div>
             <h2 className="pull-statement">
               You're paying to <span className="it">bid</span> on jobs<br />
               <span className="dim">you'll probably never win.</span>
@@ -139,7 +139,7 @@ export default function ForTradiesPage() {
       <section className="page-section bordered">
         <div className="container">
           <div className="mid-head reveal">
-            <div className="eyebrow accent">— The fix</div>
+            <div className="eyebrow accent">The fix</div>
             <h2 className="h-1">We built the <span className="it">opposite.</span></h2>
             <p className="lede">Same trade, same postcode — a completely different deal. Here's the side-by-side.</p>
           </div>
@@ -167,7 +167,7 @@ export default function ForTradiesPage() {
               <h3>Your way</h3>
               <div className="vs-list">
                 {[
-                  "No lead fees. Free to be listed. Founding-500 locked in for life",
+                  "No lead fees. Free to be listed. Founding-100 locked in for life",
                   "One tradie at a time. They pick you — or it moves on",
                   "You set the call-out, per job. They approve before you roll",
                   "Verified, mobile-confirmed accounts with a brief on file",
@@ -186,7 +186,7 @@ export default function ForTradiesPage() {
       <section className="page-section bordered" style={{ paddingBottom: 40 }}>
         <div className="container">
           <div className="mid-head reveal">
-            <div className="eyebrow accent">— On the tools</div>
+            <div className="eyebrow accent">On the tools</div>
             <h2 className="h-1">What the app actually <span className="it">does for you.</span></h2>
             <p className="lede">No dashboard homework. Open it between jobs — it's already sorted your day.</p>
           </div>
@@ -271,7 +271,7 @@ export default function ForTradiesPage() {
       <section className="quote-block page-section bordered" style={{ paddingTop: "clamp(60px,8vw,110px)" }}>
         <div className="container">
           <div className="two-col reveal">
-            <div className="col-label">— A note from us</div>
+            <div className="col-label">A note from us</div>
             <div>
               <blockquote>
                 "I'm a tradie's son. The lead-gen rort cost my old man four years of work he should
@@ -290,18 +290,18 @@ export default function ForTradiesPage() {
         </div>
       </section>
 
-      {/* ===== Founding 500 — progress meter ===== */}
+      {/* ===== Founding 100 — progress meter ===== */}
       <section className="page-section bordered">
         <div className="container">
           <div className="mid-head reveal">
-            <div className="eyebrow accent">— Founding 500</div>
-            <h2 className="h-1">First 500 in are <span className="it">locked in for life.</span></h2>
-            <p className="lede">No paid tier exists yet. When it does — premium routing and analytics — the first 500 verified tradies pay founding rates. Forever. The moment we're full, the badge is gone.</p>
+            <div className="eyebrow accent">Founding 100</div>
+            <h2 className="h-1">First 100 in are <span className="it">locked in for life.</span></h2>
+            <p className="lede">No paid tier exists yet. When it does — premium routing and analytics — the first 100 verified tradies pay founding rates. Forever. The moment we're full, the badge is gone.</p>
           </div>
 
-          <div className="meter reveal" style={{ "--pct": "69.4%" }}>
+          <div className="meter reveal" style={{ "--pct": "50%" }}>
             <div className="meter-top">
-              <div className="meter-big"><span className="it">347</span> <span className="of">of 500 spots left</span></div>
+              <div className="meter-big"><span className="it">50</span> <span className="of">of 100 spots left</span></div>
               <div className="meter-note">Victoria · closing at launch</div>
             </div>
             <div className="meter-bar"><div className="meter-fill"></div></div>
@@ -317,7 +317,7 @@ export default function ForTradiesPage() {
             </div>
 
             <div style={{ marginTop: 36, display: "flex", flexWrap: "wrap", gap: 12, alignItems: "center" }}>
-              <PageLink href="Trust Trade Landing.html#waitlist" className="btn btn-primary btn-lg">
+              <PageLink href="Trust Trade Landing.html#download" className="btn btn-primary btn-lg">
                 Claim a founding spot →
               </PageLink>
               <span style={{ fontFamily: "var(--font-mono)", fontSize: 12, color: "var(--text-faint)", letterSpacing: "0.1em", textTransform: "uppercase" }}>
@@ -332,7 +332,7 @@ export default function ForTradiesPage() {
       <section className="page-section bordered">
         <div className="container">
           <div className="mid-head reveal">
-            <div className="eyebrow accent">— What we need from you</div>
+            <div className="eyebrow accent">What we need from you</div>
             <h2 className="h-1">To get listed, <span className="it">you'll need…</span></h2>
             <p className="lede">Six things. We check every one against the source — the regulator, the ABR, the insurer — before you take a single job.</p>
           </div>
@@ -353,7 +353,7 @@ export default function ForTradiesPage() {
       <section className="page-section bordered" id="tradie-faq">
         <div className="container">
           <div className="mid-head reveal">
-            <div className="eyebrow accent">— Tradie FAQ</div>
+            <div className="eyebrow accent">Tradie FAQ</div>
             <h2 className="h-1">The questions <span className="it">every tradie asks.</span></h2>
             <p className="lede">Cost, cuts, verification, lock-in — plus the honest word on who's behind Trust Trade. Something we haven't covered? Email jake@trusttrade.au.</p>
           </div>

@@ -112,7 +112,7 @@ export function FaqAccordion({ groups, idPrefix = "faq" }) {
     <div className="faq-groups">
       {groups.map((g) => (
         <div key={g.name} className="faq-group">
-          <div className="faq-section-title">— {g.name}</div>
+          <div className="faq-section-title">{g.name}</div>
           <div className="faq-grid">
             {g.items.map((item, i) => {
               const id = g.name + "-" + i;

@@ -176,8 +176,7 @@ section.block { padding: clamp(80px, 10vw, 140px) 0; position: relative; }
   -webkit-mask-image: linear-gradient(to right, transparent, #000 8%, #000 92%, transparent);
   mask-image: linear-gradient(to right, transparent, #000 8%, #000 92%, transparent);
 }
-.showcase-track { display: flex; gap: 26px; width: max-content; animation: scroll-x 48s linear infinite; }
-.showcase-marquee:hover .showcase-track { animation-play-state: paused; }
+.showcase-track { display: flex; gap: 64px; width: max-content; animation: scroll-x 60s linear infinite; }
 @keyframes scroll-x { from { transform: translateX(0); } to { transform: translateX(-50%); } }
 .showcase-marquee .phone { flex-shrink: 0; }
 @media (prefers-reduced-motion: reduce) { .showcase-track { animation: none; } }
@@ -297,6 +296,8 @@ section.block { padding: clamp(72px, 9vw, 130px) 0; position: relative; }
 .tradies {
   background: var(--ink); color: #F3ECDD; position: relative; overflow: hidden;
 }
+/* Beat theme-cream's .block background so the band stays dark */
+body.theme-cream .tt-home .tradies { background: #17110A; color: #F3ECDD; }
 .tradies::before {
   content: ""; position: absolute; top: -160px; right: -120px;
   width: 560px; height: 560px; border-radius: 50%;

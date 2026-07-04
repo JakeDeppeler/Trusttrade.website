@@ -6,7 +6,7 @@ import "../styles/hiw-redesign.css";
 import "../styles/landing-sections.css";
 
 function scrollToWaitlist() {
-  const el = document.getElementById("waitlist");
+  const el = document.getElementById("download");
   if (!el) return;
   el.scrollIntoView({ behavior: "smooth", block: "start" });
 }
@@ -650,7 +650,7 @@ function BevelHero() {
         <div className="hero-actions">
           <a
             className="appstore-btn"
-            href="#waitlist"
+            href="#download"
             onClick={(e) => {
               e.preventDefault();
               scrollToWaitlist();
@@ -1303,7 +1303,6 @@ export default function LandingPage() {
         <FeatureGrid />
         <Reviews />
       </div>
-      <WaitlistMoment />
       <PageDownloadCTA />
       <PageFooter />
       <MobileStickyCTA onJoin={scrollToWaitlist} />

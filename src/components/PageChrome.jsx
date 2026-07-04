@@ -5,11 +5,9 @@ import PageLink from "./PageLink.jsx";
 import { HREF_TO_ROUTE, resolveHref } from "../routes.js";
 
 export const PAGE_LINKS = [
-  { label: "For homeowners", href: "For Homeowners.html" },
-  { label: "For tradies", href: "For Tradies.html" },
-  { label: "How we verify", href: "How we verify.html" },
   { label: "How it works", href: "How it works.html" },
-  { label: "FAQ", href: "FAQ.html" },
+  { label: "For tradies", href: "For Tradies.html" },
+  { label: "Our story", href: "Our Story.html" },
 ];
 
 export function MobileNavMenu({ current }) {
@@ -333,6 +331,7 @@ export function PageFooter() {
             <h5>Product</h5>
             <ul>
               <li><PageLink href="How it works.html">How it works</PageLink></li>
+              <li><PageLink href="For Homeowners.html">For homeowners</PageLink></li>
               <li><PageLink href="How we verify.html">How we verify</PageLink></li>
               <li><PageLink href="Trades we cover.html">Trades we cover</PageLink></li>
               <li><PageLink href="FAQ.html">FAQ</PageLink></li>
@@ -350,7 +349,7 @@ export function PageFooter() {
           <div className="footer-col">
             <h5>Company</h5>
             <ul>
-              <li><PageLink href="About.html">About</PageLink></li>
+              <li><PageLink href="Our Story.html">Our story</PageLink></li>
               <li><a href="mailto:jake@trusttrade.au">Support</a></li>
               <li><a href="mailto:jake@trusttrade.au?subject=Privacy%20question">Privacy</a></li>
               <li><a href="mailto:jake@trusttrade.au?subject=Terms%20question">Terms</a></li>

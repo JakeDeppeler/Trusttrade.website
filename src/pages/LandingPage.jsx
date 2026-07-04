@@ -1,13 +1,9 @@
 import { useEffect, useState } from "react";
 import { PageFooter, PageHeader } from "../components/PageChrome.jsx";
 import PageLink from "../components/PageLink.jsx";
-import {
-  FeatureStories,
-  BehindTheScenes,
-  AdditionalFeatures,
-  PrivacyBreak,
-  VoiceCards,
-} from "../components/BevelSections.jsx";
+import { usePageReveal } from "../components/RedesignSections.jsx";
+import "../styles/hiw-redesign.css";
+import "../styles/landing-sections.css";
 
 function scrollToWaitlist() {
   const el = document.getElementById("waitlist");
@@ -627,7 +623,7 @@ function MobileStickyCTA({ onJoin }) {
   return (
     <div className={"mobile-sticky " + (visible ? "visible" : "")}>
       <button className="btn btn-primary" onClick={onJoin}>
-        Get early access →
+        Download the app →
       </button>
     </div>
   );
@@ -941,17 +937,373 @@ function ForTradiesSplit() {
   );
 }
 
+/* ===== App-screen showcase (phone marquee) ===== */
+const SHOWCASE_SHOTS = [
+  "app-home", "app-askai", "app-browse", "app-booking",
+  "app-jobs", "app-messages", "app-filters", "app-account",
+];
+function Showcase() {
+  const loop = [...SHOWCASE_SHOTS, ...SHOWCASE_SHOTS];
+  return (
+    <section className="showcase">
+      <div className="container showcase-head reveal">
+        <div className="eyebrow accent dot" style={{ justifyContent: "center", marginBottom: 16 }}>
+          The whole app
+        </div>
+        <h2 className="h-2">See exactly how it works — before you download.</h2>
+      </div>
+      <div className="showcase-marquee">
+        <div className="showcase-track">
+          {loop.map((src, i) => (
+            <div className="phone sm" key={i}>
+              <div className="phone-screen">
+                <img src={`/assets/${src}.png`} alt="Trust Trade app screen" loading="lazy" />
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/* ===== Works with (verification bodies) ===== */
+const LOGOS = [
+  { mark: "VBA", name: "Victorian Building Authority", sub: "Licence check" },
+  { mark: "ESV", name: "Energy Safe Victoria", sub: "Sparkies verified" },
+  { mark: "VBA", name: "Plumbing Industry", sub: "Registration check" },
+  { mark: "WS", name: "WorkSafe", sub: "Workers' comp" },
+  { mark: "PL", name: "Public Liability", sub: "Insurance on file" },
+  { mark: "ABN", name: "ABN Lookup", sub: "Business verified" },
+  { mark: "MP", name: "Master Plumbers", sub: "Association member" },
+  { mark: "NECA", name: "Electrical Assoc.", sub: "Trade body" },
+];
+function WorksWith() {
+  const loop = [...LOGOS, ...LOGOS];
+  return (
+    <section className="works">
+      <div className="container works-head reveal">
+        <div className="eyebrow accent" style={{ justifyContent: "center", marginBottom: 14 }}>
+          Verified against
+        </div>
+        <div className="h-3">Every tradie checked with the bodies that actually matter.</div>
+      </div>
+      <div className="logo-marquee">
+        <div className="logo-track">
+          {loop.map((l, i) => (
+            <div className="logo-chip" key={i}>
+              <div className="lc-mark">{l.mark}</div>
+              <div className="lc-txt">
+                <span className="lc-name">{l.name}</span>
+                <span className="lc-sub">{l.sub}</span>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/* ===== Feature breakdown rows ===== */
+function FeatureRow({ eyebrow, title, body, points, img, flip, cards, glow }) {
+  return (
+    <div className={"feature-row reveal " + (flip ? "flip" : "")}>
+      <div className="fr-copy">
+        <div className="eyebrow accent dot">{eyebrow}</div>
+        <h3 className="h-2">{title}</h3>
+        <p>{body}</p>
+        {points && (
+          <div className="fr-points">
+            {points.map((p, i) => (
+              <div className="fr-point" key={i}>
+                <span className="tick">✓</span>
+                <span>{p}</span>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+      <div className="fr-visual">
+        {glow !== false && <div className="glow" />}
+        <div className="phone">
+          <div className="phone-screen">
+            <img src={img} alt={title} loading="lazy" />
+          </div>
+        </div>
+        {cards}
+      </div>
+    </div>
+  );
+}
+function FeatureBreakdowns() {
+  return (
+    <section className="block" id="how">
+      <div className="container">
+        <div className="sec-intro reveal">
+          <div className="eyebrow accent dot" style={{ justifyContent: "center" }}>For homeowners</div>
+          <h2 className="h-1" style={{ marginTop: 18 }}>
+            Right tradie. <span className="it">First time.</span>
+          </h2>
+          <p className="lede">
+            No quote-form rodeo. No five tradies SMS-blasting you at 7am. Tell us what's broken and
+            Trust Trade routes you to a verified local who can fix it.
+          </p>
+        </div>
+
+        <FeatureRow
+          eyebrow="Ask AI"
+          title="Describe it in plain English."
+          body="Leaking tap, tripping fuse, planning a reno — say it how you'd say it to a mate. Our assistant works out which trade you actually need and points you at the verified pros nearby."
+          points={["No guessing which trade to call", "Understands emergencies vs routine jobs", "Suggests the right local, first time"]}
+          img="/assets/app-askai.png"
+          cards={
+            <div className="fcard pos-tr">
+              <div className="ai-line">
+                <span className="q">"Hot water's gone cold and there's a hissing from the cylinder."</span>
+                <span className="a">
+                  Sounds like a plumber — gas hot water specialist.
+                  <span className="typing"><span /><span /><span /></span>
+                </span>
+              </div>
+            </div>
+          }
+        />
+        <FeatureRow
+          flip
+          eyebrow="Verified · Step 0"
+          title="Every tradie checked before they're listed."
+          body="Licence numbers verified with the regulator. Public liability and workers' comp on file. Reviews only from real, confirmed jobs — never rideshare-style spam."
+          points={["Licence + insurance confirmed", "Nearest-first, so help's close by", "Real reviews from booked jobs only"]}
+          img="/assets/app-browse.png"
+          cards={
+            <>
+              <div className="fcard amber pos-tl">
+                <div className="fc-badge">✓ VERIFIED</div>
+                <div className="fc-title">Advanced Gas &amp; Aircon</div>
+                <div className="fc-sub" style={{ color: "rgba(23,17,10,0.6)" }}>HVAC · ★ 5.0 (4) · 3.2 km</div>
+              </div>
+              <div className="fcard pos-br">
+                <div className="fc-eyebrow">Nearest first</div>
+                <div className="fc-title">10 verified locals</div>
+                <div className="fc-sub">near Pakenham, VIC 3810</div>
+              </div>
+            </>
+          }
+        />
+        <FeatureRow
+          eyebrow="Fixed quotes"
+          title="Call-out fees in writing. Approved up front."
+          body="The tradie quotes the job before they roll. You see the fee and ETA, tap Approve, and it's locked in. No surprise invoices, no cash-job awkwardness."
+          points={["Price agreed before anyone turns up", "One-tap approve, in the app", "GST-clear and on the record"]}
+          img="/assets/app-booking.png"
+          cards={
+            <>
+              <div className="fcard pos-tl">
+                <div className="fc-eyebrow">Call-out fee</div>
+                <div className="fc-price">$200 <span className="ex">ex GST</span></div>
+                <div className="fc-approved">✓ APPROVED · 3 HR ETA</div>
+              </div>
+              <div className="fcard dark pos-br">
+                <div className="fc-eyebrow">Booking confirmed</div>
+                <div className="fc-title" style={{ color: "#F3ECDD" }}>Mon 18 May · 8:39pm</div>
+                <div className="fc-sub">Name, address &amp; price all logged</div>
+              </div>
+            </>
+          }
+        />
+        <FeatureRow
+          flip
+          eyebrow="In-app chat"
+          title="One thread per job. Nothing lost."
+          body="Every enquiry gets its own conversation — quote, ETA, photos, booking receipt, all in one place. No more scrolling texts trying to find which Sarah had the laundry tap."
+          points={["Quote, chat and receipt in one thread", "Share photos of the problem", "Both sides keep the full record"]}
+          img="/assets/app-messages.png"
+          cards={
+            <div className="fcard pos-tr">
+              <div className="fc-eyebrow">On the way</div>
+              <div className="fc-title">20 min ETA</div>
+              <div className="fc-sub">Demo Trades Co. · Plumber</div>
+            </div>
+          }
+        />
+      </div>
+    </section>
+  );
+}
+
+/* ===== For tradies band ===== */
+function ForTradiesBand() {
+  const items = [
+    ["01", "Real customers, not tyre-kickers.", "Verified accounts only. They've told us what they need before you ever see the job."],
+    ["02", "You set the call-out fee. Per job.", "No race-to-the-bottom bidding. Quote what the job's worth; they approve before you roll."],
+    ["03", "One inbox. One thread per job.", "Every job lives in its own conversation. Quote, chat, receipt — sorted."],
+    ["04", "Get paid faster.", "Receipts, bookings and confirmations baked in. Disputes drop, payments speed up."],
+  ];
+  return (
+    <section className="block tradies" id="tradies">
+      <div className="container">
+        <div className="tradies-grid">
+          <div className="reveal">
+            <div className="eyebrow dot">On the tools</div>
+            <h2 className="h-1" style={{ marginTop: 16 }}>
+              More jobs. <span className="it">Less mucking around.</span>
+            </h2>
+            <p className="lede" style={{ marginTop: 20 }}>
+              Skip the lead-gen rort. Real homeowners, real jobs, routed to you by trade and postcode
+              — on your terms.
+            </p>
+            <div className="tradies-list">
+              {items.map(([n, h, p]) => (
+                <div className="ti" key={n}>
+                  <div className="n">{n}</div>
+                  <div>
+                    <h4>{h}</h4>
+                    <p>{p}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <div style={{ marginTop: 34, display: "flex", gap: 12, flexWrap: "wrap" }}>
+              <button className="btn btn-primary btn-lg" onClick={scrollToWaitlist}>
+                Apply to join as a tradie →
+              </button>
+            </div>
+          </div>
+          <div className="tradies-visual reveal">
+            <div className="glow" />
+            <div className="phone">
+              <div className="phone-screen">
+                <img src="/assets/app-jobs.png" alt="Tradie jobs screen" loading="lazy" />
+              </div>
+            </div>
+            <div className="fcard pos-tr">
+              <div className="fc-eyebrow">New enquiry</div>
+              <div className="fc-title">Hot water system down</div>
+              <div className="fc-sub">Pakenham · Emergency</div>
+            </div>
+            <div className="fcard amber pos-bl">
+              <div className="fc-eyebrow">Approved</div>
+              <div className="fc-price">$200 <span className="ex">ex GST</span></div>
+              <div className="fc-sub" style={{ color: "rgba(23,17,10,0.6)" }}>On site within 3 hrs</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/* ===== Feature grid ===== */
+const GRID = [
+  ["◎", "Nearest-first matching", "See who's genuinely around the corner — sorted by distance, not who paid the most."],
+  ["✦", "Insurance on file", "Public liability and workers' comp confirmed before a tradie ever lands in your feed."],
+  ["◈", "Booking receipts", "Name, address, time and price logged for every job. Protection for both sides."],
+  ["✱", "Emergency call-outs", "Flag it urgent and we prioritise tradies who can be on site today."],
+  ["✧", "Real reviews only", "Ratings come from confirmed bookings on the platform — no fake five-stars."],
+  ["◇", "No cold leads", "Homeowners get matched, not auctioned. Tradies get jobs, not spam."],
+  ["⬡", "Postcode routing", "Type your suburb once; we keep everything local from then on."],
+  ["◐", "Fixed quotes", "Call-out fees agreed in writing and approved before anyone turns up."],
+  ["✚", "Built for AU", "Made for Aussie homes and Aussie trades. GST-clear throughout."],
+];
+function FeatureGrid() {
+  return (
+    <section className="block" id="features">
+      <div className="container">
+        <div className="sec-intro reveal">
+          <div className="eyebrow accent dot" style={{ justifyContent: "center" }}>And that's not all</div>
+          <h2 className="h-1" style={{ marginTop: 18 }}>
+            Little things that make it <span className="it">actually work.</span>
+          </h2>
+        </div>
+        <div className="fgrid">
+          {GRID.map(([ic, h, p], i) => (
+            <div className="fg-card reveal" key={i} style={{ transitionDelay: (i % 3) * 60 + "ms" }}>
+              <div className="fg-icon">{ic}</div>
+              <h4>{h}</h4>
+              <p>{p}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/* ===== Reviews wall ===== */
+const REVIEWS = [
+  { s: 5, t: "Sparkie was here same arvo", r: "Fuse kept tripping, described it in the app and had a verified sparkie booked within the hour. Fixed price up front, no dramas.", who: "Bianca R.", loc: "Berwick, VIC", tag: "Homeowner", av: "B" },
+  { s: 5, t: "No more tyre-kickers", r: "Every lead's a real job now. Homeowner's already told the app what they need before I even reply. Massive time saver.", who: "Dave — DK Plumbing", loc: "Pakenham, VIC", tag: "Tradie", av: "D" },
+  { s: 5, t: "Finally, a quote in writing", r: "Loved seeing the call-out fee before he came out. Tapped approve and got a booking confirmation with everything logged.", who: "Marcus T.", loc: "Officer, VIC", tag: "Homeowner", av: "M" },
+  { s: 5, t: "Reckon it's the future", r: "Being verified against my licence and insurance actually means something. Customers trust the badge, so they book quicker.", who: "Jess — Valley Electrics", loc: "Yarra Valley, VIC", tag: "Tradie", av: "J" },
+  { s: 5, t: "Knew who I was dealing with", r: "The verified tick and real reviews gave me the confidence to book someone I'd never heard of. Turned up on time, did it proper.", who: "Priya S.", loc: "Cranbourne, VIC", tag: "Homeowner", av: "P" },
+  { s: 5, t: "One thread, no chaos", r: "Everything for the job lives in one chat — quote, photos, the lot. Way better than losing texts across three numbers.", who: "Tom H.", loc: "Narre Warren, VIC", tag: "Homeowner", av: "T" },
+  { s: 5, t: "Set my own price", r: "No racing to the bottom on price. I quote what the job's worth and they approve it. That's how it should be.", who: "Sam — Ace Carpentry", loc: "Gippsland, VIC", tag: "Tradie", av: "S" },
+  { s: 5, t: "Emergency sorted fast", r: "Flagged a burst pipe as urgent at 6pm and had someone on site by 8. Genuinely saved the kitchen ceiling.", who: "Lauren M.", loc: "Melbourne, VIC", tag: "Homeowner", av: "L" },
+  { s: 5, t: "Payments come quicker", r: "Booking receipts mean no arguing about what was agreed. Invoices get paid without the usual chasing.", who: "Nick — Metro HVAC", loc: "Dandenong, VIC", tag: "Tradie", av: "N" },
+];
+function RevCard({ rv }) {
+  return (
+    <div className="rev-card">
+      <div className="stars">{"★".repeat(rv.s)}</div>
+      <h5>{rv.t}</h5>
+      <p>"{rv.r}"</p>
+      <div className="rev-meta">
+        <div className="av">{rv.av}</div>
+        <div className="who"><strong>{rv.who}</strong>{rv.loc}</div>
+        <div className="rev-tag">{rv.tag}</div>
+      </div>
+    </div>
+  );
+}
+function Reviews() {
+  const cols = [
+    [REVIEWS[0], REVIEWS[3], REVIEWS[6]],
+    [REVIEWS[1], REVIEWS[4], REVIEWS[7]],
+    [REVIEWS[2], REVIEWS[5], REVIEWS[8]],
+  ];
+  const clsFor = (i) => ["", "b", "c"][i];
+  return (
+    <section className="block reviews" id="reviews">
+      <div className="container">
+        <div className="sec-intro reveal">
+          <div className="eyebrow accent dot" style={{ justifyContent: "center" }}>Loved on both sides</div>
+          <h2 className="h-1" style={{ marginTop: 18 }}>
+            Homeowners and tradies, <span className="it">on the same team.</span>
+          </h2>
+          <p className="lede">
+            Early access members are already sorting jobs the honest way. Here's what they reckon.
+          </p>
+        </div>
+        <div className="reviews-cols reveal">
+          {cols.map((col, ci) => (
+            <div className={"rev-col " + clsFor(ci)} key={ci}>
+              {[...col, ...col].map((rv, i) => (
+                <RevCard rv={rv} key={i} />
+              ))}
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
 export default function LandingPage() {
+  usePageReveal();
   return (
     <>
       <PageHeader current="Trust Trade Landing.html" />
-      <BevelHero />
-      <TrustStrip />
-      <HowItWorksSteps />
-      <FeaturesBento />
-      <ForTradiesSplit />
+      <div className="tt-home">
+        <BevelHero />
+        <Showcase />
+        <WorksWith />
+        <FeatureBreakdowns />
+        <ForTradiesBand />
+        <FeatureGrid />
+        <Reviews />
+      </div>
       <WaitlistMoment />
-      <FAQSection />
       <PageFooter />
       <MobileStickyCTA onJoin={scrollToWaitlist} />
     </>

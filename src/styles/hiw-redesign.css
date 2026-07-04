@@ -1,0 +1,389 @@
+/* ============================================================
+   How it works — redesign layer (cream theme)
+   Motion + new layout devices ported from the editorial redesign,
+   recoloured for the site's cream/light theme (theme-cream). Adds:
+   scroll-reveal, social-proof marquee, alternating device rows with
+   floating chips, and the tight verify/after checklist.
+   The site's existing components (hero, verify-doc, faq) already carry
+   their own theme-cream styling — this file only adds what's new.
+   ============================================================ */
+
+/* ---------- Reduced-motion guard ---------- */
+@media (prefers-reduced-motion: reduce) {
+  .reveal { opacity: 1 !important; transform: none !important; }
+  .marquee-track { animation: none !important; }
+}
+
+/* ============================================================
+   Scroll reveal
+   ============================================================ */
+.reveal {
+  opacity: 0;
+  transform: translateY(26px);
+  transition: opacity .7s cubic-bezier(.22,.85,.24,1),
+              transform .7s cubic-bezier(.22,.85,.24,1);
+  transition-delay: var(--rd, 0ms);
+  will-change: opacity, transform;
+}
+.reveal.in { opacity: 1; transform: none; }
+.reveal-sm { transform: translateY(14px); }
+.reveal-scale { transform: translateY(26px) scale(.97); }
+.reveal-scale.in { transform: none; }
+
+/* ============================================================
+   Marquee — social-proof ticker
+   ============================================================ */
+.marquee {
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+  overflow: hidden;
+  padding: 22px 0;
+  background: linear-gradient(180deg, rgba(242,169,0,0.06), transparent);
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent);
+          mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent);
+}
+.marquee-track {
+  display: flex;
+  gap: 0;
+  width: max-content;
+  animation: hiw-marquee 38s linear infinite;
+}
+.marquee:hover .marquee-track { animation-play-state: paused; }
+.marquee-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 16px;
+  padding: 0 30px;
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: clamp(20px, 2.4vw, 30px);
+  letter-spacing: -0.02em;
+  color: var(--text);
+  white-space: nowrap;
+}
+.marquee-item .it { font-style: italic; color: var(--accent); }
+.marquee-item .dot {
+  width: 7px; height: 7px; border-radius: 50%;
+  background: var(--accent);
+  flex-shrink: 0;
+}
+@keyframes hiw-marquee {
+  from { transform: translateX(0); }
+  to   { transform: translateX(-50%); }
+}
+
+/* ============================================================
+   Alternating device rows — image-forward "how it helps"
+   ============================================================ */
+.dev-row {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 40px;
+  align-items: center;
+  padding: clamp(48px, 7vw, 96px) 0;
+  border-top: 1px solid var(--line);
+}
+@media (min-width: 920px) {
+  .dev-row { grid-template-columns: 1fr 1fr; gap: 72px; }
+  .dev-row.flip .dev-copy { order: 2; }
+  .dev-row.flip .dev-stage { order: 1; }
+}
+.dev-copy .dev-kicker {
+  display: inline-flex; align-items: center; gap: 10px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin-bottom: 18px;
+}
+.dev-copy .dev-kicker .idx {
+  font-style: italic;
+  font-family: var(--font-display);
+  font-weight: 900;
+  font-size: 22px;
+  color: var(--accent);
+  letter-spacing: -0.04em;
+}
+.dev-copy h3 {
+  font-family: var(--font-display);
+  font-weight: 900;
+  letter-spacing: -0.03em;
+  line-height: 0.95;
+  font-size: clamp(30px, 4.2vw, 52px);
+  margin: 0 0 18px;
+  max-width: 15ch;
+  text-wrap: balance;
+  color: var(--text);
+}
+.dev-copy h3 .it { font-style: italic; color: var(--accent); }
+.dev-copy > p {
+  color: var(--text-dim);
+  font-size: 17px;
+  line-height: 1.55;
+  max-width: 46ch;
+  margin: 0 0 24px;
+}
+.dev-facts { display: flex; flex-direction: column; gap: 0; margin-top: 8px; }
+.dev-fact {
+  display: grid;
+  grid-template-columns: 20px 1fr;
+  gap: 14px;
+  padding: 14px 0;
+  border-top: 1px solid var(--line);
+  font-size: 15px;
+  color: var(--text-dim);
+  align-items: start;
+}
+.dev-fact::before {
+  content: "";
+  width: 14px; height: 14px; margin-top: 4px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 50% 40%, var(--accent), var(--accent-lo));
+  box-shadow: 0 0 0 4px rgba(242,169,0,0.14);
+}
+
+/* Device stage — a phone with floating chips */
+.dev-stage {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 520px;
+}
+.dev-stage::before {
+  content: "";
+  position: absolute;
+  width: 78%; aspect-ratio: 1;
+  border-radius: 50%;
+  background: radial-gradient(closest-side, rgba(242,169,0,0.14), transparent 70%);
+  filter: blur(10px);
+  z-index: 0;
+}
+.dev-stage .phone { z-index: 1; }
+.dev-chip {
+  position: absolute;
+  z-index: 3;
+  background: var(--bg-2);
+  border: 1px solid var(--line-strong);
+  border-radius: 14px;
+  padding: 12px 15px;
+  box-shadow: 0 18px 42px -18px rgba(41, 33, 26, 0.28);
+  max-width: 210px;
+}
+.dev-chip .lbl {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin-bottom: 5px;
+  display: flex; align-items: center; gap: 6px;
+}
+.dev-chip strong {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 17px;
+  letter-spacing: -0.02em;
+  display: block;
+  line-height: 1.1;
+  color: var(--text);
+}
+.dev-chip .sub { font-size: 12px; color: var(--text-dim); margin-top: 3px; }
+.dev-chip.c1 { top: 10%; left: -4%; }
+.dev-chip.c2 { bottom: 12%; right: -6%; }
+.dev-row.flip .dev-chip.c1 { left: auto; right: -4%; }
+.dev-row.flip .dev-chip.c2 { right: auto; left: -6%; }
+@media (max-width: 560px) {
+  .dev-chip.c1 { left: -2%; }
+  .dev-chip.c2 { right: -2%; }
+  .dev-row.flip .dev-chip.c1 { right: -2%; }
+  .dev-row.flip .dev-chip.c2 { left: -2%; }
+}
+/* Gentle float loop */
+@media (prefers-reduced-motion: no-preference) {
+  .dev-chip.c1 { animation: hiw-floaty 6s ease-in-out infinite; }
+  .dev-chip.c2 { animation: hiw-floaty 6s ease-in-out infinite reverse; }
+}
+@keyframes hiw-floaty {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-9px); }
+}
+
+/* ============================================================
+   Checklist — tight verify / after-the-job rows
+   ============================================================ */
+.checklist {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0;
+  border-top: 1px solid var(--line);
+}
+@media (min-width: 760px) { .checklist { grid-template-columns: 1fr 1fr; column-gap: 56px; } }
+.check-row {
+  display: grid;
+  grid-template-columns: 40px 1fr auto;
+  gap: 18px;
+  align-items: center;
+  padding: 22px 0;
+  border-bottom: 1px solid var(--line);
+}
+.check-row .tick {
+  width: 36px; height: 36px;
+  border-radius: 50%;
+  display: grid; place-items: center;
+  background: rgba(242,169,0,0.16);
+  color: var(--accent);
+  font-weight: 800;
+  font-size: 16px;
+  flex-shrink: 0;
+}
+.check-row .ctext h4 {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 18px;
+  letter-spacing: -0.015em;
+  margin: 0 0 3px;
+  color: var(--text);
+}
+.check-row .ctext p { margin: 0; font-size: 14px; color: var(--text-dim); line-height: 1.45; }
+.check-row .cstamp {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+  white-space: nowrap;
+  align-self: start;
+  padding-top: 4px;
+}
+@media (max-width: 520px) {
+  .check-row { grid-template-columns: 32px 1fr; }
+  .check-row .cstamp { display: none; }
+}
+
+/* ============================================================
+   Mobile tweaks
+   ============================================================ */
+@media (max-width: 640px) {
+  .dev-row { padding: 44px 0; gap: 28px; }
+  .dev-stage { min-height: 440px; }
+}
+
+/* ============================================================
+   For Tradies — extra redesign components (cream)
+   pull statement · stat band · old-way vs Trust-Trade split ·
+   Founding-500 progress meter · hero trust-ticks.
+   (quote-block is already styled in landing.css and reused as-is.)
+   ============================================================ */
+
+/* Hero trust-ticks row */
+.ftr-hero-ticks {
+  margin-top: 26px;
+  display: flex; gap: 26px; flex-wrap: wrap; justify-content: center;
+  font-family: var(--font-mono); font-size: 12.5px; letter-spacing: 0.08em;
+  text-transform: uppercase; color: var(--text-dim);
+}
+.ftr-hero-ticks span { white-space: nowrap; }
+.ftr-hero-ticks .tk { color: var(--accent); margin-right: 4px; font-weight: 800; }
+
+/* Pull statement — big editorial problem line */
+.pull-statement {
+  font-family: var(--font-display);
+  font-weight: 900;
+  letter-spacing: -0.035em;
+  line-height: 0.98;
+  font-size: clamp(38px, 7vw, 104px);
+  margin: 0;
+  text-wrap: balance;
+  color: var(--text);
+}
+.pull-statement .it { font-style: italic; color: var(--accent); }
+.pull-statement .dim { color: var(--text-faint); }
+.pull-sub {
+  margin-top: 28px;
+  max-width: 52ch;
+  color: var(--text-dim);
+  font-size: clamp(17px, 1.5vw, 21px);
+  line-height: 1.55;
+}
+
+/* Stat band — compact proof numbers */
+.stat-band {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1px;
+  background: var(--line);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+@media (min-width: 820px) { .stat-band { grid-template-columns: repeat(4, 1fr); } }
+.stat-cell { background: var(--bg-2); padding: 30px 26px; }
+.stat-cell .n {
+  font-family: var(--font-display);
+  font-weight: 900;
+  font-size: clamp(38px, 5vw, 60px);
+  letter-spacing: -0.04em;
+  line-height: 0.9;
+  color: var(--text);
+}
+.stat-cell .n .it { font-style: italic; color: var(--accent); }
+.stat-cell .n .sm { font-size: 0.42em; vertical-align: super; color: var(--accent); font-style: italic; margin-left: 2px; }
+.stat-cell .k { margin-top: 12px; font-size: 13.5px; color: var(--text-dim); line-height: 1.45; max-width: 26ch; }
+
+/* VS split — the old lead-gen way vs Trust Trade */
+.vs { display: grid; grid-template-columns: 1fr; gap: 14px; position: relative; }
+@media (min-width: 900px) { .vs { grid-template-columns: 1fr 1fr; gap: 18px; } }
+.vs-col { border: 1px solid var(--line); border-radius: var(--radius-lg); padding: clamp(24px, 3vw, 38px); background: var(--bg-2); }
+.vs-col.them { opacity: 0.96; }
+.vs-col.us {
+  background: radial-gradient(120% 90% at 100% 0%, rgba(242,169,0,0.10), transparent 60%), var(--bg-2);
+  border-color: rgba(242,169,0,0.30);
+  box-shadow: 0 30px 70px -40px rgba(242,169,0,0.5);
+}
+.vs-col .vs-tag { font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--text-faint); margin-bottom: 4px; }
+.vs-col.us .vs-tag { color: var(--accent-lo); }
+.vs-col h3 { font-family: var(--font-display); font-weight: 900; font-size: clamp(24px, 3vw, 34px); letter-spacing: -0.03em; margin: 0 0 22px; line-height: 0.98; color: var(--text); }
+.vs-col.them h3 { color: var(--text-dim); }
+.vs-list { display: flex; flex-direction: column; gap: 2px; }
+.vs-line { display: grid; grid-template-columns: 22px 1fr; gap: 14px; padding: 15px 0; border-top: 1px solid var(--line); font-size: 15px; line-height: 1.45; align-items: start; }
+.vs-line:first-child { border-top: 0; }
+.vs-col.them .vs-line { color: var(--text-dim); }
+.vs-col.us .vs-line { color: var(--text); }
+.vs-mark { font-size: 15px; line-height: 1.5; font-weight: 800; display: grid; place-items: center; width: 22px; height: 22px; border-radius: 50%; }
+.vs-col.them .vs-mark { color: var(--emergency); background: rgba(217,96,63,0.12); }
+.vs-col.us .vs-mark { color: var(--on-accent); background: var(--accent); }
+.vs-badge {
+  display: none; position: absolute; top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  width: 56px; height: 56px; border-radius: 50%;
+  background: var(--bg-2); border: 1px solid var(--line-strong);
+  place-items: center;
+  font-family: var(--font-display); font-style: italic; font-weight: 900; font-size: 18px;
+  color: var(--accent-lo); z-index: 3;
+  box-shadow: 0 14px 30px -12px rgba(23,17,10,0.22);
+}
+@media (min-width: 900px) { .vs-badge { display: grid; } }
+
+/* Progress meter — Founding 500 */
+.meter {
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-lg);
+  padding: clamp(28px, 4vw, 44px);
+  background: radial-gradient(120% 120% at 0% 0%, rgba(242,169,0,0.08), transparent 55%), var(--bg-2);
+}
+.meter-top { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 20px; }
+.meter-big { font-family: var(--font-display); font-weight: 900; font-size: clamp(48px, 7vw, 88px); letter-spacing: -0.05em; line-height: 0.9; color: var(--text); }
+.meter-big .it { font-style: italic; color: var(--accent); }
+.meter-big .of { color: var(--text-faint); font-size: 0.42em; font-style: normal; letter-spacing: -0.02em; }
+.meter-note { font-family: var(--font-mono); font-size: 12px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-dim); }
+.meter-bar { height: 14px; border-radius: 999px; background: var(--bg-3); overflow: hidden; border: 1px solid var(--line); }
+.meter-fill {
+  height: 100%; border-radius: 999px;
+  background: linear-gradient(90deg, var(--accent-lo), var(--accent), var(--accent-hi));
+  box-shadow: 0 0 20px rgba(242,169,0,0.4);
+  width: 0;
+  transition: width 1.4s cubic-bezier(.22,.85,.24,1);
+}
+.meter.in .meter-fill { width: var(--pct, 70%); }

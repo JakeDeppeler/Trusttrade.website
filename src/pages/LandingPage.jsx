@@ -633,62 +633,63 @@ function MobileStickyCTA({ onJoin }) {
   );
 }
 
-// ===== Hero (grid) — design landing hero =====
-function HeroGrid() {
-  const [email, setEmail] = useState("");
-  const submit = (e) => {
-    e.preventDefault();
-    scrollToWaitlist();
-  };
+// ===== Hero — centered "Done proper." design hero =====
+function BevelHero() {
   return (
-    <section className="hero" id="top">
+    <section className="hero bevel-hero" id="top">
+      <div className="hero-sky" aria-hidden="true" />
       <div className="container">
-        <div className="hero-grid">
-          <div>
-            <div className="hero-eyebrow-row">
-              <span className="hero-pill">
-                <span className="dot" />
-                Pre-register · Drops Q4 2026
-              </span>
-            </div>
-            <h1 className="h-display">
-              Find a tradie.
-              <br />
-              <span className="glow-wrap">
-                <span className="it">Done proper.</span>
-              </span>
-            </h1>
-            <p className="lede" style={{ marginTop: 32 }}>
-              Verified, insured, recommended local tradies — landing on your phone soon. Hop on the
-              list to lock in early web access and founding-member perks.
-            </p>
-            <form className="waitlist-form" onSubmit={submit}>
-              <input
-                type="email"
-                placeholder="your@email.com.au"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                aria-label="Email address"
-              />
-              <button className="btn btn-primary" type="submit">
-                Get on the list →
-              </button>
-            </form>
-            <div className="hero-trust-row">
-              <div className="avatars">
-                <span>J</span><span>A</span><span>M</span><span>K</span>
-              </div>
-              <div>1,247 mates already in line · No spam, ever.</div>
+        <div className="eyebrow accent dot hero-eyebrow" style={{ justifyContent: "center" }}>
+          Australia's honest trade app
+        </div>
+        <h1 className="h-display">
+          Find a tradie.
+          <br />
+          <span className="it">Done proper.</span>
+        </h1>
+        <p className="lede">
+          Trust Trade makes sense of your job — from a leaking tap to a full reno — and routes you
+          to a verified, insured local who can actually fix it.
+        </p>
+        <div className="hero-actions">
+          <a
+            className="appstore-btn"
+            href="#waitlist"
+            onClick={(e) => {
+              e.preventDefault();
+              scrollToWaitlist();
+            }}
+          >
+            <span className="glyph" aria-hidden="true">
+              <svg width="22" height="24" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M17.05 12.94c.02-2.34 1.92-3.47 2-3.52-1.09-1.6-2.79-1.82-3.4-1.85-1.43-.15-2.81.86-3.54.86-.74 0-1.86-.84-3.06-.82-1.57.02-3.03.92-3.84 2.33-1.65 2.86-.42 7.08 1.18 9.4.78 1.13 1.71 2.4 2.93 2.35 1.18-.05 1.63-.76 3.05-.76 1.42 0 1.82.76 3.06.74 1.27-.02 2.07-1.15 2.84-2.29.9-1.31 1.27-2.59 1.29-2.65-.03-.01-2.47-.95-2.51-3.79zM14.74 5.72c.66-.8 1.1-1.91.98-3.02-.95.04-2.09.63-2.77 1.43-.61.71-1.14 1.84-1 2.94 1.06.08 2.13-.54 2.79-1.35z" />
+              </svg>
+            </span>
+            <span className="as-txt">
+              <span className="small">Download on the</span>
+              <span className="big">App Store</span>
+            </span>
+          </a>
+        </div>
+        <div className="hero-rating">
+          <span className="stars">★★★★★</span>
+          <span>1,247 mates already in line</span>
+        </div>
+
+        <div className="hero-trio">
+          <div className="phone side left">
+            <div className="phone-screen">
+              <img src="/assets/app-browse.png" alt="Browse verified tradies" />
             </div>
           </div>
-          <div className="phone-stage">
-            <div className="phone-tag tag-1"><span className="swatch" />Verified, insured</div>
-            <div className="phone-tag tag-2"><span className="swatch" />3 min response</div>
-            <div className="phone-tag tag-3"><span className="swatch" />Fixed call-out fee</div>
-            <div className="phone">
-              <div className="phone-screen">
-                <img src="/assets/app-home.png" alt="Trust Trade app home screen" />
-              </div>
+          <div className="phone center">
+            <div className="phone-screen">
+              <img src="/assets/app-home.png" alt="Trust Trade app home screen" />
+            </div>
+          </div>
+          <div className="phone side right">
+            <div className="phone-screen">
+              <img src="/assets/app-booking.png" alt="Booking confirmation" />
             </div>
           </div>
         </div>
@@ -944,7 +945,7 @@ export default function LandingPage() {
   return (
     <>
       <PageHeader current="Trust Trade Landing.html" />
-      <HeroGrid />
+      <BevelHero />
       <TrustStrip />
       <HowItWorksSteps />
       <FeaturesBento />

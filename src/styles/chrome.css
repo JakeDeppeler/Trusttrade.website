@@ -104,3 +104,74 @@ body.theme-cream .page-hero-meta-strip-item:last-child { border-right: none; }
   }
   body.theme-cream .page-hero-meta-strip-item:last-child { border-bottom: none; }
 }
+
+/* ============================================================
+   Landing hero — centered "Find a tradie. Done proper." with the
+   App Store CTA, star rating, and a trio of app phones. Matches the
+   design (bevel-app). Scoped to .bevel-hero so it can't affect the
+   other pages' heroes.
+   ============================================================ */
+.bevel-hero {
+  position: relative;
+  text-align: center;
+  padding: clamp(120px, 16vw, 180px) 0 0;
+  overflow: hidden;
+}
+.bevel-hero .hero-sky {
+  position: absolute; inset: 0; z-index: 0; pointer-events: none;
+  background:
+    radial-gradient(60% 50% at 50% 0%, rgba(255, 200, 54, 0.30), transparent 70%),
+    radial-gradient(40% 40% at 15% 20%, rgba(242, 184, 31, 0.16), transparent 70%),
+    radial-gradient(40% 40% at 85% 15%, rgba(242, 184, 31, 0.14), transparent 70%);
+}
+.bevel-hero .hero-sky::after {
+  content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 40%;
+  background: linear-gradient(to bottom, transparent, var(--bg));
+}
+.bevel-hero .container { position: relative; z-index: 1; }
+.bevel-hero .hero-eyebrow { margin-bottom: 22px; justify-content: center; }
+.bevel-hero h1 { margin: 0 auto; max-width: 16ch; }
+.bevel-hero .lede { margin: 26px auto 0; max-width: 46ch; text-align: center; }
+.bevel-hero .hero-actions {
+  margin-top: 34px; display: flex; align-items: center; justify-content: center;
+  gap: 16px; flex-wrap: wrap;
+}
+.bevel-hero .appstore-btn { background: #17110A; color: #F3ECDD; }
+.bevel-hero .appstore-btn:hover { background: #2A2015; }
+.bevel-hero .hero-rating {
+  margin-top: 22px; display: flex; align-items: center; justify-content: center; gap: 12px;
+  font-size: 14px; color: var(--text-dim);
+}
+.bevel-hero .hero-rating .stars { color: var(--accent-lo); letter-spacing: 2px; font-size: 15px; }
+.bevel-hero .hero-trio {
+  position: relative;
+  margin-top: clamp(48px, 6vw, 80px);
+  padding-bottom: clamp(30px, 5vw, 60px);
+  display: flex; justify-content: center; align-items: flex-end;
+  gap: 0;
+  perspective: 1600px;
+}
+.bevel-hero .hero-trio .phone { position: relative; }
+.bevel-hero .hero-trio .phone.center {
+  z-index: 3;
+  transform: translateY(-14px);
+  box-shadow: 0 40px 80px -28px rgba(60, 40, 10, 0.55);
+}
+.bevel-hero .hero-trio .phone.side {
+  z-index: 2;
+  width: min(252px, 62vw);
+}
+.bevel-hero .hero-trio .phone.side .phone-screen { border-radius: 39px; }
+.bevel-hero .hero-trio .phone.left {
+  transform: translateX(46px) rotateY(38deg) scale(0.92);
+  transform-origin: right center;
+}
+.bevel-hero .hero-trio .phone.right {
+  transform: translateX(-46px) rotateY(-38deg) scale(0.92);
+  transform-origin: left center;
+}
+@media (max-width: 720px) {
+  .bevel-hero .hero-trio { perspective: none; }
+  .bevel-hero .hero-trio .phone.side { display: none; }
+  .bevel-hero .hero-trio .phone.center { transform: none; }
+}

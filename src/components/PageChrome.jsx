@@ -76,7 +76,7 @@ export function MobileNavMenu({ current }) {
                 className="btn btn-primary btn-lg"
                 href="Trust Trade Landing.html#waitlist"
               >
-                Get early access →
+                Download app →
               </PageLink>
             </div>
           </div>,
@@ -134,7 +134,7 @@ export function PageHeader({ current }) {
             Coming soon · iOS &amp; Android
           </span>
           <PageLink className="btn btn-primary btn-sm header-cta-btn" href="Trust Trade Landing.html#waitlist">
-            Get early access
+            Download app
           </PageLink>
           <MobileNavMenu current={current} />
         </div>

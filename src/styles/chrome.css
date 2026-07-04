@@ -222,3 +222,28 @@ body.theme-cream .vs-col.us {
   box-shadow: none;
 }
 .appstore-btn.light:hover { background: #f6f5f2; }
+
+/* White footer */
+body.theme-cream .footer { background: #ffffff; }
+
+/* "Download app" header button in amber (not dark) */
+body.theme-cream .header .header-cta-btn {
+  background: var(--accent);
+  color: #17110A;
+  border-color: transparent;
+}
+body.theme-cream .header .header-cta-btn:hover { background: var(--accent-hi); }
+
+/* Tighten the space before the closing download card */
+.final { padding-top: clamp(24px, 3.5vw, 52px); }
+
+/* More breathing room above/around the app-showcase heading */
+.showcase { padding-top: clamp(72px, 9vw, 130px); }
+.showcase-head {
+  max-width: 760px;
+  margin-left: auto;
+  margin-right: auto;
+  padding-left: 24px;
+  padding-right: 24px;
+  text-align: center;
+}

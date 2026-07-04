@@ -370,3 +370,55 @@ body.theme-cream .tt-home .tradies { background: #17110A; color: #F3ECDD; }
   text-transform: uppercase; color: var(--accent-lo); background: var(--bg-warm);
   padding: 4px 9px; border-radius: 999px;
 }
+
+/* ===== Live Ask AI chat widget ===== */
+.askai {
+  position: relative; z-index: 1;
+  width: 100%; max-width: 460px; margin: 0 auto;
+  display: flex; flex-direction: column;
+  background: #ffffff;
+  border: 1px solid var(--line);
+  border-radius: 22px;
+  box-shadow: var(--shadow-float, 0 30px 70px -34px rgba(23, 17, 10, 0.3));
+  overflow: hidden;
+}
+.askai-head {
+  display: flex; align-items: center; gap: 10px;
+  padding: 16px 18px; border-bottom: 1px solid var(--line);
+  font-family: var(--font-display); font-weight: 800; font-size: 15px; color: var(--ink);
+}
+.askai-dot {
+  width: 9px; height: 9px; border-radius: 50%; background: #3E9C5F;
+  box-shadow: 0 0 0 3px rgba(62, 154, 74, 0.18);
+}
+.askai-live {
+  margin-left: auto; font-family: var(--font-mono); font-size: 10px;
+  letter-spacing: 0.14em; color: #3E9C5F;
+}
+.askai-thread {
+  padding: 18px; display: flex; flex-direction: column; gap: 10px;
+  min-height: 230px; max-height: 360px; overflow-y: auto;
+}
+.askai-msg {
+  max-width: 86%; padding: 11px 14px; border-radius: 15px;
+  font-size: 14.5px; line-height: 1.5; white-space: pre-wrap;
+}
+.askai-msg.assistant { background: #f4f2ee; color: var(--ink); align-self: flex-start; border-bottom-left-radius: 5px; }
+.askai-msg.user { background: var(--accent); color: #17110A; align-self: flex-end; border-bottom-right-radius: 5px; }
+.askai-typing { display: inline-flex; gap: 5px; align-items: center; }
+.askai-typing span { width: 6px; height: 6px; border-radius: 50%; background: var(--ink-3); animation: typing 1s infinite; }
+.askai-typing span:nth-child(2) { animation-delay: .15s; }
+.askai-typing span:nth-child(3) { animation-delay: .3s; }
+.askai-input { display: flex; gap: 8px; padding: 12px; border-top: 1px solid var(--line); }
+.askai-input input {
+  flex: 1; border: 1px solid var(--line-strong); border-radius: 999px;
+  padding: 11px 16px; font-size: 15px; background: #fff; color: var(--ink);
+}
+.askai-input input:focus { outline: none; border-color: var(--accent); }
+.askai-input button {
+  width: 44px; height: 44px; flex-shrink: 0; border-radius: 50%;
+  background: var(--ink); color: #F3ECDD; font-size: 18px;
+  display: grid; place-items: center; transition: opacity .15s ease, background .2s ease;
+}
+.askai-input button:hover:not(:disabled) { background: #2A2015; }
+.askai-input button:disabled { opacity: 0.4; }

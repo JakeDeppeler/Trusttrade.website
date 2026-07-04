@@ -54,7 +54,7 @@ export default function OurStoryPage() {
       <PageHero
         eyebrow="Our story"
         title="Built by a tradie who got sick of watching good people get burnt."
-        lede="Trust Trade wasn't dreamt up in a boardroom. It came from years on the tools, watching lead-gen platforms squeeze tradies dry and leave customers guessing who they could trust."
+        lede="It came from years on the tools — watching customers get ripped off with no idea who to trust, and good tradies burn money chasing the wrong jobs. Trust Trade is here to fix both sides: connect people who want a quality job done with the tradies who take pride in doing it right."
       />
 
       {/* ===== Stats bar (promises, not vanity metrics) ===== */}
@@ -89,10 +89,15 @@ export default function OurStoryPage() {
                 turned into a job. The platform got paid either way.
               </p>
               <p>
-                Customers weren't doing much better — pushed toward whoever paid the platform the
-                most, not whoever did the best work. Fake reviews everywhere. No way of knowing if
-                the person at the door was licensed or insured. The platforms made money from the
-                mess. So I built the fix.
+                Customers weren't doing much better — ripped off, pushed toward whoever paid the
+                platform the most, not whoever did the best work. Fake reviews everywhere. No way of
+                knowing if the person at the door was licensed or insured. The platforms made money
+                from the mess. So I built the fix.
+              </p>
+              <p>
+                Trust Trade is about matching customers who want a good, honest job with the tradies
+                who take pride in doing it right — and fixing an industry that stopped working for
+                either of them.
               </p>
             </div>
           </div>

@@ -1005,8 +1005,78 @@ function WorksWith() {
   );
 }
 
+/* ===== Live "Ask AI" chat demo ===== */
+function AskAiDemo() {
+  const GREETING = "G'day — tell me what's gone wrong at home (leaking tap, tripping fuse, planning a reno) and I'll work out which trade you need.";
+  const [thread, setThread] = useState([{ role: "assistant", content: GREETING }]);
+  const [input, setInput] = useState("");
+  const [busy, setBusy] = useState(false);
+
+  const send = async (e) => {
+    e.preventDefault();
+    const msg = input.trim();
+    if (!msg || busy) return;
+    const next = [...thread, { role: "user", content: msg }];
+    setThread(next);
+    setInput("");
+    setBusy(true);
+    try {
+      const res = await fetch("/api/ask", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ messages: next }),
+      });
+      const data = await res.json().catch(() => ({}));
+      const reply =
+        data && data.ok && data.reply
+          ? data.reply
+          : "Hmm, I couldn't reach the assistant just now — give it another go.";
+      setThread((t) => [...t, { role: "assistant", content: reply }]);
+    } catch {
+      setThread((t) => [
+        ...t,
+        { role: "assistant", content: "Couldn't reach the assistant — check your connection and try again." },
+      ]);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div className="askai">
+      <div className="askai-head">
+        <span className="askai-dot" aria-hidden="true" />
+        Trust Trade Assistant
+        <span className="askai-live">● LIVE</span>
+      </div>
+      <div className="askai-thread">
+        {thread.map((m, i) => (
+          <div className={"askai-msg " + m.role} key={i}>
+            {m.content}
+          </div>
+        ))}
+        {busy && (
+          <div className="askai-msg assistant askai-typing" aria-label="Assistant is typing">
+            <span /><span /><span />
+          </div>
+        )}
+      </div>
+      <form className="askai-input" onSubmit={send}>
+        <input
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
+          placeholder="What's broken at home?"
+          aria-label="Describe your problem"
+          maxLength={500}
+        />
+        <button type="submit" disabled={busy || !input.trim()} aria-label="Send">→</button>
+      </form>
+    </div>
+  );
+}
+
 /* ===== Feature breakdown rows ===== */
-function FeatureRow({ eyebrow, title, body, points, img, flip, cards, glow }) {
+function FeatureRow({ eyebrow, title, body, points, img, flip, cards, glow, visual }) {
   return (
     <div className={"feature-row reveal " + (flip ? "flip" : "")}>
       <div className="fr-copy">
@@ -1025,13 +1095,17 @@ function FeatureRow({ eyebrow, title, body, points, img, flip, cards, glow }) {
         )}
       </div>
       <div className="fr-visual">
-        {glow !== false && <div className="glow" />}
-        <div className="phone">
-          <div className="phone-screen">
-            <img src={img} alt={title} loading="lazy" />
-          </div>
-        </div>
-        {cards}
+        {visual || (
+          <>
+            {glow !== false && <div className="glow" />}
+            <div className="phone">
+              <div className="phone-screen">
+                <img src={img} alt={title} loading="lazy" />
+              </div>
+            </div>
+            {cards}
+          </>
+        )}
       </div>
     </div>
   );
@@ -1052,6 +1126,7 @@ function FeatureBreakdowns() {
         </div>
 
         <FeatureRow
+          visual={<AskAiDemo />}
           eyebrow="Ask AI"
           title="Describe it in plain English."
           body="Leaking tap, tripping fuse, planning a reno — say it how you'd say it to a mate. Our assistant works out which trade you actually need and points you at the verified pros nearby."

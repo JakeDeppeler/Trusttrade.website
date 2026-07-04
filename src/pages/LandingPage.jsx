@@ -633,40 +633,322 @@ function MobileStickyCTA({ onJoin }) {
   );
 }
 
+// ===== Hero (grid) — design landing hero =====
+function HeroGrid() {
+  const [email, setEmail] = useState("");
+  const submit = (e) => {
+    e.preventDefault();
+    scrollToWaitlist();
+  };
+  return (
+    <section className="hero" id="top">
+      <div className="container">
+        <div className="hero-grid">
+          <div>
+            <div className="hero-eyebrow-row">
+              <span className="hero-pill">
+                <span className="dot" />
+                Pre-register · Drops Q4 2026
+              </span>
+            </div>
+            <h1 className="h-display">
+              Find a tradie.
+              <br />
+              <span className="glow-wrap">
+                <span className="it">Done proper.</span>
+              </span>
+            </h1>
+            <p className="lede" style={{ marginTop: 32 }}>
+              Verified, insured, recommended local tradies — landing on your phone soon. Hop on the
+              list to lock in early web access and founding-member perks.
+            </p>
+            <form className="waitlist-form" onSubmit={submit}>
+              <input
+                type="email"
+                placeholder="your@email.com.au"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                aria-label="Email address"
+              />
+              <button className="btn btn-primary" type="submit">
+                Get on the list →
+              </button>
+            </form>
+            <div className="hero-trust-row">
+              <div className="avatars">
+                <span>J</span><span>A</span><span>M</span><span>K</span>
+              </div>
+              <div>1,247 mates already in line · No spam, ever.</div>
+            </div>
+          </div>
+          <div className="phone-stage">
+            <div className="phone-tag tag-1"><span className="swatch" />Verified, insured</div>
+            <div className="phone-tag tag-2"><span className="swatch" />3 min response</div>
+            <div className="phone-tag tag-3"><span className="swatch" />Fixed call-out fee</div>
+            <div className="phone">
+              <div className="phone-screen">
+                <img src="/assets/app-home.png" alt="Trust Trade app home screen" />
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+// ===== Trust strip =====
+function TrustStrip() {
+  return (
+    <section className="trust-strip">
+      <div className="container">
+        <div className="trust-strip-grid">
+          <div className="trust-item">
+            <div className="num">100<span className="sm">%</span></div>
+            <div className="lbl">Tradies verified before they land in front of you.</div>
+          </div>
+          <div className="trust-item">
+            <div className="num"><span className="it">0</span></div>
+            <div className="lbl">Cold leads. Tradies get matched, not auctioned off.</div>
+          </div>
+          <div className="trust-item">
+            <div className="num">3<span className="sm">min</span></div>
+            <div className="lbl">Average time from "I need help" to a quote in writing.</div>
+          </div>
+          <div className="trust-item">
+            <div className="num"><span className="it">AU</span></div>
+            <div className="lbl">Built in Naarm/Melbourne. For Aussie homes, Aussie trades.</div>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+// ===== How it works (3 steps) =====
+function HowItWorksSteps() {
+  return (
+    <section className="block" id="how">
+      <div className="container">
+        <div className="section-head">
+          <div className="eyebrow accent">— Homeowners</div>
+          <div>
+            <h2 className="h-1">
+              Three taps. Real humans. <span className="it">Done proper.</span>
+            </h2>
+            <p className="lede" style={{ marginTop: 18 }}>
+              No quote-form rodeo. No five tradies SMS-blasting you at 7am. Tell us what's broken;
+              we'll route you to someone who can fix it today.
+            </p>
+          </div>
+        </div>
+        <div className="steps">
+          <div className="step">
+            <div className="step-num">01</div>
+            <h3 className="h-3">Tell us what's gone wrong.</h3>
+            <p>Leaking tap. Tripping fuse. Planning a reno. Plain English — our AI works out which trade you actually need.</p>
+            <div className="step-visual"><img src="/assets/app-askai.png" alt="Ask AI screen" /></div>
+          </div>
+          <div className="step">
+            <div className="step-num">02</div>
+            <h3 className="h-3">We route to vetted locals.</h3>
+            <p>Insured, licenced, reviewed. Nearest first. No marketplace mosh-pit — just a shortlist of mates who can do the job.</p>
+            <div className="step-visual"><img src="/assets/app-browse.png" alt="Browse tradies screen" /></div>
+          </div>
+          <div className="step">
+            <div className="step-num">03</div>
+            <h3 className="h-3">Approve the price. Book it in.</h3>
+            <p>Fixed call-out fee, in writing, up front. Tap Approve and you've got a booking confirmation — name, time, address, all logged.</p>
+            <div className="step-visual"><img src="/assets/app-booking.png" alt="Booking confirmation screen" /></div>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+// ===== Features bento =====
+function FeaturesBento() {
+  return (
+    <section className="block" id="features" style={{ paddingTop: 0 }}>
+      <div className="container">
+        <div className="section-head">
+          <div className="eyebrow accent">— Why Trust Trade</div>
+          <div>
+            <h2 className="h-1">
+              Built like the trades you'd <span className="it">actually recommend.</span>
+            </h2>
+          </div>
+        </div>
+        <div className="bento">
+          <div className="feat feat-1 feat-verified">
+            <div className="feat-eyebrow">Verified · Step 0</div>
+            <h3 className="h-big">Every tradie checked before they're listed.</h3>
+            <p>Licence numbers verified with the regulator. Public liability and workers' comp on file. Reviews from real, confirmed jobs — not rideshare-style spam.</p>
+            <div className="feat-visual">
+              <div className="verified-stack">
+                <div className="verified-card">
+                  <div className="badge">✓ VERIFIED</div>
+                  Advanced Gas &amp; Aircon
+                  <div className="meta">HVAC · 3.2 km</div>
+                </div>
+                <div className="verified-card dark">
+                  <div className="badge">✓ VERIFIED</div>
+                  JT Valley Electrics
+                  <div className="meta">Electrician · 28.6 km</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="feat feat-2 feat-ai">
+            <div className="feat-eyebrow">Ask AI</div>
+            <h3>Describe it in plain English.</h3>
+            <p>We work out the trade — and route you to the right one.</p>
+            <div className="ai-bubble">
+              "Hot water's running cold and there's a hissing noise from the cylinder."
+              <br /><br />
+              <span style={{ color: "var(--accent)", fontWeight: 600 }}>Sounds like a plumber — gas hot water specialist.</span>
+              <span className="typing"><span /><span /><span /></span>
+            </div>
+          </div>
+
+          <div className="feat feat-3 feat-price">
+            <div className="feat-eyebrow">Fixed quotes</div>
+            <h3>Call-out fees in writing. Approved up front.</h3>
+            <div className="price-card">
+              <div>
+                <div className="label">Call-out fee</div>
+                <div className="amount">$200 <span className="ex">ex GST</span></div>
+                <div className="approved">✓ APPROVED · 3 hr ETA</div>
+              </div>
+            </div>
+          </div>
+
+          <div className="feat feat-4 feat-msg">
+            <div className="feat-eyebrow">In-app chat</div>
+            <h3>One thread per job.</h3>
+            <div className="msg-thread">
+              <div className="bubble in">On my way — 20 min ETA</div>
+              <div className="bubble out">Sweet, gate's unlocked</div>
+              <div className="bubble in">Done. Receipt emailed.</div>
+            </div>
+          </div>
+
+          <div className="feat feat-5 feat-near">
+            <div className="feat-eyebrow">Nearest first</div>
+            <h3>See who's around the corner.</h3>
+            <div className="near-card">
+              <div className="avatar">A</div>
+              <div>
+                <div className="name">Advanced Gas &amp; Aircon</div>
+                <div className="trade">HVAC · ★ 5.0 (4)</div>
+              </div>
+              <div className="km">3.2 km</div>
+            </div>
+          </div>
+
+          <div className="feat feat-6">
+            <div className="feat-eyebrow">Receipts</div>
+            <h3>Both sides protected.</h3>
+            <p>Name, address, time, price — all logged in your inbox. If something goes sideways, the record's there.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+// ===== For tradies (split) =====
+function ForTradiesSplit() {
+  return (
+    <section className="block tradies-section" id="tradies">
+      <div className="container">
+        <div className="tradies-grid">
+          <div>
+            <div className="eyebrow" style={{ marginBottom: 24 }}>— For tradies</div>
+            <h2 className="h-1">
+              More jobs. <span className="it">Less mucking around.</span>
+            </h2>
+            <p className="lede" style={{ marginTop: 24, marginBottom: 40 }}>
+              Skip the lead-gen rort. Real homeowners, real jobs, routed to you by trade and postcode
+              — on your terms.
+            </p>
+            <div className="tradies-list">
+              <div className="item">
+                <div className="n">01</div>
+                <div className="body">
+                  <h4>Real customers, not tyre-kickers.</h4>
+                  <p>Verified accounts only. They've told us what they need before you ever see the job.</p>
+                </div>
+              </div>
+              <div className="item">
+                <div className="n">02</div>
+                <div className="body">
+                  <h4>You set the call-out fee. Per job.</h4>
+                  <p>No race-to-the-bottom bidding. Quote what the job's worth; they approve before you roll.</p>
+                </div>
+              </div>
+              <div className="item">
+                <div className="n">03</div>
+                <div className="body">
+                  <h4>One inbox. One thread per job.</h4>
+                  <p>No more "which Sarah was the laundry tap one?" Every job lives in its own conversation.</p>
+                </div>
+              </div>
+              <div className="item">
+                <div className="n">04</div>
+                <div className="body">
+                  <h4>Get paid faster.</h4>
+                  <p>Receipts, bookings and confirmations baked in. Disputes drop, payments speed up.</p>
+                </div>
+              </div>
+            </div>
+            <div style={{ marginTop: 40, display: "flex", gap: 12, flexWrap: "wrap" }}>
+              <button className="btn btn-dark btn-lg" onClick={scrollToWaitlist}>
+                Apply to join as a tradie →
+              </button>
+              <PageLink
+                href="For Tradies.html"
+                className="btn btn-ghost btn-lg"
+                style={{ borderColor: "rgba(12,9,7,0.15)", color: "var(--on-accent)" }}
+              >
+                For tradies
+              </PageLink>
+            </div>
+          </div>
+          <div className="tradies-visual">
+            <div className="floater top-right">
+              <div className="label">New enquiry</div>
+              <strong>Hot water system isn't working</strong>
+              <div style={{ color: "var(--text-dim)", marginTop: 4, fontSize: 12 }}>Pakenham · Emergency</div>
+            </div>
+            <div className="phone">
+              <div className="phone-screen">
+                <img src="/assets/app-jobs.png" alt="My Jobs screen" />
+              </div>
+            </div>
+            <div className="floater bottom-left">
+              <div className="label">Approved</div>
+              <strong>$200 ex GST</strong>
+              <div style={{ color: "var(--text-dim)", marginTop: 4, fontSize: 12 }}>On site within 3 hrs</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
 export default function LandingPage() {
   return (
     <>
       <PageHeader current="Trust Trade Landing.html" />
-      <Hero onJoin={scrollToWaitlist} />
-      <IntegrationsRow />
-      <FeatureStories stories={HOMEPAGE_STORIES} />
-      <BehindTheScenes
-        eyebrow="Behind the scenes"
-        title="More than a directory."
-        italicWord="A system."
-        subhead="Under the hood: AI-powered trade routing, live regulator checks, and a full audit trail on every job."
-        items={HOMEPAGE_BEHIND_SCENES}
-      />
-      <AdditionalFeatures
-        eyebrow="And that's not all"
-        title="Small stuff that"
-        italicWord="adds up."
-        items={HOMEPAGE_ADDITIONAL}
-        screenshot="/assets/app-insights-detail.png"
-        alt="Detailed tradie insights — profile views, enquiries, calls, emails, reviews"
-      />
-      <PrivacyBreak
-        eyebrow="Why we're doing this"
-        title="Built by a tradie."
-        italicWord="For the trades."
-        body="I'm a mechanical plumber. I've quoted the work, I've done the work, I've seen the aftermath when it goes wrong. Trust Trade is the app I wish had existed when I started — from both sides of the front door."
-      />
-      <VoiceCards
-        eyebrow="From the tools"
-        title="Notes from the"
-        italicWord="workshop floor."
-        quotes={HOMEPAGE_VOICES}
-      />
+      <HeroGrid />
+      <TrustStrip />
+      <HowItWorksSteps />
+      <FeaturesBento />
+      <ForTradiesSplit />
       <WaitlistMoment />
       <FAQSection />
       <PageFooter />

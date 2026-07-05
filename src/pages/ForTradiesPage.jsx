@@ -1,7 +1,7 @@
 import {
+  PageDownloadCTA,
   PageFooter,
   PageHeader,
-  PageWaitlistFooterCTA,
 } from "../components/PageChrome.jsx";
 import PageLink from "../components/PageLink.jsx";
 import { usePageReveal, DevRow, Marquee, FaqAccordion } from "../components/RedesignSections.jsx";
@@ -361,12 +361,7 @@ export default function ForTradiesPage() {
         </div>
       </section>
 
-      <PageWaitlistFooterCTA
-        headline="Skip the rort."
-        subhead="Get on the list."
-        secondaryLabel="I'm a homeowner"
-        secondaryHref="For Homeowners.html"
-      />
+      <PageDownloadCTA />
       <PageFooter />
     </>
   );

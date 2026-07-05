@@ -247,3 +247,25 @@ body.theme-cream .header .header-cta-btn:hover { background: var(--accent-hi); }
   padding-right: 24px;
   text-align: center;
 }
+
+/* Readable footer text on the white footer */
+body.theme-cream .footer .brand,
+body.theme-cream .footer strong { color: var(--text); }
+body.theme-cream .footer h5 { color: var(--text-faint); }
+body.theme-cream .footer a { color: var(--text-dim); }
+body.theme-cream .footer a:hover { color: var(--text); }
+body.theme-cream .footer p,
+body.theme-cream .footer .footer-bottom { color: var(--text-dim); }
+body.theme-cream .footer { border-top: 1px solid var(--line); }
+
+/* Our Story lead paragraph was light (var(--cream)) — make it readable */
+body.theme-cream .about-grid p.lead,
+body.theme-cream .about-grid p strong { color: var(--text); }
+
+/* Hero titles the same size as the home page, across all main pages */
+body.theme-cream .page-hero-title-xl { font-size: clamp(56px, 8.5vw, 132px); }
+
+/* Smooth fade-in on page change so navigation flows nicer */
+@keyframes pageFade { from { opacity: 0; } to { opacity: 1; } }
+.page-fade { animation: pageFade 0.5s ease both; }
+@media (prefers-reduced-motion: reduce) { .page-fade { animation: none; } }

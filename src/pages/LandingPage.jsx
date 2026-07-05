@@ -1005,10 +1005,14 @@ function WorksWith() {
   );
 }
 
-/* ===== Live "Ask AI" chat demo ===== */
+/* ===== Live "Ask AI" chat demo — talks to the same ask-ai edge function
+   the Trust Trade app uses (same model + prompt). ===== */
+const ASKAI_URL = "https://pvcblfpxgrznzqgxbujy.supabase.co/functions/v1/ask-ai";
+const ASKAI_KEY = "sb_publishable_xXxZpIBsumD14mC4zn9qLQ_i4Su8yEN";
+
 function AskAiDemo() {
   const GREETING = "G'day — tell me what's gone wrong at home (leaking tap, tripping fuse, planning a reno) and I'll work out which trade you need.";
-  const [thread, setThread] = useState([{ role: "assistant", content: GREETING }]);
+  const [thread, setThread] = useState([{ role: "assistant", content: GREETING, intro: true }]);
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
 
@@ -1016,21 +1020,29 @@ function AskAiDemo() {
     e.preventDefault();
     const msg = input.trim();
     if (!msg || busy) return;
-    const next = [...thread, { role: "user", content: msg }];
-    setThread(next);
+    setThread((t) => [...t, { role: "user", content: msg }]);
     setInput("");
     setBusy(true);
     try {
-      const res = await fetch("/api/ask", {
+      // Same payload shape the app sends: current question + prior turns as
+      // { role, body } history (the intro greeting is excluded).
+      const history = thread
+        .filter((m) => !m.intro && (m.role === "user" || m.role === "assistant"))
+        .slice(-10)
+        .map((m) => ({ role: m.role, body: m.content }));
+      const res = await fetch(ASKAI_URL, {
         method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ messages: next }),
+        headers: {
+          "content-type": "application/json",
+          apikey: ASKAI_KEY,
+          authorization: `Bearer ${ASKAI_KEY}`,
+        },
+        body: JSON.stringify({ question: msg, role: "user", history }),
       });
       const data = await res.json().catch(() => ({}));
-      const reply =
-        data && data.ok && data.reply
-          ? data.reply
-          : "Hmm, I couldn't reach the assistant just now — give it another go.";
+      const reply = data && data.reply
+        ? String(data.reply)
+        : "Hmm, I couldn't reach the assistant just now — give it another go.";
       setThread((t) => [...t, { role: "assistant", content: reply }]);
     } catch {
       setThread((t) => [

@@ -1,6 +1,6 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
 import { ScrollToTop } from "./components/PageChrome.jsx";
 import LandingPage from "./pages/LandingPage.jsx";
 import HowItWorksPage from "./pages/HowItWorksPage.jsx";
@@ -20,11 +20,13 @@ import "./styles/chrome.css";
 // before the first render so there's no theme flash.
 document.body.classList.add("theme-cream");
 
-ReactDOM.createRoot(document.getElementById("root")).render(
-  <React.StrictMode>
-    <BrowserRouter>
-      <ScrollToTop />
-      <Routes>
+// Fade each page in on navigation so route changes flow more smoothly.
+// Keyed by pathname so the animation replays on every route change.
+function AnimatedRoutes() {
+  const location = useLocation();
+  return (
+    <div className="page-fade" key={location.pathname}>
+      <Routes location={location}>
         <Route path="/" element={<LandingPage />} />
         <Route path="/how-it-works" element={<HowItWorksPage />} />
         <Route path="/how-we-verify" element={<VerifyPage />} />
@@ -36,6 +38,15 @@ ReactDOM.createRoot(document.getElementById("root")).render(
         <Route path="/our-story" element={<OurStoryPage />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(
+  <React.StrictMode>
+    <BrowserRouter>
+      <ScrollToTop />
+      <AnimatedRoutes />
     </BrowserRouter>
   </React.StrictMode>
 );

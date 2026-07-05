@@ -35,6 +35,16 @@ const VALUES = [
     h: "Reviews you can trust",
     p: "Every review is tied to a real enquiry through the app. Fakes get caught before they go up.",
   },
+  {
+    n: "05",
+    h: "Quality over quantity",
+    p: "A tight, vetted list beats a directory of anyone with a ute. Every tradie here wants to do the job right, not just win the click.",
+  },
+  {
+    n: "06",
+    h: "A real person answers",
+    p: "Questions go straight to Jake, not a ticket queue. Founder's inbox, no bots — and usually a same-day reply.",
+  },
 ];
 
 const JOURNEY = [
@@ -53,8 +63,9 @@ export default function OurStoryPage() {
 
       <PageHero
         eyebrow="Our story"
-        title="Built by a tradie who got sick of watching good people get burnt."
-        lede="It came from years on the tools — watching customers get ripped off with no idea who to trust, and good tradies burn money chasing the wrong jobs. Trust Trade is here to fix both sides: connect people who want a quality job done with the tradies who take pride in doing it right."
+        title="Finding a good tradie"
+        italicWord="shouldn't be this hard."
+        lede="It came from years on the tools — watching customers get ripped off with no idea who to trust, and good tradies get lost in the noise. Trust Trade is here to fix both: connect people who want a quality job done with the tradies who take pride in doing it right."
       />
 
       {/* ===== Stats bar (promises, not vanity metrics) ===== */}
@@ -74,32 +85,29 @@ export default function OurStoryPage() {
       {/* ===== Mission ===== */}
       <section className="page-section bordered">
         <div className="container">
-          <div className="about-grid reveal">
-            <div>
-              <div className="eyebrow accent" style={{ marginBottom: 14 }}>Why Trust Trade exists</div>
-              <h2 className="h-1">
-                The platforms made money from the mess. <span className="it">So I built the fix.</span>
-              </h2>
-            </div>
-            <div>
-              <p className="lead">
-                I'm Jake — a licensed plumber and gas-fitter in Melbourne, still on the tools. For
-                years I watched good tradies pay $80–150 for a "lead" that got sold to five other
-                blokes at the same time. Then a race to the bottom on price, and maybe one in five
-                turned into a job. The platform got paid either way.
-              </p>
-              <p>
-                Customers weren't doing much better — ripped off, pushed toward whoever paid the
-                platform the most, not whoever did the best work. Fake reviews everywhere. No way of
-                knowing if the person at the door was licensed or insured. The platforms made money
-                from the mess. So I built the fix.
-              </p>
-              <p>
-                Trust Trade is about matching customers who want a good, honest job with the tradies
-                who take pride in doing it right — and fixing an industry that stopped working for
-                either of them.
-              </p>
-            </div>
+          <div className="mid-head reveal">
+            <div className="eyebrow accent">Why Trust Trade exists</div>
+            <h2 className="h-1">
+              The hardest part isn't the repair. <span className="it">It's who to trust.</span>
+            </h2>
+          </div>
+          <div className="story-prose reveal">
+            <p>
+              I'm Jake — a licensed plumber and gas-fitter in Melbourne, still on the tools. The
+              hardest part of owning a home was never the repair. It's working out who to trust to
+              do it right. Recommendations run out, reviews can't be trusted, and you've no idea if
+              the person at the door is even licensed or insured.
+            </p>
+            <p>
+              Meanwhile the good tradies — the ones who take real pride in their work — get lost in
+              the noise, while the ones who game the system get the calls. That's a broken industry,
+              and it's bad for everyone.
+            </p>
+            <p>
+              Trust Trade exists to fix it: help people find someone who'll actually do a good job,
+              and give honest, vetted tradies a fair shot at the customers who want quality work.
+              Not leads. Not auctions. Just the right people, matched properly.
+            </p>
           </div>
         </div>
       </section>
@@ -109,7 +117,7 @@ export default function OurStoryPage() {
         <div className="container">
           <div className="mid-head reveal">
             <div className="eyebrow accent">What we stand on</div>
-            <h2 className="h-1">Four things we <span className="it">won't budge on.</span></h2>
+            <h2 className="h-1">Six things we <span className="it">won't budge on.</span></h2>
           </div>
           <div className="tradie-perks reveal">
             {VALUES.map((v) => (

@@ -3866,7 +3866,7 @@ textarea:focus-visible {
 .integrations-row .container {
   display: grid;
   grid-template-columns: minmax(220px, 320px) 1fr;
-  gap: 48px;
+  gap: clamp(48px, 6vw, 88px);
   align-items: center;
 }
 .integrations-head p {

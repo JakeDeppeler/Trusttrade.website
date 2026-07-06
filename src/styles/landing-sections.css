@@ -170,7 +170,7 @@ section.block { padding: clamp(80px, 10vw, 140px) 0; position: relative; }
 .phone.sm { width: min(230px, 62vw); border-radius: 38px; padding: 8px; }
 .phone.sm .phone-screen { border-radius: 31px; }
 .showcase { padding: clamp(20px, 5vw, 48px) 0 clamp(60px, 8vw, 100px); overflow: hidden; }
-.showcase-head { text-align: center; margin-bottom: 40px; }
+.showcase-head { text-align: center; margin-bottom: clamp(56px, 6.5vw, 88px); }
 .showcase-marquee {
   position: relative; width: 100%; overflow: hidden;
   -webkit-mask-image: linear-gradient(to right, transparent, #000 8%, #000 92%, transparent);
@@ -349,7 +349,7 @@ body.theme-cream .tt-home .tradies { background: #17110A; color: #F3ECDD; }
 .rev-col.b { animation-duration: 52s; }
 .rev-col.c { animation-duration: 46s; }
 @keyframes scroll-y { from { transform: translateY(0); } to { transform: translateY(-50%); } }
-.reviews-cols:hover .rev-col { animation-play-state: paused; }
+/* Reviews keep scrolling even when hovered (don't pause on mouse-over). */
 @media (prefers-reduced-motion: reduce) { .rev-col { animation: none; } .reviews-cols { max-height: none; mask-image: none; -webkit-mask-image: none; } }
 .rev-card {
   background: var(--card); border: 1px solid var(--line); border-radius: var(--radius-md);

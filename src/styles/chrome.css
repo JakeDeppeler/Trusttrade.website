@@ -267,8 +267,8 @@ body.theme-cream .about-grid p strong { color: var(--text); }
 .story-prose p { font-size: 17px; line-height: 1.7; color: var(--text-dim); margin: 0 0 20px; }
 .story-prose p:last-child { margin-bottom: 0; }
 
-/* Hero titles the same size as the home page, across all main pages */
-body.theme-cream .page-hero-title-xl { font-size: clamp(56px, 8.5vw, 132px); }
+/* Hero titles the same size AND leading as the home page, across all main pages */
+body.theme-cream .page-hero-title-xl { font-size: clamp(56px, 8.5vw, 132px); line-height: 0.92; }
 
 /* Smooth fade-in on page change so navigation flows nicer */
 @keyframes pageFade { from { opacity: 0; } to { opacity: 1; } }
@@ -279,15 +279,24 @@ body.theme-cream .page-hero-title-xl { font-size: clamp(56px, 8.5vw, 132px); }
 body.theme-cream .page-hero-title-xl,
 body.theme-cream .page-hero-title-xl .it { font-weight: 900; }
 
-/* Same amber hero glow as the home page, across all main pages */
+/* Same amber hero glow as the home page, across all main pages — matches
+   .bevel-hero .hero-sky: same gradients, spreads lower into the hero, and
+   fades to the page background at the bottom like the home hero does. */
 body.theme-cream .page-hero-decor {
-  inset: -8% -5% auto -5%;
-  height: 100%;
-  filter: blur(8px);
+  inset: 0 -5% auto -5%;
+  height: 135%;
+  filter: none;
   background:
-    radial-gradient(60% 55% at 50% 0%, rgba(255, 200, 54, 0.28), transparent 70%),
-    radial-gradient(40% 40% at 15% 18%, rgba(242, 184, 31, 0.15), transparent 65%),
-    radial-gradient(40% 40% at 85% 15%, rgba(242, 184, 31, 0.13), transparent 65%);
+    radial-gradient(60% 50% at 50% 0%, rgba(255, 200, 54, 0.30), transparent 70%),
+    radial-gradient(40% 40% at 15% 20%, rgba(242, 184, 31, 0.16), transparent 70%),
+    radial-gradient(40% 40% at 85% 15%, rgba(242, 184, 31, 0.14), transparent 70%);
+}
+body.theme-cream .page-hero-decor::after {
+  content: "";
+  position: absolute;
+  left: 0; right: 0; bottom: 0;
+  height: 40%;
+  background: linear-gradient(to bottom, transparent, var(--bg));
 }
 
 /* Mobile nav overlay is dark — its links/brand/close must be light */

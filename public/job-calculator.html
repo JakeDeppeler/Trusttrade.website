@@ -870,13 +870,13 @@ footer{background:#fff;margin-top:56px;padding:26px 0 0;border-top:1px solid var
 
       <div class="card">
         <div class="card-head">
-          <div><h2>Annual overhead</h2><div class="sub">Per-van and per-person costs scale by themselves</div></div>
+          <div><h2>Annual overhead</h2><div class="sub">Enter the full yearly total — we'll show the per-van / per-person breakdown</div></div>
           <button class="btn ghost sm" onclick="addOh()">+ Add cost</button>
         </div>
         <div class="tw"><table>
-          <thead><tr><th style="min-width:210px">Description</th><th style="width:130px">Type</th>
-            <th class="num" style="width:120px">Cost<span class="ts">per unit/yr</span></th>
-            <th class="num" style="width:100px">×</th><th class="num" style="width:120px">Annual</th><th style="width:44px"></th></tr></thead>
+          <thead><tr><th style="min-width:210px">Description</th><th style="width:140px">Type</th>
+            <th class="num" style="width:130px">Annual total<span class="ts">$/yr, whole business</span></th>
+            <th class="num" style="width:150px">Per van / person<span class="ts">total ÷ count</span></th><th style="width:44px"></th></tr></thead>
           <tbody id="ohBody"></tbody>
         </table></div>
         <div class="stats" style="margin-top:20px">
@@ -1191,7 +1191,7 @@ let saveT = null;
 /* ── state ── */
 const BLANK = {
   vans:1, hoursPerVan:1600, autoCalc:'auto', stdRate:180,
-  ac:{daysWeek:5,leave:20,sick:10,pubHol:11,other:5,hoursDay:8,drive:1,lunch:.5,yard:.5,slow:8},
+  ac:{daysWeek:5,leave:20,sick:10,pubHol:11,other:5,hoursDay:8,drive:1,lunch:.5,yard:.5,slow:2.5},
   catMarkup:{service:65,install:30,investigation:50,maintenance:40,rebate:20},
   target:{annual:0,crews:1,days:240},
   team:[], overhead:[], fleet:[], pricebook:[], templates:[]
@@ -1206,7 +1206,7 @@ let Q = {jobIdx:0,hours:1,crew:[],rate:180,materials:0,markup:65,mode:'hourly',f
    All figures are made up for the demo — not any real business's books. ── */
 const DEMO_DATA = {
   vans:5, hoursPerVan:1600, autoCalc:'auto', stdRate:180,
-  ac:{daysWeek:5,leave:20,sick:10,pubHol:11,other:5,hoursDay:8,drive:1,lunch:.5,yard:.5,slow:8},
+  ac:{daysWeek:5,leave:20,sick:10,pubHol:11,other:5,hoursDay:8,drive:1,lunch:.5,yard:.5,slow:2.5},
   catMarkup:{service:65,install:30,investigation:50,maintenance:40,rebate:20},
   target:{annual:2800000,crews:5,days:240},
   team:[
@@ -1219,20 +1219,20 @@ const DEMO_DATA = {
     {name:'Office admin',role:'Office / Admin',pay_rate:32,on_cost:25,billable_pct:0,in_van:false}
   ],
   overhead:[
-    {name:'Vehicle — fuel',amount:12000,type:'per_van'},
-    {name:'Vehicle — insurance & rego',amount:5000,type:'per_van'},
-    {name:'Vehicle — repairs',amount:6000,type:'per_van'},
+    {name:'Vehicle — fuel',amount:60000,type:'per_van'},
+    {name:'Vehicle — insurance & rego',amount:25000,type:'per_van'},
+    {name:'Vehicle — repairs',amount:30000,type:'per_van'},
     {name:'Rent',amount:40000,type:'fixed'},
     {name:'Rates & utilities',amount:7000,type:'fixed'},
     {name:'Insurance (public liability)',amount:14000,type:'fixed'},
-    {name:'Workcover',amount:2500,type:'per_person'},
+    {name:'Workcover',amount:17500,type:'per_person'},
     {name:'Accounting fees',amount:5000,type:'fixed'},
     {name:'Bank fees & interest',amount:9000,type:'fixed'},
     {name:'Subscriptions (Xero, software)',amount:9000,type:'fixed'},
     {name:'Phone & internet',amount:6000,type:'fixed'},
-    {name:'Tools (consumed)',amount:500,type:'per_person'},
-    {name:'PPE & uniforms',amount:400,type:'per_person'},
-    {name:'Training & licences',amount:1200,type:'per_person'},
+    {name:'Tools (consumed)',amount:3500,type:'per_person'},
+    {name:'PPE & uniforms',amount:2800,type:'per_person'},
+    {name:'Training & licences',amount:8400,type:'per_person'},
     {name:'Advertising',amount:6000,type:'fixed'}
   ],
   fleet:[
@@ -1296,11 +1296,15 @@ function autoHours(){
   return {total,work,gross,lost,onsite,billable:Math.round(onsite*(1-a.slow/100))};
 }
 const hpv=()=>S.autoCalc==='auto'?autoHours().billable:S.hoursPerVan;
-function scaled(o){
+// Every overhead amount is the FULL annual total for the business. The type
+// only controls how we show the per-van / per-person breakdown (divide) — it
+// never multiplies the total.
+function scaled(o){ return Number(o.amount)||0; }
+function ohPerUnit(o){
   const a=Number(o.amount)||0;
-  if(o.type==='per_van')return a*(S.vans||0);
-  if(o.type==='per_person')return a*S.team.length;
-  return a;
+  if(o.type==='per_van'){ const n=Math.max(1,S.vans||1); return `÷ ${n} = <b style="color:var(--ink)">${money(a/n)}</b>/van`; }
+  if(o.type==='per_person'){ const n=Math.max(1,S.team.length||1); return `÷ ${n} = <b style="color:var(--ink)">${money(a/n)}</b>/person`; }
+  return '—';
 }
 // Everyone is costed hourly now (pay + on-costs) — no separate salary field.
 function hourly(p){ return (Number(p.pay_rate)||0)*(1+(Number(p.on_cost)||0)/100); }
@@ -1880,27 +1884,24 @@ function renderOh(){
   $('ohUtil').textContent = Math.round(hpv()/(8*5*52)*100)+'%';
 
   const b=$('ohBody'), f=grab(b); b.innerHTML='';
-  if(!S.overhead.length) b.innerHTML=`<tr><td colspan="6"><div class="empty">No overheads yet. Add them — rent, vehicles, insurance, phone, tools, admin wages.</div></td></tr>`;
+  if(!S.overhead.length) b.innerHTML=`<tr><td colspan="5"><div class="empty">No overheads yet. Add them — rent, vehicles, insurance, phone, tools, admin wages. Enter each as the full yearly total.</div></td></tr>`;
   S.overhead.forEach((o,i)=>{
     const t=o.type||'fixed';
-    const mult=t==='per_van'?`× ${S.vans}`:t==='per_person'?`× ${S.team.length}`:'× 1';
     const tr=document.createElement('tr');
     tr.innerHTML=`
       <td><input type="text" value="${esc(o.name)}" data-row="${i}" data-field="name" oninput="upOh(${i},'name',this.value)"></td>
       <td><select data-row="${i}" data-field="type" onchange="upOh(${i},'type',this.value)">
-        <option value="fixed"${t==='fixed'?' selected':''}>Fixed</option>
-        <option value="per_van"${t==='per_van'?' selected':''}>Per vehicle</option>
-        <option value="per_person"${t==='per_person'?' selected':''}>Per person</option></select></td>
+        <option value="fixed"${t==='fixed'?' selected':''}>Whole business</option>
+        <option value="per_van"${t==='per_van'?' selected':''}>Split by vehicle</option>
+        <option value="per_person"${t==='per_person'?' selected':''}>Split by person</option></select></td>
       <td><input type="number" value="${o.amount}" step="100" data-row="${i}" data-field="amount" oninput="upOh(${i},'amount',this.value)"></td>
-      <td class="num ohmult" style="color:var(--faint);font-weight:400">${mult}</td>
-      <td class="num ohannual">${money(scaled(o))}</td>
+      <td class="num ohper" style="color:var(--faint);font-weight:400">${ohPerUnit(o)}</td>
       <td class="act"><button class="icon-btn" onclick="delOh(${i})">×</button></td>`;
     b.appendChild(tr);
   });
   const add=(l,n,v,c)=>{const tr=document.createElement('tr');tr.className=c;
     tr.innerHTML=`<td><b>${l}</b> <span style="font-size:11px;color:var(--faint)">${n}</span></td>
-      <td class="computed">auto</td><td class="computed">computed</td><td class="num">—</td>
-      <td class="num">${v}</td><td class="act"></td>`;b.appendChild(tr)};
+      <td class="computed">auto</td><td class="num">${v}</td><td class="num">—</td><td class="act"></td>`;b.appendChild(tr)};
   if(fleetDep()>0)   add('Fleet depreciation','(from Fleet)',money(fleetDep()),'auto');
   if(nonBillable()>0)add('Non-billable wages','(from Wages)',money(nonBillable()),'auto');
   if(subsidy()>0)    add('− Govt subsidies','(from Wages)','−'+money(subsidy()),'credit');
@@ -1924,9 +1925,9 @@ function upOh(i,f,v){
   S.overhead[i][f]=f==='amount'?(parseFloat(v)||0):v;
   if(f==='type'){ renderOh(); }             // a <select> — safe to rebuild
   else {
-    // typed input (amount/name) — update the row's Annual + totals in place
+    // typed input (amount/name) — update the row's per-unit + totals in place
     const tr=document.querySelectorAll('#ohBody tr')[i];
-    if(tr){ const c=tr.querySelector('.ohannual'); if(c) c.textContent=money(scaled(S.overhead[i])); }
+    if(tr){ const c=tr.querySelector('.ohper'); if(c) c.innerHTML=ohPerUnit(S.overhead[i]); }
     ohTotals();
   }
   renderQuote(); renderDash(); renderPb();

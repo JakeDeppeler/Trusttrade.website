@@ -267,6 +267,33 @@ export default function ForTradiesPage() {
         </div>
       </section>
 
+      {/* ===== Job Calculator add-on ===== */}
+      <section className="page-section bordered">
+        <div className="container">
+          <div className="mid-head reveal">
+            <div className="eyebrow accent">A free add-on</div>
+            <h2 className="h-1">Know what an hour <span className="it">actually costs you.</span></h2>
+            <p className="lede">
+              Every listed tradie gets the Trust Trade Job Calculator — free. Put your real numbers
+              in and it tells you your break-even rate, prices every job off that number, and builds
+              a customer-ready price list you can publish straight to your listing. Built to help you
+              make a living, not just win work.
+            </p>
+            <div style={{ display: "flex", gap: 12, justifyContent: "center", flexWrap: "wrap", marginTop: 26 }}>
+              <a href="/job-calculator.html" className="btn btn-primary btn-lg">
+                Open the calculator →
+              </a>
+              <a href="/job-calculator.html" className="btn btn-ghost btn-lg">
+                Try it with sample numbers
+              </a>
+            </div>
+            <p style={{ fontFamily: "var(--font-mono)", fontSize: 12, color: "var(--text-faint)", letterSpacing: "0.1em", textTransform: "uppercase", marginTop: 18 }}>
+              Free for a month · Free forever once you're listed
+            </p>
+          </div>
+        </div>
+      </section>
+
       {/* ===== Founder note ===== */}
       <section className="quote-block page-section bordered" style={{ paddingTop: "clamp(60px,8vw,110px)" }}>
         <div className="container">

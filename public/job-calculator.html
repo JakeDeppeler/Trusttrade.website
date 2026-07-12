@@ -86,6 +86,15 @@ html,body{background:var(--bg);color:var(--ink);font-family:var(--font);font-siz
 .island .island-right{justify-self:end;display:flex;align-items:center;gap:10px}
 .island .island-mid{justify-self:center}
 
+/* Trust Trade site nav — same links as the marketing pages, so the
+   calculator reads as part of the site rather than a separate app. */
+.site-nav{display:flex;gap:4px;align-items:center}
+.site-nav a{font:500 14px var(--font);color:var(--dim);text-decoration:none;
+  padding:8px 13px;border-radius:999px;transition:.15s var(--ease);white-space:nowrap}
+.site-nav a:hover{color:var(--ink);background:var(--bg-2)}
+.site-nav a.current{color:var(--ink);font-weight:600}
+@media(max-width:900px){.site-nav{display:none}}
+
 /* The app header must sit on the SAME vertical lines as the nav and the
    cards below it. .wrap is max-width 1300 with clamp(16px,3vw,28px) of
    padding, so the island has to be that content box — not the marketing
@@ -463,18 +472,22 @@ footer{background:#fff;margin-top:56px;padding:26px 0 0;border-top:1px solid var
         <svg viewBox="0 0 44 40" width="35" height="32" aria-hidden="true"><use href="#mascot"/></svg>
         <div>Trust Trade<sup style="font-size:9px">®</sup><small>Job Calculator</small></div>
       </a>
-      <div class="island-mid"></div>
+      <nav class="site-nav island-mid">
+        <a href="/how-it-works">How it works</a>
+        <a href="/for-tradies">For tradies</a>
+        <a href="/job-calculator.html" class="current">Calculator</a>
+        <a href="/our-story">Our story</a>
+      </nav>
       <div class="island-right">
-        <a href="/" class="btn ghost sm" style="text-decoration:none">← Back to site</a>
         <button class="btn amber sm" onclick="showSignIn()">Get started</button>
       </div>
     </div>
   </div>
 
   <div class="gate-hero" id="gateHero">
-    <div class="eyebrow">Free for a month · No card · Free forever once you're listed</div>
+    <div class="eyebrow">A free add-on for Trust Trade tradies</div>
     <h1>You don't know what an hour <em>actually</em> costs you.</h1>
-    <p class="lede">Put your real numbers in and it tells you the truth — your break-even rate, and what you have to charge to make a living. Then it prices every job off that number instead of a guess.</p>
+    <p class="lede">Part of Trust Trade, built to help tradies make a living — not just win work. Put your real numbers in and it tells you the truth: your break-even rate, and what you have to charge to actually profit. Then it prices every job off that number instead of a guess.</p>
     <div class="gate-cta">
       <button class="btn amber lg" onclick="startDemo()">See it with sample numbers →</button>
       <button class="btn ghost lg" onclick="showSignIn()">Set up my business</button>

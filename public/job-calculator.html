@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Job Calculator — Trust Trade®</title>
-<meta name="description" content="Work out what an hour of your time actually costs, and price jobs that leave you with a profit. Free for Aussie tradies.">
+<meta name="description" content="Understand your numbers — what an hour of your time actually costs, your break-even rate, and how to price jobs for profit. Free for Aussie tradies.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
@@ -495,7 +495,7 @@ footer{background:#fff;margin-top:56px;padding:26px 0 0;border-top:1px solid var
     </div>
     <div class="hero-rating">
       <span class="stars">★★★★★</span>
-      <span>Built by a gas fitter who was quoting at a loss and didn't know it</span>
+      <span>Built by a tradie who was quoting at a loss and didn't know it</span>
     </div>
     <div class="strip">
       <div><b>2.7%</b><span>Typical trade net margin</span></div>
@@ -512,10 +512,26 @@ footer{background:#fff;margin-top:56px;padding:26px 0 0;border-top:1px solid var
   <div class="gate-hero hide" id="gateSignIn">
     <div class="signin-panel">
       <h2>Sign in or sign up</h2>
-      <p>One email, one link. No password to forget — or leak.</p>
-      <div class="field"><label>Your email</label>
-        <input type="email" id="email" placeholder="you@yourbusiness.com.au" autocomplete="email"></div>
-      <button class="btn amber block lg" id="sendBtn" style="margin-top:16px">Send me a link</button>
+      <p>One email, one code. No password to forget — or leak.</p>
+
+      <!-- Step 1: email -->
+      <div id="emailStep">
+        <div class="field"><label>Your email</label>
+          <input type="email" id="email" placeholder="you@yourbusiness.com.au" autocomplete="email"></div>
+        <button class="btn amber block lg" id="sendBtn" style="margin-top:16px">Email me a code</button>
+      </div>
+
+      <!-- Step 2: one-time code -->
+      <div id="codeStep" class="hide">
+        <div class="field"><label>Enter your 6-digit code</label>
+          <input type="text" id="code" inputmode="numeric" autocomplete="one-time-code" maxlength="6"
+            placeholder="123456" style="letter-spacing:.35em;font-family:var(--mono);font-size:20px"></div>
+        <button class="btn amber block lg" id="verifyBtn" style="margin-top:16px">Sign in</button>
+        <p style="margin-top:14px;font-size:13px">
+          Code sent to <b id="codeEmail"></b>. <a href="#" id="resendLink" style="color:var(--accent-lo);font-weight:600">Use a different email</a>
+        </p>
+      </div>
+
       <div class="msg" id="authMsg"></div>
       <div class="msg ok" id="carryMsg" style="margin-top:14px">
         We'll bring the numbers you entered in the demo across to your new account.
@@ -535,7 +551,7 @@ footer{background:#fff;margin-top:56px;padding:26px 0 0;border-top:1px solid var
       <h2>What's the business called?</h2>
       <p>This creates your workspace. You're the owner — you decide who else gets in, and what they see.</p>
       <div class="field" style="margin-bottom:14px"><label>Business name</label>
-        <input type="text" id="obName" placeholder="e.g. Coastline Gas &amp; Air Conditioning"></div>
+        <input type="text" id="obName" placeholder="e.g. Coastline Trade Services"></div>
       <div class="field"><label>Your trade</label>
         <select id="obTrade">
           <option value="">Choose…</option>
@@ -552,7 +568,7 @@ footer{background:#fff;margin-top:56px;padding:26px 0 0;border-top:1px solid var
 <!-- ══════════ APP ══════════ -->
 <div id="app">
   <div class="demo-bar hide" id="demoBar">
-    <span><b>Demo mode</b> — sample numbers from a 5-van gas business. Nothing is saved.</span>
+    <span><b>Demo mode</b> — sample numbers from an example trade business. Nothing is saved.</span>
     <button class="btn amber sm" onclick="exitDemo()">Set up my real business →</button>
   </div>
 
@@ -688,10 +704,10 @@ footer{background:#fff;margin-top:56px;padding:26px 0 0;border-top:1px solid var
         <div class="card-head"><div><h2>Billable hours</h2>
           <div class="sub">You pay for 8 hours a day. You can't bill 8 hours.</div></div></div>
         <div class="g3">
-          <div class="field"><label>Vans running</label><input type="number" id="ohVans" min="1" max="40"></div>
+          <div class="field"><label>Vehicles running</label><input type="number" id="ohVans" min="1" max="40"></div>
           <div class="field"><label>Work it out for me?</label>
             <select id="ohAuto"><option value="auto">Yes — from working hours</option><option value="manual">No — I'll enter it</option></select></div>
-          <div class="field"><label>Billable hrs per van/year</label><input type="number" id="ohHours" min="200" max="2500" step="10"></div>
+          <div class="field"><label>Billable hrs per vehicle/year</label><input type="number" id="ohHours" min="200" max="2500" step="10"></div>
         </div>
 
         <!-- Working days shouldn't be a guess. Pick a state and it fills itself. -->
@@ -739,7 +755,7 @@ footer{background:#fff;margin-top:56px;padding:26px 0 0;border-top:1px solid var
         <div class="stats" style="margin-top:20px">
           <div class="stat hero"><div class="stat-label">Billable capacity</div>
             <div class="stat-value" id="ohCap">0</div><div class="stat-sub">hours/year, whole team</div></div>
-          <div class="stat"><div class="stat-label">Per van/year</div><div class="stat-value" id="ohPer">0</div></div>
+          <div class="stat"><div class="stat-label">Per vehicle/year</div><div class="stat-value" id="ohPer">0</div></div>
           <div class="stat"><div class="stat-label">Utilisation</div><div class="stat-value" id="ohUtil">0%</div>
             <div class="stat-sub">vs 8hr × 5d × 52w</div></div>
         </div>
@@ -758,7 +774,7 @@ footer{background:#fff;margin-top:56px;padding:26px 0 0;border-top:1px solid var
         </table></div>
         <div class="stats" style="margin-top:20px">
           <div class="stat hero"><div class="stat-label">Total annual overhead</div>
-            <div class="stat-value" id="ohTot">$0</div><div class="stat-sub">at your current vans &amp; staff</div></div>
+            <div class="stat-value" id="ohTot">$0</div><div class="stat-sub">at your current vehicles &amp; staff</div></div>
           <div class="stat"><div class="stat-label">Overhead per billable hour</div>
             <div class="stat-value amber" id="ohHr">$0</div><div class="stat-sub">recovered on every hour billed</div></div>
           <div class="stat"><div class="stat-label">Per working day</div>
@@ -1011,7 +1027,7 @@ let S = clone(BLANK);
 // template said "Service call" while the category said "Install".
 let Q = {jobIdx:0,hours:1,crew:[],rate:180,materials:0,markup:65,mode:'hourly',fixed:2000,category:'service'};
 
-/* ── demo data: an INVENTED 5-van gas business (Sample Gas & Aircon).
+/* ── demo data: an INVENTED example trade business (Sample Trade Co).
    All figures are made up for the demo — not any real business's books. ── */
 const DEMO_DATA = {
   vans:5, hoursPerVan:1600, autoCalc:'auto', stdRate:180,
@@ -1053,18 +1069,18 @@ const DEMO_DATA = {
   ],
   templates:[
     {name:'Service call',hours:1,default_crew:'1 installer'},
-    {name:'Split system install',hours:4,default_crew:'installer + apprentice'},
-    {name:'Gas heater changeover',hours:5,default_crew:'installer + apprentice'},
-    {name:'Ducted install',hours:24,default_crew:'installer + apprentice',notes:'3 days'}
+    {name:'Small install',hours:4,default_crew:'installer + apprentice'},
+    {name:'Standard install',hours:5,default_crew:'installer + apprentice'},
+    {name:'Large install',hours:24,default_crew:'installer + apprentice',notes:'3 days'}
   ],
   pricebook:[
     {name:'Service call — diagnostic',category:'service',hours:1,materials:0,markup:null,margin_pct:.20},
     {name:'Service call — minor fix',category:'service',hours:1.5,materials:80,markup:null,margin_pct:.20},
-    {name:'Annual service — split',category:'maintenance',hours:1,materials:30,markup:null,margin_pct:.20},
+    {name:'Annual maintenance visit',category:'maintenance',hours:1,materials:30,markup:null,margin_pct:.20},
     {name:'Investigation — fault find',category:'investigation',hours:2,materials:80,markup:null,margin_pct:.20},
-    {name:'Split system 5kW — supply & install',category:'install',hours:5.5,materials:1400,markup:null,margin_pct:.20},
-    {name:'Gas heater swap-out',category:'install',hours:5,materials:1700,markup:null,margin_pct:.20},
-    {name:'Ducted aircon — 4 zone',category:'install',hours:32,materials:6500,markup:null,margin_pct:.22}
+    {name:'Small supply & install',category:'install',hours:5.5,materials:1400,markup:null,margin_pct:.20},
+    {name:'Standard replacement / changeover',category:'install',hours:5,materials:1700,markup:null,margin_pct:.20},
+    {name:'Large multi-part install',category:'install',hours:32,materials:6500,markup:null,margin_pct:.22}
   ]
 };
 
@@ -1182,21 +1198,56 @@ async function boot(){
   if(session) afterAuth();
 }
 
-$('sendBtn').onclick = async () => {
+// Email + one-time code. No emailRedirectTo → Supabase sends a 6-digit
+// code instead of a magic link, and the user types it in to sign in.
+async function sendCode(){
   const email = $('email').value.trim();
   const m = $('authMsg');
   if(!email.includes('@')){m.className='msg err show';m.textContent='That email does not look right.';return}
   $('sendBtn').disabled=true; $('sendBtn').textContent='Sending…';
-  const {error} = await db.auth.signInWithOtp({email, options:{emailRedirectTo:location.href.split('#')[0]}});
-  $('sendBtn').disabled=false; $('sendBtn').textContent='Send me a link';
-  if(error){m.className='msg err show';m.textContent=error.message;}
-  else{m.className='msg ok show';m.textContent='Check your inbox. The link signs you straight in — it lasts an hour.';}
-};
-$('email').addEventListener('keydown',e=>{if(e.key==='Enter')$('sendBtn').click()});
+  const {error} = await db.auth.signInWithOtp({email, options:{shouldCreateUser:true}});
+  $('sendBtn').disabled=false; $('sendBtn').textContent='Email me a code';
+  if(error){m.className='msg err show';m.textContent=error.message;return}
+  m.className='msg ok show'; m.textContent='We emailed you a 6-digit code — it lasts an hour.';
+  $('emailStep').classList.add('hide');
+  $('codeStep').classList.remove('hide');
+  $('codeEmail').textContent = email;
+  $('code').value=''; $('code').focus();
+}
+async function verifyCode(){
+  const email = $('email').value.trim();
+  const token = ($('code').value||'').trim();
+  const m = $('authMsg');
+  if(token.length < 6){m.className='msg err show';m.textContent='Enter the 6-digit code from the email.';return}
+  $('verifyBtn').disabled=true; $('verifyBtn').textContent='Signing in…';
+  const {error} = await db.auth.verifyOtp({email, token, type:'email'});
+  $('verifyBtn').disabled=false; $('verifyBtn').textContent='Sign in';
+  if(error){
+    const bad = /expired|invalid|token/i.test(error.message);
+    m.className='msg err show';
+    m.textContent = bad ? 'That code is wrong or expired — check it, or send a new one.' : error.message;
+  }
+  // Success → onAuthStateChange fires afterAuth().
+}
+function backToEmail(){
+  $('codeStep').classList.add('hide');
+  $('emailStep').classList.remove('hide');
+  $('authMsg').classList.remove('show');
+  $('email').focus();
+}
+$('sendBtn').onclick = sendCode;
+$('verifyBtn').onclick = verifyCode;
+$('resendLink').onclick = e => { e.preventDefault(); backToEmail(); };
+$('email').addEventListener('keydown',e=>{if(e.key==='Enter')sendCode()});
+$('code').addEventListener('keydown',e=>{if(e.key==='Enter')verifyCode()});
 $('signOut').onclick = async () => { if(DEMO){location.reload();return} await db.auth.signOut(); };
 function showSignIn(){
   $('gateHero').classList.add('hide');
   $('gateSignIn').classList.remove('hide');
+  // Always start on the email step.
+  $('emailStep').classList.remove('hide');
+  $('codeStep').classList.add('hide');
+  $('authMsg').classList.remove('show');
   // Only promise to carry numbers across if there actually are some.
   $('carryMsg').classList.toggle('show', !!localStorage.getItem(CARRY));
   $('email').focus();
@@ -1395,7 +1446,7 @@ function startDemo(){
   $('app').classList.add('on');
   $('demoBar').classList.remove('hide');
   $('whoEmail').parentElement.classList.add('hide');   // no "Demo / DEMO" twice over
-  $('orgName').innerHTML='Sample Gas &amp; Aircon<small>Demo — nothing saved</small>';
+  $('orgName').innerHTML='Sample Trade Co<small>Demo — nothing saved</small>';
   $('sync').classList.add('hide');
   $('signOut').textContent='Exit demo';
   $('footNote').textContent='Demo — nothing saved';
@@ -1506,7 +1557,7 @@ function renderSetup(){
     {done:hasCrew, pane:'team',  t:'Add your crew',
      s:'Who\'s on the tools, what they\'re paid, and how much of their week is actually billable.'},
     {done:hasOh,   pane:'hours', t:'Add your overheads',
-     s:'Rent, vans, insurance, phone, tools, admin wages. Everything you pay whether or not you work today.'},
+     s:'Rent, vehicles, insurance, phone, tools, admin wages. Everything you pay whether or not you work today.'},
     {done:hasRate, pane:'dashboard', t:'See your break-even rate',
      s:'The number under which every hour you bill loses money.'}
   ];
@@ -1561,7 +1612,7 @@ function renderOh(){
   $('ohUtil').textContent = Math.round(hpv()/(8*5*52)*100)+'%';
 
   const b=$('ohBody'), f=grab(b); b.innerHTML='';
-  if(!S.overhead.length) b.innerHTML=`<tr><td colspan="6"><div class="empty">No overheads yet. Add them — rent, vans, insurance, phone, tools, admin wages.</div></td></tr>`;
+  if(!S.overhead.length) b.innerHTML=`<tr><td colspan="6"><div class="empty">No overheads yet. Add them — rent, vehicles, insurance, phone, tools, admin wages.</div></td></tr>`;
   S.overhead.forEach((o,i)=>{
     const t=o.type||'fixed';
     const mult=t==='per_van'?`× ${S.vans}`:t==='per_person'?`× ${S.team.length}`:'× 1';
@@ -1570,7 +1621,7 @@ function renderOh(){
       <td><input type="text" value="${esc(o.name)}" data-row="${i}" data-field="name" oninput="upOh(${i},'name',this.value)"></td>
       <td><select data-row="${i}" data-field="type" onchange="upOh(${i},'type',this.value)">
         <option value="fixed"${t==='fixed'?' selected':''}>Fixed</option>
-        <option value="per_van"${t==='per_van'?' selected':''}>Per van</option>
+        <option value="per_van"${t==='per_van'?' selected':''}>Per vehicle</option>
         <option value="per_person"${t==='per_person'?' selected':''}>Per person</option></select></td>
       <td><input type="number" value="${o.amount}" step="100" data-row="${i}" data-field="amount" oninput="upOh(${i},'amount',this.value)"></td>
       <td class="num" style="color:var(--faint);font-weight:400">${mult}</td>
@@ -1836,8 +1887,8 @@ function renderTargets(){
   $('tMonth').textContent=money(S.target.annual/12);
   $('tWeek').textContent=money(S.target.annual/(days/5));
   const mixes=[
-    ['Service-only day',600],['Maintenance day',350],['Small install (2.5kW)',2400],
-    ['Medium install (5–7kW)',3500],['Big install / multi-head',4500],
+    ['Service-only day',600],['Maintenance day',350],['Small install day',2400],
+    ['Medium install day',3500],['Large install day',4500],
     ['Mixed (1 install + 2 services)',4000]
   ];
   $('dayBody').innerHTML=mixes.map(([n,t])=>
@@ -2000,7 +2051,7 @@ function renderXero(){
           .map(([v,l])=>`<option value="${v}"${r.cat===v?' selected':''}>${l}</option>`).join('')}
       </select></td>
       <td>${r.cat==='oh'?`<select onchange="xeroRows[${i}].type=this.value" style="padding:5px 26px 5px 8px;font-size:12.5px">
-        ${[['fixed','Fixed'],['per_van','Per van'],['per_person','Per person']]
+        ${[['fixed','Fixed'],['per_van','Per vehicle'],['per_person','Per person']]
           .map(([v,l])=>`<option value="${v}"${r.type===v?' selected':''}>${l}</option>`).join('')}
       </select>`:'<span class="computed">—</span>'}</td>
     </tr>`).join('');
@@ -2094,7 +2145,7 @@ function openPriceList(){
   if(!S.pricebook.length) return toast('Add some jobs to the pricebook first');
   const gstTxt = $('plGst').value==='inc' ? 'inc GST' : 'ex GST';
   const from   = $('plMode').value==='from';
-  const name   = DEMO ? 'Sample Gas & Aircon' : (org?.name || 'Your business');
+  const name   = DEMO ? 'Sample Trade Co' : (org?.name || 'Your business');
 
   $('plSheet').innerHTML = `
     <div class="pl-head">

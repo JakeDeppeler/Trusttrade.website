@@ -7,6 +7,7 @@ import { HREF_TO_ROUTE, resolveHref } from "../routes.js";
 export const PAGE_LINKS = [
   { label: "How it works", href: "How it works.html" },
   { label: "For tradies", href: "For Tradies.html" },
+  { label: "Calculator", href: "/job-calculator.html" },
   { label: "Our story", href: "Our Story.html" },
 ];
 

@@ -906,13 +906,13 @@ footer{background:#fff;margin-top:56px;padding:26px 0 0;border-top:1px solid var
             <th style="width:60px">In van</th>
             <th class="num" style="width:90px">Pay $/hr</th>
             <th class="num" style="width:90px">On-cost %<span class="ts">super, etc.</span></th><th class="num" style="width:90px">Billable %<span class="ts">on the tools</span></th>
-            <th class="num" style="width:96px">Trade school<span class="ts">days/yr</span></th><th class="num" style="width:100px">Subsidy $</th>
+            <th style="width:80px">School<span class="ts">~1 wk/mo</span></th><th class="num" style="width:100px">Subsidy $</th>
             <th class="num" style="width:100px">True $/hr</th><th style="width:44px"></th></tr></thead>
           <tbody id="teamBody"></tbody>
         </table></div>
         <div class="note good"><b>Billable %</b> is the honest one. 100 = full-time on the tools. 60 = they're quoting half the week. The non-billable share of every wage flows into overhead automatically — which is exactly where it belongs, and exactly what most trades forget.</div>
         <div class="note"><b>On-cost %</b> is everything you pay <b>on top of</b> the base hourly wage — <b>super, WorkCover, leave loading, payroll tax</b>. Around <b>25%</b> is a solid starting point. It already includes super, so don't <i>also</i> add super as a separate overhead — you'd be counting it twice.</div>
-        <div class="note"><b>In van</b> = who's actually out on the tools. Only people in a van earn billable hours, and your <b>active crews</b> (on the Targets page) come straight from this count. <b>Office / Admin</b> can't be charged out — their whole wage flows into overhead. Pick <b>Apprentice</b> and we set aside ~<b>one week a month</b> for trade school automatically.</div>
+        <div class="note"><b>In van</b> = who's actually out on the tools. Only people in a van earn billable hours, and your <b>active crews</b> (on the Targets page) come straight from this count. <b>Office / Admin</b> can't be charged out — their whole wage flows into overhead. <b>School</b> is its own bracket: pick <b>Apprentice</b> and it ticks on automatically (~one week a month); change them off Apprentice and it clears. Got a tradesperson who's studying? Just tick <b>School</b> to keep the 60 days.</div>
       </div>
     </div>
 
@@ -1064,7 +1064,7 @@ footer{background:#fff;margin-top:56px;padding:26px 0 0;border-top:1px solid var
         <div class="card-head"><div><h2>Revenue target</h2>
           <div class="sub">The year, broken down to what a crew must turn over today</div></div></div>
         <div class="g3">
-          <div class="field"><label>Annual revenue target</label><input type="number" id="tAnnual" step="50000"></div>
+          <div class="field"><label>Annual revenue target</label><input type="text" inputmode="numeric" id="tAnnual" placeholder="1,000,000"></div>
           <div class="field"><label>Active crews</label><input type="number" id="tCrews" readonly><div class="help">From people in a van on your <b>Wages</b> page</div></div>
           <div class="field"><label>Working days/year</label><input type="number" id="tDays" step="1" min="180" max="300"></div>
         </div>
@@ -1950,7 +1950,7 @@ function renderTeam(){
       <td><input type="number" value="${p.pay_rate||0}" step="0.5" data-row="${i}" data-field="pay_rate" oninput="upT(${i},'pay_rate',this.value)"></td>
       <td><input type="number" value="${p.on_cost??25}" step="1" data-row="${i}" data-field="on_cost" oninput="upT(${i},'on_cost',this.value)"></td>
       <td><input type="number" value="${bl}" step="5" min="0" max="100" data-row="${i}" data-field="billable_pct" oninput="upT(${i},'billable_pct',this.value)"></td>
-      <td><input type="number" value="${p.school_days||0}" step="1" min="0" max="240" data-row="${i}" data-field="school_days" oninput="upT(${i},'school_days',this.value)"></td>
+      <td style="text-align:center"><input type="checkbox" ${(Number(p.school_days)>0)?'checked':''} onchange="upT(${i},'school',this.checked)" title="At trade school ~1 week a month" style="width:16px;height:16px;accent-color:var(--accent);cursor:pointer"></td>
       <td><input type="number" value="${p.apprentice_subsidy||0}" step="100" data-row="${i}" data-field="apprentice_subsidy" oninput="upT(${i},'apprentice_subsidy',this.value)"></td>
       <td class="num truehr">${office?'<span style="color:var(--faint)">not charged</span>':money2(hourly(p))}</td>
       <td class="act"><button class="icon-btn" onclick="delT(${i})">×</button></td>`;
@@ -1961,6 +1961,7 @@ function renderTeam(){
 function upT(i,f,v){
   const nums=['pay_rate','on_cost','billable_pct','school_days','apprentice_subsidy'];
   if(f==='in_van') S.team[i].in_van = !!v;
+  else if(f==='school') S.team[i].school_days = v ? APP_TAFE_DAYS : 0;   // school is a 60-day bracket, on/off
   else S.team[i][f]=nums.includes(f)?(parseFloat(v)||0):v;
   // Update this row's computed "True $/hr" in place — do NOT rebuild the
   // inputs, or the field you're typing in gets replaced mid-keystroke.
@@ -1978,7 +1979,9 @@ function upTRole(i,val){
     S.team[i].role=custom;
   } else S.team[i].role=val;
   const p=S.team[i];
-  if(isApp(p) && !(Number(p.school_days)>0)) p.school_days=APP_TAFE_DAYS;   // ~1 week/month TAFE
+  // Apprentice → auto-add the 60-day school bracket. Leaving apprentice
+  // clears it (tick the School box to keep it for a tradesperson who studies).
+  p.school_days = isApp(p) ? APP_TAFE_DAYS : 0;
   if(isOffice(p)){ p.billable_pct=0; p.in_van=false; }                      // office isn't charged out
   renderTeam(); renderCrew(); renderQuote(); renderOh(); renderDash(); renderPb(); renderTargets();
   rowSave('calc_team',p);
@@ -2216,7 +2219,8 @@ function renderTargets(){
   // Active crews is derived from who's in a van on the Wages page.
   const crews=Math.max(1,crewCount());
   S.target.crews=crews;
-  set('tAnnual',S.target.annual); set('tCrews',crews); set('tDays',S.target.days);
+  const ta=$('tAnnual'); if(ta && document.activeElement!==ta) ta.value = S.target.annual ? S.target.annual.toLocaleString('en-AU') : '';
+  set('tCrews',crews); set('tDays',S.target.days);
   const days=S.target.days||240;
   const daily=S.target.annual/days, crewDay=daily/crews;
   $('tCrewDay').textContent=money(crewDay);
@@ -2693,7 +2697,12 @@ function bind(){
   }));
   $('plModal').addEventListener('click', e=>{ if(e.target.id==='plModal') closePriceList(); });
   document.addEventListener('keydown', e=>{ if(e.key==='Escape') closePriceList(); });
-  on('tAnnual','input',e=>{S.target.annual=parseFloat(e.target.value)||0; renderTargets(); saveSettings();});
+  on('tAnnual','input',e=>{
+    S.target.annual=parseInt((e.target.value||'').replace(/[^\d]/g,''))||0;
+    e.target.value = S.target.annual ? S.target.annual.toLocaleString('en-AU') : '';
+    try{ e.target.setSelectionRange(e.target.value.length, e.target.value.length); }catch(_){}
+    renderTargets(); saveSettings();
+  });
   on('tCrews','input',e=>{S.target.crews=parseInt(e.target.value)||1; renderTargets(); saveSettings();});
   on('tDays','input',e=>{S.target.days=parseInt(e.target.value)||240; renderTargets(); saveSettings();});
 }

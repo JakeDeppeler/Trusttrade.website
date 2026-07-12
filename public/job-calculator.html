@@ -110,6 +110,7 @@ html,body{background:var(--bg);color:var(--ink);font-family:var(--font);font-siz
 .brand{display:flex;align-items:center;gap:8px;font-weight:800;font-size:19px;
   letter-spacing:-.02em;line-height:1.15;min-width:0}
 .brand svg{width:35px;height:32px;flex-shrink:0;display:block}
+.brand-logo{height:32px;width:auto;flex-shrink:0;display:block}
 .brand>div{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .brand small{display:block;font-weight:500;color:var(--faint);font-size:11.5px;letter-spacing:0}
 
@@ -469,7 +470,7 @@ footer{background:#fff;margin-top:56px;padding:26px 0 0;border-top:1px solid var
   <div class="island" id="gateIsland">
     <div class="island-in">
       <a href="/" class="brand" style="text-decoration:none;color:inherit">
-        <svg viewBox="0 0 44 40" width="35" height="32" aria-hidden="true"><use href="#mascot"/></svg>
+        <img class="brand-logo" src="/assets/mascot-toolbox.png" alt="" aria-hidden="true">
         <div>Trust Trade<sup style="font-size:9px">®</sup><small>Job Calculator</small></div>
       </a>
       <nav class="site-nav island-mid">
@@ -534,7 +535,7 @@ footer{background:#fff;margin-top:56px;padding:26px 0 0;border-top:1px solid var
       <h2>What's the business called?</h2>
       <p>This creates your workspace. You're the owner — you decide who else gets in, and what they see.</p>
       <div class="field" style="margin-bottom:14px"><label>Business name</label>
-        <input type="text" id="obName" placeholder="e.g. Advanced Gas &amp; Air Conditioning"></div>
+        <input type="text" id="obName" placeholder="e.g. Coastline Gas &amp; Air Conditioning"></div>
       <div class="field"><label>Your trade</label>
         <select id="obTrade">
           <option value="">Choose…</option>
@@ -565,7 +566,7 @@ footer{background:#fff;margin-top:56px;padding:26px 0 0;border-top:1px solid var
   <div class="island" id="appIsland">
     <div class="island-in">
       <div class="brand">
-        <svg viewBox="0 0 44 40" width="35" height="32" aria-hidden="true"><use href="#mascot"/></svg>
+        <img class="brand-logo" src="/assets/mascot-toolbox.png" alt="" aria-hidden="true">
         <div id="orgName">Trust Trade<sup style="font-size:9px">®</sup><small>Job Calculator</small></div>
       </div>
       <div class="island-mid"></div>
@@ -1010,44 +1011,45 @@ let S = clone(BLANK);
 // template said "Service call" while the category said "Install".
 let Q = {jobIdx:0,hours:1,crew:[],rate:180,materials:0,markup:65,mode:'hourly',fixed:2000,category:'service'};
 
-/* ── demo data: a believable 5-van gas business ── */
+/* ── demo data: an INVENTED 5-van gas business (Sample Gas & Aircon).
+   All figures are made up for the demo — not any real business's books. ── */
 const DEMO_DATA = {
   vans:5, hoursPerVan:1600, autoCalc:'auto', stdRate:180,
   ac:{daysWeek:5,leave:20,sick:10,pubHol:11,other:5,hoursDay:8,drive:1,lunch:.5,yard:.5,slow:8},
   catMarkup:{service:65,install:30,investigation:50,maintenance:40,rebate:20},
-  target:{annual:3000000,crews:5,days:240},
+  target:{annual:2800000,crews:5,days:240},
   team:[
-    {name:'You (on the tools)',role:'Director/Lead',is_director:true,annual_wages:120000,billable_pct:80},
-    {name:'Lead installer',role:'Installer',pay_rate:48,on_cost:25,billable_pct:100},
-    {name:'Installer',role:'Installer',pay_rate:42,on_cost:25,billable_pct:100},
-    {name:'Installer / estimator',role:'Installer/Estimator',pay_rate:44,on_cost:25,billable_pct:60},
-    {name:'2nd-yr apprentice',role:'Apprentice',pay_rate:28,on_cost:20,billable_pct:100,school_days:40,apprentice_subsidy:5300},
-    {name:'1st-yr apprentice',role:'Apprentice',pay_rate:26,on_cost:20,billable_pct:100,school_days:40,apprentice_subsidy:5300},
-    {name:'Office admin',role:'Office Admin (3 days)',pay_rate:34,on_cost:25,billable_pct:0}
+    {name:'You (on the tools)',role:'Director/Lead',is_director:true,annual_wages:110000,billable_pct:80},
+    {name:'Lead installer',role:'Installer',pay_rate:46,on_cost:25,billable_pct:100},
+    {name:'Installer',role:'Installer',pay_rate:40,on_cost:25,billable_pct:100},
+    {name:'Installer / estimator',role:'Installer/Estimator',pay_rate:43,on_cost:25,billable_pct:60},
+    {name:'2nd-yr apprentice',role:'Apprentice',pay_rate:27,on_cost:20,billable_pct:100,school_days:40,apprentice_subsidy:5000},
+    {name:'1st-yr apprentice',role:'Apprentice',pay_rate:25,on_cost:20,billable_pct:100,school_days:40,apprentice_subsidy:5000},
+    {name:'Office admin',role:'Office Admin (3 days)',pay_rate:32,on_cost:25,billable_pct:0}
   ],
   overhead:[
-    {name:'Vehicle — fuel',amount:11700,type:'per_van'},
+    {name:'Vehicle — fuel',amount:12000,type:'per_van'},
     {name:'Vehicle — insurance & rego',amount:5000,type:'per_van'},
-    {name:'Vehicle — repairs',amount:5700,type:'per_van'},
-    {name:'Rent',amount:38000,type:'fixed'},
-    {name:'Rates & utilities',amount:6500,type:'fixed'},
-    {name:'Insurance (public liability)',amount:15000,type:'fixed'},
-    {name:'Workcover',amount:2300,type:'per_person'},
+    {name:'Vehicle — repairs',amount:6000,type:'per_van'},
+    {name:'Rent',amount:40000,type:'fixed'},
+    {name:'Rates & utilities',amount:7000,type:'fixed'},
+    {name:'Insurance (public liability)',amount:14000,type:'fixed'},
+    {name:'Workcover',amount:2500,type:'per_person'},
     {name:'Accounting fees',amount:5000,type:'fixed'},
-    {name:'Bank fees & interest',amount:13400,type:'fixed'},
-    {name:'Subscriptions (Xero, software)',amount:22000,type:'fixed'},
-    {name:'Phone & internet',amount:11800,type:'fixed'},
-    {name:'Tools (consumed)',amount:400,type:'per_person'},
-    {name:'PPE & uniforms',amount:360,type:'per_person'},
-    {name:'Training & licences',amount:1400,type:'per_person'},
-    {name:'Advertising',amount:2400,type:'fixed'}
+    {name:'Bank fees & interest',amount:9000,type:'fixed'},
+    {name:'Subscriptions (Xero, software)',amount:9000,type:'fixed'},
+    {name:'Phone & internet',amount:6000,type:'fixed'},
+    {name:'Tools (consumed)',amount:500,type:'per_person'},
+    {name:'PPE & uniforms',amount:400,type:'per_person'},
+    {name:'Training & licences',amount:1200,type:'per_person'},
+    {name:'Advertising',amount:6000,type:'fixed'}
   ],
   fleet:[
-    {make:'Toyota Hiace',rego:'',purchase_price:45000,loan_owing:31700,year:2022,life_years:8,status:'active'},
-    {make:'Nissan Patrol',rego:'',purchase_price:55000,loan_owing:39300,year:2023,life_years:8,status:'active'},
-    {make:'LDV Van 1',rego:'',purchase_price:38000,loan_owing:11700,year:2020,life_years:8,status:'active'},
-    {make:'LDV Van 2',rego:'',purchase_price:38000,loan_owing:10000,year:2020,life_years:8,status:'active'},
-    {make:'LDV Van 3',rego:'',purchase_price:38000,loan_owing:0,year:2019,life_years:8,status:'active'}
+    {make:'Toyota Hiace',rego:'',purchase_price:46000,loan_owing:30000,year:2022,life_years:8,status:'active'},
+    {make:'Nissan Patrol',rego:'',purchase_price:54000,loan_owing:36000,year:2023,life_years:8,status:'active'},
+    {make:'LDV Van 1',rego:'',purchase_price:40000,loan_owing:12000,year:2020,life_years:8,status:'active'},
+    {make:'LDV Van 2',rego:'',purchase_price:40000,loan_owing:8000,year:2020,life_years:8,status:'active'},
+    {make:'LDV Van 3',rego:'',purchase_price:40000,loan_owing:0,year:2019,life_years:8,status:'active'}
   ],
   templates:[
     {name:'Service call',hours:1,default_crew:'1 installer'},
@@ -1079,7 +1081,7 @@ function sync(cls,txt){const p=$('sync');p.className='pill'+(cls?' '+cls:'');$('
 function grab(p){const a=document.activeElement;if(!a||!p.contains(a))return null;return{r:a.dataset.row,f:a.dataset.field,s:a.selectionStart,e:a.selectionEnd}}
 function put(p,i){if(!i)return;const el=p.querySelector(`[data-row="${i.r}"][data-field="${i.f}"]`);if(el){el.focus();try{el.setSelectionRange(i.s,i.e)}catch(_){}}}
 
-/* ═══ MATHS ═══ (identical to the Advanced Gas build) */
+/* ═══ MATHS ═══ */
 function autoHours(){
   const a=S.ac;
   const total=a.daysWeek*52;
@@ -2123,8 +2125,7 @@ function openPriceList(){
 function closePriceList(){ $('plModal').classList.remove('show'); }
 
 /* Push the pricebook onto their Trust Trade listing. Their listing already
-   has a priced_services column — on Advanced Gas's own listing every service
-   is currently sitting there with price: null. */
+   has a priced_services column we fill in with real prices. */
 async function publishToTrustTrade(){
   if(DEMO) return toast('Sign up to publish to your listing');
   if(!S.pricebook.length) return toast('Nothing in the pricebook to publish');

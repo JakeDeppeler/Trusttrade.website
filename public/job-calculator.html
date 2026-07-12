@@ -459,6 +459,20 @@ footer{background:#fff;margin-top:56px;padding:26px 0 0;border-top:1px solid var
   display:flex;align-items:baseline;gap:14px;flex-wrap:wrap}
 .setup-payoff b{font-size:34px;font-weight:800;color:var(--accent);letter-spacing:-.03em}
 .setup-payoff span{color:rgba(245,238,223,.65);font-size:14px}
+
+/* First-run: import-from-Xero vs enter-manually */
+.start-choices{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:22px 0 26px}
+@media(max-width:640px){.start-choices{grid-template-columns:1fr}}
+.start-choice{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);
+  border-radius:var(--r);padding:20px;display:flex;flex-direction:column}
+.start-choice .sc-icon{font-size:26px;line-height:1}
+.start-choice b{display:block;color:#fff;font-size:16px;margin:10px 0 4px}
+.start-choice > p{color:rgba(245,238,223,.65);font-size:13px;line-height:1.55;margin-bottom:12px}
+.start-choice .sc-how{font-family:var(--mono);font-size:11px;color:var(--cream);
+  background:rgba(0,0,0,.28);border-radius:8px;padding:10px 12px;margin-bottom:14px;line-height:1.6}
+.start-choice .sc-how b{display:inline;color:var(--accent);font-size:11px}
+.start-choice .btn{margin-top:auto}
+.start-choice .sc-note{font-size:11px;color:rgba(245,238,223,.45);margin-top:10px;text-align:center}
 </style>
 </head>
 <body>
@@ -624,6 +638,7 @@ footer{background:#fff;margin-top:56px;padding:26px 0 0;border-top:1px solid var
       <div class="island-right top-right">
         <div class="pill" id="sync"><span class="dot"></span><span id="syncTxt">Ready</span></div>
         <div class="who"><b id="whoEmail">—</b><span class="role-badge" id="roleBadge">—</span></div>
+        <a class="btn amber sm" id="getAppBtn" href="https://trusttrade.au/#download" target="_blank" rel="noopener">Get the app</a>
         <button class="btn ghost sm" id="signOut">Sign out</button>
       </div>
     </div>
@@ -642,6 +657,8 @@ footer{background:#fff;margin-top:56px;padding:26px 0 0;border-top:1px solid var
       <button data-p="fleet" data-need="owner">Fleet</button>
       <button data-p="templates" data-need="pricebook">Templates</button>
       <button data-p="people" data-need="owner">People</button>
+      <div class="sep"></div>
+      <button data-p="settings">Settings</button>
     </div>
 
     <!-- QUOTE -->
@@ -649,8 +666,25 @@ footer{background:#fff;margin-top:56px;padding:26px 0 0;border-top:1px solid var
       <!-- Shown until the business is set up. Without this a new signup
            lands in an empty app with nowhere to go. -->
       <div class="setup hide" id="setupCard">
-        <h2>Three things and you'll know your real rate</h2>
-        <p class="lede">Nothing here works until the calculator knows what your business actually costs to run. Ten minutes, once.</p>
+        <h2>Let's get your numbers in</h2>
+        <p class="lede">The calculator needs to know what your business costs to run. Pick whichever's easier — pull it straight from Xero, or type it in yourself.</p>
+        <div class="start-choices">
+          <div class="start-choice">
+            <div class="sc-icon">📊</div>
+            <b>Import from Xero</b>
+            <p>Fastest way in. Export your Profit &amp; Loss and we'll sort it into overheads for you.</p>
+            <div class="sc-how">In Xero: <b>Accounting → Reports → Profit &amp; Loss → Export → CSV</b>. Then drop the file in.</div>
+            <button class="btn amber block" onclick="goImportXero()">Upload my P&amp;L file →</button>
+            <div class="sc-note">MYOB, QuickBooks &amp; Reckon CSV exports work too.</div>
+          </div>
+          <div class="start-choice">
+            <div class="sc-icon">✏️</div>
+            <b>Enter it manually</b>
+            <p>Type in your crew, wages and overheads yourself. About ten minutes, once.</p>
+            <button class="btn ghost block" onclick="goPane('team')">Start entering →</button>
+            <div class="sc-note">You can still import from Xero later.</div>
+          </div>
+        </div>
         <div class="steps" id="steps"></div>
         <div class="setup-payoff" id="payoff"></div>
       </div>
@@ -1026,6 +1060,47 @@ footer{background:#fff;margin-top:56px;padding:26px 0 0;border-top:1px solid var
       </div>
     </div>
 
+    <!-- SETTINGS -->
+    <div class="pane" id="p-settings">
+      <div class="card">
+        <div class="card-head"><div><h2>Your access</h2><div class="sub">Free trial · get listed or add a code to keep it</div></div></div>
+        <div id="accessBox"></div>
+        <div class="subcard">
+          <h3>Got a Trust Trade code?</h3>
+          <div class="help" style="margin-bottom:10px">A code unlocks the calculator for longer. Pop it in here.</div>
+          <div style="display:flex;gap:10px;flex-wrap:wrap">
+            <input type="text" id="redeemInput" placeholder="ENTER CODE" style="max-width:240px;text-transform:uppercase;font-family:var(--mono);letter-spacing:.12em">
+            <button class="btn" id="redeemBtn" onclick="redeemCode()">Redeem</button>
+          </div>
+          <div id="redeemOut"></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-head"><div><h2>Get the Trust Trade app</h2><div class="sub">The calculator is the companion — the app is where the work is</div></div></div>
+        <p class="help" style="margin-bottom:16px">Trust Trade connects you with verified local customers — no per-lead fees, no auctions. The Job Calculator prices your jobs; the app brings them in.</p>
+        <a class="btn amber" href="https://trusttrade.au/#download" target="_blank" rel="noopener">Download the app →</a>
+      </div>
+
+      <div class="card hide" id="founderCard">
+        <div class="card-head"><div><h2>Founder tools</h2><div class="sub">Only you can see this</div></div></div>
+        <p class="help" style="margin-bottom:14px">Mint a code that gives someone 6 months free. Single use — hand it out to whoever you like.</p>
+        <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:center">
+          <button class="btn amber" onclick="generateCode()">Generate a 6-month code</button>
+          <span id="genCodeOut" class="mono" style="font-size:18px;font-weight:700;letter-spacing:.1em;color:var(--accent-lo)"></span>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-head"><div><h2>Account</h2><div class="sub" id="acctSub">—</div></div></div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap">
+          <button class="btn ghost" onclick="signOutNow()">Sign out</button>
+          <button class="btn danger" onclick="deleteAccount()">Delete my account</button>
+        </div>
+        <div class="note warn" style="margin-top:16px"><b>Delete is permanent.</b> It removes your workspace and every number you've entered — it can't be undone.</div>
+      </div>
+    </div>
+
     <footer>
       <div>Trust Trade® · Job Calculator</div>
       <div id="footNote">Free for Aussie tradies</div>
@@ -1096,11 +1171,11 @@ const DEMO_DATA = {
     {name:'Advertising',amount:6000,type:'fixed'}
   ],
   fleet:[
-    {make:'Toyota Hiace',rego:'',purchase_price:46000,loan_owing:30000,year:2022,life_years:8,status:'active'},
-    {make:'Nissan Patrol',rego:'',purchase_price:54000,loan_owing:36000,year:2023,life_years:8,status:'active'},
-    {make:'LDV Van 1',rego:'',purchase_price:40000,loan_owing:12000,year:2020,life_years:8,status:'active'},
-    {make:'LDV Van 2',rego:'',purchase_price:40000,loan_owing:8000,year:2020,life_years:8,status:'active'},
-    {make:'LDV Van 3',rego:'',purchase_price:40000,loan_owing:0,year:2019,life_years:8,status:'active'}
+    {make:'Van 1',rego:'',purchase_price:46000,loan_owing:30000,year:2022,life_years:8,status:'active'},
+    {make:'Van 2',rego:'',purchase_price:54000,loan_owing:36000,year:2023,life_years:8,status:'active'},
+    {make:'Van 3',rego:'',purchase_price:40000,loan_owing:12000,year:2020,life_years:8,status:'active'},
+    {make:'Van 4',rego:'',purchase_price:40000,loan_owing:8000,year:2020,life_years:8,status:'active'},
+    {make:'Van 5',rego:'',purchase_price:40000,loan_owing:0,year:2019,life_years:8,status:'active'}
   ],
   templates:[
     {name:'Service call',hours:1,default_crew:'1 installer'},
@@ -1383,21 +1458,14 @@ $('obBtn').onclick = async () => {
     role:'owner',can_see_pricing:true,status:'active'
   });
 
-  // Did they come from the demo? Bring their numbers with them.
-  let carried = null;
-  try{ carried = JSON.parse(localStorage.getItem(CARRY)||'null'); }catch(_){}
-  const src = carried || SCAFFOLD;
+  // A new business starts EMPTY — just the scaffold rows to fill in.
+  // Demo numbers never come across; they're only for looking around.
+  const src = SCAFFOLD;
 
   await db.from('calc_settings').insert({
-    org_id:o.id,
-    vans: carried?.vans ?? 1,
-    hours_per_van: carried?.hoursPerVan ?? 1600,
-    auto_calc: carried?.autoCalc ?? 'auto',
-    ac: carried?.ac ?? BLANK.ac,
-    category_markup: carried?.catMarkup ?? BLANK.catMarkup,
-    year_targets: carried?.target ?? BLANK.target
+    org_id:o.id, vans:1, hours_per_van:1600, auto_calc:'auto',
+    ac:BLANK.ac, category_markup:BLANK.catMarkup, year_targets:BLANK.target
   });
-  if(carried?.stdRate) await db.from('calc_orgs').update({std_rate:carried.stdRate}).eq('id',o.id);
 
   const strip = (rows,keys) => (rows||[]).map((r,i)=>{
     const out={org_id:o.id,sort_order:i};
@@ -1408,10 +1476,6 @@ $('obBtn').onclick = async () => {
   if((src.overhead||[]).length)  seed.push(db.from('calc_overhead').insert(strip(src.overhead,['name','amount','type'])));
   if((src.templates||[]).length) seed.push(db.from('calc_templates').insert(strip(src.templates,['name','hours','default_crew','notes'])));
   if((src.pricebook||[]).length) seed.push(db.from('calc_pricebook').insert(strip(src.pricebook,['name','category','hours','materials','markup','margin_pct'])));
-  if(carried && (carried.team||[]).length)
-    seed.push(db.from('calc_team').insert(strip(carried.team,['name','role','is_director','annual_wages','pay_rate','on_cost','billable_pct','school_days','apprentice_subsidy'])));
-  if(carried && (carried.fleet||[]).length)
-    seed.push(db.from('calc_fleet').insert(strip(carried.fleet,['make','rego','purchase_price','loan_owing','year','life_years','status'])));
   await Promise.all(seed);
 
   localStorage.removeItem(CARRY);
@@ -1439,20 +1503,22 @@ function renderTrialBar(){
   bar.classList.remove('hide');
   document.body.classList.add('demo');   // reuse the top-bar spacing
 
-  const d = ENT.days_left;
+  const d = ENT.days_left||0;
+  const ends = ENT.trial_ends_at
+    ? new Date(ENT.trial_ends_at).toLocaleDateString('en-AU',{day:'numeric',month:'short'}) : '';
   if(!ENT.entitled){
     $('trialTxt').innerHTML =
-      `<b>Your free month is up.</b> Your numbers are all still here — but you'll need a Trust Trade
-       listing to keep changing them. It's free, and it's how customers find you.`;
+      `<b>Your free access has ended${ends?` (${ends})`:''}.</b> Your numbers are safe — get listed on
+       Trust Trade (free) or add a code in Settings to keep editing.`;
     $('trialBtn').textContent = 'Get listed — free →';
   } else if(d <= 7){
     $('trialTxt').innerHTML =
-      `<b>${d} ${d===1?'day':'days'} left</b> on your free month. Get listed on Trust Trade and the
-       calculator stays free — plus customers can actually find you.`;
+      `<b>${d} ${d===1?'day':'days'} left</b> — you'll be locked out${ends?` on ${ends}`:''}. Get listed on
+       Trust Trade and the calculator stays free.`;
     $('trialBtn').textContent = 'Get listed — free →';
   } else {
     $('trialTxt').innerHTML =
-      `<b>${d} days</b> of free access left. List your business on Trust Trade and you keep this forever.`;
+      `<b>${d} days</b> of free access${ends?` (until ${ends})`:''}. List your business on Trust Trade and you keep it forever.`;
     $('trialBtn').textContent = 'Get listed — free →';
   }
 }
@@ -1463,10 +1529,12 @@ function applyEntitlement(){
   const locked = !DEMO && !ENT.entitled;
   document.querySelectorAll('.pane input, .pane select, .pane textarea').forEach(el=>{
     if(el.closest('#p-quote')) return;          // quoting always works — it's local, and it's the hook
+    if(el.closest('#p-settings')) return;       // settings must stay usable to redeem/sign out/delete
     el.disabled = locked;
   });
   document.querySelectorAll('.pane .btn, .pane .icon-btn').forEach(b=>{
     if(b.closest('#p-quote')) return;
+    if(b.closest('#p-settings')) return;
     if(b.id === 'pubBtn') return;                // publishing is how they get listed
     b.disabled = locked;
   });
@@ -1477,6 +1545,83 @@ function getListed(){
   // flips them to free-forever automatically (a DB trigger links it).
   window.open('https://trusttrade.au/for-tradies', '_blank');
   toast('Once your listing is live, reload and you\'re free forever');
+}
+
+/* ═══ SETTINGS / ACCOUNT ═══ */
+function renderSettings(){
+  const box = $('accessBox');
+  if(DEMO){
+    box.innerHTML = `<div class="note">You're just looking around in the demo.
+      <a href="#" onclick="exitDemo();return false" style="color:var(--accent-lo);font-weight:600">Sign up</a>
+      to save your numbers, redeem a code, and manage your account.</div>`;
+    $('acctSub').textContent = 'Demo — not signed in';
+    $('founderCard').classList.add('hide');
+    return;
+  }
+  const d = ENT.days_left||0;
+  const ends = ENT.trial_ends_at
+    ? new Date(ENT.trial_ends_at).toLocaleDateString('en-AU',{day:'numeric',month:'long',year:'numeric'}) : '—';
+  if(ENT.listed){
+    box.innerHTML = `<div class="note good"><b>You're listed on Trust Trade — free forever.</b> No trial clock, no lock-out.</div>`;
+  } else if(!ENT.entitled){
+    box.innerHTML = `<div class="note warn"><b>Your free access has ended.</b> Your numbers are safe, but you
+      can't change them until you get listed or add a code. Locked out since ${ends}.</div>
+      <a class="btn amber" href="https://trusttrade.au/for-tradies" target="_blank" rel="noopener" style="margin-top:12px">Get listed — free →</a>`;
+  } else {
+    box.innerHTML = `<div class="stats" style="margin-bottom:14px">
+        <div class="stat hero"><div class="stat-label">Free access left</div>
+          <div class="stat-value">${d} ${d===1?'day':'days'}</div>
+          <div class="stat-sub">Locks on ${ends} unless you get listed or add a code</div></div>
+        <div class="stat"><div class="stat-label">Status</div><div class="stat-value amber" style="font-size:20px">Free trial</div></div>
+      </div>
+      <a class="btn amber" href="https://trusttrade.au/for-tradies" target="_blank" rel="noopener">Get listed — keep it free →</a>`;
+  }
+  $('acctSub').textContent = `${session?.user?.email||''} · ${me?.role||'owner'}`;
+  $('founderCard').classList.toggle('hide', (session?.user?.email||'').toLowerCase() !== 'jake@trusttrade.au');
+}
+
+async function signOutNow(){ if(DEMO){location.reload();return} await db.auth.signOut(); }
+
+async function deleteAccount(){
+  if(DEMO) return toast('Nothing to delete in the demo');
+  if(!isOwner()){
+    if(!confirm('Leave this workspace? You\'ll lose access to it.')) return;
+  } else {
+    if(!confirm('Delete your account and everything in it? This cannot be undone.')) return;
+    if(!confirm('Last check — permanently delete your workspace and all your numbers?')) return;
+  }
+  const {error} = await db.rpc('calc_delete_account');
+  if(error){ toast('Could not delete — '+error.message); return; }
+  try{ localStorage.removeItem(CARRY); }catch(_){}
+  await db.auth.signOut();
+  location.reload();
+}
+
+async function redeemCode(){
+  if(DEMO) return toast('Sign up first, then redeem your code');
+  const code = ($('redeemInput').value||'').trim();
+  const out = $('redeemOut');
+  if(!code){ out.innerHTML=`<div class="note warn">Enter a code first.</div>`; return; }
+  $('redeemBtn').disabled=true; $('redeemBtn').textContent='Redeeming…';
+  const {data,error} = await db.rpc('calc_redeem_code',{p_code:code});
+  $('redeemBtn').disabled=false; $('redeemBtn').textContent='Redeem';
+  const row = Array.isArray(data)?data[0]:data;
+  if(error){ out.innerHTML=`<div class="note warn">${esc(error.message)}</div>`; return; }
+  if(row?.ok){
+    out.innerHTML=`<div class="note good"><b>${esc(row.message)}</b></div>`;
+    $('redeemInput').value='';
+    await loadEntitlement(); applyEntitlement(); renderSettings();
+    toast('Code applied');
+  } else {
+    out.innerHTML=`<div class="note warn">${esc(row?.message||'Could not redeem that code.')}</div>`;
+  }
+}
+
+async function generateCode(){
+  const {data,error} = await db.rpc('calc_create_code',{p_months:6,p_max_uses:1});
+  if(error){ toast(/authoris/i.test(error.message)?'Founder only':'Could not create a code'); return; }
+  $('genCodeOut').textContent = data;
+  toast('Code created — copy and share it');
 }
 
 /* ═══ DEMO ═══ */
@@ -1496,10 +1641,10 @@ function startDemo(){
   $('footNote').textContent='Demo — nothing saved';
   applyPerms(); bind(); renderAll(); islandScroll();
 }
-/* Leaving the demo used to throw away everything they'd typed. Now it
-   comes with them — which is also the best reason to sign up. */
+/* The demo is only for looking around — its sample numbers must NOT end
+   up in a real account. A new business always starts empty (scaffold). */
 function exitDemo(){
-  try{ localStorage.setItem(CARRY, JSON.stringify(S)); }catch(_){}
+  try{ localStorage.removeItem(CARRY); }catch(_){}
   DEMO = false;
   document.body.classList.remove('demo');
   $('app').classList.remove('on');
@@ -1627,6 +1772,11 @@ function goPane(p){
   const b = document.querySelector(`.nav button[data-p="${p}"]`);
   if(b) b.click();
   window.scrollTo({top:0, behavior:'smooth'});
+}
+function goImportXero(){
+  goPane('hours');
+  // Bring the Xero drop zone into view once the pane has switched.
+  setTimeout(()=>{ const d=$('xeroDrop'); if(d) d.scrollIntoView({behavior:'smooth', block:'center'}); }, 420);
 }
 
 function renderOh(){
@@ -2274,6 +2424,7 @@ function bind(){
       b.scrollIntoView({behavior:'smooth', block:'nearest', inline:'nearest'});
       renderAll();
       if(b.dataset.p==='people') loadPeople();
+      if(b.dataset.p==='settings') renderSettings();
     };
   });
   const on=(id,ev,fn)=>{const e=$(id); if(e) e.addEventListener(ev,fn)};

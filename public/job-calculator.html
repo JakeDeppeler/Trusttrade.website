@@ -896,12 +896,13 @@ footer{background:#fff;margin-top:56px;padding:26px 0 0;border-top:1px solid var
         <div class="tw"><table>
           <thead><tr><th style="min-width:130px">Name</th><th style="min-width:120px">Role</th>
             <th class="num" style="width:90px">Pay $/hr</th><th class="num" style="width:130px">Annual $<span class="ts">directors</span></th>
-            <th class="num" style="width:90px">On-cost %</th><th class="num" style="width:90px">Billable %</th>
+            <th class="num" style="width:90px">On-cost %<span class="ts">super, etc.</span></th><th class="num" style="width:90px">Billable %<span class="ts">on the tools</span></th>
             <th class="num" style="width:90px">TAFE days</th><th class="num" style="width:100px">Subsidy $</th>
             <th class="num" style="width:100px">True $/hr</th><th style="width:44px"></th></tr></thead>
           <tbody id="teamBody"></tbody>
         </table></div>
         <div class="note good"><b>Billable %</b> is the honest one. 100 = full-time on the tools. 60 = they're quoting half the week. The non-billable share of every wage flows into overhead automatically — which is exactly where it belongs, and exactly what most trades forget.</div>
+        <div class="note"><b>On-cost %</b> is everything you pay <b>on top of</b> the base hourly wage — <b>super, WorkCover, leave loading, payroll tax</b>. Around <b>25%</b> is a solid starting point. It already includes super, so don't <i>also</i> add super as a separate overhead — you'd be counting it twice.</div>
       </div>
     </div>
 
@@ -1851,8 +1852,8 @@ function renderOh(){
         <option value="per_van"${t==='per_van'?' selected':''}>Per vehicle</option>
         <option value="per_person"${t==='per_person'?' selected':''}>Per person</option></select></td>
       <td><input type="number" value="${o.amount}" step="100" data-row="${i}" data-field="amount" oninput="upOh(${i},'amount',this.value)"></td>
-      <td class="num" style="color:var(--faint);font-weight:400">${mult}</td>
-      <td class="num">${money(scaled(o))}</td>
+      <td class="num ohmult" style="color:var(--faint);font-weight:400">${mult}</td>
+      <td class="num ohannual">${money(scaled(o))}</td>
       <td class="act"><button class="icon-btn" onclick="delOh(${i})">×</button></td>`;
     b.appendChild(tr);
   });
@@ -1864,13 +1865,26 @@ function renderOh(){
   if(nonBillable()>0)add('Non-billable wages','(from Wages)',money(nonBillable()),'auto');
   if(subsidy()>0)    add('− Govt subsidies','(from Wages)','−'+money(subsidy()),'credit');
   put(b,f);
-
+  ohTotals();
+}
+function ohTotals(){
   const t=totalOh();
   $('ohTot').textContent=money(t);
   $('ohHr').textContent=money2(ohHr());
   $('ohDay').textContent=money(t/260);
 }
-function upOh(i,f,v){ S.overhead[i][f]=f==='amount'?(parseFloat(v)||0):v; renderOh(); renderQuote(); renderDash(); renderPb(); rowSave('calc_overhead',S.overhead[i]); }
+function upOh(i,f,v){
+  S.overhead[i][f]=f==='amount'?(parseFloat(v)||0):v;
+  if(f==='type'){ renderOh(); }             // a <select> — safe to rebuild
+  else {
+    // typed input (amount/name) — update the row's Annual + totals in place
+    const tr=document.querySelectorAll('#ohBody tr')[i];
+    if(tr){ const c=tr.querySelector('.ohannual'); if(c) c.textContent=money(scaled(S.overhead[i])); }
+    ohTotals();
+  }
+  renderQuote(); renderDash(); renderPb();
+  rowSave('calc_overhead',S.overhead[i]);
+}
 async function addOh(){ const r=await rowSave('calc_overhead',{name:'New cost',amount:0,type:'fixed',sort_order:S.overhead.length}); S.overhead.push(r); renderOh(); }
 async function delOh(i){ const r=S.overhead.splice(i,1)[0]; if(r.id) await rowDel('calc_overhead',r.id); renderOh(); renderDash(); renderPb(); }
 
@@ -1889,7 +1903,7 @@ function renderTeam(){
       <td><input type="number" value="${bl}" step="5" min="0" max="100" data-row="${i}" data-field="billable_pct" oninput="upT(${i},'billable_pct',this.value)"></td>
       <td><input type="number" value="${p.school_days||0}" step="1" min="0" max="240" data-row="${i}" data-field="school_days" oninput="upT(${i},'school_days',this.value)"></td>
       <td><input type="number" value="${p.apprentice_subsidy||0}" step="100" data-row="${i}" data-field="apprentice_subsidy" oninput="upT(${i},'apprentice_subsidy',this.value)"></td>
-      <td class="num">${money2(hourly(p))}</td>
+      <td class="num truehr">${money2(hourly(p))}</td>
       <td class="act"><button class="icon-btn" onclick="delT(${i})">×</button></td>`;
     b.appendChild(tr);
   });
@@ -1898,7 +1912,11 @@ function renderTeam(){
 function upT(i,f,v){
   const nums=['pay_rate','on_cost','billable_pct','annual_wages','school_days','apprentice_subsidy'];
   S.team[i][f]=nums.includes(f)?(parseFloat(v)||0):v;
-  renderTeam(); renderCrew(); renderQuote(); renderOh(); renderDash(); renderPb();
+  // Update this row's computed "True $/hr" in place — do NOT rebuild the
+  // inputs, or the field you're typing in gets replaced mid-keystroke.
+  const tr=document.querySelectorAll('#teamBody tr')[i];
+  if(tr){ const c=tr.querySelector('.truehr'); if(c) c.textContent=money2(hourly(S.team[i])); }
+  renderCrew(); renderQuote(); renderOh(); renderDash(); renderPb();
   rowSave('calc_team',S.team[i]);
 }
 async function addPerson(dir){
@@ -1927,12 +1945,15 @@ function renderFleet(){
         <option value="active"${st==='active'?' selected':''}>Active</option>
         <option value="in_repair"${st==='in_repair'?' selected':''}>In repair</option>
         <option value="sold"${st==='sold'?' selected':''}>Sold</option></select></td>
-      <td class="num">${money(dep(v))}</td>
-      <td class="num" style="color:${eq>=0?'var(--good)':'var(--bad)'}">${money(eq)}</td>
+      <td class="num fdep">${money(dep(v))}</td>
+      <td class="num feq" style="color:${eq>=0?'var(--good)':'var(--bad)'}">${money(eq)}</td>
       <td class="act"><button class="icon-btn" onclick="delV(${i})">×</button></td>`;
     b.appendChild(tr);
   });
   put(b,f);
+  fleetSummary();
+}
+function fleetSummary(){
   const act=S.fleet.filter(v=>v.status==='active').length;
   const val=S.fleet.filter(v=>v.status!=='sold').reduce((s,v)=>s+(v.purchase_price||0),0);
   const owe=S.fleet.filter(v=>v.status!=='sold').reduce((s,v)=>s+(v.loan_owing||0),0);
@@ -1943,7 +1964,18 @@ function renderFleet(){
 function upV(i,f,v){
   const nums=['purchase_price','loan_owing','year','life_years'];
   S.fleet[i][f]=nums.includes(f)?(parseFloat(v)||0):v;
-  renderFleet(); renderOh(); renderDash(); rowSave('calc_fleet',S.fleet[i]);
+  if(f==='status'){ renderFleet(); }        // a <select> — safe to rebuild
+  else {
+    // typed input — update this row's computed cells in place, don't rebuild
+    const v2=S.fleet[i], eq=(v2.purchase_price||0)-(v2.loan_owing||0);
+    const tr=document.querySelectorAll('#fleetBody tr')[i];
+    if(tr){
+      const dc=tr.querySelector('.fdep'); if(dc) dc.textContent=money(dep(v2));
+      const ec=tr.querySelector('.feq'); if(ec){ ec.textContent=money(eq); ec.style.color=eq>=0?'var(--good)':'var(--bad)'; }
+    }
+    fleetSummary();
+  }
+  renderOh(); renderDash(); rowSave('calc_fleet',S.fleet[i]);
 }
 async function addVeh(){ const r=await rowSave('calc_fleet',{make:'New vehicle',purchase_price:0,loan_owing:0,year:new Date().getFullYear(),life_years:8,status:'active'}); S.fleet.push(r); renderFleet(); renderOh(); }
 async function delV(i){ const r=S.fleet.splice(i,1)[0]; if(r.id) await rowDel('calc_fleet',r.id); renderFleet(); renderOh(); renderDash(); }
@@ -1968,7 +2000,12 @@ function renderTpl(){
     : '<option>— no templates —</option>';
   if(prev<S.templates.length) sel.value=prev;
 }
-function upTpl(i,f,v){ S.templates[i][f]=f==='hours'?(parseFloat(v)||0):v; rowSave('calc_templates',S.templates[i]); if(f==='name')renderTpl(); }
+function upTpl(i,f,v){
+  S.templates[i][f]=f==='hours'?(parseFloat(v)||0):v;
+  // Keep the Quote job dropdown label in sync without rebuilding the row.
+  if(f==='name'){ const o=$('qJob').querySelector(`option[value="${i}"]`); if(o) o.textContent=v; }
+  rowSave('calc_templates',S.templates[i]);
+}
 async function addTpl(){ const r=await rowSave('calc_templates',{name:'New job',hours:4,sort_order:S.templates.length}); S.templates.push(r); renderTpl(); }
 async function delTpl(i){ const r=S.templates.splice(i,1)[0]; if(r.id) await rowDel('calc_templates',r.id); renderTpl(); }
 
@@ -1989,7 +2026,7 @@ function renderPb(){
       <td><input type="number" value="${it.materials}" step="10" data-row="${i}" data-field="materials" oninput="upPb(${i},'materials',this.value)"></td>
       <td><input type="number" value="${mk}" step="5" data-row="${i}" data-field="markup" style="${ov?'':'opacity:.55;font-style:italic'}" oninput="upPb(${i},'markup',this.value)"></td>
       <td><input type="number" value="${Math.round((it.margin_pct||0)*100)}" step="1" data-row="${i}" data-field="margin_pct" oninput="upPb(${i},'margin_pct',this.value)"></td>
-      <td class="num" style="font-size:14px">${money(pbPrice(it))}</td>
+      <td class="num pbprice" style="font-size:14px">${money(pbPrice(it))}</td>
       <td class="act"><button class="icon-btn" onclick="delPb(${i})">×</button></td>`;
     b.appendChild(tr);
   });
@@ -1999,11 +2036,16 @@ function upPb(i,f,v){
   if(['hours','materials','markup','margin_pct'].includes(f)){
     S.pricebook[i][f]=f==='margin_pct'?(parseFloat(v)||0)/100:(parseFloat(v)||0);
     if(f==='markup'&&v==='') S.pricebook[i].markup=null;
+    // typed input — update just the price cell, don't rebuild the inputs
+    const tr=document.querySelectorAll('#pbBody tr')[i];
+    if(tr){ const c=tr.querySelector('.pbprice'); if(c) c.textContent=money(pbPrice(S.pricebook[i])); }
+  } else if(f==='category'){
+    S.pricebook[i].category=v; S.pricebook[i].markup=null;
+    renderPb();                              // a <select> — safe to rebuild
   } else {
-    S.pricebook[i][f]=v;
-    if(f==='category') S.pricebook[i].markup=null;
+    S.pricebook[i][f]=v;                     // name — nothing computed to refresh
   }
-  renderPb(); rowSave('calc_pricebook',S.pricebook[i]);
+  rowSave('calc_pricebook',S.pricebook[i]);
 }
 async function addPb(){ const r=await rowSave('calc_pricebook',{name:'New job',category:'service',hours:1,materials:0,markup:null,margin_pct:.20,sort_order:S.pricebook.length}); S.pricebook.push(r); renderPb(); }
 async function delPb(i){ const r=S.pricebook.splice(i,1)[0]; if(r.id) await rowDel('calc_pricebook',r.id); renderPb(); }
@@ -2301,9 +2343,9 @@ function renderXero(){
         <th style="width:130px">Treat as</th><th style="width:130px">Scales with</th>
       </tr></thead><tbody>${rows}</tbody></table>
     </div>
-    <div class="note"><b>Check the Wages line.</b> Wages aren't an overhead here — you enter people on the
-      <b>Wages</b> page so the calculator can work out who's billable and who isn't. Anything office-only
-      (admin, bookkeeper) you can switch to <i>Overhead</i>.</div>
+    <div class="note"><b>Wages and super stay out of overhead.</b> They're picked up on the <b>Wages</b> page
+      (super is part of each person's on-cost %), so we keep them out here — otherwise you'd count them
+      twice. Anything office-only (admin, bookkeeper) you can switch to <i>Overhead</i>.</div>
     <div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:16px">
       <button class="btn amber" onclick="applyXero()">Use these overheads →</button>
       <button class="btn ghost" onclick="xeroRows=[];renderXero()">Cancel</button>

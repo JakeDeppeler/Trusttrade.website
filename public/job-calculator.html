@@ -9,6 +9,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <style>
 /* ═══ TRUST TRADE TOKENS ═══════════════════════════════════
    Lifted from the live site: Archivo, amber #f2a900, dark
@@ -379,6 +380,18 @@ tr.credit td{background:var(--good-bg);font-size:13px}
 .drop:hover,.drop.over{border-color:var(--accent);background:rgba(242,169,0,.07);color:var(--ink)}
 .drop b{display:block;font-size:15px;color:var(--ink);margin-bottom:4px}
 
+/* Per-platform export how-to (Xero/MYOB/QuickBooks/Reckon/Sheets) */
+.imp-guides{margin-top:16px;display:grid;gap:6px}
+.imp-guides details{background:var(--bg-1);border:1px solid var(--line);border-radius:var(--r-sm);
+  padding:10px 14px;font-size:13px;color:var(--dim);line-height:1.6}
+.imp-guides summary{cursor:pointer;font-weight:600;color:var(--ink);font-size:13px;list-style:none}
+.imp-guides summary::-webkit-details-marker{display:none}
+.imp-guides summary::before{content:"›";display:inline-block;margin-right:8px;color:var(--accent-lo);
+  transition:transform .15s ease}
+.imp-guides details[open] summary::before{transform:rotate(90deg)}
+.imp-guides details[open] summary{margin-bottom:8px}
+.imp-guides b{color:var(--ink);font-weight:600}
+
 .tag{display:inline-block;font-family:var(--mono);font-size:9px;font-weight:600;
   text-transform:uppercase;letter-spacing:.08em;padding:3px 8px;border-radius:4px}
 .tag.oh{background:rgba(242,169,0,.16);color:var(--accent-lo)}
@@ -673,9 +686,9 @@ footer{background:#fff;margin-top:56px;padding:26px 0 0;border-top:1px solid var
             <div class="sc-icon">📊</div>
             <b>Import from Xero</b>
             <p>Fastest way in. Export your Profit &amp; Loss and we'll sort it into overheads for you.</p>
-            <div class="sc-how">In Xero: <b>Accounting → Reports → Profit &amp; Loss → Export → CSV</b>. Then drop the file in.</div>
+            <div class="sc-how">Export your <b>last 12 months</b> Profit &amp; Loss as <b>Excel</b> or CSV, then drop it in.</div>
             <button class="btn amber block" onclick="goImportXero()">Upload my P&amp;L file →</button>
-            <div class="sc-note">MYOB, QuickBooks &amp; Reckon CSV exports work too.</div>
+            <div class="sc-note">Xero, MYOB, QuickBooks, Reckon &amp; Google Sheets — steps on the next screen.</div>
           </div>
           <div class="start-choice">
             <div class="sc-icon">✏️</div>
@@ -752,19 +765,37 @@ footer{background:#fff;margin-top:56px;padding:26px 0 0;border-top:1px solid var
     <!-- HOURS & OVERHEAD -->
     <div class="pane" id="p-hours">
 
-      <!-- Xero import -->
+      <!-- Accounting-software import -->
       <div class="card">
         <div class="card-head">
-          <div><h2>Import from Xero</h2>
-            <div class="sub">Skip the typing · we'll sort your P&amp;L into overheads for you</div></div>
+          <div><h2>Import from your accounting software</h2>
+            <div class="sub">Skip the typing · we'll sort your last-12-months P&amp;L into overheads</div></div>
         </div>
         <div class="drop" id="xeroDrop">
           <div style="font-size:26px;margin-bottom:8px">📊</div>
-          <b>Drop your Xero Profit &amp; Loss here</b><br>
+          <b>Drop your Profit &amp; Loss here</b><br>
           <span style="font-size:12.5px;color:var(--faint)">
-            Xero → Accounting → Reports → Profit &amp; Loss → Export → CSV. MYOB, QuickBooks and Reckon exports work too.
+            Export your <b>last 12 months</b> as <b>Excel</b> or <b>CSV</b>, then drop it in — or click to browse.
+            (A PDF won't work — pick Excel.)
           </span>
-          <input type="file" id="xeroFile" accept=".csv,.txt" class="hide">
+          <input type="file" id="xeroFile" accept=".csv,.txt,.xlsx,.xls" class="hide">
+        </div>
+        <div class="imp-guides">
+          <details><summary>How to export from Xero</summary>
+            Accounting → Reports → <b>Profit &amp; Loss</b> → set the date range to the <b>last 12 months</b> → <b>Export → Excel</b>.
+          </details>
+          <details><summary>MYOB</summary>
+            Reporting → Reports → <b>Profit &amp; Loss</b> → set the period to the <b>last 12 months</b> → <b>Export → Excel</b> (or CSV).
+          </details>
+          <details><summary>QuickBooks</summary>
+            Reports → <b>Profit and Loss</b> → set the period to the <b>last 12 months</b> → <b>Export → Export to Excel</b>.
+          </details>
+          <details><summary>Reckon</summary>
+            Reports → <b>Profit &amp; Loss</b> → last <b>12 months</b> → <b>Export → Excel</b> or CSV.
+          </details>
+          <details><summary>Google Sheets</summary>
+            <b>File → Download → Microsoft Excel (.xlsx)</b> (or CSV), then drop that file in here.
+          </details>
         </div>
         <div id="xeroOut"></div>
       </div>
@@ -962,10 +993,12 @@ footer{background:#fff;margin-top:56px;padding:26px 0 0;border-top:1px solid var
         <div class="pl-controls">
           <div>
             <h2 style="font-size:22px;font-weight:800">Price list</h2>
-            <div class="sub">Print it, PDF it, or hand it over</div>
+            <div class="sub">Print, PDF, Excel or CSV — opens in Google Sheets too</div>
           </div>
-          <div style="display:flex;gap:10px">
-            <button class="btn ghost" onclick="window.print()">Print / save PDF</button>
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <button class="btn ghost" onclick="window.print()">Print / PDF</button>
+            <button class="btn ghost" onclick="downloadPriceListExcel()">Excel</button>
+            <button class="btn ghost" onclick="downloadPriceListCSV()">CSV</button>
             <button class="btn ghost" onclick="closePriceList()">Close</button>
           </div>
         </div>
@@ -2298,17 +2331,47 @@ async function applyXero(){
 }
 
 function loadXero(file){
-  const r = new FileReader();
-  r.onload = e => {
-    xeroRows = parseCSV(e.target.result);
+  const name = (file.name||'').toLowerCase();
+  const isExcel = /\.(xlsx|xls)$/.test(name);
+  const isPdf = /\.pdf$/.test(name);
+
+  if(isPdf){
+    $('xeroOut').innerHTML = `<div class="note warn">A PDF can't be read. In your accounting software choose
+      <b>Export → Excel</b> instead (or CSV), then drop that file in.</div>`;
+    return;
+  }
+
+  const finish = text => {
+    xeroRows = parseCSV(text);
     if(!xeroRows.length){
       $('xeroOut').innerHTML = `<div class="note warn">Couldn't read any accounts from that file. Make sure it's a
-        Profit &amp; Loss exported as <b>CSV</b> — not a PDF or an Excel file.</div>`;
+        <b>Profit &amp; Loss</b> exported as <b>Excel</b> or <b>CSV</b> (not a summary or a PDF).</div>`;
       return;
     }
     renderXero();
   };
-  r.readAsText(file);
+
+  const r = new FileReader();
+  if(isExcel){
+    if(typeof XLSX === 'undefined'){
+      $('xeroOut').innerHTML = `<div class="note warn">The spreadsheet reader is still loading — give it a second and try again.</div>`;
+      return;
+    }
+    r.onload = e => {
+      try{
+        const wb = XLSX.read(new Uint8Array(e.target.result), {type:'array'});
+        // Flatten every sheet to CSV so multi-tab exports still work.
+        const csv = wb.SheetNames.map(n => XLSX.utils.sheet_to_csv(wb.Sheets[n])).join('\n');
+        finish(csv);
+      }catch(err){
+        $('xeroOut').innerHTML = `<div class="note warn">Couldn't open that spreadsheet. Try exporting again as <b>Excel</b> or <b>CSV</b>.</div>`;
+      }
+    };
+    r.readAsArrayBuffer(file);
+  } else {
+    r.onload = e => finish(e.target.result);
+    r.readAsText(file);
+  }
 }
 
 /* ═══════════════════════════════════════════════════════════
@@ -2368,6 +2431,40 @@ function openPriceList(){
   $('plModal').classList.add('show');
 }
 function closePriceList(){ $('plModal').classList.remove('show'); }
+
+/* Price list → downloadable Excel / CSV (both open in Google Sheets). */
+function priceListRows(){
+  const gstTxt = $('plGst').value==='inc' ? 'inc GST' : 'ex GST';
+  const from = $('plMode').value==='from';
+  const rows = [['Category','Service','Price ('+gstTxt+')']];
+  priceGroups().forEach(g => g.items.forEach(i =>
+    rows.push([g.name, i.name, (from?'from ':'')+money(i.price)])
+  ));
+  return rows;
+}
+function plFileName(ext){
+  const name = DEMO ? 'Sample Trade Co' : (org?.name || 'price-list');
+  return name.replace(/[^a-z0-9]+/gi,'-').replace(/^-|-$/g,'').toLowerCase()+'-price-list.'+ext;
+}
+function downloadPriceListCSV(){
+  if(!S.pricebook.length) return toast('Add some jobs to the pricebook first');
+  const csv = priceListRows().map(r => r.map(c=>`"${String(c).replace(/"/g,'""')}"`).join(',')).join('\r\n');
+  const url = URL.createObjectURL(new Blob(['﻿'+csv], {type:'text/csv;charset=utf-8'}));
+  const a = document.createElement('a'); a.href=url; a.download=plFileName('csv');
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(()=>URL.revokeObjectURL(url), 1000);
+  toast('CSV downloaded');
+}
+function downloadPriceListExcel(){
+  if(!S.pricebook.length) return toast('Add some jobs to the pricebook first');
+  if(typeof XLSX === 'undefined') return toast('Spreadsheet tool still loading — try again');
+  const ws = XLSX.utils.aoa_to_sheet(priceListRows());
+  ws['!cols'] = [{wch:26},{wch:38},{wch:18}];
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Price list');
+  XLSX.writeFile(wb, plFileName('xlsx'));
+  toast('Excel downloaded');
+}
 
 /* Push the pricebook onto their Trust Trade listing. Their listing already
    has a priced_services column we fill in with real prices. */

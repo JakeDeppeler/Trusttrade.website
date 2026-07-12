@@ -671,6 +671,7 @@ footer{background:#fff;margin-top:56px;padding:26px 0 0;border-top:1px solid var
       <button data-p="templates" data-need="pricebook">Templates</button>
       <button data-p="people" data-need="owner">People</button>
       <div class="sep"></div>
+      <button data-p="grow">Grow ✨</button>
       <button data-p="settings">Settings</button>
     </div>
 
@@ -771,6 +772,7 @@ footer{background:#fff;margin-top:56px;padding:26px 0 0;border-top:1px solid var
           <div><h2>Import from your accounting software</h2>
             <div class="sub">Skip the typing · we'll sort your last-12-months P&amp;L into overheads</div></div>
         </div>
+        <div id="xeroFull">
         <div class="drop" id="xeroDrop">
           <div style="font-size:26px;margin-bottom:8px">📊</div>
           <b>Drop your Profit &amp; Loss here</b><br>
@@ -796,6 +798,11 @@ footer{background:#fff;margin-top:56px;padding:26px 0 0;border-top:1px solid var
           <details><summary>Google Sheets</summary>
             <b>File → Download → Microsoft Excel (.xlsx)</b> (or CSV), then drop that file in here.
           </details>
+        </div>
+        </div><!-- /xeroFull -->
+        <div id="xeroCompact" class="hide" style="display:flex;align-items:center;gap:14px;flex-wrap:wrap">
+          <span style="font-size:13.5px;color:var(--dim)">✅ Overheads are in. You can tweak them below, or re-import to start over.</span>
+          <button class="btn ghost sm" onclick="showImportFull()">Re-import from accounting software</button>
         </div>
         <div id="xeroOut"></div>
       </div>
@@ -880,6 +887,7 @@ footer{background:#fff;margin-top:56px;padding:26px 0 0;border-top:1px solid var
           <div class="stat"><div class="stat-label">Per working day</div>
             <div class="stat-value" id="ohDay">$0</div><div class="stat-sub">before you turn a screw</div></div>
         </div>
+        <div id="ohDupes"></div>
       </div>
     </div>
 
@@ -894,15 +902,17 @@ footer{background:#fff;margin-top:56px;padding:26px 0 0;border-top:1px solid var
           </div>
         </div>
         <div class="tw"><table>
-          <thead><tr><th style="min-width:130px">Name</th><th style="min-width:120px">Role</th>
-            <th class="num" style="width:90px">Pay $/hr</th><th class="num" style="width:130px">Annual $<span class="ts">directors</span></th>
+          <thead><tr><th style="min-width:130px">Name</th><th style="min-width:150px">Role</th>
+            <th style="width:60px">In van</th>
+            <th class="num" style="width:90px">Pay $/hr</th>
             <th class="num" style="width:90px">On-cost %<span class="ts">super, etc.</span></th><th class="num" style="width:90px">Billable %<span class="ts">on the tools</span></th>
-            <th class="num" style="width:90px">TAFE days</th><th class="num" style="width:100px">Subsidy $</th>
+            <th class="num" style="width:96px">Trade school<span class="ts">days/yr</span></th><th class="num" style="width:100px">Subsidy $</th>
             <th class="num" style="width:100px">True $/hr</th><th style="width:44px"></th></tr></thead>
           <tbody id="teamBody"></tbody>
         </table></div>
         <div class="note good"><b>Billable %</b> is the honest one. 100 = full-time on the tools. 60 = they're quoting half the week. The non-billable share of every wage flows into overhead automatically — which is exactly where it belongs, and exactly what most trades forget.</div>
         <div class="note"><b>On-cost %</b> is everything you pay <b>on top of</b> the base hourly wage — <b>super, WorkCover, leave loading, payroll tax</b>. Around <b>25%</b> is a solid starting point. It already includes super, so don't <i>also</i> add super as a separate overhead — you'd be counting it twice.</div>
+        <div class="note"><b>In van</b> = who's actually out on the tools. Only people in a van earn billable hours, and your <b>active crews</b> (on the Targets page) come straight from this count. <b>Office / Admin</b> can't be charged out — their whole wage flows into overhead. Pick <b>Apprentice</b> and we set aside ~<b>one week a month</b> for trade school automatically.</div>
       </div>
     </div>
 
@@ -914,9 +924,9 @@ footer{background:#fff;margin-top:56px;padding:26px 0 0;border-top:1px solid var
           <button class="btn ghost sm" onclick="addVeh()">+ Vehicle</button>
         </div>
         <div class="tw"><table>
-          <thead><tr><th style="min-width:150px">Make/model</th><th style="width:90px">Rego</th>
+          <thead><tr><th style="min-width:150px">Make/model</th><th style="width:110px">Rego</th>
             <th class="num" style="width:110px">Bought for</th><th class="num" style="width:110px">Owing</th>
-            <th class="num" style="width:80px">Year</th><th class="num" style="width:80px">Life</th>
+            <th class="num" style="width:74px">Year</th><th class="num" style="width:70px">Life</th>
             <th style="width:110px">Status</th><th class="num" style="width:110px">Annual dep.</th>
             <th class="num" style="width:100px">Equity</th><th style="width:44px"></th></tr></thead>
           <tbody id="fleetBody"></tbody>
@@ -1055,7 +1065,7 @@ footer{background:#fff;margin-top:56px;padding:26px 0 0;border-top:1px solid var
           <div class="sub">The year, broken down to what a crew must turn over today</div></div></div>
         <div class="g3">
           <div class="field"><label>Annual revenue target</label><input type="number" id="tAnnual" step="50000"></div>
-          <div class="field"><label>Active crews</label><input type="number" id="tCrews" step="1" min="1" max="20"></div>
+          <div class="field"><label>Active crews</label><input type="number" id="tCrews" readonly><div class="help">From people in a van on your <b>Wages</b> page</div></div>
           <div class="field"><label>Working days/year</label><input type="number" id="tDays" step="1" min="180" max="300"></div>
         </div>
         <div class="stats" style="margin-top:20px">
@@ -1091,6 +1101,27 @@ footer{background:#fff;margin-top:56px;padding:26px 0 0;border-top:1px solid var
         <button class="btn amber" onclick="invitePerson()">Send invite</button>
         <div id="peopleList" style="margin-top:24px"></div>
         <div class="note"><b>This isn't cosmetic.</b> An installer's browser never receives your wages or margins — the database refuses to send them. Hiding a tab in the UI would still leave the data one click away in dev tools.</div>
+      </div>
+    </div>
+
+    <!-- GROW (coming soon) -->
+    <div class="pane" id="p-grow">
+      <div class="setup" style="margin-bottom:20px">
+        <h2>Grow ✨ — coming soon</h2>
+        <p class="lede">Knowing your numbers is step one. Next we're building tools to help you actually grow — win better work, keep more of it, and build something that lasts.</p>
+        <div class="steps">
+          <div class="step"><div class="step-n">1</div><div class="step-b"><b>Win better jobs</b><span>Turn your pricebook into quotes customers say yes to.</span></div></div>
+          <div class="step"><div class="step-n">2</div><div class="step-b"><b>Get more reviews</b><span>Automatic review requests the moment a job's done.</span></div></div>
+          <div class="step"><div class="step-n">3</div><div class="step-b"><b>Plan your year</b><span>See what you need to hit your income goal — and track it.</span></div></div>
+          <div class="step"><div class="step-n">4</div><div class="step-b"><b>Hire with confidence</b><span>Know exactly what your next tradie or apprentice needs to bill.</span></div></div>
+        </div>
+        <div class="setup-payoff">
+          <span>Want a say in what we build? Tell us what would help your business most.</span>
+        </div>
+        <div style="margin-top:18px;display:flex;gap:12px;flex-wrap:wrap">
+          <button class="btn amber" onclick="growInterest()">Notify me when it's ready</button>
+          <a class="btn ghost" href="mailto:jake@trusttrade.au?subject=Grow%20tools%20idea" style="text-decoration:none">Share an idea</a>
+        </div>
       </div>
     </div>
 
@@ -1179,13 +1210,13 @@ const DEMO_DATA = {
   catMarkup:{service:65,install:30,investigation:50,maintenance:40,rebate:20},
   target:{annual:2800000,crews:5,days:240},
   team:[
-    {name:'You (on the tools)',role:'Director/Lead',is_director:true,annual_wages:110000,billable_pct:80},
-    {name:'Lead installer',role:'Installer',pay_rate:46,on_cost:25,billable_pct:100},
-    {name:'Installer',role:'Installer',pay_rate:40,on_cost:25,billable_pct:100},
-    {name:'Installer / estimator',role:'Installer/Estimator',pay_rate:43,on_cost:25,billable_pct:60},
-    {name:'2nd-yr apprentice',role:'Apprentice',pay_rate:27,on_cost:20,billable_pct:100,school_days:40,apprentice_subsidy:5000},
-    {name:'1st-yr apprentice',role:'Apprentice',pay_rate:25,on_cost:20,billable_pct:100,school_days:40,apprentice_subsidy:5000},
-    {name:'Office admin',role:'Office Admin (3 days)',pay_rate:32,on_cost:25,billable_pct:0}
+    {name:'You (on the tools)',role:'Director / Owner',pay_rate:55,on_cost:0,billable_pct:80,in_van:true},
+    {name:'Lead tradesperson',role:'Tradesperson',pay_rate:46,on_cost:25,billable_pct:100,in_van:true},
+    {name:'Tradesperson',role:'Tradesperson',pay_rate:40,on_cost:25,billable_pct:100,in_van:true},
+    {name:'Estimator',role:'Estimator',pay_rate:43,on_cost:25,billable_pct:60,in_van:false},
+    {name:'2nd-yr apprentice',role:'Apprentice',pay_rate:27,on_cost:20,billable_pct:100,school_days:60,apprentice_subsidy:5000,in_van:true},
+    {name:'1st-yr apprentice',role:'Apprentice',pay_rate:25,on_cost:20,billable_pct:100,school_days:60,apprentice_subsidy:5000,in_van:true},
+    {name:'Office admin',role:'Office / Admin',pay_rate:32,on_cost:25,billable_pct:0,in_van:false}
   ],
   overhead:[
     {name:'Vehicle — fuel',amount:12000,type:'per_van'},
@@ -1236,6 +1267,19 @@ const money2=n=>{const v=n||0;return (v<0?'-$':'$')+Math.abs(v).toFixed(2);};
 const pc=n=>(n||0).toFixed(1)+'%';
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const isApp=p=>(p.role||'').toLowerCase().includes('apprentice');
+const isOffice=p=>/office|admin/i.test(p.role||'');
+// Who's in a van (defaults: everyone except office). Drives capacity + crews.
+const inVan=p=> (p.in_van===undefined||p.in_van===null) ? !isOffice(p) : !!p.in_van;
+// Charged-out crew: in a van, billable, and not office/admin.
+const chargeable=p=> inVan(p) && ((p.billable_pct??100)>0) && !isOffice(p);
+const crewCount=()=>S.team.filter(chargeable).length;
+const APP_TAFE_DAYS=60;   // apprentices: ~one week a month at trade school
+const ROLES=['Director / Owner','Tradesperson','Apprentice','Estimator','Labourer','Office / Admin'];
+function roleOptions(role){
+  let opts = ROLES.map(r=>`<option value="${esc(r)}"${r===role?' selected':''}>${esc(r)}</option>`).join('');
+  if(role && !ROLES.includes(role)) opts += `<option value="${esc(role)}" selected>${esc(role)}</option>`;
+  return opts + `<option value="__other">Other…</option>`;
+}
 function toast(m){const t=$('toast');t.textContent=m;t.classList.add('show');clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove('show'),2400)}
 function sync(cls,txt){const p=$('sync');p.className='pill'+(cls?' '+cls:'');$('syncTxt').textContent=txt}
 function grab(p){const a=document.activeElement;if(!a||!p.contains(a))return null;return{r:a.dataset.row,f:a.dataset.field,s:a.selectionStart,e:a.selectionEnd}}
@@ -1258,42 +1302,34 @@ function scaled(o){
   if(o.type==='per_person')return a*S.team.length;
   return a;
 }
-function annual(p){
-  if(p.is_director)return Number(p.annual_wages)||0;
-  const r=(p.role||'').toLowerCase();
-  let fte=1;
-  if(r.includes('3 days'))fte=.6; else if(r.includes('4 days'))fte=.8; else if(r.includes('2 days'))fte=.4;
-  return (p.pay_rate||0)*(1+(p.on_cost||0)/100)*38*52*fte;
-}
-const school=p=>(Number(p.school_days)||0)?annual(p)*Math.min(p.school_days/240,1):0;
-function hourly(p){
-  if(p.is_director){
-    const bh=hpv()*((p.billable_pct||0)/100);
-    return bh>0?(annual(p)*(p.billable_pct||0)/100)/bh:0;
-  }
-  return (p.pay_rate||0)*(1+(p.on_cost||0)/100);
-}
-const nonBillable=()=>S.team.reduce((s,p)=>{const b=(p.billable_pct??100)/100;return s+annual(p)*(1-b)+school(p)*b},0);
+// Everyone is costed hourly now (pay + on-costs) — no separate salary field.
+function hourly(p){ return (Number(p.pay_rate)||0)*(1+(Number(p.on_cost)||0)/100); }
+// Full-time-equivalent annual cost; its non-billable share lands in overhead.
+function annualCost(p){ return hourly(p)*38*52; }
+const school=p=>(Number(p.school_days)||0)?annualCost(p)*Math.min(p.school_days/240,1):0;
+const nonBillable=()=>S.team.reduce((s,p)=>{const b=(p.billable_pct??100)/100;return s+annualCost(p)*(1-b)+school(p)*b},0);
 const subsidy=()=>S.team.reduce((s,p)=>s+(Number(p.apprentice_subsidy)||0),0);
 const dep=v=>v.status==='sold'?0:(Number(v.purchase_price)||0)/(Number(v.life_years)||8);
 const fleetDep=()=>S.fleet.reduce((s,v)=>s+dep(v),0);
 const totalOh=()=>S.overhead.reduce((s,o)=>s+scaled(o),0)+nonBillable()+fleetDep()-subsidy();
 function capacity(){
   const h=hpv();
+  // Only people in a van (and billable, not office) generate billable hours.
   const ppl=S.team.reduce((s,p)=>{
+    if(!chargeable(p)) return s;
     const b=(p.billable_pct??100)/100;
     const sc=Math.min((Number(p.school_days)||0)/240,1);
     return s+b*(1-sc)*h;
   },0);
-  return Math.min(ppl,S.vans*h);
+  return Math.min(ppl,(S.vans||0)*h);
 }
 const ohHr=()=>{const c=capacity();return c>0?totalOh()/c:0};
 function avgInst(){
-  const l=S.team.filter(p=>!isApp(p)&&!p.is_director&&(p.billable_pct??100)>0);
+  const l=S.team.filter(p=>chargeable(p)&&!isApp(p));
   return l.length?l.reduce((s,p)=>s+hourly(p),0)/l.length:0;
 }
 function avgApp(){
-  const l=S.team.filter(p=>isApp(p)&&(p.billable_pct??100)>0);
+  const l=S.team.filter(p=>chargeable(p)&&isApp(p));
   return l.length?l.reduce((s,p)=>s+hourly(p),0)/l.length:0;
 }
 const catMk=c=>S.catMarkup[c]??30;
@@ -1435,6 +1471,7 @@ async function afterAuth(){
   bind();
   renderAll();
   applyEntitlement();
+  updateImportUI();
   islandScroll();
   sync('ok','Saved');
 
@@ -1673,7 +1710,7 @@ function startDemo(){
   $('sync').classList.add('hide');
   $('signOut').textContent='Exit demo';
   $('footNote').textContent='Demo — nothing saved';
-  applyPerms(); bind(); renderAll(); islandScroll();
+  applyPerms(); bind(); renderAll(); updateImportUI(); islandScroll();
 }
 /* The demo is only for looking around — its sample numbers must NOT end
    up in a real account. A new business always starts empty (scaffold). */
@@ -1710,6 +1747,9 @@ async function loadAll(){
   // Wages/overhead/fleet come back EMPTY for non-owners — the database
   // refuses to send them. That is the whole point, not a bug.
   S.team = team.data || [];
+  // The "Annual $" field is gone — carry any old salary to an hourly rate so
+  // those people aren't costed at $0.
+  S.team.forEach(p=>{ if(!(Number(p.pay_rate)>0) && Number(p.annual_wages)>0){ p.pay_rate = +((p.annual_wages/(38*52)).toFixed(2)); } });
   S.overhead = oh.data || [];
   S.fleet = fl.data || [];
   S.pricebook = pb.data || [];
@@ -1872,6 +1912,13 @@ function ohTotals(){
   $('ohTot').textContent=money(t);
   $('ohHr').textContent=money2(ohHr());
   $('ohDay').textContent=money(t/260);
+  // Flag overhead lines that look like duplicates (same name).
+  const seen={}, dupes=[];
+  S.overhead.forEach(o=>{ const k=(o.name||'').trim().toLowerCase(); if(!k) return; if(seen[k]){ if(seen[k]===1) dupes.push((o.name||'').trim()); seen[k]++; } else seen[k]=1; });
+  const el=$('ohDupes');
+  if(el) el.innerHTML = dupes.length
+    ? `<div class="note warn"><b>Possible double-up:</b> ${dupes.map(esc).join(', ')} ${dupes.length===1?'appears':'appear'} more than once. Check you're not counting the same cost twice.</div>`
+    : '';
 }
 function upOh(i,f,v){
   S.overhead[i][f]=f==='amount'?(parseFloat(v)||0):v;
@@ -1893,37 +1940,53 @@ function renderTeam(){
   if(!S.team.length) b.innerHTML=`<tr><td colspan="10"><div class="empty">Add yourself first, then the crew.</div></td></tr>`;
   S.team.forEach((p,i)=>{
     const bl=p.billable_pct??100;
+    const office=isOffice(p);
     const tr=document.createElement('tr');
     tr.innerHTML=`
       <td><input type="text" value="${esc(p.name||'')}" data-row="${i}" data-field="name" oninput="upT(${i},'name',this.value)"></td>
-      <td><input type="text" value="${esc(p.role||'')}" data-row="${i}" data-field="role" oninput="upT(${i},'role',this.value)"></td>
-      <td><input type="number" value="${p.pay_rate||0}" step="0.5" data-row="${i}" data-field="pay_rate" oninput="upT(${i},'pay_rate',this.value)" ${p.is_director?'disabled':''}></td>
-      <td><input type="number" value="${p.annual_wages||0}" step="1000" data-row="${i}" data-field="annual_wages" oninput="upT(${i},'annual_wages',this.value)" ${p.is_director?'':'disabled'}></td>
+      <td><select data-row="${i}" data-field="role" onchange="upTRole(${i},this.value)">${roleOptions(p.role)}</select></td>
+      <td style="text-align:center"><input type="checkbox" ${inVan(p)?'checked':''} ${office?'disabled title="Office staff are not on the tools"':''} onchange="upT(${i},'in_van',this.checked)" style="width:16px;height:16px;accent-color:var(--accent);cursor:pointer"></td>
+      <td><input type="number" value="${p.pay_rate||0}" step="0.5" data-row="${i}" data-field="pay_rate" oninput="upT(${i},'pay_rate',this.value)"></td>
       <td><input type="number" value="${p.on_cost??25}" step="1" data-row="${i}" data-field="on_cost" oninput="upT(${i},'on_cost',this.value)"></td>
       <td><input type="number" value="${bl}" step="5" min="0" max="100" data-row="${i}" data-field="billable_pct" oninput="upT(${i},'billable_pct',this.value)"></td>
       <td><input type="number" value="${p.school_days||0}" step="1" min="0" max="240" data-row="${i}" data-field="school_days" oninput="upT(${i},'school_days',this.value)"></td>
       <td><input type="number" value="${p.apprentice_subsidy||0}" step="100" data-row="${i}" data-field="apprentice_subsidy" oninput="upT(${i},'apprentice_subsidy',this.value)"></td>
-      <td class="num truehr">${money2(hourly(p))}</td>
+      <td class="num truehr">${office?'<span style="color:var(--faint)">not charged</span>':money2(hourly(p))}</td>
       <td class="act"><button class="icon-btn" onclick="delT(${i})">×</button></td>`;
     b.appendChild(tr);
   });
   put(b,f);
 }
 function upT(i,f,v){
-  const nums=['pay_rate','on_cost','billable_pct','annual_wages','school_days','apprentice_subsidy'];
-  S.team[i][f]=nums.includes(f)?(parseFloat(v)||0):v;
+  const nums=['pay_rate','on_cost','billable_pct','school_days','apprentice_subsidy'];
+  if(f==='in_van') S.team[i].in_van = !!v;
+  else S.team[i][f]=nums.includes(f)?(parseFloat(v)||0):v;
   // Update this row's computed "True $/hr" in place — do NOT rebuild the
   // inputs, or the field you're typing in gets replaced mid-keystroke.
   const tr=document.querySelectorAll('#teamBody tr')[i];
-  if(tr){ const c=tr.querySelector('.truehr'); if(c) c.textContent=money2(hourly(S.team[i])); }
-  renderCrew(); renderQuote(); renderOh(); renderDash(); renderPb();
+  if(tr){ const c=tr.querySelector('.truehr'); if(c) c.innerHTML=isOffice(S.team[i])?'<span style="color:var(--faint)">not charged</span>':money2(hourly(S.team[i])); }
+  renderCrew(); renderQuote(); renderOh(); renderDash(); renderPb(); renderTargets();
   rowSave('calc_team',S.team[i]);
+}
+// Role is a <select> — changing it can flip apprentice/office defaults, so a
+// full rebuild is fine (no mid-typing here).
+function upTRole(i,val){
+  if(val==='__other'){
+    const custom=(prompt('What\'s their role?')||'').trim();
+    if(!custom){ renderTeam(); return; }
+    S.team[i].role=custom;
+  } else S.team[i].role=val;
+  const p=S.team[i];
+  if(isApp(p) && !(Number(p.school_days)>0)) p.school_days=APP_TAFE_DAYS;   // ~1 week/month TAFE
+  if(isOffice(p)){ p.billable_pct=0; p.in_van=false; }                      // office isn't charged out
+  renderTeam(); renderCrew(); renderQuote(); renderOh(); renderDash(); renderPb(); renderTargets();
+  rowSave('calc_team',p);
 }
 async function addPerson(dir){
   const r=await rowSave('calc_team', dir
-    ? {name:'New director',role:'Director',is_director:true,annual_wages:0,billable_pct:50,on_cost:0,sort_order:S.team.length}
-    : {name:'New person',role:'Installer',pay_rate:0,on_cost:25,billable_pct:100,sort_order:S.team.length});
-  S.team.push(r); renderTeam(); renderCrew(); renderOh(); renderDash();
+    ? {name:'New owner',role:'Director / Owner',pay_rate:0,on_cost:0,billable_pct:80,in_van:true,sort_order:S.team.length}
+    : {name:'New person',role:'Tradesperson',pay_rate:0,on_cost:25,billable_pct:100,in_van:true,sort_order:S.team.length});
+  S.team.push(r); renderTeam(); renderCrew(); renderOh(); renderDash(); renderTargets();
 }
 async function delT(i){ const r=S.team.splice(i,1)[0]; if(r.id) await rowDel('calc_team',r.id); renderTeam(); renderCrew(); renderQuote(); renderOh(); renderDash(); }
 
@@ -2052,10 +2115,10 @@ async function delPb(i){ const r=S.pricebook.splice(i,1)[0]; if(r.id) await rowD
 
 function renderCrew(){
   const w=$('qCrew'); w.innerHTML='';
-  const pick=S.team.filter(p=>(p.billable_pct??100)>0);
-  if(!pick.length){ w.innerHTML=`<div class="empty" style="padding:14px">Add your crew under <b>Wages</b> first.</div>`; return; }
+  const pick=S.team.filter(chargeable);
+  if(!pick.length){ w.innerHTML=`<div class="empty" style="padding:14px">Add crew in a van under <b>Wages</b> first.</div>`; return; }
   S.team.forEach((p,i)=>{
-    if((p.billable_pct??100)===0) return;
+    if(!chargeable(p)) return;
     const on=Q.crew.includes(i);
     const c=document.createElement('div');
     c.className='chip'+(on?' on':'');
@@ -2149,8 +2212,11 @@ function renderDash(){
 
 function renderTargets(){
   const set=(id,v)=>{const e=$(id); if(e&&document.activeElement!==e) e.value=v};
-  set('tAnnual',S.target.annual); set('tCrews',S.target.crews); set('tDays',S.target.days);
-  const days=S.target.days||240, crews=Math.max(1,S.target.crews||1);
+  // Active crews is derived from who's in a van on the Wages page.
+  const crews=Math.max(1,crewCount());
+  S.target.crews=crews;
+  set('tAnnual',S.target.annual); set('tCrews',crews); set('tDays',S.target.days);
+  const days=S.target.days||240;
   const daily=S.target.annual/days, crewDay=daily/crews;
   $('tCrewDay').textContent=money(crewDay);
   $('tMonth').textContent=money(S.target.annual/12);
@@ -2373,9 +2439,24 @@ async function applyXero(){
     saveSettings();
   }
   xeroRows = [];
-  renderXero(); renderAll();
+  importExpanded = false;                 // collapse the importer now it's done
+  renderXero(); renderAll(); updateImportUI();
   toast(`${oh.length} overheads imported${income?` · income $${Math.round(income).toLocaleString()} set as your baseline`:''}`);
 }
+
+/* Once overheads exist, shrink the big import zone to a small "re-import"
+   bar so it's not the main thing on the page. */
+let importExpanded=false;
+function updateImportUI(){
+  const has = S.overhead.some(o=>(Number(o.amount)||0)>0);
+  const collapse = has && !importExpanded;
+  const full=$('xeroFull'), comp=$('xeroCompact');
+  if(full) full.classList.toggle('hide', collapse);
+  if(comp) comp.classList.toggle('hide', !collapse);
+}
+function showImportFull(){ importExpanded=true; updateImportUI(); }
+
+function growInterest(){ toast("You're on the list — we'll let you know the moment it's ready"); }
 
 function loadXero(file){
   const name = (file.name||'').toLowerCase();

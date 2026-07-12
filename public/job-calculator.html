@@ -1230,8 +1230,8 @@ const DEMO_DATA = {
 /* ── utils ── */
 function clone(o){return JSON.parse(JSON.stringify(o))}
 const $=id=>document.getElementById(id);
-const money=n=>'$'+Math.round(n||0).toLocaleString('en-AU');
-const money2=n=>'$'+(n||0).toFixed(2);
+const money=n=>{const v=Math.round(n||0);return (v<0?'-$':'$')+Math.abs(v).toLocaleString('en-AU');};
+const money2=n=>{const v=n||0;return (v<0?'-$':'$')+Math.abs(v).toFixed(2);};
 const pc=n=>(n||0).toFixed(1)+'%';
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const isApp=p=>(p.role||'').toLowerCase().includes('apprentice');
@@ -2252,16 +2252,21 @@ function parseCSV(text){
     const label = cells[0];
     if(!label || !/[a-z]/i.test(label)) return;
     if(/^(total|gross profit|net profit|less|add|profit)\b/i.test(label)) return;
+    // Take the last real number on the line — that's the total column.
+    // Sign rule (as the user asked): (brackets) = negative, a leading
+    // minus = negative, everything else is positive.
     let amt=null;
     for(let i=cells.length-1;i>=1;i--){
-      const raw = cells[i].replace(/[$,\s]/g,'');
-      if(raw==='') continue;
-      const neg = /^\(.*\)$/.test(raw);
-      const v = parseFloat(raw.replace(/[()]/g,''));
-      if(!isNaN(v)){ amt = neg ? -v : v; break; }
+      const cell = cells[i];
+      if(/%/.test(cell)) continue;                       // skip a "% of income" column
+      const raw = cell.replace(/[$,\s]/g,'');            // drop $, commas, spaces
+      if(raw==='' || raw==='-' || raw==='–') continue;   // blanks / dash-for-zero
+      const neg = /^\(.*\)$/.test(raw) || raw.startsWith('-');
+      const num = parseFloat(raw.replace(/[()]/g,''));
+      if(!isNaN(num)){ amt = (neg ? -1 : 1) * Math.abs(num); break; }
     }
     if(amt===null || amt===0) return;
-    out.push({name:label, amt:Math.abs(amt), cat:classify(label), type:ohType(label)});
+    out.push({name:label, amt:amt, cat:classify(label), type:ohType(label)});   // keep the sign
   });
   return out;
 }

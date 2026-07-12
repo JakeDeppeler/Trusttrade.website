@@ -8,6 +8,7 @@ export const HREF_TO_ROUTE = {
   "FAQ.html": "/faq",
   "About.html": "/about",
   "Our Story.html": "/our-story",
+  "Tools.html": "/tools",
 };
 
 export function resolveHref(href) {

@@ -11,6 +11,7 @@ import TradesPage from "./pages/TradesPage.jsx";
 import FAQPage from "./pages/FAQPage.jsx";
 import AboutPage from "./pages/AboutPage.jsx";
 import OurStoryPage from "./pages/OurStoryPage.jsx";
+import ToolsPage from "./pages/ToolsPage.jsx";
 import "./styles/landing.css";
 import "./styles/pages.css";
 import "./styles/chrome.css";
@@ -36,6 +37,7 @@ function AnimatedRoutes() {
         <Route path="/faq" element={<FAQPage />} />
         <Route path="/about" element={<AboutPage />} />
         <Route path="/our-story" element={<OurStoryPage />} />
+        <Route path="/tools" element={<ToolsPage />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </div>

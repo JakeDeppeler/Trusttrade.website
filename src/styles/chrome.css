@@ -305,3 +305,44 @@ body.theme-cream .nav-overlay-links a.current,
 body.theme-cream .nav-overlay-links a:hover { color: var(--accent); }
 body.theme-cream .nav-overlay-head .brand,
 body.theme-cream .nav-overlay-head .nav-toggle { color: #f5eedf; }
+
+/* ============================================================
+   Trade Tools hub — a grid of tool cards (calculator live,
+   others coming soon) + a "suggest a tool" card.
+   ============================================================ */
+.tools-grid { display: grid; grid-template-columns: 1fr; gap: 16px; }
+@media (min-width: 720px) { .tools-grid { grid-template-columns: repeat(2, 1fr); } }
+@media (min-width: 1080px) { .tools-grid { grid-template-columns: repeat(3, 1fr); } }
+.tool-card {
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  padding: 28px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-height: 240px;
+  box-shadow: 0 1px 2px rgba(23, 17, 10, 0.03), 0 18px 40px -30px rgba(23, 17, 10, 0.16);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.tool-card.live:hover { transform: translateY(-3px); box-shadow: 0 24px 50px -28px rgba(23, 17, 10, 0.28); }
+.tool-card.soon { background: var(--bg-2); }
+.tool-top { display: flex; align-items: center; justify-content: space-between; }
+.tool-icon { font-size: 30px; line-height: 1; }
+.tool-badge {
+  font-family: var(--font-mono);
+  font-size: 10px; font-weight: 600;
+  text-transform: uppercase; letter-spacing: 0.1em;
+  padding: 5px 10px; border-radius: 999px;
+}
+.tool-badge.live { background: rgba(47, 143, 91, 0.14); color: #2f8f5b; }
+.tool-badge.soon { background: rgba(41, 33, 26, 0.08); color: var(--text-dim); }
+.tool-badge.idea { background: rgba(242, 169, 0, 0.16); color: var(--accent-lo); }
+.tool-card h3 {
+  font-family: var(--font-display);
+  font-weight: 800; font-size: 22px; letter-spacing: -0.02em;
+  margin: 2px 0 0;
+}
+.tool-card p { margin: 0; font-size: 15px; line-height: 1.6; color: var(--text-dim); }
+.tool-cta { margin-top: auto; align-self: flex-start; }
+.tool-cta.is-soon { opacity: 0.55; cursor: default; pointer-events: none; }

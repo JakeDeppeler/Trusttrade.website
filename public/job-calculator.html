@@ -567,10 +567,33 @@ footer{background:#fff;margin-top:56px;padding:26px 0 0;border-top:1px solid var
       <div class="field"><label>Your trade</label>
         <select id="obTrade">
           <option value="">Choose…</option>
-          <option>Gas &amp; Heating</option><option>HVAC / Air Conditioning</option>
-          <option>Plumbing</option><option>Electrical</option><option>Carpentry</option>
-          <option>Building</option><option>Landscaping</option><option>Other</option>
+          <option>Plumbing</option>
+          <option>Gas fitting</option>
+          <option>Electrical</option>
+          <option>Air conditioning / HVAC</option>
+          <option>Solar &amp; battery</option>
+          <option>Carpentry</option>
+          <option>Building</option>
+          <option>Cabinet making</option>
+          <option>Handyman</option>
+          <option>Painting</option>
+          <option>Tiling</option>
+          <option>Plastering</option>
+          <option>Flooring</option>
+          <option>Concreting</option>
+          <option>Roofing</option>
+          <option>Bricklaying</option>
+          <option>Fencing</option>
+          <option>Landscaping</option>
+          <option>Pest control</option>
+          <option>Pool &amp; spa</option>
+          <option>Locksmith</option>
+          <option value="__other">Other — add my own</option>
         </select></div>
+      <div class="field hide" id="obTradeOtherWrap" style="margin-top:14px">
+        <label>Your trade — type it in</label>
+        <input type="text" id="obTradeOther" placeholder="e.g. Refrigeration mechanic">
+      </div>
       <button class="btn amber block lg" id="obBtn" style="margin-top:20px">Create my workspace</button>
       <div class="msg" id="obMsg"></div>
     </div>
@@ -1335,8 +1358,17 @@ const SCAFFOLD = {
 
 const CARRY = 'tt_calc_carry';
 
+// "Other" reveals a free-text box so any trade can add their own.
+$('obTrade').addEventListener('change', e=>{
+  const other = e.target.value === '__other';
+  $('obTradeOtherWrap').classList.toggle('hide', !other);
+  if(other) $('obTradeOther').focus();
+});
+
 $('obBtn').onclick = async () => {
-  const name=$('obName').value.trim(), trade=$('obTrade').value;
+  const name=$('obName').value.trim();
+  const sel=$('obTrade').value;
+  const trade = sel==='__other' ? ($('obTradeOther').value.trim() || 'Other') : sel;
   const m=$('obMsg');
   if(!name){m.className='msg err show';m.textContent='Give the business a name.';return}
   $('obBtn').disabled=true; $('obBtn').textContent='Creating…';

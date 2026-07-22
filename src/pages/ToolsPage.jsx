@@ -18,11 +18,12 @@ const TOOLS = [
     cta: "Open the calculator",
   },
   {
-    status: "soon",
+    status: "live",
     icon: "🌬️",
-    name: "Duct Sizing",
-    desc: "Size ducts right the first time — airflow, static pressure and duct runs worked out for you. In the workshop now.",
-    cta: "Coming soon",
+    name: "Duct Designer",
+    desc: "Upload a floor plan, drop your ceiling outlets, and it sizes the whole run — then builds a customer-ready quote. Optional AI auto-design.",
+    href: "/duct-sizing.html",
+    cta: "Open the designer",
   },
 ];
 
@@ -37,7 +38,7 @@ export default function ToolsPage() {
         eyebrow="Free trade tools"
         title="Tools built to help"
         italicWord="the trade."
-        lede="We're not here to sell you leads — we're here to help tradies run a better business. Free tools that make your day easier and your numbers clearer. The calculator's live now, with more on the way."
+        lede="We're not here to sell you leads — we're here to help tradies run a better business. Free tools that make your day easier and your numbers clearer. Two live now — the Job Calculator and the Duct Designer — with more on the way."
       />
 
       {/* ===== Tools grid ===== */}

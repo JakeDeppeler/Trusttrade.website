@@ -239,7 +239,7 @@
     <div class="tools">
       <button class="tool on" data-tool="select" data-tip="Select / move / resize (V)"><svg viewBox="0 0 24 24"><path d="M4 3l7 17 2.5-6.5L20 11 4 3z"/></svg></button>
       <button class="tool" data-tool="pan" data-tip="Pan (space)"><svg viewBox="0 0 24 24"><path d="M9 11V5.5a1.5 1.5 0 013 0V11m0 0V4.5a1.5 1.5 0 013 0V11m0 0V6.5a1.5 1.5 0 013 0V14a7 7 0 01-7 7h-1a7 7 0 01-7-7v-1.5a1.5 1.5 0 013 0V15"/></svg></button>
-      <button class="tool" data-tool="room" data-tip="Rooms — draw / move rooms (R). Rooms only move with this tool, so grabbing a duct never drags a room."><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="1.5"/><path d="M3 12h18"/></svg></button>
+      <button class="tool" data-tool="room" data-tip="Rooms (R) — drag a box for a square room, or click each corner for an odd shape, then click the first dot (or double-click / Enter) to close."><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="1.5"/><path d="M3 12h18"/></svg></button>
       <div class="tsep"></div>
       <button class="tool" data-tool="scale" data-tip="Set scale (2 clicks)"><svg viewBox="0 0 24 24"><path d="M3 12h18M3 9v6M21 9v6M8 10v4M13 10v4M18 10v4"/></svg></button>
       <div class="tsep"></div>
@@ -783,7 +783,16 @@ const s2w=p=>({x:(p.x-S.pan.x)/(S.ppm*S.zoom), y:(p.y-S.pan.y)/(S.ppm*S.zoom)});
 const lblz=()=>Math.max(0.88, Math.min(1.7, Math.sqrt(S.zoom)));
 const money=n=>'$'+Math.round(n).toLocaleString('en-AU');
 const dist=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
-const roomArea=r=>r.aOverride!=null?r.aOverride:Math.abs(r.w*r.h);
+/* Polygon rooms: not every room is a box. A room can carry a `points` list;
+   area comes from the shoelace formula, hit-testing from point-in-polygon.
+   A bounding box (x,y,w,h) is kept in sync so the rest of the rect-based
+   engine (zoning, routing, labels) keeps working unchanged. */
+const polyArea=pts=>{ let a=0; for(let i=0,n=pts.length;i<n;i++){ const p=pts[i],q=pts[(i+1)%n]; a+=p.x*q.y-q.x*p.y; } return Math.abs(a)/2; };
+const pointInPoly=(w,pts)=>{ let inside=false; for(let i=0,j=pts.length-1;i<pts.length;j=i++){ const xi=pts[i].x,yi=pts[i].y,xj=pts[j].x,yj=pts[j].y; if(((yi>w.y)!==(yj>w.y)) && (w.x < (xj-xi)*(w.y-yi)/((yj-yi)||1e-9)+xi)) inside=!inside; } return inside; };
+const polyCenter=pts=>{ let x=0,y=0; pts.forEach(p=>{x+=p.x;y+=p.y;}); return {x:x/pts.length,y:y/pts.length}; };
+const polyBBox=pts=>{ const xs=pts.map(p=>p.x),ys=pts.map(p=>p.y); const x=Math.min(...xs),y=Math.min(...ys); return {x,y,w:Math.max(...xs)-x,h:Math.max(...ys)-y}; };
+const roomHit=(r,w)=> (r.poly&&r.points) ? pointInPoly(w,r.points) : (w.x>=r.x&&w.x<=r.x+r.w&&w.y>=r.y&&w.y<=r.y+r.h);
+const roomArea=r=>r.aOverride!=null?r.aOverride:((r.poly&&r.points)?polyArea(r.points):Math.abs(r.w*r.h));
 const roomCentre=r=>({x:r.x+r.w/2,y:r.y+r.h/2});
 const snap=v=>Math.round(v*10)/10;
 const live=()=>S.rooms.filter(r=>r.type!=='none');       // conditioned rooms only
@@ -2812,6 +2821,7 @@ function draw(){
   if(S.tool==='select') ds.forEach(drawHandle);
   if(S.sel?.k==='room') drawGrips(S.sel.o);
   if(S.draw&&S.tool==='room') drawGhost(S.draw);
+  if(S.poly&&S.poly.length&&S.tool==='room') drawPolyDraft();
   if(S.manualDuct && (S.tool==='duct'||S.tool==='box')) drawNodes();
   drawMeasure();
 }
@@ -2897,7 +2907,10 @@ function drawRoom(r){
   ctx.strokeStyle=on?PL.ink:hexA(col,.85);
   ctx.lineWidth=on?2.5:1.6;
   if(off) ctx.setLineDash([6,4]);
-  ctx.beginPath();ctx.rect(a.x,a.y,w,h);ctx.fill();ctx.stroke();
+  ctx.beginPath();
+  if(r.poly&&r.points){ r.points.forEach((p,i)=>{const s=w2s(p); i?ctx.lineTo(s.x,s.y):ctx.moveTo(s.x,s.y);}); ctx.closePath(); }
+  else ctx.rect(a.x,a.y,w,h);
+  ctx.fill();ctx.stroke();
   ctx.setLineDash([]);
   /* An open-plan space has no wall between its rooms — so don't draw one. */
   if(!off && r.space){
@@ -2913,7 +2926,7 @@ function drawRoom(r){
   }
   if(w<58||h<32) return;
   const V=VIEW();
-  const l=roomLoad(r),c={x:a.x+w/2,y:a.y+h/2};
+  const l=roomLoad(r),c=(r.poly&&r.points)?w2s(polyCenter(r.points)):{x:a.x+w/2,y:a.y+h/2};
   ctx.textAlign='center';ctx.fillStyle=off?PL.muted:PL.ink;
   ctx.font='600 12px system-ui,sans-serif';ctx.fillText(r.name,c.x,c.y-8);
   ctx.font='500 10.5px system-ui,sans-serif';ctx.fillStyle=PL.muted;
@@ -2981,6 +2994,7 @@ function drawMeasure(){
   }
 }
 function drawGrips(r){
+  if(r.poly) return;                    // no corner grips on custom-shape rooms
   [[r.x,r.y],[r.x+r.w,r.y],[r.x,r.y+r.h],[r.x+r.w,r.y+r.h]].forEach(([x,y])=>{
     const p=w2s({x,y});
     ctx.fillStyle='#fff';ctx.strokeStyle='#0f172a';ctx.lineWidth=1.5;
@@ -2995,6 +3009,39 @@ function drawGhost(g){
   ctx.fillStyle='#2563eb';ctx.font='600 11px system-ui';ctx.textAlign='left';
   ctx.fillText(`${wm.toFixed(1)} × ${hm.toFixed(1)} m = ${(wm*hm).toFixed(1)} m²`,
     Math.min(a.x,b.x),Math.min(a.y,b.y)-7);
+}
+/* The in-progress custom-shape room: dots at each corner, a rubber-band line
+   to the cursor, running area, and a hint to click the first dot to close. */
+function drawPolyDraft(){
+  const pts=S.poly;
+  ctx.setLineDash([5,4]); ctx.strokeStyle='#2563eb'; ctx.lineWidth=1.8;
+  ctx.beginPath(); pts.forEach((p,i)=>{const s=w2s(p); i?ctx.lineTo(s.x,s.y):ctx.moveTo(s.x,s.y);});
+  if(S.polyCur){ const s=w2s(S.polyCur); ctx.lineTo(s.x,s.y); }
+  ctx.stroke(); ctx.setLineDash([]);
+  pts.forEach((p,i)=>{ const s=w2s(p); ctx.beginPath(); ctx.arc(s.x,s.y,i===0?5.5:3.5,0,7);
+    ctx.fillStyle=i===0?'#2563eb':'#fff'; ctx.strokeStyle='#2563eb'; ctx.lineWidth=1.6; ctx.fill(); ctx.stroke(); });
+  if(pts.length>=3){ const c=w2s(polyCenter(pts)); ctx.fillStyle='#2563eb'; ctx.font='600 11px system-ui';
+    ctx.textAlign='center'; ctx.fillText(polyArea(pts).toFixed(1)+' m² · click the first dot to close', c.x, c.y); }
+}
+function finishPoly(){
+  const pts=S.poly; S.poly=null; S.polyCur=null;
+  if(!pts || pts.length<3){ draw(); return; }
+  pushHist();
+  const bb=polyBBox(pts), a=polyArea(pts);
+  const span=Math.max(bb.w,bb.h), thin=Math.min(bb.w,bb.h)||1;
+  const type = a<7 ? 'wet' : (span/thin>3.2 ? 'util' : a>26 ? 'living' : 'bed');
+  const n=S.rooms.filter(r=>r.type===type).length+1;
+  const name = type==='wet' ? (n===1?'Bathroom':'Ensuite')
+             : type==='util' ? 'Hallway'
+             : type==='living' ? (n===1?'Living / Dining':'Kitchen')
+             : (n===1?'Master Bed':'Bed '+n);
+  S.rooms.push({id:RID, name, poly:true, points:pts.map(p=>({x:p.x,y:p.y})),
+    x:bb.x, y:bb.y, w:bb.w, h:bb.h, zone:RID, ceil:2.4,
+    glaze: type==='living'?'high':type==='wet'?'low':'med', orient:'none', type});
+  RID++;
+  applyZoning();
+  flash(`${name} — ${a.toFixed(1)} m² (custom shape). Still in room mode (V to stop).`);
+  commit();
 }
 function pathOf(d){
   const wp=wpsOf(d);
@@ -3883,6 +3930,7 @@ function drawOutdoor(o){
 
 /* ---------------------------------------------------------- HIT TESTING */
 function gripAt(w,r){
+  if(r.poly) return null;               // custom-shape rooms resize by redrawing, not corners
   const tol=8/(S.ppm*S.zoom);
   const g=[['nw',r.x,r.y],['ne',r.x+r.w,r.y],['sw',r.x,r.y+r.h],['se',r.x+r.w,r.y+r.h]];
   for(const [k,x,y] of g) if(Math.abs(w.x-x)<tol&&Math.abs(w.y-y)<tol) return k;
@@ -3916,10 +3964,10 @@ function hit(w){
   if(S.outdoor&&dist(w,S.outdoor)<.6) return {k:'outdoor',o:S.outdoor};
   if(S.ret&&dist(w,S.ret)<.5) return {k:'return',o:S.ret};
   for(let i=S.rooms.length-1;i>=0;i--){const r=S.rooms[i];
-    if(w.x>=r.x&&w.x<=r.x+r.w&&w.y>=r.y&&w.y<=r.y+r.h) return {k:'room',o:r};}
+    if(roomHit(r,w)) return {k:'room',o:r};}
   return null;
 }
-const roomAt=w=>S.rooms.find(r=>r.type!=='none'&&w.x>=r.x&&w.x<=r.x+r.w&&w.y>=r.y&&w.y<=r.y+r.h);
+const roomAt=w=>S.rooms.find(r=>r.type!=='none'&&roomHit(r,w));
 
 /* ------------------------------------------------- manual-duct helpers */
 function enterManual(){
@@ -4127,6 +4175,7 @@ cv.addEventListener('pointerdown',e=>{
 cv.addEventListener('pointermove',e=>{
   const sp={x:e.offsetX,y:e.offsetY},w=s2w(sp);
   if(S.linkFrom){ lastMouse=sp; draw(); }
+  if(S.tool==='room' && S.poly && S.poly.length){ S.polyCur={x:w.x,y:w.y}; draw(); }   // rubber-band to cursor
   if(down&&(Math.abs(sp.x-down.x)>2||Math.abs(sp.y-down.y)>2)) moved=true;
   const D=()=>({dx:(sp.x-S.drag.sp.x)/(S.ppm*S.zoom), dy:(sp.y-S.drag.sp.y)/(S.ppm*S.zoom)});
   if(S.drag?.mode==='pan'){
@@ -4182,7 +4231,20 @@ cv.addEventListener('pointermove',e=>{
 });
 cv.addEventListener('pointerup',()=>{
   if(S.draw&&S.tool==='room'){
-    const g=S.draw,x=Math.min(g.x,g.x2),y=Math.min(g.y,g.y2);
+    const g=S.draw; S.draw=null;
+    if(!moved){
+      // A plain CLICK drops a custom-shape corner (or closes the shape) —
+      // this is how you draw rooms that aren't rectangles.
+      const pt={x:g.x,y:g.y};
+      S.poly = S.poly || [];
+      const cTol=12/(S.ppm*S.zoom);
+      if(S.poly.length>=3 && Math.hypot(pt.x-S.poly[0].x, pt.y-S.poly[0].y)<cTol) finishPoly();
+      else { S.poly.push(pt); draw();
+        flash(S.poly.length<2
+          ? 'Custom room — click each corner, then click the first dot (or double-click) to close.'
+          : `${S.poly.length} corners · click the first dot, double-click or Enter to close`); }
+    } else if(!(S.poly&&S.poly.length)){
+    const x=Math.min(g.x,g.x2),y=Math.min(g.y,g.y2);
     const w=Math.abs(g.x2-g.x),h=Math.abs(g.y2-g.y);
     if(w>.6&&h>.6){
       pushHist();
@@ -4209,7 +4271,8 @@ cv.addEventListener('pointerup',()=>{
         flash(`${name} — ${a.toFixed(1)} m². Still in room mode, keep drawing (V to stop).`);
       // STAY in room mode — you're tracing a whole house
     }
-    S.draw=null;commit();
+    commit();
+    }
   }
   // a plain click that dropped a fresh waypoint but never dragged → take it back out
   if(S.drag && S.drag.mode==='bend' && S.drag.added && !moved){
@@ -4271,6 +4334,8 @@ $('#stage').addEventListener('wheel',e=>{
 },{passive:false});
 addEventListener('keydown',e=>{
   if(/INPUT|SELECT|TEXTAREA/.test(e.target.tagName)) return;
+  if(e.key==='Enter' && S.tool==='room' && S.poly && S.poly.length>=3){ e.preventDefault(); finishPoly(); return; }
+  if(e.key==='Escape' && S.poly){ S.poly=null; S.polyCur=null; draw(); flash('Custom shape cancelled'); return; }
   if((e.metaKey||e.ctrlKey)&&e.key.toLowerCase()==='z'){
     e.preventDefault(); e.shiftKey?$('#btn-redo').click():$('#btn-undo').click(); return; }
   if(e.code==='Space'){spaceDown=true;cv.style.cursor='grab';e.preventDefault();}
@@ -4282,6 +4347,7 @@ addEventListener('keydown',e=>{
   if((e.key==='Backspace'||e.key==='Delete')&&S.sel){pushHist();del(S.sel);S.sel=null;commit();}
 });
 addEventListener('keyup',e=>{if(e.code==='Space'){spaceDown=false;cv.style.cursor='default';}});
+cv.addEventListener('dblclick',()=>{ if(S.tool==='room' && S.poly && S.poly.length>=3) finishPoly(); });
 
 function del(h){
   if(h.k==='dbox'){
@@ -4350,9 +4416,10 @@ function ventProblems(){
 function setTool(t){
   S.tool=t;$$('.tool').forEach(b=>b.classList.toggle('on',b.dataset.tool===t));
   if(t!=='duct') S.linkFrom=null;
+  if(t!=='room'){ S.poly=null; S.polyCur=null; }        // drop any half-drawn custom shape
   flash({select:'Click to select · drag duct handles to route the flex · corner grips resize a room · ⌘Z undoes',
     pan:'Drag to pan',scale:'Click two points on a known dimension',
-    room:'Drag out a rectangle',vent:'Click inside a room to add an outlet',
+    room:'Drag a box for a square room, or CLICK each corner for an odd shape (click the first dot to close)',vent:'Click inside a room to add an outlet',
     return:'Place the return air grille',unit:'Place the indoor unit / plenum',
     outdoor:'Place the outdoor unit',delete:'Click anything to remove it',
     box:'Click to drop a BTO — runs hang off it',

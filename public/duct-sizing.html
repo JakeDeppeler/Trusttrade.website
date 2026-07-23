@@ -441,6 +441,13 @@ const LPS_PER_KW=50;
 --------------------------------------------------------------------------- */
 const VENT_SIZES=[150,200,250,300];
 const VENT_CAP={150:60, 200:120, 250:190, 300:280};
+/* RAMP / TOLERANCE. The cap is a comfortable design flow, not a wall. A Ø200
+   sitting a few L/s over its 120 badge isn't a problem you fix by jumping to a
+   Ø250 — it just runs a touch faster. So a neck is allowed to carry up to
+   CAP_TOL over its cap before we step it up, which stops the sizer oversizing
+   grilles (a 200 in the bedroom, not a 250) in the bigger rooms. */
+const VENT_TOL=1.12;    // a neck covers ~12% over its badge before it steps up
+const capOK=(lps,d)=>lps<=VENT_CAP[d]*VENT_TOL;
 const VENT_MIN={wet:150, util:200, bed:200, living:200, other:200};
 const VENT_FLOOR=150;   // smallest neck we'll ever fit, whatever the flow says
 
@@ -449,7 +456,7 @@ const VENT_FLOOR=150;   // smallest neck we'll ever fit, whatever the flow says
    Put three in the same room and each is only doing a third — so they're Ø200s.
    That's the whole rule. */
 function ventSizeFor(lps, min){
-  const s=VENT_SIZES.find(d=>d>=min && lps<=VENT_CAP[d]);
+  const s=VENT_SIZES.find(d=>d>=min && capOK(lps,d));
   return s || VENT_SIZES[VENT_SIZES.length-1];
 }
 /* The rules, stated once, against a TYPE + FLOOR AREA + LOAD — so they can be
@@ -461,8 +468,12 @@ function ventPlanFor(type, area, lps){
   if(type==='util') return area>=12 ? {n:1, size:ventSizeFor(lps,200), each:lps}
                                     : {n:0, size:0, each:0};
   if(type==='bed'){
-    // one outlet by the window, unless even a Ø300 can't shift it
-    const n = lps > VENT_CAP[300] ? 2 : 1;
+    /* One outlet by the window for a normal room. But a big master shouldn't get a
+       single Ø250/300 roaring in the corner — before a lone neck has to go oversize
+       we add a second outlet, so it runs 2 × Ø200 (quieter, and it's how you'd fit
+       it). Only step an INDIVIDUAL neck up if even splitting can't keep it at Ø200. */
+    let n = lps > VENT_CAP[200]*VENT_TOL ? 2 : 1;
+    if(lps/n > VENT_CAP[300]) n = Math.min(3, Math.ceil(lps/(VENT_CAP[300])));
     return {n, size:ventSizeFor(lps/n, min), each:lps/n};
   }
   /* living / dining / kitchen — spread the air over several 200 mm outlets rather
@@ -797,13 +808,19 @@ function flexProduct(dia){
   return same.find(p=>p.rval===S.rval) || same[0] || null;
 }
 /* A unit has to do TWO jobs: make the kilowatts, and move the litres.
-   Size on whichever binds. */
+   Size on whichever binds.
+   RAMP ALLOWANCE: an inverter modulates, so a head "rated to 20 kW" happily
+   carries an 18 kW design load — you do NOT jump it up to the next box for the
+   last few per cent. We let a unit count if it's within RAMP_TOL of the load
+   (i.e. a 20 kW unit satisfies anything up to ~21.2 kW), which stops the sizer
+   quietly oversizing the plant on a marginal overshoot. */
+const RAMP_TOL=1.06;         // a rated head covers a load up to ~6% over its badge
 function unitFor(kw, lps){
   const pool=inCat('unit').filter(u=>u.kw).sort((a,b)=>a.kw-b.kw);
   if(!pool.length) return null;
   const need = lps || kw*LPS_PER_KW;
-  return pool.find(u=>u.kw>=kw && (u.lps||u.kw*LPS_PER_KW) >= need)   // must actually move the air
-      || pool.find(u=>u.kw>=kw)
+  return pool.find(u=>u.kw*RAMP_TOL>=kw && (u.lps||u.kw*LPS_PER_KW)*RAMP_TOL >= need)  // must still move the air
+      || pool.find(u=>u.kw*RAMP_TOL>=kw)
       || pool[pool.length-1];
 }
 /* Labour is DRIVEN BY THE DRAWN JOB: unit install base, then per outlet, per BDO,
@@ -1099,7 +1116,14 @@ const bagsFor=m=> Math.max(0, Math.ceil((m||0)/BAG_M));
    looked at length, which is exactly why the runs weren't the shortest ones. */
 const BOX_STANDOFF=1.2;    // a BTO never sits on top of what feeds it
 const FLEX_MAX=6;          // one bag of flex — a BDO should sit within ~6 m of its outlets
-const FLEX_OVER_PEN=5.0;   // penalty per metre a flex run overshoots a bag (pulls the box toward the vents, not the unit)
+const FLEX_OVER_PEN=9.0;   // penalty per metre a flex run overshoots a bag (pulls the box toward the vents, not the unit)
+/* THE BOX BELONGS WITH ITS OUTLETS, and the trunk works back to the unit.
+   Length out to a diffuser is charged heavier than length back up the trunk, so
+   the optimiser parks the box near the grilles it feeds (short flex, within a
+   bag) and pays for a longer rigid trunk instead — which is exactly how you'd
+   run it: drop the box over the rooms, feed it from the plenum. */
+const LEAF_PULL=1.8;       // each metre of flex-to-outlet counts this much vs a metre of trunk
+const FLEX_AIM=4.0;        // start easing the box toward its outlets from here, before the hard 6 m
 
 /* ===========================================================================
    A BTO CANNOT TURN THE AIR BACKWARDS.
@@ -1217,9 +1241,15 @@ function boxCost(parent, leaves, p, gp, hard){
     const out=isOutletNode(n);
     if(edgeBreaks(p, n, out)) breaks++;
     const e=edgeCost(p, n, out);
-    len+=e.len; pen+=e.pen;
+    /* Flex to an outlet is charged heavier than trunk, so the box gravitates to
+       the grilles and the trunk stretches back to the unit — not the reverse. */
+    len += out ? e.len*LEAF_PULL : e.len;
+    pen+=e.pen;
     pen+=armPenalty(inDir, p, n);       // forwards, or pay through the nose
-    if(out && e.len > FLEX_MAX) pen += (e.len - FLEX_MAX) * FLEX_OVER_PEN;   // keep the take-off within a bag of flex of its outlet
+    if(out){
+      if(e.len > FLEX_AIM) pen += (e.len - FLEX_AIM) * FLEX_OVER_PEN;          // ease it toward the vents early
+      if(e.len > FLEX_MAX) pen += (e.len - FLEX_MAX) * FLEX_OVER_PEN * 2.5;    // and hold it inside one bag of flex
+    }
   });
 
   if(hard && breaks) return INFEASIBLE;
@@ -2476,7 +2506,7 @@ function ducts(){
           let off=d._ang-mean; while(off>Math.PI)off-=2*Math.PI; while(off<-Math.PI)off+=2*Math.PI;
           const sign = off>=0?1:-1;                        // fan away from the group centre
           const dx=d.b.x-d.a.x, dy=d.b.y-d.a.y, L=Math.hypot(dx,dy)||1;
-          const nx=-dy/L, ny=dx/L, amt=Math.min(0.55, L*0.13)*sign;
+          const nx=-dy/L, ny=dx/L, amt=Math.min(0.85, L*0.18)*sign;
           const cOld=d.c;
           d.c={x:d.c.x+nx*amt, y:d.c.y+ny*amt};
           if(crossesAny(d)) d.c=cOld;                      // guard: never trade overlap for a crossing
@@ -2494,17 +2524,21 @@ function ducts(){
         const A=runs[i], B=runs[j];
         if(A.a===B.a || A.b===B.b || A.a===B.b || A.b===B.a) continue;
         const PA=poly(A), PB=poly(B);
-        const clr=((A.d+B.d)/2)/1000*0.9;              // centres closer than this = stacked
+        const clr=((A.d+B.d)/2)/1000*0.95;             // centres closer than this = stacked
         let closePts=0;
         for(const p of PA){ for(const q of PB){ if(dist(p,q)<clr){ closePts++; break; } } }
-        if(closePts>=4){
+        if(closePts>=3){
           const D=(A.d<=B.d)?A:B;                      // the smaller duct gives way
           const dx=D.b.x-D.a.x, dy=D.b.y-D.a.y, L=Math.hypot(dx,dy)||1;
-          for(const sgn of [1,-1]){
-            const cOld=D.c;
-            D.c={x:D.c.x-dy/L*clr*1.6*sgn, y:D.c.y+dx/L*clr*1.6*sgn};
-            if(!crossesAny(D)){ D.len=bezLen(D.a,D.c,D.b)*FLEX_SLACK; break; }
-            D.c=cOld;
+          // try progressively bigger clearances, both sides — keep the first that doesn't cross
+          let done=false;
+          for(const mul of [1.8, 2.6, 3.4]){ if(done) break;
+            for(const sgn of [1,-1]){
+              const cOld=D.c;
+              D.c={x:D.c.x-dy/L*clr*mul*sgn, y:D.c.y+dx/L*clr*mul*sgn};
+              if(!crossesAny(D)){ D.len=bezLen(D.a,D.c,D.b)*FLEX_SLACK; done=true; break; }
+              D.c=cOld;
+            }
           }
         }
       }
@@ -4551,7 +4585,7 @@ function balance(){
       /* Ø300 is the biggest grille made. One of them in a 350 L/s living room is
          over its neck no matter what we size it — that's an outlet you have to
          add, not a size we can pick. Say so instead of quietly shipping it. */
-      v.over = each > VENT_CAP[v.size] + 0.5;
+      v.over = each > VENT_CAP[v.size]*VENT_TOL;   // only flag once it's past the ramp allowance, not for a few L/s
     });
   });
 }
@@ -6060,7 +6094,12 @@ function showCtx(sel, cx, cy){
          + `<div class="ct-row">${[1,2,3].map(n=>`<button data-tk="${n}" class="${S.takeoffs===n?'on':''}">${n}</button>`).join('')}</div>` : '');
   } else if(sel.k==='vent'){
     const pinned=S.ventPin && S.ventPin[sel.o.id];
-    el.innerHTML = T('Outlet face')
+    const vsz=sel.o.size||200, locked=!!sel.o.lockSize;
+    el.innerHTML = T('Neck size'+(locked?' · pinned':''))
+      + `<div class="ct-row">${[150,200,250,300]
+          .map(d=>`<button data-vsz="${d}" class="${vsz===d?'on':''}">Ø${d}</button>`).join('')}</div>`
+      + (locked?`<div class="ct-row"><button id="cx-vauto">Back to auto-size</button></div>`:'')
+      + T('Outlet face')
       + `<div class="ct-row">${[['square','Square'],['round','Round'],['slot','Slot']]
           .map(([v,l])=>`<button data-vs="${v}" class="${(S.ventShape||'square')===v?'on':''}">${l}</button>`).join('')}</div>`
       + T('Feed')
@@ -6107,6 +6146,15 @@ function showCtx(sel, cx, cy){
   q('#cx-rr') && (q('#cx-rr').onclick=()=>spin(15));
   el.querySelectorAll('[data-tk]').forEach(x=>x.onclick=()=>{pushHist();S.takeoffs=+x.dataset.tk;S.routes={};commit();showCtx(sel,cx,cy);});
   el.querySelectorAll('[data-vs]').forEach(x=>x.onclick=()=>{S.ventShape=x.dataset.vs;renderSettings();draw();showCtx(sel,cx,cy);});
+  /* Pick a neck by hand — pins it, so re-balancing won't override you. This is how
+     you drop the ensuite to a Ø150 while the bedroom next door keeps its Ø200. */
+  el.querySelectorAll('[data-vsz]').forEach(x=>x.onclick=()=>{ pushHist();
+    sel.o.size=+x.dataset.vsz; sel.o.lockSize=true; S.routes={};
+    commit(); showCtx(sel,cx,cy);
+    flash(`Outlet pinned to Ø${sel.o.size}`); });
+  q('#cx-vauto') && (q('#cx-vauto').onclick=()=>{ pushHist();
+    delete sel.o.lockSize; S.routes={}; commit(); showCtx(sel,cx,cy);
+    flash('Outlet back to auto-size'); });
   q('#cx-side') && (q('#cx-side').onclick=()=>{pushHist();flipDuctSide(sel.o);commit();showCtx(sel,cx,cy);});
   // BDO spin: the casting rotates in place; every leg re-sweeps from its rotated collar
   const bspin=deg=>{ pushHist();

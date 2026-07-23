@@ -1124,6 +1124,7 @@ const FLEX_OVER_PEN=9.0;   // penalty per metre a flex run overshoots a bag (pul
    run it: drop the box over the rooms, feed it from the plenum. */
 const LEAF_PULL=1.8;       // each metre of flex-to-outlet counts this much vs a metre of trunk
 const FLEX_AIM=4.0;        // start easing the box toward its outlets from here, before the hard 6 m
+const BAG_OVER_PEN=8.0;    // fixed hit for every extra bag a run would need past the first — keeps runs to one bag / no reducer
 
 /* ===========================================================================
    A BTO CANNOT TURN THE AIR BACKWARDS.
@@ -1248,7 +1249,12 @@ function boxCost(parent, leaves, p, gp, hard){
     pen+=armPenalty(inDir, p, n);       // forwards, or pay through the nose
     if(out){
       if(e.len > FLEX_AIM) pen += (e.len - FLEX_AIM) * FLEX_OVER_PEN;          // ease it toward the vents early
-      if(e.len > FLEX_MAX) pen += (e.len - FLEX_MAX) * FLEX_OVER_PEN * 2.5;    // and hold it inside one bag of flex
+      if(e.len > FLEX_MAX) pen += (e.len - FLEX_MAX) * FLEX_OVER_PEN * 4;      // hold it hard inside one bag of flex
+      /* Bag-aware: a run that tips past 6 m needs a SECOND bag (and a reducer),
+         so charge a fixed lump for each extra bag it would take. This makes the
+         optimiser treat "just over 6 m" as a real jump, not a rounding error —
+         it'll shift the box or split the group before it wears a two-bag run. */
+      pen += (Math.ceil(e.len/BAG_M) - 1) * BAG_OVER_PEN;
     }
   });
 
@@ -1824,6 +1830,7 @@ function supplyPlanCompute(unit,vents,tk,rot){
 
   relaxTree(segs);
   pushForward(segs);            // slide boxes back until their runs read forward
+  capFlexRuns(segs);            // no outlet run over a bag of flex — drop a box near it, trunk back
   return {segs, takeoffs, zoneNodes, rot, spg:sp,
           len:segs.reduce((a,s)=>a+dist(s.a,s.b),0),
           pen:armDebt(segs)};
@@ -1979,6 +1986,40 @@ function relaxTree(segs, iters=25){
     });
     if(!moved) break;
   }
+}
+/* NO OUTLET WEARS MORE THAN A BAG OF FLEX. After the boxes have relaxed to their
+   final spots, any run from a box to an outlet longer than 6 m would need a reducer
+   and a second bag. Instead we drop a NEW box near that outlet and turn the long
+   leg into a rigid TRUNK back to the old box — the flex home is then under a bag,
+   no reducer. Rigid duct carries the distance; flex stays short. One box per
+   offending outlet (we don't chain), and if the geometry genuinely can't seat a
+   box within a bag we leave it and the reducer still shows — honestly. */
+function capFlexRuns(segs){
+  if(FAST_ROUTE) return;
+  const done=new Set();
+  let guard=0;
+  for(;;){
+    if(guard++>60) break;
+    const par=new Map(); segs.forEach(s=>par.set(s.b, s.a));
+    let worst=null;
+    for(const s of segs){
+      if(s.kind==='return' || !(s.a && s.b && isOutletNode(s.b))) continue;
+      if(done.has(s.b)) continue;
+      const d=dist(s.a, s.b);
+      if(d > FLEX_MAX+0.05 && (!worst || d>worst.d)) worst={s, d};
+    }
+    if(!worst) break;
+    const s=worst.s, outlet=s.b, gp=par.get(s.a);
+    const bid='B:'+s.id+'^';
+    let j = (S.boxes && S.boxes[bid]) ? {x:S.boxes[bid].x, y:S.boxes[bid].y, lps:outlet.lps, bid}
+                                      : placeBox(s.a, [outlet], bid, gp);
+    j.junction=true; j.bid=bid;
+    done.add(outlet);                              // one attempt per outlet, chained or not
+    if(dist(j, outlet) > FLEX_MAX+0.05) continue;  // couldn't seat it in a bag — leave the run as-is
+    s.b=j; s.kind='trunk';                          // the long leg is now rigid trunk to the new box
+    segs.push({id:s.id+'.f', kind:'branch', zone:outlet.zone??s.zone, a:j, b:outlet, lps:outlet.lps});
+  }
+  relaxTree(segs, 12);   // settle the freshly-added boxes with everything else
 }
 const takeoffPts=()=>supplyPlan(S.unit,S.vents,S.sys==='heater'?1:S.takeoffs).takeoffs;
 
@@ -2589,6 +2630,18 @@ function flexByD(ds){ const byD={};
       byD[d.d]=(byD[d.d]||0)+m*(1-d.redT);
     } else byD[d.d]=(byD[d.d]||0)+m; });
   return byD; }
+/* BAGS BY SIZE — the REAL count you order, not metres÷6. Flex is one continuous
+   cut per run: you can't join the 4 m left over from one run to a 2 m offcut and
+   call it a bag. So every run (and every twin, and each side of a reducer) rounds
+   UP to whole bags on its own — a 2 m run and a 4 m run are TWO bags, not one.
+   That's what lands on the order, and it's always ≥ the naive metres÷6. */
+function bagsByD(ds){ const bags={};
+  const add=(size,len,n)=>{ if(len>0.01) bags[size]=(bags[size]||0)+(n||1)*Math.max(1,Math.ceil(len/BAG_M)); };
+  ds.forEach(d=>{ const n=d.n||1, L=d.len||0;
+    if(d.dUp && d.redT!=null){ add(d.dUp, L*d.redT, n); add(d.d, L*(1-d.redT), n); }
+    else add(d.d, L, n); });
+  return bags; }
+const bagsTotal = ds => Object.values(bagsByD(ds)).reduce((a,b)=>a+b,0);
 const pruneRoutes=()=>{const l=new Set(ducts().map(d=>d.id));
   Object.keys(S.routes).forEach(k=>{if(!l.has(k)) delete S.routes[k];});
   // drop links whose ends no longer exist (a vent got deleted, say)
@@ -4633,6 +4686,28 @@ function ventProblems(){
             size:v.size, lps:v.lps, cap, need};
   }).filter(Boolean);
 }
+/* AIR FOLLOWS THE SHORT PATH. Two outlets off the SAME box with very different run
+   lengths won't split the air evenly — the near one has less resistance and pulls
+   more than its share, starving the far one. We flag a box whose outlet runs are
+   badly mismatched (the short one under ~1.5 m while a sibling is 2×+ longer), so
+   you either even the runs up or drop a balancing restrictor on the greedy one. */
+function flowBalance(){
+  const runs=ducts().filter(d=>d.b && isOutletNode(d.b) && d.a);
+  const byBox=new Map();
+  runs.forEach(d=>{ if(!byBox.has(d.a)) byBox.set(d.a,[]); byBox.get(d.a).push(d); });
+  const out=[];
+  byBox.forEach(rs=>{
+    if(rs.length<2) return;
+    const L=rs.map(r=>({d:r, len:r.len!=null?r.len:dist(r.a,r.b)}));
+    const mn=L.reduce((a,b)=>b.len<a.len?b:a), mx=L.reduce((a,b)=>b.len>a.len?b:a);
+    if(mx.len>=1.6 && mx.len/Math.max(0.4,mn.len) >= 2.2){
+      const nm=v=>{ const r=S.rooms.find(x=>x.id===v.room); return r?r.name:'outlet'; };
+      out.push({short:+mn.len.toFixed(1), long:+mx.len.toFixed(1),
+                nearRoom:nm(mn.d.b), farRoom:nm(mx.d.b)});
+    }
+  });
+  return out;
+}
 function setTool(t){
   S.tool=t;$$('.tool').forEach(b=>b.classList.toggle('on',b.dataset.tool===t));
   if(t!=='duct') S.linkFrom=null;
@@ -6234,6 +6309,7 @@ function renderLegend(){
   const zones=[...new Set(live().map(r=>r.zone))].sort((a,b)=>a-b);
   const ds=ducts();
   const byD=flexByD(ds);
+  const bagD=bagsByD(ds);
   $('#legend').innerHTML=`
     <div class="tog">
       <button data-c="size" class="${S.colorBy==='size'?'on':''}">Duct size</button>
@@ -6243,15 +6319,15 @@ function renderLegend(){
       ? (sizes.length?sizes.map(d=>`<div class="lg-row">
           <span class="sw" style="background:${SIZECOL[d]}"></span><b>Ø${d}</b>
           <span style="margin-left:auto;font-variant-numeric:tabular-nums">${Math.ceil(byD[d])} m</span>
-          <span style="width:52px;text-align:right;color:var(--muted);font-variant-numeric:tabular-nums">${bagsFor(byD[d])} bag${bagsFor(byD[d])===1?'':'s'}</span></div>`).join('')
+          <span style="width:52px;text-align:right;color:var(--muted);font-variant-numeric:tabular-nums">${bagD[d]||0} bag${(bagD[d]||0)===1?'':'s'}</span></div>`).join('')
          +`<div class="lg-row" style="margin-top:3px;border-top:1px solid var(--line);padding-top:5px">
             <span class="sw" style="background:#475569"></span><span>Return air</span></div>`
-         +(()=>{ const totM=ds.reduce((a,x)=>a+x.len*(x.n||1),0);
+         +(()=>{ const totM=ds.reduce((a,x)=>a+x.len*(x.n||1),0), totBags=bagsTotal(ds);
             return `<div class="lg-row" style="margin-top:4px;border-top:1px solid var(--line);padding-top:5px">
               <b>Flex to order</b>
               <span style="margin-left:auto;font-variant-numeric:tabular-nums">${Math.ceil(totM)} m</span>
-              <b style="width:52px;text-align:right;color:var(--ink);font-variant-numeric:tabular-nums">${bagsFor(totM)} bag${bagsFor(totM)===1?'':'s'}</b></div>
-             <div style="font-size:10px;color:var(--muted)">1 bag = ${BAG_M} m of flex</div>`; })()
+              <b style="width:52px;text-align:right;color:var(--ink);font-variant-numeric:tabular-nums">${totBags} bag${totBags===1?'':'s'}</b></div>
+             <div style="font-size:10px;color:var(--muted)">1 bag = ${BAG_M} m · rounded per run (no offcut splicing)</div>`; })()
          :`<div style="padding:2px 0">No duct yet</div>`)
       : (zones.length?zones.map(z=>`<div class="lg-row">
           <span class="sw" style="background:${zColor(z)}"></span>
@@ -7197,6 +7273,10 @@ function renderSizing(){
          crossing${dg.crossings>1?'s':''}. The bigger duct is drawn over the smaller one.
          ${dg.crossings>4?' That is a lot — try another takeoff, or drag the handles apart.':''}</div>`
       : `<div class="flag g" style="margin-top:8px">✓ No ducts cross — clean drawing.</div>`}
+    ${(()=>{ const fb=flowBalance(); if(!fb.length) return '';
+      return fb.slice(0,3).map(w=>`<div class="flag w" style="margin-top:8px">⚠ <b>Uneven runs off one box</b> — ${w.nearRoom}
+        is ${w.short} m from its box but ${w.farRoom} is ${w.long} m. The short run pulls more than its share and
+        starves the long one. Even the runs up, or drop a balancing restrictor on ${w.nearRoom}.</div>`).join(''); })()}
   </div>`; })()}
 
   <h3>Duct schedule <span style="float:right;font-weight:500;text-transform:none">${S.rval}</span></h3>`;
@@ -7531,9 +7611,10 @@ function renderQuote(){
   ${(()=>{ try{
     const ds=ducts();
     const byD=flexByD(ds);
+    const bagD=bagsByD(ds);
     const flexRows=Object.keys(byD).sort((a,b)=>a-b).map(d=>
       `<tr><td>Flex Ø${d} <span class="sku">${S.rval}</span></td>
-       <td class="n">${Math.ceil(byD[d])} m</td><td class="n">${bagsFor(byD[d])} bag${bagsFor(byD[d])===1?'':'s'}</td></tr>`).join('');
+       <td class="n">${Math.ceil(byD[d])} m</td><td class="n">${bagD[d]||0} bag${(bagD[d]||0)===1?'':'s'}</td></tr>`).join('');
     const hubs=btoHubs(), byWay={};
     hubs.forEach(h=>{ const outs=h.arms.filter(a=>!a.inlet);
       const inlet=h.arms.find(a=>a.inlet)||{d:'—'};

@@ -2097,6 +2097,11 @@ function crPoint(P, t){
   return {x:f(p0.x,p1.x,p2.x,p3.x), y:f(p0.y,p1.y,p2.y,p3.y)};
 }
 const wpsOf=d=>{ const r=d&&d.id!=null?S.routes[d.id]:null; return (r&&r.wp&&r.wp.length)?r.wp:null; };
+/* Clear only the flex that hangs off ONE box — so nudging a BDO re-flows just
+   its own runs and leaves every other hand-shaped run exactly where you put it. */
+function clearBoxRoutes(bid){
+  try{ ducts().forEach(d=>{ if((d.a&&d.a.bid===bid)||(d.b&&d.b.bid===bid)) delete S.routes[d.id]; }); }catch(e){}
+}
 /* dpt(d,t): a point on the run at param t∈[0,1] — spline if it has waypoints,
    quadratic otherwise. Everything (drawing, crossings, hit, airflow, length)
    samples through here so the model and the picture always agree. */
@@ -4286,7 +4291,7 @@ cv.addEventListener('pointerdown',e=>{
       else { node={x:w.x,y:w.y}; r.wp.push(node); sortWP(h.d); added=true; }
       S.drag={mode:'bend', sp, id:h.o, wp:node, added, A:(h.d.a2||h.d.a), B:h.d.b};
     }
-    else if(h.k==='box')  S.drag={mode:'box',sp,bid:h.bid,start:{x:h.o.x,y:h.o.y}};
+    else if(h.k==='box'){ S.drag={mode:'box',sp,bid:h.bid,start:{x:h.o.x,y:h.o.y}}; clearBoxRoutes(h.bid); }
     else if(h.k==='dbox') S.drag={mode:'move',sp,start:{...h.o},h};
     // a ROOM only moves when the Room tool is active — so grabbing a duct over a room
     // never drags the room out from under it. In select mode you just select it.
@@ -4316,7 +4321,8 @@ cv.addEventListener('pointermove',e=>{
   if(S.drag?.mode==='box'&&moved){
     const {dx,dy}=D();
     S.boxes[S.drag.bid]={x:snap(S.drag.start.x+dx), y:snap(S.drag.start.y+dy)};
-    S.routes={};                              // the runs re-hang off the moved box
+    // Only THIS box's runs were cleared (at drag-start) — every other
+    // hand-shaped run stays put instead of the whole plan re-flowing.
     draw(); return;
   }
   if(S.drag?.mode==='bend'&&moved){

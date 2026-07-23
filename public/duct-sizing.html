@@ -2102,6 +2102,28 @@ const wpsOf=d=>{ const r=d&&d.id!=null?S.routes[d.id]:null; return (r&&r.wp&&r.w
 function clearBoxRoutes(bid){
   try{ ducts().forEach(d=>{ if((d.a&&d.a.bid===bid)||(d.b&&d.b.bid===bid)) delete S.routes[d.id]; }); }catch(e){}
 }
+/* A run's shape is remembered against its OUTLET (whose id V<n> is stable),
+   not the transient tree id — so a hand-shaped flex survives a full re-solve
+   (unit move, re-zone, takeoff change, …) instead of being wiped. */
+const outletOf = d => (d && d.b && (d.b.kind==='vent' || d.b.outlet!==undefined || (d.b.size && !d.b.junction))) ? d.b : null;
+function reapplyShapes(){
+  if(!S.shape) return;
+  try{ ducts().forEach(d=>{
+    const out=outletOf(d); if(!out) return;
+    const saved=S.shape[out.id];
+    if(saved && saved.length && !(S.routes[d.id] && S.routes[d.id].wp && S.routes[d.id].wp.length))
+      S.routes[d.id] = { wp: saved.map(p=>({...p})) };
+  }); }catch(e){}
+}
+/* After a run is edited or reset, sync its saved shape: keep it if waypoints
+   remain, drop it (back to auto) if they're gone. */
+function saveOrClearShape(id){
+  try{ const dd=ducts().find(x=>x.id===id), out=dd&&outletOf(dd); if(!out) return;
+    const r=S.routes[id];
+    if(r && r.wp && r.wp.length) (S.shape ??= {})[out.id]=r.wp.map(p=>({...p}));
+    else if(S.shape) delete S.shape[out.id];
+  }catch(e){}
+}
 /* dpt(d,t): a point on the run at param t∈[0,1] — spline if it has waypoints,
    quadratic otherwise. Everything (drawing, crossings, hit, airflow, length)
    samples through here so the model and the picture always agree. */
@@ -4406,7 +4428,13 @@ cv.addEventListener('pointerup',()=>{
   }
   if(S.drag&&moved){
     // keep waypoints ordered along the run after a drag
-    if(S.drag.mode==='bend'){ const dd=ducts().find(x=>x.id===S.drag.id); if(dd) sortWP(dd); }
+    if(S.drag.mode==='bend'){ const dd=ducts().find(x=>x.id===S.drag.id);
+      if(dd){ sortWP(dd);
+        // remember this shape against its outlet so it survives future re-solves
+        const out=outletOf(dd), r=S.routes[dd.id];
+        if(out && r && r.wp && r.wp.length) (S.shape ??= {})[out.id]=r.wp.map(p=>({...p}));
+      }
+    }
     /* A dragged OUTLET stays on its BDO — unless it LEFT its room. Outside the room
        the old grouping makes no sense, so the tree may regroup (and any pin clears). */
     if(S.drag.h && S.drag.h.k==='vent'){
@@ -4444,6 +4472,7 @@ cv.addEventListener('dblclick',e=>{
       if(bi>=0){ r.wp.splice(bi,1); if(!r.wp.length) delete S.routes[h.o]; flash('Bend point removed'); }
       else { delete S.routes[h.o]; flash('Run reset to the auto shape'); }
     } else { delete S.routes[h.o]; flash('Run reset to the auto shape'); }
+    saveOrClearShape(h.o);
     commit();
   }
 });
@@ -4487,7 +4516,7 @@ function del(h){
     flash('Run deleted');
     return;
   }
-  if(h.k==='duct'){delete S.routes[h.o];flash('Route reset');return;}
+  if(h.k==='duct'){delete S.routes[h.o]; saveOrClearShape(h.o); flash('Route reset');return;}
   if(h.k==='room'){S.vents=S.vents.filter(v=>v.room!==h.o.id);S.rooms.splice(S.rooms.indexOf(h.o),1);}
   else if(h.k==='vent') S.vents.splice(S.vents.indexOf(h.o),1);
   else if(h.k==='unit'){S.unit=null;S.routes={};}
@@ -5435,7 +5464,7 @@ function applyAIRooms(rooms, notes){
   }
 
   pushHist();
-  S.rooms=[]; S.vents=[]; S.routes={}; S.boxes={}; S.unit=S.ret=S.outdoor=null; RID=1; VID=1;
+  S.rooms=[]; S.vents=[]; S.routes={}; S.boxes={}; S.shape={}; S.unit=S.ret=S.outdoor=null; RID=1; VID=1;
   S.placed={}; S.autoPickChosen=false;   // a fresh plan → ask where the gear goes
   const VALID={living:1,bed:1,wet:1,util:1,none:1};
   rooms.forEach(r=>{
@@ -5688,7 +5717,7 @@ async function traceRooms(){
   const X=v=>snap((v-fx)*mpp), Y=v=>snap((v-fy)*mpp);
 
   regions.sort((a,b)=>b.area-a.area);
-  S.rooms=[];S.vents=[];S.routes={};S.unit=S.ret=S.outdoor=null;RID=1;VID=1;
+  S.rooms=[];S.vents=[];S.routes={};S.shape={};S.unit=S.ret=S.outdoor=null;RID=1;VID=1;
   let bed=2, wet=1, read=0;
   regions.forEach((b,i)=>{
     const wm=(b.x2-b.x1)*mpp, hm=(b.y2-b.y1)*mpp;
@@ -5995,7 +6024,7 @@ $$('.tab').forEach(t=>t.onclick=()=>{
   $$('.tab').forEach(x=>x.classList.toggle('on',x===t));
   $$('.pane').forEach(p=>p.classList.toggle('on',p.id==='pane-'+t.dataset.pane));
 });
-function commit(){ balance(); pruneRoutes(); pushHist(); render(); draw(); }
+function commit(){ balance(); pruneRoutes(); reapplyShapes(); pushHist(); render(); draw(); }
 function render(){
   renderDesign(); renderZoning(); renderSizing(); renderCatalog(); renderQuote(); renderLegend();
 }

@@ -293,6 +293,28 @@
         <div style="font-size:11.5px;color:#94a3b8;margin-top:9px" id="ask-hint"></div>
       </div></div>
 
+      <!-- Name + zone prompt, shown after a room is drawn -->
+      <div class="busy" id="rask"><div class="b" style="min-width:340px;text-align:left">
+        <div style="font-weight:650;font-size:15px">Name this room</div>
+        <div style="font-size:12.5px;color:#64748b;margin:4px 0 12px">Give it a name, then choose how it's zoned. Enter to accept.</div>
+        <input class="field" id="rask-name" autocomplete="off" style="font-size:16px;padding:10px 12px;font-weight:600"/>
+        <div style="font-size:10.5px;color:#64748b;text-transform:uppercase;letter-spacing:.07em;margin:14px 0 7px">Zoning</div>
+        <div id="rask-zones" style="display:flex;flex-direction:column;gap:6px">
+          <button class="hbtn rz on" data-rz="own" style="justify-content:flex-start">Its own zone</button>
+          <button class="hbtn rz" data-rz="group" style="justify-content:flex-start">Part of a group…</button>
+          <button class="hbtn rz" data-rz="none" style="justify-content:flex-start">No zone — on the main (no damper)</button>
+        </div>
+        <select class="field" id="rask-group" style="margin-top:8px;display:none"></select>
+        <div style="display:flex;gap:7px;margin-top:14px">
+          <button class="hbtn" id="rask-x" style="flex:1;justify-content:center">Cancel</button>
+          <button class="hbtn primary" id="rask-ok" style="flex:2;justify-content:center">Add room</button>
+        </div>
+      </div></div>
+      <style>
+        .rz.on{background:var(--accent-soft);border-color:var(--accent);color:var(--accent);font-weight:600}
+        .rz:disabled{opacity:.5;cursor:not-allowed}
+      </style>
+
       <!-- placement choice, shown when you hit Auto-design without placing gear -->
       <div class="busy" id="choose"><div class="b" style="min-width:360px;max-width:420px;text-align:left">
         <div style="font-weight:650;font-size:15px" id="choose-t">Where do the unit and return go?</div>
@@ -631,7 +653,8 @@ const ZONING={
    from how many zones you actually ended up with. */
 function customScale(){
   const rs=live(); if(!rs.length) return {zmult:1, runFactor:1};
-  const zones=new Set(rs.map(r=>r.zone)).size;
+  // No-zone (on-main) rooms are always on — they give no zoning diversity.
+  const zones=Math.max(1, new Set(rs.filter(r=>!r.noZone).map(r=>r.zone)).size);
   const f=rs.length>1 ? (zones-1)/(rs.length-1) : 0;   // 0 = one zone, 1 = every room
   return { zmult: 1.00 + (0.85-1.00)*f, runFactor: 1.00 + (0.42-1.00)*f };
 }
@@ -810,7 +833,7 @@ function totals(){
   let kw=0,lps=0,area=0;
   live().forEach(r=>{const l=roomLoad(r); kw+=l.kw; lps+=l.lps; area+=roomArea(r);});
   return {connected:kw, design:kw*diversity(), lps, area,
-          zones:new Set(live().map(r=>r.zone)).size,
+          zones:zoneCountOf(live()),
           excluded:S.rooms.filter(r=>r.type==='none').reduce((a,r)=>a+roomArea(r),0)};
 }
 
@@ -901,6 +924,13 @@ function adjacent(a,b,gap=0.5){
   const dy=Math.max(a.y,b.y)-Math.min(a.y+a.h,b.y+b.h);
   return (dx<=gap && oy>0.8) || (dy<=gap && ox>0.8);
 }
+const maxZone=()=>S.rooms.reduce((m,r)=>Math.max(m,r.zone||0),0);
+/* Rooms flagged noZone ride the main — conditioned, but NOT a controllable
+   zone, so they don't add a damper / zone controller. */
+function zoneCountOf(rooms){
+  const z=new Set(rooms.filter(r=>!r.noZone && r.type!=='none').map(r=>r.zone)).size;
+  return z>0 ? z : (rooms.some(r=>r.type!=='none') ? 1 : 0);
+}
 function applyZoning(){
   if(!S.spaceLock) autoSpaces();               // kitchen open to the meals = one space
   const map=zoneAssign(S.zoning,S.rooms);
@@ -916,6 +946,7 @@ const zoneName=z=>{
   if(S.zoning==='whole') return 'Whole home';
   if(S.zoning==='daynight') return z===1?'Day':'Night';
   const rs=live().filter(r=>r.zone===z);
+  if(rs.length && rs.every(r=>r.noZone)) return 'Main (no zone)';
   return rs.map(r=>r.name).join(' + ')||('Zone '+z);
 };
 /* what each strategy would cost to install and to run */
@@ -3035,13 +3066,44 @@ function finishPoly(){
              : type==='util' ? 'Hallway'
              : type==='living' ? (n===1?'Living / Dining':'Kitchen')
              : (n===1?'Master Bed':'Bed '+n);
-  S.rooms.push({id:RID, name, poly:true, points:pts.map(p=>({x:p.x,y:p.y})),
+  const nr={id:RID, name, poly:true, points:pts.map(p=>({x:p.x,y:p.y})),
     x:bb.x, y:bb.y, w:bb.w, h:bb.h, zone:RID, ceil:2.4,
-    glaze: type==='living'?'high':type==='wet'?'low':'med', orient:'none', type});
-  RID++;
-  applyZoning();
-  flash(`${name} — ${a.toFixed(1)} m² (custom shape). Still in room mode (V to stop).`);
-  commit();
+    glaze: type==='living'?'high':type==='wet'?'low':'med', orient:'none', type};
+  S.rooms.push(nr); RID++;
+  promptRoom(nr);
+}
+/* After a room is drawn: name it and pick its zone (own / a group / on the
+   main, no damper). Fast defaults — the name's filled and "own zone" is
+   selected, so Enter flies through a whole house. */
+function promptRoom(room){
+  const box=$('#rask'), nameI=$('#rask-name'), grp=$('#rask-group');
+  let mode='own';
+  applyZoning(); draw();                          // show the new room behind the dialog
+  nameI.value=room.name||'';
+  const zones=[...new Set(live().filter(r=>r!==room && !r.noZone && r.type!=='none').map(r=>r.zone))];
+  grp.innerHTML = zones.length ? zones.map(z=>`<option value="${z}">${zoneName(z)}</option>`).join('')
+                               : '<option value="">— no other rooms yet —</option>';
+  grp.style.display='none';
+  const btns=[...box.querySelectorAll('.rz')];
+  btns.forEach(b=>b.classList.toggle('on',b.dataset.rz==='own'));
+  box.querySelector('.rz[data-rz="group"]').disabled = zones.length===0;
+  box.classList.add('on');
+  setTimeout(()=>{ nameI.focus(); nameI.select(); },30);
+  btns.forEach(b=> b.onclick=()=>{ if(b.disabled) return; mode=b.dataset.rz;
+    btns.forEach(x=>x.classList.toggle('on',x===b)); grp.style.display=mode==='group'?'':'none'; });
+  function close(){ box.classList.remove('on'); $('#rask-ok').onclick=null; $('#rask-x').onclick=null; nameI.onkeydown=null; }
+  function apply(){
+    room.name=(nameI.value||room.name||'Room').trim();
+    S.zoning='custom';
+    if(mode==='group'){ room.noZone=false; room.zone=(+grp.value)||maxZone(); }
+    else if(mode==='none'){ const ex=live().find(r=>r!==room && r.noZone); room.noZone=true; room.zone= ex?ex.zone:(maxZone()+1); }
+    else { room.noZone=false; room.zone=maxZone()+1; }
+    close(); applyZoning(); commit();
+    flash(`${room.name} added · ${mode==='none'?'on the main (no damper)':mode==='group'?'grouped':'its own zone'}`);
+  }
+  function cancel(){ const i=S.rooms.indexOf(room); if(i>=0) S.rooms.splice(i,1); close(); applyZoning(); commit(); }
+  $('#rask-ok').onclick=apply; $('#rask-x').onclick=cancel;
+  nameI.onkeydown=e=>{ if(e.key==='Enter'){e.preventDefault();apply();} if(e.key==='Escape'){e.preventDefault();cancel();} };
 }
 function pathOf(d){
   const wp=wpsOf(d);
@@ -4257,19 +4319,15 @@ cv.addEventListener('pointerup',()=>{
                  : type==='util' ? 'Hallway'
                  : type==='living' ? (n===1?'Living / Dining':'Kitchen')
                  : (n===1?'Master Bed':'Bed '+n);
-      S.rooms.push({id:RID, name, x,y,w,h, zone:RID, ceil:2.4,
+      const nr={id:RID, name, x,y,w,h, zone:RID, ceil:2.4,
         glaze: type==='living'?'high':type==='wet'?'low':'med',
-        orient:'none', type});
-      RID++;
-      applyZoning();
-      // scale sanity on the room you just drew — a bedroom over ~22 m² or any single
-      // room over ~70 m² usually means the calibration wall was off. Nudge to rescale.
-      const tooBig = (type==='bed' && a>22) || a>70;
-      if(tooBig)
-        flash(`${name} came out ${a.toFixed(0)} m² — that looks too big. Recheck your scale wall, or set the real floor area under Design → Rooms to rescale.`);
-      else
-        flash(`${name} — ${a.toFixed(1)} m². Still in room mode, keep drawing (V to stop).`);
-      // STAY in room mode — you're tracing a whole house
+        orient:'none', type};
+      S.rooms.push(nr); RID++;
+      // scale sanity — a bedroom over ~22 m² or any room over ~70 m² usually
+      // means the calibration wall was off.
+      if((type==='bed' && a>22) || a>70)
+        flash(`${name} came out ${a.toFixed(0)} m² — that looks big. Recheck your scale wall.`);
+      promptRoom(nr);   // name it + choose its zone
     }
     commit();
     }

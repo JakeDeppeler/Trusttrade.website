@@ -2543,6 +2543,38 @@ function ducts(){
         }
       }
     }
+
+    /* CLEAR ACTUAL CROSSINGS (the jump-overs). The passes above stop runs sitting
+       ON each other; this one unpicks runs that cross. For every run that still
+       crosses something, bow its control point out to the side until it clears —
+       trying both sides at growing offsets. The smaller/shorter run gives way, so
+       we bend a bit of flex rather than a trunk, and the crossesAny guard means a
+       nudge is only kept if the run ends up crossing NOTHING — it can never add a
+       crossing. Hand-drawn runs are left exactly as you shaped them. A couple of
+       sweeps, because clearing one run can free the path for the next. */
+    { const movers=out.filter(d=>d.kind!=='return' && d.b && !S.routes[d.id])
+        .sort((a,b)=> (a.d-b.d) || (bezLen(a.a,a.c,a.b)-bezLen(b.a,b.c,b.b)));  // smallest/shortest first
+      for(let sweep=0; sweep<3; sweep++){
+        let fixed=0;
+        for(const D of movers){
+          if(!crossesAny(D)) continue;                 // this one's already clean
+          const dx=D.b.x-D.a.x, dy=D.b.y-D.a.y, L=Math.hypot(dx,dy)||1;
+          const nx=-dy/L, ny=dx/L;                     // unit normal to the run
+          const base=Math.max(0.35, L*0.12);
+          const cOld=D.c; let cleared=false;
+          for(const step of [1,2,3,4,5,6]){            // grow the bow until it clears (capped)
+            for(const sgn of [1,-1]){
+              const amt=base*step*sgn;
+              D.c={x:cOld.x+nx*amt, y:cOld.y+ny*amt};
+              if(!crossesAny(D)){ D.len=bezLen(D.a,D.c,D.b)*FLEX_SLACK; cleared=true; break; }
+            }
+            if(cleared) break;
+          }
+          if(cleared) fixed++; else D.c=cOld;          // couldn't clear it → leave it as it was
+        }
+        if(!fixed) break;                              // nothing moved this sweep — settled
+      }
+    }
   }
   return out;
 }
@@ -4487,7 +4519,7 @@ cv.addEventListener('pointerup',()=>{
   /* A CLICK (no drag) on a part → the edit-in-place popover: flip/plenum/rotate on
      the fan coil, face on an outlet, side on a run. Clicking empty space closes it
      and drops a little hint bar so you know the click-to-edit is there. */
-  if(!moved && S.sel && ['unit','vent','duct','box'].includes(S.sel.k) && downClient)
+  if(!moved && S.sel && ['unit','vent','duct','box','room'].includes(S.sel.k) && downClient)
     showCtx(S.sel, downClient.x, downClient.y);   // reopens where you last left it if dragged
   else hideCtx();          // click anywhere else just closes the popover, no bar
   S.drag=null;down=null;
@@ -6113,6 +6145,19 @@ function showCtx(sel, cx, cy){
           spun?`<button id="cx-br0">Reset</button>`:''}</div>`;
   } else if(sel.k==='duct'){
     el.innerHTML = T('Run') + `<div class="ct-row"><button id="cx-side">Flip side</button></div>`;
+  } else if(sel.k==='room'){
+    const rvs=S.vents.filter(v=>v.room===sel.o.id);
+    if(!rvs.length){ el.innerHTML = T(sel.o.name) + `<div class="ct-row" style="font-size:11.5px;color:var(--muted);padding:2px 2px 4px">No outlets in this room yet — drop some with the outlet tool, then set their size here.</div>`; }
+    else {
+      const sizes=[...new Set(rvs.map(v=>v.size))];
+      const allLocked=rvs.every(v=>v.lockSize);
+      const cur = sizes.length===1 ? sizes[0] : 0;   // 0 = mixed
+      el.innerHTML = T(`${sel.o.name} — all necks`+(allLocked?' · pinned':''))
+        + `<div class="ct-row">${[150,200,250,300]
+            .map(d=>`<button data-rvsz="${d}" class="${cur===d?'on':''}">Ø${d}</button>`).join('')}</div>`
+        + (rvs.some(v=>v.lockSize)?`<div class="ct-row"><button id="cx-rvauto">Back to auto-size</button></div>`:'')
+        + (cur===0?`<div style="font-size:11px;color:var(--muted);padding:1px 2px 3px">Mixed sizes right now — pick one to set them all.</div>`:'');
+    }
   } else { return hideCtx(); }
   el.hidden=false;
   if(ctxPos){ el.style.left=ctxPos.left+'px'; el.style.top=ctxPos.top+'px'; }
@@ -6155,6 +6200,18 @@ function showCtx(sel, cx, cy){
   q('#cx-vauto') && (q('#cx-vauto').onclick=()=>{ pushHist();
     delete sel.o.lockSize; S.routes={}; commit(); showCtx(sel,cx,cy);
     flash('Outlet back to auto-size'); });
+  /* Whole-room neck pin — set every outlet in the room to one size in a click.
+     Handy when a room's outlets all want the same neck (a set of Ø200s in a big
+     living, say) instead of clicking each one. */
+  el.querySelectorAll('[data-rvsz]').forEach(x=>x.onclick=()=>{ pushHist();
+    const d=+x.dataset.rvsz, rvs=S.vents.filter(v=>v.room===sel.o.id);
+    rvs.forEach(v=>{ v.size=d; v.lockSize=true; });
+    S.routes={}; commit(); showCtx(sel,cx,cy);
+    flash(`${sel.o.name}: ${rvs.length} outlet${rvs.length>1?'s':''} pinned to Ø${d}`); });
+  q('#cx-rvauto') && (q('#cx-rvauto').onclick=()=>{ pushHist();
+    S.vents.filter(v=>v.room===sel.o.id).forEach(v=>delete v.lockSize);
+    S.routes={}; commit(); showCtx(sel,cx,cy);
+    flash(`${sel.o.name}: outlets back to auto-size`); });
   q('#cx-side') && (q('#cx-side').onclick=()=>{pushHist();flipDuctSide(sel.o);commit();showCtx(sel,cx,cy);});
   // BDO spin: the casting rotates in place; every leg re-sweeps from its rotated collar
   const bspin=deg=>{ pushHist();

@@ -1052,6 +1052,8 @@ const bagsFor=m=> Math.max(0, Math.ceil((m||0)/BAG_M));
    outside the 2–5 m window. The old version only scored the penalties and barely
    looked at length, which is exactly why the runs weren't the shortest ones. */
 const BOX_STANDOFF=1.2;    // a BTO never sits on top of what feeds it
+const FLEX_MAX=6;          // one bag of flex — a BDO should sit within ~6 m of its outlets
+const FLEX_OVER_PEN=5.0;   // penalty per metre a flex run overshoots a bag (pulls the box toward the vents, not the unit)
 
 /* ===========================================================================
    A BTO CANNOT TURN THE AIR BACKWARDS.
@@ -1171,6 +1173,7 @@ function boxCost(parent, leaves, p, gp, hard){
     const e=edgeCost(p, n, out);
     len+=e.len; pen+=e.pen;
     pen+=armPenalty(inDir, p, n);       // forwards, or pay through the nose
+    if(out && e.len > FLEX_MAX) pen += (e.len - FLEX_MAX) * FLEX_OVER_PEN;   // keep the take-off within a bag of flex of its outlet
   });
 
   if(hard && breaks) return INFEASIBLE;
@@ -3054,6 +3057,18 @@ function drawPolyDraft(){
   if(pts.length>=3){ const c=w2s(polyCenter(pts)); ctx.fillStyle='#2563eb'; ctx.font='600 11px system-ui';
     ctx.textAlign='center'; ctx.fillText(polyArea(pts).toFixed(1)+' m² · click the first dot to close', c.x, c.y); }
 }
+/* Keep room walls square: lock each new corner to a straight line off the last
+   one (horizontal or vertical, whichever it's closest to) and snap to the grid. */
+function snapPolyPoint(pt){
+  let x=pt.x, y=pt.y;
+  if(S.poly && S.poly.length){
+    const last=S.poly[S.poly.length-1];
+    const dx=Math.abs(x-last.x), dy=Math.abs(y-last.y);
+    if(dx < dy*0.4) x=last.x;        // mostly vertical → straight vertical wall
+    else if(dy < dx*0.4) y=last.y;   // mostly horizontal → straight horizontal wall
+  }
+  return {x:snap(x), y:snap(y)};
+}
 function finishPoly(){
   const pts=S.poly; S.poly=null; S.polyCur=null;
   if(!pts || pts.length<3){ draw(); return; }
@@ -4237,7 +4252,7 @@ cv.addEventListener('pointerdown',e=>{
 cv.addEventListener('pointermove',e=>{
   const sp={x:e.offsetX,y:e.offsetY},w=s2w(sp);
   if(S.linkFrom){ lastMouse=sp; draw(); }
-  if(S.tool==='room' && S.poly && S.poly.length){ S.polyCur={x:w.x,y:w.y}; draw(); }   // rubber-band to cursor
+  if(S.tool==='room' && S.poly && S.poly.length){ S.polyCur=snapPolyPoint({x:w.x,y:w.y}); draw(); }   // rubber-band, snapped square
   if(down&&(Math.abs(sp.x-down.x)>2||Math.abs(sp.y-down.y)>2)) moved=true;
   const D=()=>({dx:(sp.x-S.drag.sp.x)/(S.ppm*S.zoom), dy:(sp.y-S.drag.sp.y)/(S.ppm*S.zoom)});
   if(S.drag?.mode==='pan'){
@@ -4297,7 +4312,7 @@ cv.addEventListener('pointerup',()=>{
     if(!moved){
       // A plain CLICK drops a custom-shape corner (or closes the shape) —
       // this is how you draw rooms that aren't rectangles.
-      const pt={x:g.x,y:g.y};
+      const pt=snapPolyPoint({x:g.x,y:g.y});
       S.poly = S.poly || [];
       const cTol=12/(S.ppm*S.zoom);
       if(S.poly.length>=3 && Math.hypot(pt.x-S.poly[0].x, pt.y-S.poly[0].y)<cTol) finishPoly();

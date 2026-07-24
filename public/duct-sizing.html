@@ -3019,6 +3019,7 @@ function draw(){
   S.rooms.forEach(drawRoom);
   // smallest ducts first, so the big trunks pass visibly OVER the little branches
   DRAW_SEP=true; const ds=ducts().sort((a,b)=>a.d-b.d); DRAW_SEP=false;
+  detectNewRuns(ds);   // any run that just appeared draws IN from its box out to the vent
   // what labels must stay off: every run's path and every outlet
   LBLAVOID=[];
   ds.forEach(d=>{ for(let i=0;i<=10;i++){ const p=w2s(dpt(d,i/10)); LBLAVOID.push({x:p.x,y:p.y,id:d.id}); } });
@@ -3393,7 +3394,50 @@ function pathSeg(d,t0,t1){ ctx.beginPath();
   const N=Math.max(10, Math.round(30*(t1-t0)+6));
   for(let i=0;i<=N;i++){ const p=w2s(dpt(d, t0+(t1-t0)*i/N));
     i?ctx.lineTo(p.x,p.y):ctx.moveTo(p.x,p.y); } }
+/* ---- DRAW-IN ANIMATION. When runs appear — you add a zone, or Auto-design drops a
+   new BDO — they sweep out from the box to the vents instead of just popping in.
+   We tag each freshly-seen run id with the frame it appeared (S.t is the frame
+   clock), then reveal it from a→b (box → outlet) over ANIM_DUR frames. Dragging or
+   re-sizing keeps the same ids, so nothing re-animates on a normal fiddle. */
+const ANIM_DUR=26;                 // frames to draw a run in (~0.5 s at the loop's cadence)
+const ANIM_STAGGER=5;              // later runs in the same burst start a touch after
+function detectNewRuns(ds){
+  const now=new Set(ds.map(d=>d.id));
+  const seen = S._seenRuns;
+  S.anim = S.anim || {};
+  if(seen){                        // skip the very first population — no pop-in to cover
+    let k=0;
+    ds.forEach(d=>{ if(!seen.has(d.id)){
+      // stagger by how far the run's source is from the unit, so it grows outward
+      S.anim[d.id] = S.t + (k++ % 6)*ANIM_STAGGER*0.4;
+    }});
+  }
+  S._seenRuns = now;
+  // garbage-collect finished / stale anim tags
+  for(const id in S.anim){ if(!now.has(id) || (S.t - S.anim[id]) > ANIM_DUR+ANIM_STAGGER*3) delete S.anim[id]; }
+}
+function animFrac(d){
+  const a = S.anim && S.anim[d.id];
+  if(a==null) return 1;                     // not animating → fully drawn
+  const f=(S.t - a)/ANIM_DUR;
+  if(f>=1){ delete S.anim[d.id]; return 1; }
+  return f<=0 ? 0 : (1 - Math.pow(1-f, 2));  // ease-out so it eases into the vent
+}
 function drawDuct(d){
+  const rev=animFrac(d);
+  if(rev<=0) return;                          // hasn't started its sweep yet
+  if(rev<1){                                  // REVEALING: a clean growing core from the box out
+    const ret0=d.kind==='return';
+    const px0=ductPx(d), col0=ductColor(d);
+    ctx.lineCap='round';
+    ctx.strokeStyle=PAL().paper; ctx.lineWidth=px0+9; pathSeg(d,0,rev); ctx.stroke();
+    ctx.strokeStyle=hexA(col0,ret0?.30:.22); ctx.lineWidth=px0+4; pathSeg(d,0,rev); ctx.stroke();
+    ctx.strokeStyle=hexA(col0,ret0?.72:.62); ctx.lineWidth=px0;   pathSeg(d,0,rev); ctx.stroke();
+    // a bright head at the growing tip so it reads as being laid in
+    const h=w2s(dpt(d,rev)); ctx.fillStyle=col0; ctx.globalAlpha=.9;
+    ctx.beginPath(); ctx.arc(h.x,h.y,Math.max(2,px0*.5),0,7); ctx.fill(); ctx.globalAlpha=1;
+    return;
+  }
   const ret=d.kind==='return', st=S.ductStyle||'flex';
   const px=ductPx(d), col=ductColor(d);
   const pxUp=(!ret && d.dUp) ? ductPx({...d, d:d.dUp}) : px;

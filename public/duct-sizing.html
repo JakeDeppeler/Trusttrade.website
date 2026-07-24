@@ -3052,6 +3052,7 @@ function draw(){
   }
   ds.forEach(drawDuct);
   btoHubs(ds).forEach(drawBTO);           // the take-offs, drawn as the castings they are
+  drawDampers(ds);                        // the motorised zone dampers, on each zone's feed
   S.vents.forEach(drawVent);
   if(S.ret) drawReturn(S.ret);
   if(S.unit) drawUnit(S.unit);
@@ -3758,6 +3759,60 @@ function drawBTO(h){
     ctx.fillText(arms0.length-1, c.x, c.y+3*lblz());
   }
   if(h.id && S.zoom>=0.55) tag(c.x, c.y+22*F+6, h.id, '#475569');
+}
+/* ── Motorised zone damper — Jake's v22 symbol, on canvas ────────────────────
+   Inline barrel at the run's Ø, a blade line (open ‖ along the flow / shut — across
+   it), a pivot, and an amber actuator straddling the barrel with its drive shaft.
+   One per zone, dropped on the trunk feeding that zone's box, turned to the run. */
+function drawDamper(cx,cy,ang,ductw,open){
+  const R=Math.max(6.5, ductw/2), k=R/24, L2=R*1.15;   // v22 authored at r=24
+  ctx.save(); ctx.translate(cx,cy); ctx.rotate(ang); ctx.lineJoin='round';
+  ctx.shadowColor='rgba(2,6,23,.28)'; ctx.shadowBlur=5; ctx.shadowOffsetY=1.5;
+  // barrel
+  const bg=ctx.createLinearGradient(-R,-L2,R,L2); bg.addColorStop(0,'#3a4048'); bg.addColorStop(1,'#181b20');
+  ctx.fillStyle=bg; ctx.strokeStyle='#11141a'; ctx.lineWidth=2;
+  roundRect(-R,-L2,2*R,2*L2,2*k); ctx.fill(); ctx.shadowColor='transparent'; ctx.stroke();
+  // the two collar mouths it sits between
+  const cg=ctx.createLinearGradient(-R,0,R,0); cg.addColorStop(0,'#5a636e'); cg.addColorStop(1,'#2b3038');
+  ctx.fillStyle=cg; ctx.lineWidth=1.6;
+  [-L2,L2].forEach(y=>{ const yy=y<0?y:y-6*k; roundRect(-R,yy,2*R,6*k,1.5*k); ctx.fill(); ctx.stroke(); });
+  // ribbed barrel wall
+  ctx.strokeStyle='#11141a'; ctx.globalAlpha=.35; ctx.lineWidth=1;
+  [-L2*0.36,L2*0.36].forEach(y=>{ ctx.beginPath(); ctx.moveTo(-R,y); ctx.lineTo(R,y); ctx.stroke(); });
+  ctx.globalAlpha=1;
+  // blade + pivot (amber): open = along the run, shut = across it
+  ctx.strokeStyle='#F5A623'; ctx.lineWidth=Math.max(2, 3*k); ctx.lineCap='round';
+  ctx.beginPath();
+  if(open){ ctx.moveTo(0,-R*0.86); ctx.lineTo(0,R*0.86); } else { ctx.moveTo(-R*0.94,0); ctx.lineTo(R*0.94,0); }
+  ctx.stroke();
+  ctx.fillStyle='#F5A623'; ctx.beginPath(); ctx.arc(0,0,Math.max(2,3.2*k),0,7); ctx.fill();
+  // actuator: rounded amber box straddling the barrel, drive shaft down to the blade
+  const aw=R*1.5, ah=Math.max(7,R*0.62), ay=-R-ah+2*k;
+  ctx.fillStyle='#F5A623'; ctx.strokeStyle='#9a6410'; ctx.lineWidth=1.6;
+  roundRect(-aw/2,ay,aw,ah+6*k,Math.max(2,4*k)); ctx.fill(); ctx.stroke();
+  ctx.fillStyle='rgba(255,255,255,.55)'; ctx.fillRect(-aw*0.34,ay+3*k,aw*0.68,Math.max(2,4*k));
+  ctx.strokeStyle='#9a6410'; ctx.lineWidth=2; ctx.beginPath();
+  ctx.moveTo(0,ay+ah+6*k); ctx.lineTo(0,-R+2*k); ctx.stroke();
+  ctx.restore();
+}
+/* One damper per zone, on the trunk feeding that zone's box. "No zone / on the main"
+   rooms get none — same rule the quote prices to (one motorised damper per zone). */
+function drawDampers(ds){
+  if(S.zoom<0.45) return;
+  const nozZones=new Set(S.rooms.filter(r=>r.noZone).map(r=>r.zone));   // "on the main" — no damper
+  const boxZone=new Map();                       // box node → the zone its outlets are on
+  ds.forEach(d=>{ if(d.a&&d.a.junction&&d.b&&isOutletNode(d.b)&&d.zone>0 && !nozZones.has(d.zone)) boxZone.set(d.a, d.zone); });
+  const inlet=new Map();                          // box node → the run that feeds it
+  ds.forEach(d=>{ if(d.kind!=='return'&&d.b&&d.b.junction) inlet.set(d.b, d); });
+  const seen=new Set();
+  boxZone.forEach((z, box)=>{
+    if(seen.has(z)) return;                        // one damper per zone channel
+    const d=inlet.get(box); if(!d) return;
+    seen.add(z);
+    const p=dpt(d,0.58), q=dpt(d,0.63), sp=w2s(p), sq=w2s(q);
+    const ang=Math.atan2(sq.y-sp.y, sq.x-sp.x)+Math.PI/2;
+    drawDamper(sp.x, sp.y, ang, ductPx(d), true);
+  });
 }
 /* EVERY duct gets its diameter and its cut length — that's the installer's list.
    Labels must never sit on top of each other, so each one hunts for a free spot

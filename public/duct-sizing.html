@@ -1005,8 +1005,18 @@ const maxZone=()=>S.rooms.reduce((m,r)=>Math.max(m,r.zone||0),0);
 /* Rooms flagged noZone ride the main — conditioned, but NOT a controllable
    zone, so they don't add a damper / zone controller. */
 function zoneCountOf(rooms){
-  const z=new Set(rooms.filter(r=>!r.noZone && r.type!=='none').map(r=>r.zone)).size;
-  return z>0 ? z : (rooms.some(r=>r.type!=='none') ? 1 : 0);
+  const rs=(rooms||[]).filter(r=>!r.noZone && r.type!=='none');
+  if(!rs.length) return 0;
+  /* A real zone needs AIR to control. A hallway or laundry on transfer air is
+     conditioned but has no outlet, so it's no damper and no zone — counting it
+     inflates the zone tally and prices a damper that never gets fitted. Once
+     outlets exist, count only zones that actually carry one; before any are placed,
+     fall back to the room zoning so the plan still reads as zoned. */
+  if(S.vents.length){
+    const z=new Set(rs.filter(r=>S.vents.some(v=>v.room===r.id)).map(r=>r.zone)).size;
+    return z>0 ? z : 1;
+  }
+  return new Set(rs.map(r=>r.zone)).size || 1;
 }
 function applyZoning(){
   if(!S.spaceLock) autoSpaces();               // kitchen open to the meals = one space
@@ -3795,23 +3805,41 @@ function drawDamper(cx,cy,ang,ductw,open){
   ctx.moveTo(0,ay+ah+6*k); ctx.lineTo(0,-R+2*k); ctx.stroke();
   ctx.restore();
 }
-/* One damper per zone, on the trunk feeding that zone's box. "No zone / on the main"
-   rooms get none — same rule the quote prices to (one motorised damper per zone). */
+/* WHERE THE DAMPER GOES. One damper per zone, connected to the BDO — never two on
+   the same line. The side depends on what the box does:
+     • a box that is ONE room with 3+ outlets → the whole box IS that zone, so the
+       damper sits BEHIND it, on the inlet trunk, and throttles the lot at once;
+     • otherwise (a shared box feeding several zones, or a small 1–2 outlet room) →
+       the damper sits on that zone's OWN outlet leg, the other side of the box, so
+       it only holds back its own room and never double-zones a neighbour's line.
+   "On the main / no zone" rooms get nothing — same count the quote prices. */
 function drawDampers(ds){
   if(S.zoom<0.45) return;
-  const nozZones=new Set(S.rooms.filter(r=>r.noZone).map(r=>r.zone));   // "on the main" — no damper
-  const boxZone=new Map();                       // box node → the zone its outlets are on
-  ds.forEach(d=>{ if(d.a&&d.a.junction&&d.b&&isOutletNode(d.b)&&d.zone>0 && !nozZones.has(d.zone)) boxZone.set(d.a, d.zone); });
-  const inlet=new Map();                          // box node → the run that feeds it
-  ds.forEach(d=>{ if(d.kind!=='return'&&d.b&&d.b.junction) inlet.set(d.b, d); });
-  const seen=new Set();
-  boxZone.forEach((z, box)=>{
-    if(seen.has(z)) return;                        // one damper per zone channel
-    const d=inlet.get(box); if(!d) return;
-    seen.add(z);
-    const p=dpt(d,0.58), q=dpt(d,0.63), sp=w2s(p), sq=w2s(q);
-    const ang=Math.atan2(sq.y-sp.y, sq.x-sp.x)+Math.PI/2;
-    drawDamper(sp.x, sp.y, ang, ductPx(d), true);
+  const noz=new Set(S.rooms.filter(r=>r.noZone).map(r=>r.zone));
+  const zoneOk=z=>z>0 && !noz.has(z);
+  const legsByParent=new Map();                    // feeding node → its outlet legs
+  ds.forEach(d=>{ if(d.kind==='return'||!d.b||!isOutletNode(d.b)) return;
+    (legsByParent.get(d.a)||legsByParent.set(d.a,[]).get(d.a)).push(d); });
+  const inletOf=new Map();                          // box → the run that feeds it
+  ds.forEach(d=>{ if(d.kind!=='return'&&d.b&&d.b.junction) inletOf.set(d.b, d); });
+  const drawn=new Set();                            // one damper per zone, full stop
+  const place=(run,t)=>{ const p=dpt(run,t), q=dpt(run,Math.min(1,t+0.04)), sp=w2s(p), sq=w2s(q);
+    drawDamper(sp.x, sp.y, Math.atan2(sq.y-sp.y,sq.x-sp.x)+Math.PI/2, ductPx(run), true); };
+
+  legsByParent.forEach((legs, node)=>{
+    const zones=[...new Set(legs.map(l=>l.zone).filter(zoneOk))];
+    if(!zones.length) return;
+    const dedicated = zones.length===1 && legs.every(l=>l.zone===zones[0]);
+    if(node.junction && dedicated && legs.length>2){
+      // one room, 3+ vents, its own box → damper BEHIND the box on the inlet
+      const z=zones[0], inl=inletOf.get(node);
+      if(inl && !drawn.has(z)){ drawn.add(z); place(inl, 0.8); }
+    } else {
+      // shared box, or a 1–2 vent room, or straight off a spigot → one per zone, on its leg
+      zones.forEach(z=>{ if(drawn.has(z)) return;
+        const leg=legs.find(l=>l.zone===z); if(!leg) return;
+        drawn.add(z); place(leg, node.junction?0.22:0.5); });
+    }
   });
 }
 /* EVERY duct gets its diameter and its cut length — that's the installer's list.

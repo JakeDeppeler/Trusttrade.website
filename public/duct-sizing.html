@@ -848,7 +848,7 @@ const S={ tool:'select', zoom:1, pan:{x:60,y:60}, ppm:PPM,
   bg:null, bgFit:1, bgOff:{x:0,y:0},
   rooms:[], vents:[], ret:null, unit:null, outdoor:null, routes:{},
   mount:'rod', sys:'split', takeoffs:3, rot:0,
-  zoning:'designer', rval:'R1.0', colorBy:'size', useOCR:false, ductStyle:'flex',
+  zoning:'perroom', rval:'R1.0', colorBy:'size', useOCR:false, ductStyle:'flex',
   ventShape:'square', flip:false, boxes:{},
   calibrated:false, planScale:null, unitStyle:'box', transStyle:'flare',
   apiKey:'', aiModel:'claude-sonnet-5',
@@ -1469,32 +1469,35 @@ function armGroups(from, leaves, inDir, k){
 
 function branchTree(root,leaves,zoneArg,out,path,gp){
   const inDir=inDirOf(root, gp);
-  if(leaves.length<=MAX_BRANCH){
-    leaves.forEach((n,i)=>out.push({id:path+'.'+i, kind:n.outlet?'branch':'trunk',
-      zone:n.zone??zoneArg, a:root, b:n, lps:n.lps}));
+  const leaf=(n,i)=>out.push({id:path+'.'+i, kind:n.outlet?'branch':'trunk',
+    zone:n.zone??zoneArg, a:root, b:n, lps:n.lps});
+  const splitBox=(g,i,zn)=>{ const j=placeBox(root,g,'B:'+path+'.'+i, gp); j.junction=true;
+    out.push({id:path+'.'+i, kind:'trunk', zone:zn??zoneArg, a:root, b:j, lps:j.lps});
+    branchTree(j,g,zn??zoneArg,out,path+'.'+i, root); };
+  const zoneSet=new Set(leaves.map(n=>n.zone));
+
+  /* ONE ZONE on this box → its vents ride it directly (≤3), or the room chains within
+     itself if it has more. The whole box is that room, so it can be dampered behind. */
+  if(zoneSet.size<=1){
+    if(leaves.length<=MAX_BRANCH){ leaves.forEach(leaf); return; }
+    armGroups(root, leaves, inDir, MAX_BRANCH).forEach((g,i)=>
+      g.length===1 ? leaf(g[0],i) : splitBox(g,i,leaves[0]&&leaves[0].zone));
     return;
   }
-  /* ROOM-ATOMIC: every outlet in a room rides the SAME BDO. Group by room first and
-     split between the room-clusters, never through one — so you can zone the air into
-     a room at one box. (A single room with more outlets than a box takes still chains,
-     but only within itself.) */
-  let grouped;
-  { const byRoom=new Map();
-    leaves.forEach(n=>{ const k=(n.outlet&&n.room!=null)?('r'+n.room):('x'+Math.random());
-      if(!byRoom.has(k)) byRoom.set(k,[]); byRoom.get(k).push(n); });
-    const atoms=[...byRoom.values()].map(ms=> ms.length>1 ? {...wcent(ms), members:ms} : ms[0]);
-    grouped = (atoms.length>1 && atoms.length<leaves.length)
-      ? armGroups(root, atoms, inDir, MAX_BRANCH).map(g=>g.flatMap(a=>a.members||[a]))
-      : armGroups(root, leaves, inDir, MAX_BRANCH);
+  /* MULTIPLE ZONES → never mix them on one box (a shared box can't be dampered per room).
+     One atom per zone: a single-vent zone hangs off directly, a multi-vent zone gets its
+     OWN box so its damper sits behind it. More zones than a box can fan → group the
+     zone-atoms into arms, a splitter box per arm, and recurse with the zones kept intact. */
+  const byZone=new Map();
+  leaves.forEach(n=>{ (byZone.get(n.zone)||byZone.set(n.zone,[]).get(n.zone)).push(n); });
+  const atoms=[...byZone.values()].map(vs=> vs.length>1 ? {...wcent(vs), members:vs, zone:vs[0].zone} : vs[0]);
+  if(atoms.length<=MAX_BRANCH){
+    atoms.forEach((a,i)=> a.members ? splitBox(a.members,i,a.zone) : leaf(a,i));
+    return;
   }
-  grouped.forEach((g,i)=>{
-    if(g.length===1){ const n=g[0];
-      out.push({id:path+'.'+i, kind:n.outlet?'branch':'trunk', zone:n.zone??zoneArg,
-        a:root, b:n, lps:n.lps});
-      return; }
-    const j=placeBox(root,g,'B:'+path+'.'+i, gp); j.junction=true;
-    out.push({id:path+'.'+i, kind:'trunk', zone:zoneArg, a:root, b:j, lps:j.lps});
-    branchTree(j,g,zoneArg,out,path+'.'+i, root);
+  armGroups(root, atoms, inDir, MAX_BRANCH).forEach((g,i)=>{
+    const members=g.flatMap(a=>a.members||[a]);
+    members.length===1 ? leaf(members[0],i) : splitBox(members,i,null);
   });
 }
 /* ------------------------------------------------- THE UNIT AND ITS PLENUM
@@ -1748,14 +1751,14 @@ function supplyPlanCompute(unit,vents,tk,rot){
       segs.push({id:'t'+i+'.0', kind:'trunk', zone:g[0].zone, a:t, b:g[0],
         lps:g[0].lps, fromSpigot:i});
     } else {
-      /* A fitter doesn't chain box → duct → box for a couple of nearby outlets —
-         they run to ONE BDO and split to the outlets off it, dampers on the legs.
-         So when a collar's zones together carry no more than a box can take (≤3
-         outlets), collapse them onto a single box feeding the outlets directly
-         (the two beds and the bath off the one BDO). Bigger clusters keep the
-         per-zone boxing, which the balancing and centring rely on. */
+      /* Collapse a collar's outlets onto ONE BDO only when they're all the SAME zone —
+         one room with 2–3 vents runs to a single box and the damper sits behind it.
+         Different zones NEVER share a box: a shared box can't be dampered per room, and
+         a fully-zoned home needs each zone on its own BDO. Multi-zone collars fall to the
+         per-zone boxing below (a splitter box, then a BDO per zone, each with its damper). */
+      const oneZone = new Set(g.map(n=>n.zone)).size===1;
       const totalOut = g.reduce((a,n)=> a + (n.single?1:(n.vs?n.vs.length:1)), 0);
-      if(totalOut <= MAX_BRANCH){
+      if(oneZone && totalOut <= MAX_BRANCH){
         const allV = g.flatMap(n=> n.single ? [{...n, outlet:true}]
                                             : n.vs.map(v=>({...v, outlet:true})));
         const j=placeBox(t, allV, 'B:t'+i, null); j.junction=true;
@@ -2003,6 +2006,7 @@ function relaxTree(segs, iters=25){
     let moved=0;
     kids.forEach((ch, node)=>{
       if(!node.junction) return;                       // spigots and outlets are fixed
+      if(node.pinned) return;                          // a cap-box, held inside its bag of flex
       if(node.bid && S.boxes && S.boxes[node.bid]) return;  // you dragged it — it stays
       const p=par.get(node); if(!p) return;
       const np=placeBox(p, ch, null, par.get(p));     // grandparent: which way the air arrives
@@ -2015,9 +2019,10 @@ function relaxTree(segs, iters=25){
    final spots, any run from a box to an outlet longer than 6 m would need a reducer
    and a second bag. Instead we drop a NEW box near that outlet and turn the long
    leg into a rigid TRUNK back to the old box — the flex home is then under a bag,
-   no reducer. Rigid duct carries the distance; flex stays short. One box per
-   offending outlet (we don't chain), and if the geometry genuinely can't seat a
-   box within a bag we leave it and the reducer still shows — honestly. */
+   no reducer. Rigid duct carries the distance; flex stays short. If the optimiser
+   can't seat the box within a bag we FORCE one a flex-length back along the run — a
+   short home leg beats a reducer every time — and PIN it so the relax pass can't drag
+   it back out past 6 m. That's the guarantee: no outlet run over a bag, no reducers. */
 function capFlexRuns(segs){
   if(FAST_ROUTE) return;
   const done=new Set();
@@ -2039,11 +2044,18 @@ function capFlexRuns(segs){
                                       : placeBox(s.a, [outlet], bid, gp);
     j.junction=true; j.bid=bid;
     done.add(outlet);                              // one attempt per outlet, chained or not
-    if(dist(j, outlet) > FLEX_MAX+0.05) continue;  // couldn't seat it in a bag — leave the run as-is
+    if(dist(j, outlet) > FLEX_MAX+0.05){
+      /* Couldn't seat it in a bag — force a box one flex-length back FROM the outlet,
+         along the line to its source. Flex home is then ~4.8 m (never a reducer), and
+         the run doesn't double back because the box sits between source and outlet. */
+      const dx=outlet.x-s.a.x, dy=outlet.y-s.a.y, L=Math.hypot(dx,dy)||1;
+      const back=Math.min(BRANCH_MAX, FLEX_MAX-1.2);       // ≈4.8 m of flex
+      j={x:outlet.x-dx/L*back, y:outlet.y-dy/L*back, lps:outlet.lps, bid, junction:true, pinned:true};
+    } else { j.pinned=true; }                       // keep it inside the bag — relax must not move it
     s.b=j; s.kind='trunk';                          // the long leg is now rigid trunk to the new box
     segs.push({id:s.id+'.f', kind:'branch', zone:outlet.zone??s.zone, a:j, b:outlet, lps:outlet.lps});
   }
-  relaxTree(segs, 12);   // settle the freshly-added boxes with everything else
+  relaxTree(segs, 12);   // settle everything else; pinned cap-boxes stay put
 }
 const takeoffPts=()=>supplyPlan(S.unit,S.vents,S.sys==='heater'?1:S.takeoffs).takeoffs;
 
@@ -3830,15 +3842,18 @@ function drawDampers(ds){
     const zones=[...new Set(legs.map(l=>l.zone).filter(zoneOk))];
     if(!zones.length) return;
     const dedicated = zones.length===1 && legs.every(l=>l.zone===zones[0]);
-    if(node.junction && dedicated && legs.length>2){
-      // one room, 3+ vents, its own box → damper BEHIND the box on the inlet
+    if(node.junction && dedicated && legs.length>=2){
+      // one room feeding 2+ ducts off its own box → one damper BEHIND the box on the
+      // inlet, clipped right to it, so it throttles both ducts at once (master, lounge,
+      // kitchen/dining). t≈0.9 sits it on the inlet hard against the BDO.
       const z=zones[0], inl=inletOf.get(node);
-      if(inl && !drawn.has(z)){ drawn.add(z); place(inl, 0.8); }
+      if(inl && !drawn.has(z)){ drawn.add(z); place(inl, 0.9); }
     } else {
-      // shared box, or a 1–2 vent room, or straight off a spigot → one per zone, on its leg
+      // shared box, a single-vent room, or straight off a spigot → one per zone, clipped
+      // to the box on that zone's OWN outlet leg (the other side).
       zones.forEach(z=>{ if(drawn.has(z)) return;
         const leg=legs.find(l=>l.zone===z); if(!leg) return;
-        drawn.add(z); place(leg, node.junction?0.22:0.5); });
+        drawn.add(z); place(leg, node.junction?0.12:0.5); });
     }
   });
 }

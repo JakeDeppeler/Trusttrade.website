@@ -2364,6 +2364,9 @@ function ducts(){
        the restriction either way, so pretending the duct is bigger just hides the
        velocity (and the noise) that's actually there. */
     if(b && b.size && isOutletNode(b)){ r.d=b.size; r.n=1; }
+    // you pinned this run's size by hand (click the duct → pick Ø) — it wins over the auto size
+    const pinnedD = (S.ductSize && S.ductSize[id]!=null) ? S.ductSize[id] : null;
+    if(pinnedD!=null){ r.d=pinnedD; }
     // you dragged this run → respect it; otherwise sweep it out along the arm
     const rObj=S.routes[id], hasWp=rObj&&rObj.wp&&rObj.wp.length;
     const raw = (rObj && !hasWp) ? holdArm(a, rObj, b) : armBend(a, b, leaveDir);
@@ -2429,7 +2432,7 @@ function ducts(){
        REDUCES DOWN to the outlet size for the final stretch (a drawn, priced reducer).
        Under 6 m: one size, no reducer, ever. */
     let dUp=null, redT=null;
-    if(outNode && len>6.05){
+    if(outNode && len>6.05 && pinnedD==null){   // a hand-pinned run holds its size — no reducer
       const si=DUCT_SIZES.indexOf(r.d);
       if(si>=0 && si<DUCT_SIZES.length-1){
         dUp=DUCT_SIZES[si+1];
@@ -4374,10 +4377,10 @@ function hit(w){
     if(d.b && d.b.junction && d.b.bid && dist(w,d.b)<0.42) return {k:'box',o:d.b, bid:d.b.bid};
   }
   /* Grab the flex easily — a generous catch radius along the WHOLE run (sample the
-     curve, not just its midpoint) so you can pick it up anywhere and drag it. */
-  { let best=null, bestD=0.55/S.zoom;
+     curve densely, not just its midpoint) so you can pick it up anywhere and drag it. */
+  { let best=null, bestD=0.8/S.zoom;
     for(const d of ducts()){
-      for(let t=0.15;t<=0.85;t+=0.14){
+      for(let t=0.08;t<=0.92;t+=0.08){
         const dd=dist(w, dpt(d,t));
         if(dd<bestD){ bestD=dd; best=d; }
       }
@@ -4720,9 +4723,10 @@ cv.addEventListener('pointerup',()=>{
         flash('Outlet left '+r.name+' — rerouted');
       }
     }
-    // dragged the fan coil by hand → keep the spot, reface it at the rooms so the
-    // runs don't cross (you can still override with the rotate slider)
-    if(S.drag.h && S.drag.h.k==='unit' && S.unit){ S.rot=bestUnitRot(S.unit); S.routes={}; }
+    // dragged the fan coil by hand → REDESIGN off the new spot: reface it at the rooms,
+    // clear any stuck box positions, and re-route the whole plan fresh so nothing kinks
+    // against the old layout.
+    if(S.drag.h && S.drag.h.k==='unit' && S.unit){ S.rot=bestUnitRot(S.unit); S.boxes={}; S.routes={}; PLAN_NONCE++; }
     commit();
   }
   /* A CLICK (no drag) on a part → the edit-in-place popover: flip/plenum/rotate on
@@ -6398,7 +6402,12 @@ function showCtx(sel, cx, cy){
       + `<div class="ct-row"><button id="cx-brl">⟲ 15°</button><button id="cx-brr">15° ⟳</button>${
           spun?`<button id="cx-br0">Reset</button>`:''}</div>`;
   } else if(sel.k==='duct'){
-    el.innerHTML = T('Run') + `<div class="ct-row"><button id="cx-side">Flip side</button></div>`;
+    const dd=ducts().find(x=>x.id===sel.o);
+    const cur=dd?dd.d:200, pinned=S.ductSize && S.ductSize[sel.o]!=null;
+    el.innerHTML = T('Run size'+(pinned?' · pinned':''))
+      + `<div class="ct-row">${[150,200,250,300].map(s=>`<button data-dsz="${s}" class="${cur===s?'on':''}">Ø${s}</button>`).join('')}</div>`
+      + `<div class="ct-row">${[350,400,500].map(s=>`<button data-dsz="${s}" class="${cur===s?'on':''}">Ø${s}</button>`).join('')}${pinned?'<button id="cx-dauto">Auto</button>':''}</div>`
+      + T('Shape') + `<div class="ct-row"><button id="cx-side">Flip side</button></div>`;
   } else if(sel.k==='room'){
     const rvs=S.vents.filter(v=>v.room===sel.o.id);
     if(!rvs.length){ el.innerHTML = T(sel.o.name) + `<div class="ct-row" style="font-size:11.5px;color:var(--muted);padding:2px 2px 4px">No outlets in this room yet — drop some with the outlet tool, then set their size here.</div>`; }
@@ -6436,7 +6445,9 @@ function showCtx(sel, cx, cy){
      the front or back of the house (0/90/180/270). We don't skip angles; you're in
      control. If a facing puts a run under the box, we just flag it so you know. */
   const spin=deg=>{ pushHist();
-    S.rot=(((S.rot||0)+deg)%360+360)%360; S.routes={};
+    // spinning the unit REDESIGNS the run off the new facing — clear stuck boxes and
+    // re-route fresh so the ductwork sweeps cleanly instead of kinking against the old plan
+    S.rot=(((S.rot||0)+deg)%360+360)%360; S.boxes={}; S.routes={}; PLAN_NONCE++;
     const dg=diagnostics();
     if(dg.underUnit>0) flash('Heads up: at this angle '+dg.underUnit+' run'+(dg.underUnit>1?'s':'')+' pass under the unit — hit Optimise for the clean facing');
     commit(); showCtx(sel, cx, cy);
@@ -6467,6 +6478,13 @@ function showCtx(sel, cx, cy){
     S.routes={}; commit(); showCtx(sel,cx,cy);
     flash(`${sel.o.name}: outlets back to auto-size`); });
   q('#cx-side') && (q('#cx-side').onclick=()=>{pushHist();flipDuctSide(sel.o);commit();showCtx(sel,cx,cy);});
+  /* Pin a run's Ø by hand — overrides the auto size (and drops any reducer on it). */
+  el.querySelectorAll('[data-dsz]').forEach(x=>x.onclick=()=>{ pushHist();
+    (S.ductSize ??= {})[sel.o]=+x.dataset.dsz; commit(); showCtx(sel,cx,cy);
+    flash(`Run pinned to Ø${x.dataset.dsz}`); });
+  q('#cx-dauto') && (q('#cx-dauto').onclick=()=>{ pushHist();
+    if(S.ductSize) delete S.ductSize[sel.o]; commit(); showCtx(sel,cx,cy);
+    flash('Run back to auto-size'); });
   // BDO spin: the casting rotates in place; every leg re-sweeps from its rotated collar
   const bspin=deg=>{ pushHist();
     (S.boxRot ??= {})[sel.bid]=(((S.boxRot[sel.bid]||0)+deg)%360+360)%360;

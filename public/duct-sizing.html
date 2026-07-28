@@ -2518,10 +2518,15 @@ function ducts(){
       }
       const parentMap=new Map();
       plan.segs.forEach(s=>parentMap.set(s.b, s.a));
-      /* Each leg leaves a BTO at the casting's moulded angle (straight + 45° each
-         side for a 3-way, 45° each side for a 2-way) so the flex comes STRAIGHT out
-         of the collar it's drawn on, instead of all legs leaving down the trunk axis
-         and bending. Same slot assignment the box drawing uses, so they line up. */
+      /* Each leg leaves a BTO aimed at the ROOM IT FEEDS — the collar points where the
+         flex actually goes, so the flex comes straight out instead of kinking sideways.
+         Collars are only spread apart when two would fall within COLLAR_SEP of each
+         other (so they never merge / overlap on the casting); otherwise each sits on its
+         real heading. Clamped to ±COLLAR_ARC so a run to a far-off room still leaves the
+         casting's forward fan. drawBTO reads these same a2 leads, so drawn collars and
+         duct directions are ONE frame — that's what kills both the sharp bend and the
+         "3-way that looks like a 2-way". */
+      const COLLAR_ARC=74, COLLAR_SEP=38;                  // deg: max fan half-angle, min gap
       const legDir=new Map();
       { const kids=new Map();
         plan.segs.forEach(s=>{ if(!kids.has(s.a)) kids.set(s.a,[]); kids.get(s.a).push(s); });
@@ -2532,12 +2537,16 @@ function ducts(){
           // your spin on this BDO rotates its whole collar frame
           const spun=((node.bid && S.boxRot && S.boxRot[node.bid])||0)*Math.PI/180;
           const thru=Math.atan2(thy/tl, thx/tl)+spun;
-          const offs = legs.length>=3 ? [-45,0,45] : [-45,45];
           const rel=legs.map(s=>{ let d=Math.atan2(s.b.y-node.y, s.b.x-node.x)-thru;
-            while(d>Math.PI)d-=2*Math.PI; while(d<-Math.PI)d+=2*Math.PI; return {s,d}; });
+            while(d>Math.PI)d-=2*Math.PI; while(d<-Math.PI)d+=2*Math.PI; return {s,d:d*180/Math.PI}; });
           rel.sort((p,q)=>p.d-q.d);
-          const os=[...offs].sort((x,y)=>x-y);
-          rel.forEach((r,i)=>{ const ang=thru+os[i]*Math.PI/180;
+          // aim at the real bearing, clamp to the fan, then open up ONLY where collars
+          // would touch — pushing right, pulling the whole set back if it overflows.
+          const t=rel.map(r=>Math.max(-COLLAR_ARC, Math.min(COLLAR_ARC, r.d)));
+          for(let i=1;i<t.length;i++) if(t[i] < t[i-1]+COLLAR_SEP) t[i]=t[i-1]+COLLAR_SEP;
+          const over=t[t.length-1]-COLLAR_ARC; if(over>0) for(let i=0;i<t.length;i++) t[i]-=over;
+          for(let i=t.length-2;i>=0;i--) if(t[i] > t[i+1]-COLLAR_SEP) t[i]=t[i+1]-COLLAR_SEP;
+          rel.forEach((r,i)=>{ const ang=thru+t[i]*Math.PI/180;
             legDir.set(r.s.id, {x:Math.cos(ang), y:Math.sin(ang)}); });
         });
       }
@@ -3797,17 +3806,18 @@ function drawBTO(h){
   const spun=((h.p.bid && S.boxRot && S.boxRot[h.p.bid])||0)*Math.PI/180;
   const R=Math.atan2(-inlet.dir.x, inlet.dir.y)+spun;
   const LN=COLLAR_LEAD*240;                         // len 72 == the flex's straight lead
-  // The body keeps its CLEAN v19 3-way shape: outlets at fixed 315/0/45 off the inlet's
-  // through-axis (assigned by angular order so left stays left). The flex bends from each
-  // fixed collar to its box. Inlet is angle 180, aligned to the arriving trunk via R.
+  // Each outlet collar is drawn along the duct's OWN leave direction (the a2 lead the
+  // router set, aimed at the room it feeds and spread only enough to stay separated) —
+  // NOT snapped to fixed 315/0/45. So the collar points where the flex goes: no kink at
+  // the fitting, and three real ducts show as three clear collars. Inlet stays angle 180,
+  // aligned to the arriving trunk via R.
   const thru=Math.atan2(-inlet.dir.y,-inlet.dir.x)+spun;
   const rel=outs.map(a=>{ let d=Math.atan2(a.dir.y,a.dir.x)-thru;
     while(d>Math.PI)d-=2*Math.PI; while(d<-Math.PI)d+=2*Math.PI; return {a,d}; }).sort((p,q)=>p.d-q.d);
-  const slots = outs.length>=3?[315,0,45] : outs.length===2?[315,45] : [0];
   // collar OD IS the nominal duct Ø (his rule) — dia comes straight from each duct,
   // scale 0.24 × F makes the drawn collar exactly as wide as the drawn duct.
   const v19arms=[{angle:180, dia:inlet.d, len:LN}];
-  rel.forEach((r,i)=> v19arms.push({angle:slots[i], dia:r.a.d, len:LN}));
+  rel.forEach(r=> v19arms.push({angle: r.d*180/Math.PI, dia:r.a.d, len:LN}));
   const F=k/240;                                   // his units → true screen scale
   drawV19(c.x, c.y, R, v19arms, {hub:22, blend:14}, F, 'moulded');
 
@@ -3873,6 +3883,13 @@ function drawDampers(ds){
   const drawn=new Set();                            // one damper per zone, full stop
   const place=(run,t)=>{ const p=dpt(run,t), q=dpt(run,Math.min(1,t+0.04)), sp=w2s(p), sq=w2s(q);
     drawDamper(sp.x, sp.y, Math.atan2(sq.y-sp.y,sq.x-sp.x)+Math.PI/2, ductPx(run), true); };
+  // Clip a damper a FIXED world-distance back from the BOX itself, so it always sits hard
+  // against the BDO no matter how long the inlet trunk is or how far its drawn collar
+  // leads out. Measured from the box node (not the run end) — 0.65 m puts the barrel right
+  // behind the inlet collar. A fractional t drifted ~1 m off the fitting on long inlets.
+  const placeBack=(run, node, distM, tMin)=>{ let t=tMin;
+    for(let s=0.98; s>=0; s-=0.02){ const p=dpt(run,s); if(Math.hypot(p.x-node.x, p.y-node.y) >= distM){ t=s; break; } }
+    place(run, Math.max(tMin, t)); };
 
   legsByParent.forEach((legs, node)=>{
     const zones=[...new Set(legs.map(l=>l.zone).filter(zoneOk))];
@@ -3881,9 +3898,9 @@ function drawDampers(ds){
     if(node.junction && dedicated && legs.length>=2){
       // one room feeding 2+ ducts off its own box → one damper BEHIND the box on the
       // inlet, clipped right to it, so it throttles both ducts at once (master, lounge,
-      // kitchen/dining). t≈0.9 sits it on the inlet hard against the BDO.
+      // kitchen/dining). Fixed 0.55 m setback keeps it hard against the BDO.
       const z=zones[0], inl=inletOf.get(node);
-      if(inl && !drawn.has(z)){ drawn.add(z); place(inl, 0.9); }
+      if(inl && !drawn.has(z)){ drawn.add(z); placeBack(inl, node, 0.65, 0.35); }
     } else {
       // shared box, a single-vent room, or straight off a spigot → one per zone, clipped
       // to the box on that zone's OWN outlet leg (the other side).

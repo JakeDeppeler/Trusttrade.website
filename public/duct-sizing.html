@@ -929,7 +929,16 @@ function zoneAssign(mode, rooms){
     rs.forEach(r=>map[r.id] = (r.type==='bed') ? 2 : 1);   // hall + wet stay on Day
     return map;
   }
-  if(mode==='perroom'){ let z=1; rs.forEach(r=>map[r.id]=z++); return map; }
+  if(mode==='perroom'){
+    /* Every room its own zone — EXCEPT the ensuite, which rides the master. You don't
+       hang a separate damper on a tiny ensuite; it's on the master's run and gets its
+       own 150 neck only because the room is small. Everything else is its own zone. */
+    const suite=masterSuite(rooms), master=suite.master, ensuite=suite.ensuite;
+    let z=1;
+    rs.forEach(r=>{ if(r===ensuite && master) return; map[r.id]=z++; });
+    if(ensuite && master) map[ensuite.id]=map[master.id];
+    return map;
+  }
 
   /* 'designer' — the way you'd actually run it:
        · the MASTER gets its own run, and its ENSUITE rides on it
@@ -6219,18 +6228,24 @@ function autoDesign(){
      best facing) on the balanced job and keep the one with the fewest crossings /
      nothing under the box; tie → fewer takeoffs, then shorter total run. */
   if(S.sys!=='heater'){
-    // Fast path: face the current count well; if that's already clean, keep it.
+    /* The longest single TRUNK matters as much as crossings — a 10 m rigid run
+       reaching across the house to feed one far box is the "loop" nobody wants. So
+       score it in, and pay for the full takeoff sweep whenever the default draws
+       messy OR wears a long trunk. */
+    const longestTrunk=()=>{ let m=0; for(const d of ducts()){
+      if(d.kind==='return'||!d.a||!d.b) continue;
+      if(!(d.a.spigot||d.a.junction) || isOutletNode(d.b)) continue;   // trunk = box/spigot → box
+      m=Math.max(m, d.len||0); } return m; };
+    const scoreOf=dg=>dg.crossings*100 + dg.underUnit*100 + dg.supplyM*0.01
+                     + Math.max(0, longestTrunk()-6)*4;   // penalise cross-house trunks
     S.routes={}; S.rot=bestUnitRot(S.unit); S.routes={};
     const dg0=diagnostics();
-    if(dg0.crossings>0 || dg0.underUnit>0){
-      // only pay for the full sweep when the default count actually draws messy
-      let best={tk:S.takeoffs, rot:S.rot,
-        score:dg0.crossings*100 + dg0.underUnit*100 + dg0.supplyM*0.01};
+    if(dg0.crossings>0 || dg0.underUnit>0 || longestTrunk()>7.5){
+      let best={tk:S.takeoffs, rot:S.rot, score:scoreOf(dg0)};
       for(const tk of [2,3,1]){
         if(tk===best.tk) continue;
         S.takeoffs=tk; S.routes={}; S.rot=bestUnitRot(S.unit); S.routes={};
-        const dg=diagnostics();
-        const score=dg.crossings*100 + dg.underUnit*100 + dg.supplyM*0.01;
+        const score=scoreOf(diagnostics());
         if(score<best.score-1e-6) best={tk,score,rot:S.rot};
       }
       S.takeoffs=best.tk; S.rot=best.rot; S.routes={}; balance();

@@ -2034,37 +2034,61 @@ function relaxTree(segs, iters=25){
    it back out past 6 m. That's the guarantee: no outlet run over a bag, no reducers. */
 function capFlexRuns(segs){
   if(FAST_ROUTE) return;
-  const done=new Set();
-  let guard=0;
-  for(;;){
-    if(guard++>60) break;
-    const par=new Map(); segs.forEach(s=>par.set(s.b, s.a));
-    let worst=null;
-    for(const s of segs){
-      if(s.kind==='return' || !(s.a && s.b && isOutletNode(s.b))) continue;
-      if(done.has(s.b)) continue;
-      const d=dist(s.a, s.b);
-      if(d > FLEX_MAX+0.05 && (!worst || d>worst.d)) worst={s, d};
+  const isCap=n=> n && n.junction && n.bid && /\^$/.test(n.bid);   // a box WE inserted
+  /* Iterate: drop cap-boxes that became redundant once the relax pulled their parent in
+     close, add cap-boxes for anything still over a bag, then re-settle — until stable.
+     The 5 m remove / 6 m add gap is hysteresis, so a run near the limit can't oscillate. */
+  for(let pass=0; pass<5; pass++){
+    let changed=false;
+
+    /* REMOVE redundant hops. A cap-box that feeds a single outlet whose PARENT box can
+       now reach that outlet within a bag is just an extra fitting and a size step — cut
+       it out and feed the outlet straight off the parent. (This is the Bed 2 case: the
+       final relax slid the parent to ~4 m of the vent, leaving the cap-box pointless.) */
+    for(const s of segs.slice()){
+      if(!isCap(s.b)) continue;                          // s = parent → cap-box trunk
+      const capBox=s.b, kids=segs.filter(d=>d.a===capBox);
+      if(kids.length!==1 || !isOutletNode(kids[0].b)) continue;
+      if(dist(s.a, kids[0].b) <= FLEX_MAX-1.0){           // parent within ~5 m straight of the outlet
+        s.b=kids[0].b; s.kind='branch';                  // parent now feeds the outlet directly
+        const ki=segs.indexOf(kids[0]); if(ki>=0) segs.splice(ki,1);
+        changed=true;
+      }
     }
-    if(!worst) break;
-    const s=worst.s, outlet=s.b, gp=par.get(s.a);
-    const bid='B:'+s.id+'^';
-    let j = (S.boxes && S.boxes[bid]) ? {x:S.boxes[bid].x, y:S.boxes[bid].y, lps:outlet.lps, bid}
-                                      : placeBox(s.a, [outlet], bid, gp);
-    j.junction=true; j.bid=bid;
-    done.add(outlet);                              // one attempt per outlet, chained or not
-    if(dist(j, outlet) > FLEX_MAX+0.05){
-      /* Couldn't seat it in a bag — force a box one flex-length back FROM the outlet,
-         along the line to its source. Flex home is then ~4.8 m (never a reducer), and
-         the run doesn't double back because the box sits between source and outlet. */
-      const dx=outlet.x-s.a.x, dy=outlet.y-s.a.y, L=Math.hypot(dx,dy)||1;
-      const back=Math.min(BRANCH_MAX, FLEX_MAX-1.2);       // ≈4.8 m of flex
-      j={x:outlet.x-dx/L*back, y:outlet.y-dy/L*back, lps:outlet.lps, bid, junction:true, pinned:true};
-    } else { j.pinned=true; }                       // keep it inside the bag — relax must not move it
-    s.b=j; s.kind='trunk';                          // the long leg is now rigid trunk to the new box
-    segs.push({id:s.id+'.f', kind:'branch', zone:outlet.zone??s.zone, a:j, b:outlet, lps:outlet.lps});
+
+    /* ADD a box for anything still over a bag — drop it near the outlet and trunk back. */
+    const done=new Set(); let guard=0;
+    for(;;){
+      if(guard++>60) break;
+      const par=new Map(); segs.forEach(s=>par.set(s.b, s.a));
+      let worst=null;
+      for(const s of segs){
+        if(s.kind==='return' || !(s.a && s.b && isOutletNode(s.b))) continue;
+        if(done.has(s.b)) continue;
+        const d=dist(s.a, s.b);
+        if(d > FLEX_MAX+0.05 && (!worst || d>worst.d)) worst={s, d};
+      }
+      if(!worst) break;
+      const s=worst.s, outlet=s.b, gp=par.get(s.a);
+      const bid='B:'+s.id+'^';
+      let j = (S.boxes && S.boxes[bid]) ? {x:S.boxes[bid].x, y:S.boxes[bid].y, lps:outlet.lps, bid}
+                                        : placeBox(s.a, [outlet], bid, gp);
+      j.junction=true; j.bid=bid;
+      done.add(outlet);
+      if(dist(j, outlet) > FLEX_MAX+0.05){
+        // couldn't seat it in a bag — force one a flex-length back from the outlet
+        const dx=outlet.x-s.a.x, dy=outlet.y-s.a.y, L=Math.hypot(dx,dy)||1;
+        const back=Math.min(BRANCH_MAX, FLEX_MAX-1.2);
+        j={x:outlet.x-dx/L*back, y:outlet.y-dy/L*back, lps:outlet.lps, bid, junction:true, pinned:true};
+      } else { j.pinned=true; }
+      s.b=j; s.kind='trunk';
+      segs.push({id:s.id+'.f', kind:'branch', zone:outlet.zone??s.zone, a:j, b:outlet, lps:outlet.lps});
+      changed=true;
+    }
+
+    relaxTree(segs, 12);   // settle everything; pinned cap-boxes stay put
+    if(!changed) break;
   }
-  relaxTree(segs, 12);   // settle everything else; pinned cap-boxes stay put
 }
 const takeoffPts=()=>supplyPlan(S.unit,S.vents,S.sys==='heater'?1:S.takeoffs).takeoffs;
 

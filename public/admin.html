@@ -1,0 +1,1189 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>TrustTrade — Admin (LIVE)</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<style>
+:root{--bg:#F5F6F8;--panel:#fff;--line:#E7E8EC;--line2:#F1F2F4;--ink:#14161B;--ink2:#4B4F58;--mut:#8A8F99;
+ --gold:#F2A222;--goldd:#B4740E;--goldb:#FCF3E1;--green:#1FA463;--greenb:#E8F6EE;--red:#E5484D;--redb:#FDECEC;--amber:#D98A04;--amberb:#FBF1DA;--blue:#3A6FF0;--blueb:#EAF0FE;
+ --sh:0 1px 2px rgba(20,22,30,.04),0 4px 16px rgba(20,22,30,.05);--f:'Inter',system-ui,sans-serif}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--f);background:var(--bg);color:var(--ink);-webkit-font-smoothing:antialiased;font-size:14px}
+.gate{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;
+ background:radial-gradient(120% 90% at 20% 0%,#2a2d34,rgba(42,45,52,0) 55%),linear-gradient(160deg,#17181c,#0d0e11)}
+.lcard{background:#fff;border-radius:18px;box-shadow:0 30px 80px rgba(0,0,0,.4);width:100%;max-width:400px;padding:30px 28px}
+.lcard .lg{width:44px;height:44px;border-radius:12px;background:linear-gradient(135deg,#FFCB63,#F2A222);display:grid;place-items:center;color:#231700;margin-bottom:18px}
+.lcard h1{font-size:20px;font-weight:750;letter-spacing:-.02em}
+.lcard p{color:var(--mut);font-size:13px;margin-top:6px;line-height:1.5}
+.lcard label{display:block;font-size:12px;font-weight:600;color:var(--ink2);margin:16px 0 6px}
+.lcard input{width:100%;padding:11px 13px;border:1px solid var(--line);border-radius:10px;font-family:inherit;font-size:14px;background:#FBFBFC}
+.lcard input.code{letter-spacing:.4em;text-align:center;font-size:22px;font-weight:700}
+.lcard button{width:100%;margin-top:20px;padding:13px;border:0;border-radius:11px;background:var(--gold);color:#231700;font-weight:700;font-size:14px;cursor:pointer;font-family:inherit}
+.lcard button.ghost{background:transparent;color:var(--mut);font-weight:600;margin-top:8px;padding:8px}
+.lerr{color:var(--red);font-size:12.5px;margin-top:12px;min-height:16px}
+.qr{background:#fff;border:1px solid var(--line);border-radius:12px;padding:14px;display:grid;place-items:center;margin:16px 0}
+.qr svg,.qr img,.qr canvas{width:190px;height:190px}
+.secret{font-family:ui-monospace,monospace;font-size:12px;background:#F0F1F3;border-radius:8px;padding:8px 10px;word-break:break-all;color:var(--ink2);text-align:center}
+.badge2fa{display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:700;color:var(--green);background:var(--greenb);padding:5px 10px;border-radius:99px;margin-top:10px}
+.app{display:none;min-height:100vh}.app.on{display:flex}
+.side{width:220px;flex-shrink:0;background:var(--panel);border-right:1px solid var(--line);padding:16px 12px;display:flex;flex-direction:column;position:sticky;top:0;height:100vh;overflow-y:auto}
+.brand{display:flex;align-items:center;gap:10px;padding:4px 8px 14px}
+.brand .lg{width:30px;height:30px;border-radius:8px;background:linear-gradient(135deg,#FFCB63,#F2A222);display:grid;place-items:center;color:#231700}
+.brand b{font-size:14px;font-weight:700;display:block;line-height:1}
+.live{font-size:9px;font-weight:800;letter-spacing:.06em;color:var(--green);display:flex;align-items:center;gap:4px}
+.live:before{content:"";width:6px;height:6px;border-radius:50%;background:var(--green);box-shadow:0 0 0 3px rgba(31,164,99,.2)}
+.nv{display:flex;align-items:center;gap:10px;padding:10px 13px;border-radius:10px;color:var(--ink2);cursor:pointer;font-weight:550;font-size:15px;margin-bottom:2px}
+.dinp{padding:8px 10px;border:1px solid var(--line);border-radius:9px;background:#fff;color:var(--ink);font-family:inherit;font-size:13px}
+html[data-theme="dark"] .dinp{background:#1D1E24;color:var(--ink)}
+html[data-theme="dark"] .dinp::-webkit-calendar-picker-indicator{filter:invert(1) opacity(.7)}
+.nv:hover{background:#FBFBFC}.nv.on{background:var(--goldb);color:var(--goldd);font-weight:650}
+.nv .ct{margin-left:auto;font-size:11px;font-weight:700;padding:1px 7px;border-radius:99px;background:var(--line);color:var(--ink2)}
+.me{margin-top:auto;font-size:11.5px;color:var(--mut);padding:10px 8px;border-top:1px solid var(--line2)}
+.me b{color:var(--ink);display:block;font-size:12.5px}
+.me a{color:var(--red);cursor:pointer;font-weight:600;text-decoration:none;font-size:12px}
+main{flex:1;padding:26px 30px 60px;max-width:1200px}
+h2{font-size:23px;font-weight:750;letter-spacing:-.03em}
+.subt{color:var(--mut);font-size:13px;margin:5px 0 18px}
+.sfield{position:relative;display:flex;align-items:center}
+.sfield svg{position:absolute;left:12px;width:16px;height:16px;stroke:var(--mut);fill:none;stroke-width:2;pointer-events:none}
+.sfield input{width:100%;padding:11px 14px 11px 36px;border:1px solid var(--line);border-radius:11px;font-size:14px;background:#fff;color:var(--ink);font-family:inherit}
+.sfield input:focus{outline:none;border-color:var(--gold);box-shadow:0 0 0 3px var(--goldb)}
+.fbar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:16px}
+.fbar select{padding:9px 11px;border:1px solid var(--line);border-radius:10px;font-size:13px;background:#fff;color:var(--ink);font-family:inherit;cursor:pointer}
+.seg{display:inline-flex;gap:4px;background:var(--line2);padding:3px;border-radius:10px}
+.seg button{border:0;background:transparent;color:var(--mut);font-size:12.5px;font-weight:600;padding:6px 12px;border-radius:8px;cursor:pointer;font-family:inherit}
+.seg button.on{background:var(--panel);color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.12)}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin:4px 0 16px}
+.kpi{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:15px 16px;box-shadow:var(--sh)}
+.kpi .k{font-size:10.5px;font-weight:700;color:var(--mut);text-transform:uppercase;letter-spacing:.04em;display:flex;align-items:center;gap:6px}
+.kpi b{display:block;font-size:27px;font-weight:750;letter-spacing:-.04em;margin-top:8px}
+.kpi .d{font-size:11.5px;color:var(--mut);margin-top:5px;font-weight:600}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:14px;box-shadow:var(--sh);overflow:hidden;margin-bottom:16px}
+.ch{padding:14px 18px;border-bottom:1px solid var(--line2);font-weight:650;font-size:14px;display:flex;align-items:center;gap:8px}
+table{width:100%;border-collapse:collapse}
+th{text-align:left;font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--mut);padding:11px 18px;border-bottom:1px solid var(--line2);position:sticky;top:0;z-index:3;background:var(--panel)}
+th.srt{cursor:pointer;user-select:none}th.srt:hover{color:var(--ink)}th .ar{opacity:.5;font-size:9px}
+.bulkbar{display:flex;align-items:center;gap:10px;background:var(--panel);border:1px solid var(--line2);border-radius:12px;padding:9px 14px;margin:0 0 12px;box-shadow:0 6px 18px rgba(0,0,0,.06)}
+.bulkbar b{font-size:13px}.selbox{width:16px;height:16px;cursor:pointer}
+.shim{height:18px;margin:12px 18px;border-radius:7px;background:linear-gradient(90deg,var(--line2) 25%,var(--line) 37%,var(--line2) 63%);background-size:400% 100%;animation:shim 1.3s ease infinite}
+@keyframes shim{0%{background-position:100% 0}100%{background-position:0 0}}
+td{padding:12px 18px;border-bottom:1px solid var(--line2);font-size:13.5px;vertical-align:middle}
+tr:last-child td{border-bottom:0}
+.pill{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:650;padding:3px 9px;border-radius:99px}
+.pill.g{background:var(--greenb);color:var(--green)}.pill.r{background:var(--redb);color:var(--red)}.pill.a{background:var(--amberb);color:var(--amber)}.pill.n{background:#F0F1F3;color:var(--ink2)}.pill.b{background:var(--blueb);color:var(--blue)}
+.mut{color:var(--mut)}.mono{font-variant-numeric:tabular-nums}.right{text-align:right}
+.empty{padding:26px 18px;color:var(--mut);font-size:13px}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--green);display:inline-block}
+.err{background:var(--redb);color:#8f2a2d;padding:12px 16px;border-radius:10px;font-size:13px;margin:12px 0}
+.btn{display:inline-flex;align-items:center;gap:6px;height:30px;padding:0 11px;border-radius:8px;background:var(--ink);color:#fff;font-size:12px;font-weight:600;border:0;cursor:pointer;font-family:inherit}
+.btn.w{background:#fff;color:var(--ink);border:1px solid var(--line)}
+.btn.g{background:var(--green)}.btn.r{background:var(--redb);color:var(--red);border:1px solid rgba(229,72,77,.25)}
+.ov{position:fixed;inset:0;background:rgba(20,22,30,.42);display:none;align-items:center;justify-content:center;z-index:100;padding:24px}
+.ov.on{display:flex}
+.modal{background:#fff;border-radius:16px;box-shadow:0 30px 80px rgba(0,0,0,.3);width:100%;max-width:420px;padding:22px}
+.modal h3{font-size:17px;font-weight:700}.modal p{color:var(--mut);font-size:12.5px;margin-top:4px}
+.modal.wide{max-width:600px}.modal.xwide{max-width:920px}
+.fl{font-size:11px;font-weight:700;color:var(--mut);text-transform:uppercase;letter-spacing:.03em}
+.modal textarea{width:100%;margin-top:6px;padding:10px 12px;border:1px solid var(--line);border-radius:10px;font-family:inherit;font-size:13.5px;min-height:70px;resize:vertical;background:#fff;color:var(--ink)}
+.modal input,.modal select{width:100%;margin-top:5px;padding:9px 11px;border:1px solid var(--line);border-radius:9px;font-family:inherit;font-size:13.5px;background:#fff;color:var(--ink)}
+.modal label{display:block}
+.modal .mf{display:flex;gap:8px;justify-content:flex-end;margin-top:16px}
+.slbl{font-size:9.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--mut);padding:14px 11px 5px}
+.tabs{display:flex;gap:2px;border-bottom:1px solid var(--line);margin:2px 0 16px;overflow-x:auto}
+.tabs div{padding:11px 14px;font-size:13px;font-weight:600;color:var(--mut);cursor:pointer;border-bottom:2px solid transparent;white-space:nowrap}
+.tabs div.on{color:var(--ink);border-bottom-color:var(--gold)}
+.mgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px;margin:4px 0 16px}
+.mcard{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:17px 18px 12px;box-shadow:var(--sh)}
+.mcard .l{font-size:12px;color:var(--mut);font-weight:600}
+.mcard .v{font-size:29px;font-weight:800;letter-spacing:-.03em;margin-top:6px;line-height:1}
+.mcard .tr{font-size:11.5px;font-weight:700;margin-top:5px}
+.mcard .tr.up{color:var(--green)}.mcard .tr.dn{color:var(--red)}
+.mcard svg.spark{display:block;margin-top:10px;width:100%;height:34px}
+.d2{display:grid;grid-template-columns:1.7fr 1fr;gap:16px}
+@media(max-width:900px){.d2{grid-template-columns:1fr}}
+.barrow{display:flex;align-items:center;gap:10px;padding:9px 0}
+.barrow .bn{font-size:13px;font-weight:600;width:120px;flex-shrink:0}
+.barrow .bt{flex:1;height:8px;border-radius:6px;background:var(--line2);overflow:hidden}
+.barrow .bt i{display:block;height:100%;border-radius:6px;background:var(--blue)}
+.barrow .bv{font-size:12.5px;font-weight:700;width:46px;text-align:right}
+.arow{display:flex;align-items:center;padding:11px 0;border-top:1px solid var(--line2);cursor:pointer}
+.arow:first-child{border-top:0}.arow b{font-weight:600;font-size:13px}.arow .n{margin-left:auto;font-weight:800}
+.feed .fr{display:flex;align-items:center;gap:10px;padding:10px 0;border-top:1px solid var(--line2)}
+.feed .fr:first-child{border-top:0}
+.feed .fr .fd{width:8px;height:8px;border-radius:50%;background:var(--blue);flex-shrink:0}
+.feed .fr .ft{font-size:13px;font-weight:500}.feed .fr .fm{margin-left:auto;font-size:11.5px;color:var(--mut)}
+.themebtn{cursor:pointer;color:var(--goldd);font-weight:600;font-size:12px}
+/* dark mode */
+html[data-theme="dark"]{--bg:#0E0F13;--panel:#17181D;--panel2:#1D1E24;--line:#282A31;--line2:#212228;--ink:#EDEEF2;--ink2:#AEB0BA;--mut:#7E808A;--goldd:#F5BE68;--goldb:#2C2411;--greenb:#12231A;--redb:#2C1615;--amberb:#251C0D;--blueb:#141C2E;--sh:0 1px 2px rgba(0,0,0,.5),0 6px 20px rgba(0,0,0,.45)}
+html[data-theme="dark"] .btn{background:#2E3038;color:#EDEEF2}
+html[data-theme="dark"] .btn.g{background:var(--green);color:#fff}
+html[data-theme="dark"] .btn.r{background:var(--redb);color:#FF9B93;border-color:rgba(229,72,77,.3)}
+html[data-theme="dark"] .btn.w{background:#1D1E24;color:var(--ink);border-color:var(--line)}
+html[data-theme="dark"] th{background:var(--panel)}
+html[data-theme="dark"] tbody tr:hover{background:#1D1E24}
+html[data-theme="dark"] input,html[data-theme="dark"] select,html[data-theme="dark"] textarea{background:#1D1E24;color:var(--ink);border-color:var(--line)}
+html[data-theme="dark"] .ov{background:rgba(0,0,0,.6)}
+html[data-theme="dark"] .modal{background:var(--panel);color:var(--ink);box-shadow:0 30px 80px rgba(0,0,0,.6)}
+html[data-theme="dark"] .modal h3{color:var(--ink)}
+html[data-theme="dark"] .modal input,html[data-theme="dark"] .modal select,html[data-theme="dark"] .modal textarea{background:#101116;color:var(--ink);border-color:var(--line)}
+html[data-theme="dark"] .nv:hover{background:#1D1E24}
+html[data-theme="dark"] .pill.n{background:#26272E;color:var(--ink2)}
+html[data-theme="dark"] .err{background:var(--redb);color:#FF9B93}
+html[data-theme="dark"] .btn.w:hover{background:#25262D}
+html[data-theme="dark"] .tabs div.on{color:var(--ink)}
+</style></head><body>
+
+<!-- STEP 1: PASSWORD -->
+<div class="gate" id="g-pw">
+ <div class="lcard">
+  <div class="lg"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#231700" stroke-width="1.7"><path d="M12 2l8 3v6c0 5-3.4 9.4-8 11-4.6-1.6-8-6-8-11V5l8-3z"/><path d="M9 12l2 2 4-4"/></svg></div>
+  <h1>TrustTrade Admin</h1><p>Live console. Admin sign-in with two-factor required.</p>
+  <label>Email</label><input id="em" type="email" placeholder="deppfs@gmail.com" autocomplete="username">
+  <label>Password</label><input id="pw" type="password" placeholder="••••••••" autocomplete="current-password">
+  <button id="signin">Continue</button>
+  <div class="lerr" id="e-pw"></div>
+ </div>
+</div>
+
+<!-- STEP 2A: ENROLL 2FA -->
+<div class="gate" id="g-enroll" style="display:none">
+ <div class="lcard">
+  <div class="lg"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#231700" stroke-width="1.7"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></div>
+  <h1>Set up two-factor</h1><p>This is the control panel, so 2FA is required. Scan this with Google Authenticator, Authy or 1Password, then enter the 6-digit code.</p>
+  <div class="qr" id="qr"></div>
+  <div class="secret" id="secret"></div>
+  <label>6-digit code</label><input id="enrollcode" class="code" inputmode="numeric" maxlength="6" placeholder="000000">
+  <button id="enrollverify">Verify &amp; enable</button>
+  <div class="lerr" id="e-enroll"></div>
+ </div>
+</div>
+
+<!-- STEP 2B: CHALLENGE 2FA -->
+<div class="gate" id="g-mfa" style="display:none">
+ <div class="lcard">
+  <div class="lg"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#231700" stroke-width="1.7"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></div>
+  <h1>Two-factor</h1><p>Enter the 6-digit code from your authenticator app.</p>
+  <input id="mfacode" class="code" inputmode="numeric" maxlength="6" placeholder="000000" style="margin-top:16px">
+  <button id="mfaverify">Verify</button>
+  <button class="ghost" onclick="signout()">Cancel</button>
+  <div class="lerr" id="e-mfa"></div>
+ </div>
+</div>
+
+<!-- APP -->
+<div class="app" id="app">
+ <aside class="side">
+  <div class="brand"><div class="lg"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#231700" stroke-width="1.7"><path d="M12 2l8 3v6c0 5-3.4 9.4-8 11-4.6-1.6-8-6-8-11V5l8-3z"/><path d="M9 12l2 2 4-4"/></svg></div>
+   <div><b>TrustTrade</b><span class="live">LIVE · 2FA · connected</span></div></div>
+  <div class="nv" onclick="gsearch()" style="margin-top:4px">🔍 Search<span class="ct" style="background:transparent;color:var(--mut)">⌘K</span></div>
+  <div class="slbl">Overview</div>
+  <div class="nv on" data-p="dash" onclick="go('dash')">Dashboard</div>
+  <div class="slbl">Queues</div>
+  <div class="nv" data-p="apps" onclick="go('apps')">Applications<span class="ct" id="c-ap">–</span></div>
+  <div class="nv" data-p="reports" onclick="go('reports')">Reports<span class="ct" id="c-rp">–</span></div>
+  <div class="nv" data-p="flags" onclick="go('flags')">Flags<span class="ct" id="c-fl">–</span></div>
+  <div class="slbl">People</div>
+  <div class="nv" data-p="tradies" onclick="go('tradies')">Tradies<span class="ct" id="c-tr">–</span></div>
+  <div class="nv" data-p="cust" onclick="go('cust')">Customers<span class="ct" id="c-cu">–</span></div>
+  <div class="slbl">Activity</div>
+  <div class="nv" data-p="enq" onclick="go('enq')">Enquiries<span class="ct" id="c-en">–</span></div>
+  <div class="nv" data-p="jobs" onclick="go('jobs')">Jobs</div>
+  <div class="nv" data-p="reviews" onclick="go('reviews')">Reviews</div>
+  <div class="slbl">Control</div>
+  <div class="nv" data-p="money" onclick="go('money')">Money</div>
+  <div class="nv" data-p="waitlist" onclick="go('waitlist')">Waitlist</div>
+  <div class="nv" data-p="notifs" onclick="go('notifs')">Notifications</div>
+  <div class="nv" data-p="map" onclick="go('map')">Map &amp; areas</div>
+  <div class="nv" data-p="policies" onclick="go('policies')">Policies</div>
+  <div class="slbl">System</div>
+  <div class="nv" data-p="settings" onclick="go('settings')">Settings</div>
+  <div class="nv" data-p="security" onclick="go('security')">Security · 2FA</div>
+  <div class="nv" data-p="moderation" onclick="go('moderation')">Moderation</div>
+  <div class="nv" data-p="health" onclick="go('health')">System health</div>
+  <div class="nv" data-p="audit" onclick="go('audit')">Audit log</div>
+  <div class="me"><b id="whoami">—</b><span class="badge2fa">🔒 2FA active</span><br><a class="themebtn" onclick="toggleTheme()" style="margin:6px 12px 0 0;display:inline-block" id="themeLbl">Dark mode</a><a onclick="signout()" style="margin-top:6px;display:inline-block">Sign out</a></div>
+ </aside>
+ <main id="main"></main>
+</div>
+<div class="ov" id="ov"><div class="modal" id="modal"></div></div>
+
+<script>
+const SB_URL='https://pvcblfpxgrznzqgxbujy.supabase.co';
+const SB_KEY='sb_publishable_xXxZpIBsumD14mC4zn9qLQ_i4Su8yEN';
+const sb=supabase.createClient(SB_URL,SB_KEY);
+const $=id=>document.getElementById(id);
+let PAGE='dash',USER=null,ENROLL=null;
+const esc=s=>String(s==null?'':s).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+const fmtDate=s=>s?new Date(s).toLocaleDateString('en-AU',{day:'numeric',month:'short',year:'numeric'}):'—';
+const ago=s=>{if(!s)return '—';const m=Math.round((Date.now()-new Date(s))/60000);return m<1?'now':m<60?m+'m':m<1440?Math.round(m/60)+'h':Math.round(m/1440)+'d';};
+const show=id=>['g-pw','g-enroll','g-mfa'].forEach(g=>$(g).style.display=g===id?'flex':'none');
+
+/* ===== AUTH + 2FA ===== */
+async function init(){const {data}=await sb.auth.getSession();if(data.session)route();}
+$('signin').onclick=doPw;$('pw').addEventListener('keydown',e=>{if(e.key==='Enter')doPw();});
+$('enrollverify').onclick=doEnrollVerify;
+$('mfaverify').onclick=doMfaVerify;$('mfacode').addEventListener('keydown',e=>{if(e.key==='Enter')doMfaVerify();});
+
+async function doPw(){$('e-pw').textContent='';
+ const {error}=await sb.auth.signInWithPassword({email:$('em').value.trim(),password:$('pw').value});
+ if(error){$('e-pw').textContent=error.message;return;}
+ route();}
+
+async function route(){
+ // must be an admin
+ const {data:{user}}=await sb.auth.getUser();USER=user;
+ const {data:prof}=await sb.from('profiles').select('name,role,email').eq('id',user.id).single();
+ if(!prof||prof.role!=='admin'){show('g-pw');$('e-pw').textContent='That account is not an admin.';await sb.auth.signOut();return;}
+ $('whoami').textContent=prof.name||prof.email||user.email;
+ // check assurance level
+ const {data:aal}=await sb.auth.mfa.getAuthenticatorAssuranceLevel();
+ if(aal.currentLevel==='aal2'){return enter();}          // already 2FA'd this session
+ const {data:fl}=await sb.auth.mfa.listFactors();
+ const totp=(fl&&fl.totp)||[];
+ if(totp.length){ startChallenge(totp[0].id); }          // has 2FA → ask for code
+ else { startEnroll(); }                                 // no 2FA yet → set it up
+}
+
+async function startEnroll(){show('g-enroll');
+ // clear any stale unverified factors first
+ try{const {data:fl}=await sb.auth.mfa.listFactors();for(const f of (fl.all||[])){if(f.status!=='verified')await sb.auth.mfa.unenroll({factorId:f.id});}}catch(e){}
+ const {data,error}=await sb.auth.mfa.enroll({factorType:'totp',friendlyName:'TrustTrade Admin'});
+ if(error){$('e-enroll').textContent=error.message;return;}
+ ENROLL=data.id;
+ const uri=data.totp.uri||('otpauth://totp/TrustTrade%20Admin?secret='+data.totp.secret+'&issuer=TrustTrade');
+ $('qr').innerHTML='<canvas id="qrc"></canvas>';
+ if(window.QRCode&&QRCode.toCanvas){
+   QRCode.toCanvas($('qrc'),uri,{width:190,margin:1,color:{dark:'#14161B',light:'#ffffff'}},err=>{if(err)qrFallback(data.totp.qr_code);});
+ } else { qrFallback(data.totp.qr_code); }
+ $('secret').innerHTML='Can\'t scan? Add this key manually:<br><b>'+esc(data.totp.secret)+'</b>';
+}
+function qrFallback(qr){const el=$('qr');if(!qr){el.textContent='Scan failed — use the manual key below.';return;}el.innerHTML=(qr.indexOf('data:')===0)?('<img src="'+qr+'">'):qr;}
+async function doEnrollVerify(){$('e-enroll').textContent='';
+ const code=$('enrollcode').value.trim();
+ const {data:ch,error:ce}=await sb.auth.mfa.challenge({factorId:ENROLL});
+ if(ce){$('e-enroll').textContent=ce.message;return;}
+ const {error}=await sb.auth.mfa.verify({factorId:ENROLL,challengeId:ch.id,code});
+ if(error){$('e-enroll').textContent=error.message;return;}
+ enter();
+}
+let CHFACTOR=null;
+async function startChallenge(factorId){CHFACTOR=factorId;show('g-mfa');setTimeout(()=>$('mfacode').focus(),80);}
+async function doMfaVerify(){$('e-mfa').textContent='';
+ const code=$('mfacode').value.trim();
+ const {data:ch,error:ce}=await sb.auth.mfa.challenge({factorId:CHFACTOR});
+ if(ce){$('e-mfa').textContent=ce.message;return;}
+ const {error}=await sb.auth.mfa.verify({factorId:CHFACTOR,challengeId:ch.id,code});
+ if(error){$('e-mfa').textContent='Wrong code — try again.';return;}
+ enter();
+}
+async function signout(){await sb.auth.signOut();location.reload();}
+
+function enter(){show('g-pw');$('g-pw').style.display='none';$('app').classList.add('on');
+ loadConfig();loadCounts();go('dash');
+ sb.channel('rt').on('postgres_changes',{event:'*',schema:'public',table:'listings'},()=>{if(PAGE==='tradies')go('tradies');loadCounts();}).subscribe();
+}
+
+/* ===== audit + write helpers ===== */
+async function audit(action,target_type,target_id,reason){
+ await sb.from('admin_audit').insert({admin_id:USER.id,action,target_type,target_id:String(target_id),reason:reason||null});
+}
+function ask(title,sub,label,cb,danger){
+ $('modal').className='modal';
+ $('modal').innerHTML=`<h3>${esc(title)}</h3><p>${esc(sub)}</p><textarea id="reason" placeholder="${esc(label)}"></textarea>
+  <div class="mf"><button class="btn w" onclick="closeM()">Cancel</button><button class="btn ${danger?'r':'g'}" id="okbtn">Confirm</button></div>`;
+ $('ov').classList.add('on');$('okbtn').onclick=()=>{const r=$('reason').value.trim();cb(r);};setTimeout(()=>$('reason').focus(),60);
+}
+function modal(html,extra){const cls=extra===true?'wide':(extra||'');$('modal').className='modal'+(cls?' '+cls:'');$('modal').innerHTML=html;$('ov').classList.add('on');}
+function closeM(){$('ov').classList.remove('on');}
+$('ov').addEventListener('click',e=>{if(e.target===$('ov'))closeM();});
+document.addEventListener('keydown',e=>{if(e.key==='Escape')closeM();if((e.metaKey||e.ctrlKey)&&(e.key==='k'||e.key==='K')){e.preventDefault();if($('app').classList.contains('on'))gsearch();}});
+function toast(m){/* lightweight */ const d=document.createElement('div');d.textContent=m;d.style.cssText='position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#14161B;color:#fff;padding:11px 18px;border-radius:12px;font-size:13px;font-weight:600;z-index:200;box-shadow:0 12px 30px rgba(0,0,0,.3)';document.body.appendChild(d);setTimeout(()=>d.remove(),2200);}
+function toastAction(m,label,fn){const d=document.createElement('div');d.style.cssText='position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#14161B;color:#fff;padding:9px 10px 9px 18px;border-radius:12px;font-size:13px;font-weight:600;z-index:200;box-shadow:0 12px 30px rgba(0,0,0,.3);display:flex;align-items:center;gap:14px';const s=document.createElement('span');s.textContent=m;const b=document.createElement('button');b.textContent=label;b.style.cssText='background:#F2A222;color:#231700;border:0;border-radius:8px;padding:6px 13px;font-weight:700;cursor:pointer';const kill=()=>d.remove();b.onclick=()=>{kill();fn();};d.appendChild(s);d.appendChild(b);document.body.appendChild(d);setTimeout(kill,6000);}
+
+/* ── global search (⌘K) ── */
+let gsT=null;
+function gsearch(){
+ modal(`<div class="sfield" style="margin-bottom:4px"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg><input id="gsq" placeholder="Search tradies, customers, enquiries…" oninput="gsres()" autocomplete="off" style="font-size:15px;padding-top:13px;padding-bottom:13px"></div>
+  <div id="gsout" style="margin-top:6px;max-height:52vh;overflow:auto"></div>
+  <p style="color:var(--mut);font-size:11.5px;margin:8px 2px 0">Type at least 2 letters · Esc to close</p>`,'wide');
+ setTimeout(()=>{const e=$('gsq');if(e)e.focus();},60);
+}
+function gsrow(onclick,title,tag){return `<div onclick="${onclick}" style="display:flex;align-items:center;gap:10px;padding:9px 11px;border-radius:11px;cursor:pointer;transition:background .12s" onmouseover="this.style.background='var(--hover,rgba(0,0,0,.04))'" onmouseout="this.style.background=''"><b style="font-size:13.5px">${esc(title)}</b><span style="margin-left:auto;font-size:11px;font-weight:700;color:var(--mut);text-transform:uppercase;letter-spacing:.03em">${esc(tag)}</span></div>`;}
+function gsres(){
+ const q=val('gsq').trim();const out=$('gsout');if(!out)return;
+ if(q.length<2){out.innerHTML='';return;}
+ clearTimeout(gsT);
+ gsT=setTimeout(async()=>{
+  const like='%'+q+'%';
+  const [tr,us,en]=await Promise.all([
+   sb.from('listings').select('id,name,trade').is('deleted_at',null).ilike('name',like).limit(6),
+   sb.from('profiles').select('id,name,email').eq('role','customer').or(`name.ilike.${like},email.ilike.${like}`).limit(6),
+   sb.from('enquiries').select('id,from_name,message').ilike('from_name',like).limit(5)]);
+  const rows=[];
+  (tr.data||[]).forEach(t=>rows.push(gsrow(`closeM();openTradie('${t.id}')`,t.name||'Tradie','Tradie · '+(t.trade||''))));
+  (us.data||[]).forEach(u=>rows.push(gsrow(`closeM();openUser('${u.id}')`,u.name||u.email||'Customer','Customer')));
+  (en.data||[]).forEach(e=>rows.push(gsrow(`closeM();go('enq')`,e.from_name||'Enquiry','Enquiry')));
+  out.innerHTML=rows.length?rows.join(''):`<div class="empty" style="padding:18px">No matches for “${esc(q)}”.</div>`;
+ },200);
+}
+
+/* actions */
+async function hideListing(id,name){ask('Hide '+name+'?','Removes it from the app. Slot is held. Reason is logged.','Why are you hiding this?',async r=>{if(r.length<9){toast('Reason too short');return;}
+ const {error}=await sb.from('listings').update({status:'hidden'}).eq('id',id);if(error){toast(error.message);return;}await audit('listing_hidden','listing',id,r);closeM();go('tradies');toastAction('Listing hidden','Undo',()=>restoreListing(id,name));},true);}
+async function restoreListing(id,name){const {error}=await sb.from('listings').update({status:'approved'}).eq('id',id);if(error){toast(error.message);return;}await audit('listing_restored','listing',id,'restored from admin');toast('Restored');go('tradies');}
+async function undeleteListing(id){const {error}=await sb.from('listings').update({deleted_at:null,status:'approved'}).eq('id',id);if(error){toast(error.message);return;}await audit('listing_restored','listing',id,'undo delete');toast('Restored');go('tradies');}
+async function approveApp(id,name){ask('Approve '+name+'?','Creates their login + a live listing on the site, and emails them a code to set a password.','Note (optional)',async r=>{
+ const {data,error}=await sb.functions.invoke('approve-application',{body:{application_id:id}});
+ if(error||!data||!data.ok){toast((data&&data.error)||(error&&error.message)||'Approve failed');return;}
+ await audit('application_approved','application',id,r||'approved + provisioned');closeM();toast(data.already?'Already approved':'Approved — profile is live');go('apps');});}
+async function rejectApp(id,name){ask('Reject '+name+'?','This reason is shown to the applicant so they can fix it and resubmit. Audited.','Reason (what needs fixing to resubmit)',async r=>{if(r.length<5){toast('Add a reason');return;}
+ const {error}=await sb.from('applications').update({status:'rejected',rejection_reason:r,reviewed_at:new Date().toISOString()}).eq('id',id);if(error){toast(error.message);return;}await audit('application_rejected','application',id,r);closeM();toast('Rejected — reason saved');go('apps');},true);}
+async function reopenApp(id,name){ask('Re-open '+name+'?','Moves it back to Pending so they can resubmit or you can re-review. Audited.','Note (optional)',async r=>{const {error}=await sb.from('applications').update({status:'submitted',reviewed_at:null}).eq('id',id);if(error){toast(error.message);return;}await audit('application_reopened','application',id,r||'reopened');closeM();toast('Re-opened');go('apps');});}
+async function hideReview(id){ask('Hide this review?','Hidden reviews stay as evidence but are not shown. Reason is logged.','Why hide it?',async r=>{if(r.length<9){toast('Reason too short');return;}
+ const {error}=await sb.from('listing_reviews').update({hidden:true,hidden_reason:r,hidden_at:new Date().toISOString()}).eq('id',id);if(error){toast(error.message);return;}await audit('review_hidden','review',id,r);closeM();toast('Review hidden');go('reviews');},true);}
+async function resolveReport(id){ask('Resolve report?','Records the outcome for both sides and closes it. Audited.','Outcome (what you decided)',async r=>{if(r.length<5){toast('Add an outcome');return;}
+ const {error}=await sb.from('content_reports').update({status:'resolved',outcome:r,acted_at:new Date().toISOString(),assigned_to:USER.id}).eq('id',id);if(error){toast(error.message);return;}await audit('report_resolved','report',id,r);closeM();toast('Resolved');go('reports');});}
+
+/* ===== NAV + PAGES ===== */
+function go(p){PAGE=p;SEL.clear();if(window.HEALTH_TIMER){clearInterval(window.HEALTH_TIMER);window.HEALTH_TIMER=null;}document.querySelectorAll('.nv').forEach(n=>n.classList.toggle('on',n.dataset.p===p));
+ ({dash:pDash,tradies:pTradies,apps:pApps,enq:pEnq,jobs:pJobs,reviews:pReviews,reports:pReports,flags:pFlags,cust:pCust,money:pMoney,waitlist:pWaitlist,notifs:pNotifs,map:pMap,policies:pPolicies,settings:pSettings,security:pSecurity,moderation:pModeration,health:pHealth,audit:pAudit}[p])();}
+/* ── multi-select / bulk actions ── */
+let SEL=new Set();
+function selRow(cb){if(cb.checked)SEL.add(cb.value);else SEL.delete(cb.value);updateBulk();}
+function selAllRows(cb){document.querySelectorAll('.selbox').forEach(b=>{b.checked=cb.checked;if(cb.checked)SEL.add(b.value);else SEL.delete(b.value);});updateBulk();}
+function clearSel(){SEL.clear();document.querySelectorAll('.selbox').forEach(b=>b.checked=false);const a=$('selall');if(a)a.checked=false;updateBulk();}
+function updateBulk(){const bar=$('bulkbar');if(!bar)return;bar.style.display=SEL.size?'flex':'none';const n=$('bulkn');if(n)n.textContent=SEL.size;}
+async function bulkApprove(){const ids=[...SEL];if(!ids.length)return;ask(`Approve ${ids.length} application${ids.length>1?'s':''}?`,'Creates each tradie’s login + live listing, and logs each action.','Note (optional)',async r=>{closeM();let ok=0;for(const id of ids){const {data,error}=await sb.functions.invoke('approve-application',{body:{application_id:id}});if(!error&&data&&data.ok){ok++;await audit('application_approved','application',id,r||'bulk approve + provisioned');}}toast(ok+' approved — profiles live');pApps();});}
+async function bulkReject(){const ids=[...SEL];if(!ids.length)return;ask(`Reject ${ids.length} application${ids.length>1?'s':''}?`,'They will be told what was missing. Audited.','Reason (what was missing)',async r=>{if(r.length<5){toast('Add a reason');return;}closeM();for(const id of ids){const {error}=await sb.from('applications').update({status:'rejected',rejection_reason:r,reviewed_at:new Date().toISOString()}).eq('id',id);if(!error)await audit('application_rejected','application',id,r);}toast(ids.length+' rejected');pApps();},true);}
+async function bulkHide(){const ids=[...SEL];if(!ids.length)return;ask(`Hide ${ids.length} listing${ids.length>1?'s':''}?`,'They stop showing in the app until restored. Reason is logged.','Why are you hiding these?',async r=>{if(r.length<9){toast('Reason too short');return;}closeM();for(const id of ids){const {error}=await sb.from('listings').update({status:'hidden'}).eq('id',id);if(!error)await audit('listing_hidden','listing',id,r);}pTradies();toastAction(ids.length+' hidden','Undo',async()=>{for(const id of ids){await sb.from('listings').update({status:'approved'}).eq('id',id);await audit('listing_restored','listing',id,'bulk undo');}pTradies();});},true);}
+function loading(t){$('main').innerHTML=`<h2>${t}</h2><div class="subt">Loading live data…</div><div class="card" style="margin-top:14px">${'<div class="shim"></div>'.repeat(6)}</div>`;}
+function errBox(e){const msg=esc(e.message||e);const perm=/permission|denied|policy|RLS/i.test(msg);return `<div class="err">Couldn't load — ${msg}.${perm?' That table likely needs its admin read policy.':' Check your connection and try again.'}<div style="margin-top:10px"><button class="btn w" onclick="go(PAGE)">Retry</button></div></div>`;}
+/* ── sort any rendered table by clicking a header ── */
+function cellVal(tr,idx,type){const td=tr.children[idx];if(!td)return type==='num'?-Infinity:'';let t=(td.innerText||'').trim();if(type==='num'){const n=parseFloat(t.replace(/[^0-9.\-]/g,''));return isNaN(n)?-Infinity:n;}if(type==='date'){const d=Date.parse(t);return isNaN(d)?0:d;}return t.toLowerCase();}
+function sortBy(th,idx,type){const table=th.closest('table'),tb=table.querySelector('tbody');const rows=[...tb.querySelectorAll(':scope>tr')].filter(r=>!r.querySelector('.empty'));if(!rows.length)return;const dir=th.getAttribute('data-dir')==='asc'?'desc':'asc';table.querySelectorAll('th').forEach(h=>{h.removeAttribute('data-dir');const a=h.querySelector('.ar');if(a)a.textContent='';});th.setAttribute('data-dir',dir);const ar=th.querySelector('.ar');if(ar)ar.textContent=dir==='asc'?'▲':'▼';rows.sort((x,y)=>{const a=cellVal(x,idx,type),b=cellVal(y,idx,type);if(a<b)return dir==='asc'?-1:1;if(a>b)return dir==='asc'?1:-1;return 0;});rows.forEach(r=>tb.appendChild(r));}
+/* ── export the current table to CSV ── */
+function exportCSV(name){const t=$('main').querySelector('table');if(!t){toast('Nothing to export');return;}const rows=[...t.querySelectorAll('tr')].map(tr=>[...tr.children].map(td=>{if(td.querySelector('input[type=checkbox]'))return '';let s=(td.innerText||'').replace(/\s+/g,' ').trim();return '"'+s.replace(/"/g,'""')+'"';}).filter((_,i,a)=>true).join(','));const csv=rows.join('\n');const blob=new Blob([csv],{type:'text/csv'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name+'-'+new Date().toISOString().slice(0,10)+'.csv';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000);toast('Exported CSV');}
+/* ── editable area caps ── */
+function editCap(id,area,trade,cur){modal(`<h3>Cap · ${esc(area)} / ${esc(trade)}</h3><p style="color:var(--mut);font-size:12.5px;margin:4px 0 0">Max tradies allowed here before the area locks.</p><input id="capv" type="number" min="0" value="${cur}" style="margin-top:10px"><div class="mf"><button class="btn w" onclick="closeM()">Cancel</button><button class="btn g" onclick="saveCap('${id}')">Save cap</button></div>`);setTimeout(()=>{const e=$('capv');if(e){e.focus();e.select();}},60);}
+async function saveCap(id){const v=parseInt(val('capv'),10);if(isNaN(v)||v<0){toast('Enter a number');return;}const {error}=await sb.from('area_caps').update({max_tradies:v}).eq('id',id);if(error){toast(error.message);return;}await audit('area_cap_updated','area_cap',id,'max_tradies='+v);closeM();toast('Cap updated');MAPTAB='caps';pMap();}
+
+async function loadCounts(){
+ const cutoff=new Date(Date.now()+45*864e5).toISOString().slice(0,10);
+ const [tr,ap,en,cu,rp,fl]=await Promise.all([
+  sb.from('listings').select('*',{count:'exact',head:true}),
+  sb.from('applications').select('*',{count:'exact',head:true}).eq('status','submitted'),
+  sb.from('enquiries').select('*',{count:'exact',head:true}),
+  sb.from('profiles').select('*',{count:'exact',head:true}).eq('role','customer'),
+  sb.from('content_reports').select('*',{count:'exact',head:true}).eq('status','open'),
+  sb.from('listings').select('*',{count:'exact',head:true}).is('deleted_at',null).lt('insurance_expiry_date',cutoff)]);
+ $('c-tr').textContent=tr.count??'–';$('c-cu').textContent=cu.count??'–';$('c-en').textContent=en.count??'–';
+ // badges that mean "needs you" turn red when > 0
+ setBadge('c-ap',ap.count);setBadge('c-rp',rp.count);setBadge('c-fl',fl.count);
+}
+function setBadge(id,n){const el=$(id);if(!el)return;el.textContent=n??'–';const hot=(n||0)>0;el.style.background=hot?'rgba(224,74,58,.14)':'';el.style.color=hot?'#E04A3A':'';el.style.fontWeight=hot?'800':'';}
+
+function spark(vals,color){if(!vals||!vals.length)return '';const mn=Math.min(...vals),mx=Math.max(...vals),rng=(mx-mn)||1,n=vals.length;const pts=vals.map((v,i)=>`${(i/(n-1||1)*100).toFixed(1)},${(29-((v-mn)/rng)*26-1).toFixed(1)}`).join(' ');return `<svg class="spark" viewBox="0 0 100 30" preserveAspectRatio="none"><polyline points="${pts}" fill="none" stroke="${color}" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>`;}
+function lineChart(vals,labels){const w=620,h=210,pad=26,mx=Math.max(...vals,1),n=vals.length;const X=i=>pad+i/(n-1||1)*(w-pad*2),Y=v=>h-pad-(v/mx)*(h-pad*2);const line=vals.map((v,i)=>`${X(i).toFixed(1)},${Y(v).toFixed(1)}`).join(' ');const area=`${pad},${h-pad} ${line} ${(w-pad)},${h-pad}`;
+ return `<svg viewBox="0 0 ${w} ${h}" style="width:100%;height:auto;display:block"><polyline points="${area}" fill="rgba(58,111,240,.09)" stroke="none"/><polyline points="${line}" fill="none" stroke="#3A6FF0" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>${vals.map((v,i)=>`<circle cx="${X(i).toFixed(1)}" cy="${Y(v).toFixed(1)}" r="2.6" fill="#3A6FF0"/>`).join('')}</svg><div style="display:flex;justify-content:space-between;font-size:10.5px;color:var(--mut);padding:4px 22px 0">${labels.map(l=>`<span>${esc(l)}</span>`).join('')}</div>`;}
+async function pDash(){loading('Dashboard');try{
+ const now=Date.now(),d14=new Date(now-14*864e5).toISOString(),dayAgo=new Date(now-864e5).toISOString(),d7=new Date(now-7*864e5).toISOString();
+ const [lst,subs,bk,app,rep,ev,enq,wl]=await Promise.all([
+  sb.from('listings').select('status,trade,deleted_at,joined_at,rating'),
+  sb.from('subscriptions').select('status'),
+  sb.from('bookings').select('status,created_at'),
+  sb.from('applications').select('status'),
+  sb.from('content_reports').select('status'),
+  sb.from('app_events').select('created_at,session_id,event_type,page').gt('created_at',d14).order('created_at',{ascending:true}),
+  sb.from('enquiries').select('created_at'),
+  sb.from('waitlist_signups').select('*',{count:'exact',head:true})]);
+ if(lst.error)throw lst.error;
+ const listings=(lst.data||[]).filter(l=>!l.deleted_at);
+ const live=listings.filter(l=>l.status==='approved').length;
+ const activeSubs=(subs.data||[]).filter(s=>s.status==='active').length;
+ const pending=(app.data||[]).filter(a=>a.status==='submitted').length;
+ const openRep=(rep.data||[]).filter(r=>r.status!=='resolved').length;
+ const newTr7=listings.filter(l=>l.joined_at&&l.joined_at>d7).length;
+ const enqAll=(enq.data||[]).length,enq7=(enq.data||[]).filter(e=>e.created_at>d7).length;
+ const bookingsTotal=(bk.data||[]).length,jobsDone=(bk.data||[]).filter(b=>b.status==='completed').length;
+ const rated=listings.filter(l=>l.rating>0),avgRating=rated.length?rated.reduce((s,l)=>s+(+l.rating||0),0)/rated.length:0;
+ const waitlist=wl.count||0;
+ const days=[];for(let i=13;i>=0;i--){const dt=new Date(now-i*864e5);days.push({key:dt.toISOString().slice(0,10),lbl:dt.toLocaleDateString('en-AU',{day:'numeric',month:'short'}),set:new Set()});}
+ (ev.data||[]).forEach(e=>{const d=days.find(x=>x.key===(e.created_at||'').slice(0,10));if(d)d.set.add(e.session_id);});
+ const series=days.map(d=>d.set.size);
+ const activeToday=new Set((ev.data||[]).filter(e=>e.created_at>dayAgo).map(e=>e.session_id)).size;
+ const tc={};listings.forEach(l=>{if(l.trade)tc[l.trade]=(tc[l.trade]||0)+1;});
+ const top=Object.entries(tc).sort((a,b)=>b[1]-a[1]).slice(0,6),topMax=top.length?top[0][1]:1;
+ const recent=(ev.data||[]).slice(-10).reverse();
+ const labels=[days[0].lbl,days[4].lbl,days[7].lbl,days[10].lbl,days[13].lbl];
+ const a=series.slice(0,7).reduce((x,y)=>x+y,0),b=series.slice(7).reduce((x,y)=>x+y,0),t7=a?Math.round((b-a)/a*100):0;
+ const cards=[
+  dashOn('mrr')&&`<div class="mcard"><div class="l">MRR</div><div class="v">$${activeSubs*subPrice()}</div><div class="tr up">${activeSubs} active subscriptions</div>${spark(series,'#1FA463')}</div>`,
+  dashOn('tradies')&&`<div class="mcard"><div class="l">Live tradies</div><div class="v">${live}</div><div class="tr up">${listings.length} listings total</div>${spark(series,'#3A6FF0')}</div>`,
+  dashOn('newtr')&&`<div class="mcard"><div class="l">New tradies · 7d</div><div class="v">${newTr7}</div><div class="tr up">joined this week</div></div>`,
+  dashOn('bookings')&&`<div class="mcard"><div class="l">Bookings</div><div class="v">${bookingsTotal}</div><div class="tr up">all time</div>${spark(series,'#7A5CE0')}</div>`,
+  dashOn('jobsdone')&&`<div class="mcard"><div class="l">Jobs completed</div><div class="v">${jobsDone}</div><div class="tr up">of ${bookingsTotal} booked</div></div>`,
+  dashOn('enq7')&&`<div class="mcard"><div class="l">Enquiries · 7d</div><div class="v">${enq7}</div><div class="tr up">${enqAll} all time</div></div>`,
+  dashOn('rating')&&`<div class="mcard"><div class="l">Avg rating</div><div class="v">${avgRating?avgRating.toFixed(2):'—'}</div><div class="tr up">${rated.length} rated tradies</div></div>`,
+  dashOn('active')&&`<div class="mcard"><div class="l">Active today</div><div class="v">${activeToday}</div><div class="tr ${t7>=0?'up':'dn'}">${t7>=0?'▲':'▼'} ${Math.abs(t7)}% vs prior week</div>${spark(series,'#F2A222')}</div>`,
+  dashOn('waitlist')&&`<div class="mcard"><div class="l">Waitlist</div><div class="v">${waitlist}</div><div class="tr up">signups</div></div>`,
+  dashOn('pendapp')&&`<div class="mcard"><div class="l">Pending apps</div><div class="v">${pending}</div><div class="tr ${pending?'dn':'up'}">${pending?'need review':'all clear'}</div></div>`,
+  dashOn('openrep')&&`<div class="mcard"><div class="l">Open reports</div><div class="v" style="${openRep?'color:var(--red)':''}">${openRep}</div><div class="tr ${openRep?'dn':'up'}">${openRep?'action needed':'none open'}</div></div>`
+ ].filter(Boolean).join('');
+ const chartW=dashOn('chart')?`<div class="card"><div class="ch">App activity · 14 days<span style="margin-left:auto;font-size:11px;color:var(--mut)">unique sessions / day</span></div><div style="padding:14px 6px 8px">${lineChart(series,labels)}</div></div>`:'';
+ const topW=dashOn('top')?`<div class="card"><div class="ch">Top trades</div><div style="padding:10px 18px">${top.length?top.map(([n,v])=>`<div class="barrow"><span class="bn">${esc(n)}</span><span class="bt"><i style="width:${Math.round(v/topMax*100)}%"></i></span><span class="bv">${v}</span></div>`).join(''):'<div class="empty">No listings.</div>'}</div></div>`:'';
+ const recentW=dashOn('recent')?`<div class="card"><div class="ch">Recent activity</div><div class="feed" style="padding:6px 18px">${recent.length?recent.map(e=>`<div class="fr"><span class="fd"></span><span class="ft">${esc(e.event_type||'event')}${e.page?' · <span class="mut">'+esc(e.page)+'</span>':''}</span><span class="fm">${ago(e.created_at)}</span></div>`).join(''):'<div class="empty">No recent events.</div>'}</div></div>`:'';
+ const attW=dashOn('attention')?`<div class="card"><div class="ch">Needs attention</div><div style="padding:6px 18px"><div class="arow" onclick="go('reports')"><b>Open reports</b><span class="n" style="color:${openRep?'var(--red)':'var(--mut)'}">${openRep}</span></div><div class="arow" onclick="go('apps')"><b>Pending applications</b><span class="n">${pending}</span></div><div class="arow" onclick="go('expiring')"><b>Insurance expiring</b><span class="n" style="color:var(--goldd)">Review</span></div></div></div>`:'';
+ const tItems=[];
+ if(openRep>0)tItems.push(['reports',`${openRep} open report${openRep>1?'s':''}`,'var(--red)']);
+ if(pending>0)tItems.push(['apps',`${pending} application${pending>1?'s':''} to review`,'var(--goldd)']);
+ tItems.push(['expiring','Check insurance expiries','var(--mut)']);
+ const todayW=dashOn('today')?`<div class="card" style="padding:14px 18px;margin-bottom:14px"><div style="display:flex;align-items:center;gap:8px;margin-bottom:10px"><b style="font-size:14px">Today</b><span class="mut" style="font-size:12px">what needs you</span></div><div style="display:flex;gap:9px;flex-wrap:wrap">${tItems.map(([p,t,c])=>`<button class="btn w" onclick="go('${p}')" style="border-color:${c};color:${c}">${esc(t)}</button>`).join('')}</div></div>`:'';
+ $('main').innerHTML=`<div style="display:flex;align-items:flex-start"><div><h2>Dashboard</h2><div class="subt">Live from ${esc(SB_URL.replace('https://',''))} · 2FA-gated admin</div></div><button class="btn w" style="margin-left:auto" onclick="customiseDash()">Customise</button></div>
+  ${todayW}
+  ${cards?`<div class="mgrid">${cards}</div>`:''}
+  ${(chartW||topW)?`<div class="d2">${chartW||'<div></div>'}${topW||'<div></div>'}</div>`:''}
+  ${(recentW||attW)?`<div class="d2">${recentW||'<div></div>'}${attW||'<div></div>'}</div>`:''}`;
+}catch(e){$('main').innerHTML='<h2>Dashboard</h2>'+errBox(e);}}
+
+let TRD=[],TRDF={q:'',trade:'',area:'',rating:0};
+async function pTradies(){loading('Tradies');try{
+ const {data,error}=await sb.from('listings').select('id,name,trade,suburb,postcode,area_key,rating,review_count,status,insured,stat_jobs_complete').is('deleted_at',null).order('name');if(error)throw error;
+ TRD=data||[];trdShell();trdRender();
+}catch(e){$('main').innerHTML='<h2>Tradies</h2>'+errBox(e);}}
+function trdShell(){
+ const trades=[...new Set(TRD.map(t=>t.trade).filter(Boolean))].sort();
+ const areas=[...new Set(TRD.map(t=>t.suburb).filter(Boolean))].sort();
+ const opt=(arr,cur)=>arr.map(v=>`<option value="${esc(v)}" ${cur===v?'selected':''}>${esc(v)}</option>`).join('');
+ $('main').innerHTML=`<div style="display:flex;align-items:flex-start"><div><h2>Tradies</h2><div class="subt">Search and filter · click a column to sort</div></div><button class="btn w" style="margin-left:auto" onclick="exportCSV('tradies')">Export CSV</button></div>
+  <div class="fbar">
+   <div class="sfield" style="flex:1;min-width:220px"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg><input id="trd_q" placeholder="Search name, trade, suburb, postcode…" value="${esc(TRDF.q)}" oninput="TRDF.q=this.value;trdRender()"></div>
+   <select onchange="TRDF.trade=this.value;trdRender()"><option value="">All trades</option>${opt(trades,TRDF.trade)}</select>
+   <select onchange="TRDF.area=this.value;trdRender()"><option value="">All areas</option>${opt(areas,TRDF.area)}</select>
+   <select onchange="TRDF.rating=+this.value;trdRender()"><option value="0">Any rating</option><option value="3" ${TRDF.rating===3?'selected':''}>3★ +</option><option value="4" ${TRDF.rating===4?'selected':''}>4★ +</option><option value="4.5" ${TRDF.rating===4.5?'selected':''}>4.5★ +</option></select>
+  </div>
+  <div id="bulkbar" class="bulkbar" style="display:none"><b id="bulkn">0</b><span>selected</span><button class="btn r" onclick="bulkHide()">Hide selected</button><button class="btn w" onclick="clearSel()">Clear</button></div>
+  <div class="card"><table><thead><tr><th style="width:34px"><input type="checkbox" id="selall" onclick="selAllRows(this)" style="width:16px;height:16px;cursor:pointer"></th><th class="srt" onclick="sortBy(this,1,'text')">Name <span class="ar"></span></th><th class="srt" onclick="sortBy(this,2,'text')">Trade / area <span class="ar"></span></th><th class="srt" onclick="sortBy(this,3,'num')">Rating <span class="ar"></span></th><th class="srt" onclick="sortBy(this,4,'num')">Jobs <span class="ar"></span></th><th class="srt" onclick="sortBy(this,5,'text')">Status <span class="ar"></span></th><th class="right">Action</th></tr></thead><tbody id="trd_rows"></tbody></table></div>
+  <div class="subt" id="trd_count" style="margin-top:10px"></div>`;}
+function trdRender(){
+ const q=(TRDF.q||'').toLowerCase();
+ const rows=TRD.filter(t=>{
+   if(TRDF.trade&&t.trade!==TRDF.trade)return false;
+   if(TRDF.area&&t.suburb!==TRDF.area)return false;
+   if(TRDF.rating&&!(+t.rating>=TRDF.rating))return false;
+   if(q){const hay=((t.name||'')+' '+(t.trade||'')+' '+(t.suburb||'')+' '+(t.postcode||'')).toLowerCase();if(!hay.includes(q))return false;}
+   return true;});
+ const tb=$('trd_rows');if(tb)tb.innerHTML=rows.map(t=>`<tr><td><input type="checkbox" class="selbox" value="${t.id}" onclick="selRow(this)"></td><td><b style="cursor:pointer;color:var(--goldd)" onclick="openTradie('${t.id}')">${esc(t.name)}</b></td><td>${esc(t.trade||'—')}<br><span class="mut" style="font-size:12px">${esc(t.suburb||'')} ${esc(t.postcode||'')}</span></td><td>${t.rating?'<b>'+t.rating+'</b> <span class="mut">('+(t.review_count||0)+')</span>':'<span class="mut">—</span>'}</td><td class="mono">${t.stat_jobs_complete??0}</td><td>${t.status==='approved'?'<span class="pill g">Live</span>':t.status==='hidden'?'<span class="pill r">Hidden</span>':'<span class="pill n">'+esc(t.status||'—')+'</span>'}${t.insured?'':' <span class="pill a">no ins</span>'}</td><td class="right">${t.status==='hidden'?`<button class="btn g" onclick="restoreListing('${t.id}','${esc(t.name)}')">Restore</button>`:`<button class="btn r" onclick="hideListing('${t.id}','${esc(t.name)}')">Hide</button>`}</td></tr>`).join('')||'<tr><td colspan=7 class="empty">No tradies match these filters.</td></tr>';
+ const c=$('trd_count');if(c)c.textContent=rows.length+' of '+TRD.length+' listings';}
+
+let APPTAB='submitted';
+function appTab(t){APPTAB=t;pApps();}
+async function pApps(){loading('Applications');try{
+ const {data,error}=await sb.from('applications').select('id,business_name,full_name,trade,location,status,created_at,insured,licence,public_liability_amount,rejection_reason').order('created_at',{ascending:false});if(error)throw error;
+ const counts={submitted:0,rejected:0,approved:0};(data||[]).forEach(a=>{if(counts[a.status]!=null)counts[a.status]++;});
+ const rows=(data||[]).filter(a=>APPTAB==='all'?true:a.status===APPTAB);
+ const isRej=APPTAB==='rejected';
+ const tab=(k,lbl,n)=>`<div class="${APPTAB===k?'on':''}" onclick="appTab('${k}')">${lbl}${n!=null?` <span class="mut" style="font-weight:700">${n}</span>`:''}</div>`;
+ $('main').innerHTML=`<h2>Applications</h2><div class="subt">${(data||[]).length} total · live from signup</div>
+  <div class="tabs">${tab('submitted','Pending',counts.submitted)}${tab('rejected','Rejected',counts.rejected)}${tab('approved','Approved',counts.approved)}${tab('all','All')}</div>
+  <div id="bulkbar" class="bulkbar" style="display:none"><b id="bulkn">0</b><span>selected</span><button class="btn g" onclick="bulkApprove()">Approve selected</button><button class="btn r" onclick="bulkReject()">Reject selected</button><button class="btn w" onclick="clearSel()">Clear</button></div>
+  <div class="card"><table><thead><tr><th style="width:34px"><input type="checkbox" id="selall" onclick="selAllRows(this)" style="width:16px;height:16px;cursor:pointer"></th><th>Applicant</th><th>Trade / area</th><th>Licence</th><th>Insurance</th>${isRej?'<th>Reason given (shown to applicant)</th>':'<th>Status</th>'}<th class="right">Action</th></tr></thead><tbody>
+  ${rows.map(a=>{const nm=(a.business_name||a.full_name||'—');const ok=a.insured&&a.licence;return `<tr><td>${a.status==='submitted'?`<input type="checkbox" class="selbox" value="${a.id}" onclick="selRow(this)">`:''}</td><td><b style="cursor:pointer;color:var(--goldd)" onclick="openApplication('${a.id}')">${esc(nm)}</b><br><span class="mut" style="font-size:12px">${esc(a.full_name||'')}</span></td>
+   <td>${esc(a.trade||'—')}<br><span class="mut" style="font-size:12px">${esc(a.location||'')}</span></td>
+   <td>${a.licence?'<span class="pill g">Yes</span>':'<span class="pill r">No</span>'}</td>
+   <td>${a.insured?'<span class="pill g">Insured</span>':'<span class="pill r">No</span>'}</td>
+   ${isRej?`<td class="mut" style="max-width:300px;font-size:12.5px">${esc(a.rejection_reason||'— (no reason recorded)')}</td>`:`<td>${a.status==='submitted'?'<span class="pill a">Pending</span>':a.status==='approved'?'<span class="pill g">Approved</span>':a.status==='rejected'?'<span class="pill r">Rejected</span>':'<span class="pill n">'+esc(a.status||'—')+'</span>'}</td>`}
+   <td class="right">${a.status==='submitted'?`<button class="btn g" ${ok?'':'disabled title="needs licence + insurance" style="opacity:.5"'} onclick="approveApp('${a.id}','${esc(nm)}')">Approve</button> <button class="btn r" onclick="rejectApp('${a.id}','${esc(nm)}')">Reject</button>`:a.status==='rejected'?`<button class="btn w" onclick="reopenApp('${a.id}','${esc(nm)}')">Re-open</button>`:'<span class="mut">—</span>'}</td></tr>`;}).join('')||`<tr><td colspan=7 class="empty">No ${APPTAB==='all'?'':(APPTAB==='submitted'?'pending':esc(APPTAB))+' '}applications.</td></tr>`}
+  </tbody></table></div>`;
+}catch(e){$('main').innerHTML='<h2>Applications</h2>'+errBox(e);}}
+async function openApplication(id){loading('Application');try{
+ const {data:a,error}=await sb.from('applications').select('*').eq('id',id).single();if(error)throw error;
+ const nm=a.business_name||a.full_name||'—';const okApprove=a.insured&&a.licence;const sig=a.signature_image_url;const svc=Array.isArray(a.services)?a.services:[];
+ const bh=(a.business_hours&&(a.business_hours.text||a.business_hours))||null;
+ $('main').innerHTML=`<div style="margin-bottom:12px"><a class="mut" style="cursor:pointer" onclick="go('apps')">← Applications</a></div>
+  <div style="display:flex;align-items:center;gap:12px;margin-bottom:8px;flex-wrap:wrap"><h2>${esc(nm)}</h2>
+   ${a.status==='submitted'?'<span class="pill a">Pending</span>':a.status==='approved'?'<span class="pill g">Approved</span>':a.status==='rejected'?'<span class="pill r">Rejected</span>':'<span class="pill n">'+esc(a.status||'—')+'</span>'}
+   ${a.insured?'<span class="pill g">Insured</span>':'<span class="pill r">No insurance</span>'}${a.licence?'<span class="pill b">Licence</span>':'<span class="pill r">No licence</span>'}
+   <span style="margin-left:auto"></span>
+   ${a.status==='submitted'?`<button class="btn g" ${okApprove?'':'disabled title="needs licence + insurance" style="opacity:.5"'} onclick="approveApp('${a.id}','${esc(nm)}')">Approve</button> <button class="btn r" onclick="rejectApp('${a.id}','${esc(nm)}')">Reject</button>`:a.status==='rejected'?`<button class="btn w" onclick="reopenApp('${a.id}','${esc(nm)}')">Re-open</button>`:''}
+  </div>
+  <div class="subt">${esc(a.trade||'—')} · ${esc(a.location||'')} · applied ${fmtDate(a.created_at)}</div>
+  ${a.status==='rejected'&&a.rejection_reason?`<div class="card" style="border-color:rgba(232,69,60,.3)"><div class="ch">Rejection reason (shown to applicant)</div><div style="padding:12px 18px;font-size:13.5px;color:var(--ink2)">${esc(a.rejection_reason)}</div></div>`:''}
+  <div class="card"><div class="ch">Applicant</div><div style="padding:6px 18px">${kv('Full name',a.full_name)}${kv('Email',a.email)}${kv('Phone',a.phone)}${kv('Languages',a.languages_spoken)}${kv('Photo ID',a.id_type)}${kv('Heard about us',a.heard_about)}</div></div>
+  <div class="card"><div class="ch">Business</div><div style="padding:6px 18px">${kv('Business name',a.business_name)}${kv('ABN',a.abn)}${kv('Address',a.business_address)}${kv('Location',a.location)}${kv('Years experience',a.years_experience)}${kv('Years in business',a.years_in_business)}${kv('Team size',a.team_size)}${kv('Service radius',a.service_radius)}${kv('Business hours',bh)}</div></div>
+  <div class="card"><div class="ch">Licence &amp; insurance</div><div style="padding:6px 18px">${kv('Licensing body',a.licensing_body)}${kv('Licence number',a.licence_number)}${kv('Licence class',a.licence)}${kv('Insurer',a.insurance_type)}${kv('Policy number',a.insurance_policy_number)}${kv('Public liability',a.public_liability_amount)}${kv('Insurance expiry',a.insurance_expiry)}${kv('Additional certs',a.additional_certifications)}</div></div>
+  <div class="card"><div class="ch">Background checks</div><div style="padding:6px 18px">${kv('WWCC held',a.wwcc_held?'Yes':'No')}${kv('WWCC number',a.wwcc_number)}${kv('Police check',a.police_check_held?'Yes':'No')}</div></div>
+  ${svc.length?`<div class="card"><div class="ch">Services they take on</div><div style="padding:14px 18px;display:flex;flex-wrap:wrap;gap:7px">${svc.map(s=>`<span class="pill n">${esc(s)}</span>`).join('')}</div></div>`:''}
+  ${(a.scenario_price||a.scenario_notes)?`<div class="card"><div class="ch">Pricing scenario</div><div style="padding:6px 18px">${kv('Their price',a.scenario_price?'$'+esc(a.scenario_price):'—')}${a.scenario_notes?`<div style="font-size:13.5px;color:var(--ink2);padding:10px 0;line-height:1.55">${esc(a.scenario_notes)}</div>`:''}</div></div>`:''}
+  <div class="card"><div class="ch">Signature</div><div style="padding:16px 18px">${sig?`<img src="${esc(sig)}" style="max-width:280px;background:#fff;border:1px solid var(--line2);border-radius:10px">`:'<span class="mut">Not signed</span>'}<div class="mut" style="font-size:12.5px;margin-top:8px">${esc(a.signature_name||'')}${a.signed_at?' · '+fmtDate(a.signed_at):''}${a.terms_agreed?' · agreed to terms':''}</div></div></div>`;
+}catch(e){$('main').innerHTML='<h2>Application</h2>'+errBox(e);}}
+
+let ENQ=[],ENQF={q:'',range:'all',from:'',to:''};
+async function pEnq(){loading('Enquiries');try{
+ const {data,error}=await sb.from('enquiries').select('id,from_name,from_town,urgency,message,status,stage,created_at').order('created_at',{ascending:false}).limit(500);if(error)throw error;
+ ENQ=data||[];enqShell();enqRender();
+}catch(e){$('main').innerHTML='<h2>Enquiries</h2>'+errBox(e);}}
+function enqShell(){
+ const rb=(k,l)=>`<button class="${ENQF.range===k?'on':''}" onclick="enqRange('${k}')">${l}</button>`;
+ $('main').innerHTML=`<h2>Enquiries</h2><div class="subt">Search and filter by date · one enquiry, one tradie</div>
+  <div class="fbar">
+   <div class="sfield" style="flex:1;min-width:240px"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg><input id="enq_q" placeholder="Search name, town or message…" value="${esc(ENQF.q)}" oninput="ENQF.q=this.value;enqRender()"></div>
+   <div class="seg">${rb('all','All')}${rb('today','Today')}${rb('7d','Week')}${rb('30d','Month')}${rb('365d','Year')}</div>
+   <div style="display:flex;gap:6px;align-items:center;font-size:12px;color:var(--mut)">From<input id="enq_from" class="dinp" type="date" value="${ENQF.from}" onchange="enqCustom()"> to<input id="enq_to" class="dinp" type="date" value="${ENQF.to}" onchange="enqCustom()"></div>
+  </div>
+  <div class="card"><table><thead><tr><th>From</th><th>Area</th><th>Urgency</th><th>Message</th><th>Status</th><th>When</th></tr></thead><tbody id="enq_rows"></tbody></table></div>
+  <div class="subt" id="enq_count" style="margin-top:10px"></div>`;}
+function enqRange(k){ENQF.range=k;ENQF.from='';ENQF.to='';enqShell();enqRender();}
+function enqCustom(){ENQF.from=val('enq_from');ENQF.to=val('enq_to');ENQF.range='custom';enqShell();enqRender();}
+function enqRender(){
+ const q=(ENQF.q||'').toLowerCase();const now=Date.now();let lo=null;
+ if(ENQF.range==='today')lo=new Date().setHours(0,0,0,0);else if(ENQF.range==='7d')lo=now-7*864e5;else if(ENQF.range==='30d')lo=now-30*864e5;else if(ENQF.range==='365d')lo=now-365*864e5;
+ const fromT=ENQF.from?new Date(ENQF.from+'T00:00:00').getTime():null,toT=ENQF.to?new Date(ENQF.to+'T23:59:59').getTime():null;
+ const rows=ENQ.filter(e=>{const t=new Date(e.created_at).getTime();if(lo&&t<lo)return false;if(fromT&&t<fromT)return false;if(toT&&t>toT)return false;if(q){const hay=((e.from_name||'')+' '+(e.from_town||'')+' '+(e.message||'')).toLowerCase();if(!hay.includes(q))return false;}return true;});
+ const tb=$('enq_rows');if(tb)tb.innerHTML=rows.map(e=>`<tr onclick="openEnq('${e.id}')" style="cursor:pointer"><td><b>${esc(e.from_name||'—')}</b></td><td>${esc(e.from_town||'—')}</td><td>${e.urgency?'<span class="pill '+(String(e.urgency).toLowerCase().includes('urgent')?'r':'n')+'">'+esc(e.urgency)+'</span>':'—'}</td><td class="mut" style="max-width:280px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(e.message||'')}</td><td>${esc(e.stage||e.status||'—')}</td><td class="mut">${ago(e.created_at)}</td></tr>`).join('')||'<tr><td colspan=6 class="empty">No enquiries match these filters.</td></tr>';
+ const c=$('enq_count');if(c)c.textContent=rows.length+' of '+ENQ.length+' enquiries';}
+
+async function openEnq(id){loading('Enquiry');try{
+ const {data:e,error}=await sb.from('enquiries').select('*').eq('id',id).single();if(error)throw error;
+ let tradie=null;if(e.listing_id){const r=await sb.from('listings').select('name,trade').eq('id',e.listing_id).maybeSingle();tradie=r.data;}
+ const pill=e.urgency?`<span class="pill ${String(e.urgency).toLowerCase().includes('urgent')?'r':'n'}">${esc(e.urgency)}</span>`:'—';
+ $('main').innerHTML=`<div style="display:flex;align-items:flex-start"><div><h2>${esc(e.from_name||'Enquiry')}</h2><div class="subt">Enquiry · ${esc(e.from_town||'—')} · ${ago(e.created_at)}</div></div>
+   <button class="btn w" style="margin-left:auto" onclick="go('enq')">← Enquiries</button></div>
+  <div class="mgrid"><div class="mcard"><div class="l">Urgency</div><div class="v" style="font-size:18px">${pill}</div></div>
+   <div class="mcard"><div class="l">Stage</div><div class="v" style="font-size:18px">${esc(e.stage||e.status||'—')}</div></div>
+   <div class="mcard"><div class="l">Routed to</div><div class="v" style="font-size:18px">${tradie?esc(tradie.name):'—'}</div></div></div>
+  <div class="card"><div class="ch">Message</div><div style="padding:14px 18px;line-height:1.55">${esc(e.message||'—')}</div></div>
+  <div class="card"><div class="ch">Details</div><table><tbody>
+   <tr><td class="mut">From</td><td><b>${esc(e.from_name||'—')}</b></td></tr>
+   <tr><td class="mut">Town</td><td>${esc(e.from_town||'—')}</td></tr>
+   ${e.from_email?`<tr><td class="mut">Email</td><td>${esc(e.from_email)}</td></tr>`:''}
+   ${e.from_phone?`<tr><td class="mut">Phone</td><td>${esc(e.from_phone)}</td></tr>`:''}
+   ${tradie?`<tr><td class="mut">Tradie</td><td>${esc(tradie.name)} · ${esc(tradie.trade||'')}</td></tr>`:''}
+   <tr><td class="mut">Received</td><td>${fmtDate(e.created_at)}</td></tr></tbody></table></div>`;
+}catch(err){$('main').innerHTML='<h2>Enquiry</h2>'+errBox(err);}}
+async function openJob(id){loading('Job');try{
+ const {data:b,error}=await sb.from('bookings').select('*').eq('id',id).single();if(error)throw error;
+ let tradie=null,cust=null;const custId=b.customer_id||b.user_id||b.homeowner_id;
+ if(b.listing_id){const r=await sb.from('listings').select('name,trade,suburb').eq('id',b.listing_id).maybeSingle();tradie=r.data;}
+ if(custId){const r=await sb.from('profiles').select('id,name,email').eq('id',custId).maybeSingle();cust=r.data;}
+ const st=b.status==='completed'?'<span class="pill g">Completed</span>':b.status==='disputed'?'<span class="pill r">Disputed</span>':'<span class="pill b">'+esc(b.status||'—')+'</span>';
+ $('main').innerHTML=`<div style="display:flex;align-items:flex-start"><div><h2>${esc(b.job_title||'Job')}</h2><div class="subt">Job · ${ago(b.created_at)}</div></div>
+   <button class="btn w" style="margin-left:auto" onclick="go('jobs')">← Jobs</button></div>
+  <div class="mgrid"><div class="mcard"><div class="l">Status</div><div class="v" style="font-size:18px">${st}</div></div>
+   <div class="mcard"><div class="l">Tradie</div><div class="v" style="font-size:18px">${tradie?esc(tradie.name):'—'}</div></div>
+   <div class="mcard"><div class="l">Customer</div><div class="v" style="font-size:18px">${cust?esc(cust.name||cust.email||'—'):'—'}</div></div></div>
+  <div class="card"><div class="ch">Details</div><table><tbody>
+   <tr><td class="mut">Job</td><td><b>${esc(b.job_title||'—')}</b></td></tr>
+   ${tradie?`<tr><td class="mut">Tradie</td><td>${esc(tradie.name)} · ${esc(tradie.trade||'')}${tradie.suburb?' · '+esc(tradie.suburb):''}</td></tr>`:''}
+   ${cust?`<tr><td class="mut">Customer</td><td><b style="cursor:pointer;color:var(--goldd)" onclick="openUser('${cust.id}')">${esc(cust.name||'—')}</b>${cust.email?' · '+esc(cust.email):''}</td></tr>`:''}
+   ${b.slot_start?`<tr><td class="mut">Scheduled</td><td>${fmtDate(b.slot_start)}</td></tr>`:''}
+   <tr><td class="mut">Created</td><td>${fmtDate(b.created_at)}</td></tr></tbody></table></div>`;
+}catch(err){$('main').innerHTML='<h2>Job</h2>'+errBox(err);}}
+async function openReport(id){loading('Report');try{
+ const {data:r,error}=await sb.from('content_reports').select('*').eq('id',id).single();if(error)throw error;
+ async function who(uid){if(!uid)return null;const x=await sb.from('profiles').select('name,email,role').eq('id',uid).maybeSingle();return x.data;}
+ const reporter=await who(r.reporter_id||r.reported_by||r.from_user_id);
+ const subject=await who(r.reported_user_id||r.subject_id||r.against_user_id);
+ let listing=null;const lid=r.listing_id||r.target_id;if(lid){const x=await sb.from('listings').select('id,name,trade').eq('id',lid).maybeSingle();listing=x.data;}
+ const st=r.status==='resolved'?'<span class="pill g">Resolved</span>':'<span class="pill a">'+esc(r.status||'open')+'</span>';
+ $('main').innerHTML=`<div style="display:flex;align-items:flex-start"><div><h2>Report · ${esc(r.content_type||'content')}</h2><div class="subt">${esc(r.reason||'')} · ${ago(r.created_at)}</div></div>
+   <button class="btn w" style="margin-left:auto" onclick="go('reports')">← Reports</button></div>
+  <div class="mgrid"><div class="mcard"><div class="l">Status</div><div class="v" style="font-size:18px">${st}</div></div>
+   <div class="mcard"><div class="l">Type</div><div class="v" style="font-size:18px">${esc(r.content_type||'—')}</div></div>
+   <div class="mcard"><div class="l">Reason</div><div class="v" style="font-size:15px">${esc(r.reason||'—')}</div></div></div>
+  <div class="d2">
+   <div class="card"><div class="ch">Reporter</div><div style="padding:12px 18px">${reporter?`<b>${esc(reporter.name||'—')}</b><br><span class="mut">${esc(reporter.email||'')} · ${esc(reporter.role||'')}</span>`:'<span class="mut">Not linked to a profile</span>'}</div></div>
+   <div class="card"><div class="ch">Reported party</div><div style="padding:12px 18px">${subject?`<b>${esc(subject.name||'—')}</b><br><span class="mut">${esc(subject.email||'')} · ${esc(subject.role||'')}</span>`:(listing?`<b style="cursor:pointer;color:var(--goldd)" onclick="openTradie('${listing.id}')">${esc(listing.name)}</b><br><span class="mut">${esc(listing.trade||'')}</span>`:'<span class="mut">Not linked</span>')}</div></div>
+  </div>
+  <div class="card"><div class="ch">What was reported</div><div style="padding:14px 18px;line-height:1.55">${esc(r.details||r.description||'No extra detail provided.')}</div></div>
+  ${r.status==='resolved'
+    ?`<div class="card"><div class="ch">Outcome (recorded for both sides)</div><div style="padding:14px 18px;line-height:1.55">${esc(r.outcome||'—')}<div class="mut" style="margin-top:6px;font-size:12px">Actioned ${r.acted_at?fmtDate(r.acted_at):'—'}</div></div></div>`
+    :`<div class="card"><div style="padding:16px 18px;display:flex;gap:12px;align-items:center;flex-wrap:wrap"><b>Decide outcome</b><span class="mut" style="font-size:12px;margin-right:auto">Records one outcome for both parties and closes the report. Audited.</span><button class="btn g" onclick="resolveReport('${r.id}')">Resolve report</button></div></div>`}`;
+}catch(err){$('main').innerHTML='<h2>Report</h2>'+errBox(err);}}
+let REV=[],REVPEER=null,REVTAB='customer',REVF={q:'',star:0,range:'all'};
+async function pReviews(){loading('Reviews');try{
+ const {data,error}=await sb.from('listing_reviews').select('id,from_name,rating,review_text,source,hidden,created_at,listing_id').order('created_at',{ascending:false}).limit(500);if(error)throw error;
+ REV=data||[];REVTAB='customer';revShell();
+}catch(e){$('main').innerHTML='<h2>Reviews</h2>'+errBox(e);}}
+async function revTab(k){REVTAB=k;if(k==='peer'&&!REVPEER){try{const [tr,cr]=await Promise.all([sb.from('tradie_reviews').select('*').order('created_at',{ascending:false}).limit(200),sb.from('customer_reviews').select('*').order('created_at',{ascending:false}).limit(200)]);REVPEER={tr:tr.data||[],cr:cr.data||[]};}catch(e){REVPEER={tr:[],cr:[]};}}revShell();}
+function revShell(){
+ const tab=(k,l)=>`<div class="${REVTAB===k?'on':''}" onclick="revTab('${k}')">${l}</div>`;
+ let body='';
+ if(REVTAB==='peer'){
+   const P=REVPEER||{tr:[],cr:[]};
+   const trRows=P.tr.map(r=>`<tr><td><b>${esc(r.from_tradie_name||'Tradie')}</b></td><td>${esc(r.to_user_name||'Customer')}</td><td style="color:var(--gold)">${stars(r.rating)}</td><td class="mut" style="max-width:340px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(r.review_text||'')}</td><td class="mut">${ago(r.created_at)}</td></tr>`).join('')||'<tr><td colspan=5 class="empty">No tradie→customer reviews yet.</td></tr>';
+   const crRows=P.cr.map(r=>`<tr><td style="color:var(--gold)">${stars(r.rating)}</td><td class="mut" style="max-width:420px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(r.review_text||'')}</td><td class="mut">${ago(r.created_at)}</td></tr>`).join('')||'<tr><td colspan=3 class="empty">No customer reviews yet.</td></tr>';
+   body=`<div class="card"><div class="ch">Tradie → customer</div><table><thead><tr><th>From (tradie)</th><th>Customer</th><th>Rating</th><th>Review</th><th>When</th></tr></thead><tbody>${trRows}</tbody></table></div><div class="card"><div class="ch">Customer reviews</div><table><thead><tr><th>Rating</th><th>Review</th><th>When</th></tr></thead><tbody>${crRows}</tbody></table></div>`;
+ } else {
+   const sb2=(n,l)=>`<button class="${REVF.star===n?'on':''}" onclick="REVF.star=${n};revShell()">${l}</button>`;
+   const rb=(k,l)=>`<button class="${REVF.range===k?'on':''}" onclick="REVF.range='${k}';revShell()">${l}</button>`;
+   body=`<div class="fbar">
+     <div class="sfield" style="flex:1;min-width:200px"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg><input id="rev_q" placeholder="Search reviewer or text…" value="${esc(REVF.q)}" oninput="REVF.q=this.value;revRows()"></div>
+     <div class="seg">${sb2(0,'All')}${sb2(5,'5★')}${sb2(4,'4★')}${sb2(3,'3★')}${sb2(2,'2★')}${sb2(1,'1★')}</div>
+     <div class="seg">${rb('all','All')}${rb('today','Today')}${rb('7d','Week')}${rb('30d','Month')}${rb('365d','Year')}</div>
+    </div>
+    <div class="card"><table><thead><tr><th>Reviewer</th><th>Rating</th><th>Source</th><th>Review</th><th>State</th><th class="right">Action</th></tr></thead><tbody id="rev_rows"></tbody></table></div>
+    <div class="subt" id="rev_count" style="margin-top:10px"></div>`;
+ }
+ $('main').innerHTML=`<h2>Reviews</h2><div class="subt">Customer reviews of tradies, plus two-sided peer reviews</div><div class="tabs">${tab('customer','Customer reviews')}${tab('peer','Peer reviews')}</div>${body}`;
+ if(REVTAB==='customer')revRows();
+}
+function revRows(){
+ const q=(REVF.q||'').toLowerCase(),now=Date.now();let lo=null;
+ if(REVF.range==='today')lo=new Date().setHours(0,0,0,0);else if(REVF.range==='7d')lo=now-7*864e5;else if(REVF.range==='30d')lo=now-30*864e5;else if(REVF.range==='365d')lo=now-365*864e5;
+ const rows=REV.filter(r=>{if(REVF.star&&(r.rating||0)!==REVF.star)return false;if(lo&&new Date(r.created_at).getTime()<lo)return false;if(q){const hay=((r.from_name||'')+' '+(r.review_text||'')).toLowerCase();if(!hay.includes(q))return false;}return true;});
+ const tb=$('rev_rows');if(tb)tb.innerHTML=rows.map(r=>`<tr><td><b>${esc(r.from_name||'—')}</b></td><td style="color:var(--gold)">${'★'.repeat(r.rating||0)}${'☆'.repeat(5-(r.rating||0))}</td><td><span class="pill ${r.source==='google'?'n':'g'}">${esc(r.source||'trusttrade')}</span></td><td class="mut" style="max-width:280px">${esc(r.review_text||'')}</td><td>${r.hidden?'<span class="pill r">Hidden</span>':'<span class="pill g">Visible</span>'}</td><td class="right">${r.hidden?'<span class="mut">hidden</span>':`<button class="btn r" onclick="hideReview('${r.id}')">Hide</button>`}</td></tr>`).join('')||'<tr><td colspan=6 class="empty">No reviews match these filters.</td></tr>';
+ const c=$('rev_count');if(c)c.textContent=rows.length+' of '+REV.length+' reviews';
+}
+
+async function pReports(){loading('Reports');try{
+ const {data,error}=await sb.from('content_reports').select('id,content_type,reason,details,status,created_at').order('created_at',{ascending:false});if(error)throw error;
+ $('main').innerHTML=`<h2>Reports</h2><div class="subt">${data.length} reports · 24h SLA (Apple Guideline 1.2)</div>
+  <div class="card"><table><thead><tr><th>Type</th><th>Reason</th><th>Status</th><th>When</th><th class="right">Action</th></tr></thead><tbody>
+  ${data.map(r=>`<tr onclick="openReport('${r.id}')" style="cursor:pointer"><td><b>${esc(r.content_type||'—')}</b></td><td>${esc(r.reason||'')}<br><span class="mut" style="font-size:12px">${esc(r.details||'')}</span></td>
+   <td>${r.status==='resolved'?'<span class="pill g">Resolved</span>':'<span class="pill a">'+esc(r.status||'open')+'</span>'}</td><td class="mut">${ago(r.created_at)}</td>
+   <td class="right">${r.status==='resolved'?'<span class="mut">done</span>':`<button class="btn g" onclick="event.stopPropagation();resolveReport('${r.id}')">Resolve</button>`}</td></tr>`).join('')||'<tr><td colspan=5 class="empty">Nothing open — nice, nothing needs adjudication.</td></tr>'}
+  </tbody></table></div>`;
+}catch(e){$('main').innerHTML='<h2>Reports</h2>'+errBox(e);}}
+
+async function pCust(){loading('Customers');try{
+ const {data,error}=await sb.from('profiles').select('id,name,email,suburb,postcode,role,created_at,last_seen,suspended').order('created_at',{ascending:false}).limit(200);if(error)throw error;
+ const cust=data.filter(u=>u.role==='customer');
+ $('main').innerHTML=`<div style="display:flex;align-items:flex-start"><div><h2>Customers</h2><div class="subt">${cust.length} customers · live · click a column to sort</div></div><button class="btn w" style="margin-left:auto" onclick="exportCSV('customers')">Export CSV</button></div>
+  <div class="card"><table><thead><tr><th class="srt" onclick="sortBy(this,0,'text')">Name <span class="ar"></span></th><th class="srt" onclick="sortBy(this,1,'text')">Email <span class="ar"></span></th><th class="srt" onclick="sortBy(this,2,'text')">Area <span class="ar"></span></th><th class="srt" onclick="sortBy(this,3,'date')">Joined <span class="ar"></span></th><th>Last seen</th></tr></thead><tbody>
+  ${cust.map(u=>`<tr><td><b style="cursor:pointer;color:var(--goldd)" onclick="openUser('${u.id}')">${esc(u.name||'—')}</b>${u.suspended?' <span class="pill r">Suspended</span>':''}</td><td class="mut">${esc(u.email||'')}</td><td>${esc(u.suburb||'')} ${esc(u.postcode||'')}</td><td class="mut">${fmtDate(u.created_at)}</td><td class="mut">${ago(u.last_seen)}</td></tr>`).join('')||'<tr><td colspan=5 class="empty">No customers.</td></tr>'}
+  </tbody></table></div>`;
+}catch(e){$('main').innerHTML='<h2>Customers</h2>'+errBox(e);}}
+
+async function pAudit(){loading('Audit log');try{
+ const {data,error}=await sb.from('admin_audit').select('action,target_type,target_id,reason,created_at').order('created_at',{ascending:false}).limit(100);if(error)throw error;
+ $('main').innerHTML=`<h2>Audit log</h2><div class="subt">Append-only · every admin action</div>
+  <div class="card"><table><thead><tr><th>Action</th><th>Target</th><th>Reason</th><th>When</th></tr></thead><tbody>
+  ${data.map(a=>`<tr><td><b>${esc(a.action)}</b></td><td class="mut">${esc(a.target_type||'')} ${esc(a.target_id||'')}</td><td class="mut">${esc(a.reason||'')}</td><td class="mut">${ago(a.created_at)}</td></tr>`).join('')||'<tr><td colspan=4 class="empty">No actions yet.</td></tr>'}
+  </tbody></table></div>`;
+}catch(e){$('main').innerHTML='<h2>Audit log</h2>'+errBox(e);}}
+
+/* ===== CONFIG / SETTINGS ===== */
+let CFG={};
+async function loadConfig(){try{const {data}=await sb.from('app_config').select('key,value');CFG={};(data||[]).forEach(r=>CFG[r.key]=r.value);}catch(e){}}
+const subPrice=()=>{const n=parseFloat(CFG.sub_price);return isNaN(n)?49:n;};
+async function pSettings(){loading('Settings');try{
+ const {data,error}=await sb.from('app_config').select('*').order('key');if(error)throw error;
+ CFG={};(data||[]).forEach(r=>CFG[r.key]=r.value);
+ const desc={sub_price:'What each tradie pays per month. Drives MRR on the Money page.',cap_default:'Default tradies allowed per trade in a suburb before it locks.',sla_hours:'Target hours to action a report (Apple review expects 24h).',auto_hide_expired:'When on, a listing auto-hides the day its insurance lapses.'};
+ const unit={sub_price:'$',sla_hours:'h'};
+ const row=c=>{const isBool=/^(true|false)$/i.test(c.value||'');const on=/^true$/i.test(c.value||'');
+   const disp=isBool?(on?'On':'Off'):((unit[c.key]==='$'?'$':'')+esc(c.value||'—')+(unit[c.key]==='h'?' h':''));
+   return `<div style="display:flex;align-items:center;gap:16px;padding:16px 18px;border-top:1px solid var(--line2)">
+     <div style="flex:1"><div style="font-weight:650;font-size:14px">${esc(c.label||c.key)}</div><div class="mut" style="font-size:12px;margin-top:3px">${esc(desc[c.key]||'')}</div><div class="mut" style="font-size:10.5px;margin-top:4px;font-family:ui-monospace,monospace">${esc(c.key)}${c.updated_at?' · updated '+ago(c.updated_at):''}</div></div>
+     <div style="font-size:20px;font-weight:800;min-width:66px;text-align:right;${isBool?(on?'color:var(--green)':'color:var(--mut)'):''}">${disp}</div>
+     <button class="btn w" onclick="editSetting('${c.key}','${esc(c.label||c.key)}','${esc(c.value||'')}')">Edit</button>
+   </div>`;};
+ $('main').innerHTML=`<h2>Settings</h2><div class="subt">Platform config · read live across the app · every change is audited</div>
+  <div class="card"><div class="ch">Platform configuration</div>${(data||[]).map(row).join('')||'<div class="empty">No settings yet.</div>'}</div>
+  <div class="subt">These keys are the single source of truth — the app should read them so one change updates every surface.</div>`;
+}catch(e){$('main').innerHTML='<h2>Settings</h2>'+errBox(e);}}
+function editSetting(key,label,cur){const isBool=/^(true|false)$/i.test(cur||'');const field=isBool?`<select id="setv" style="margin-top:10px"><option value="true" ${/^true$/i.test(cur)?'selected':''}>On</option><option value="false" ${/^false$/i.test(cur)?'selected':''}>Off</option></select>`:`<input id="setv" value="${esc(cur)}" style="margin-top:10px">`;modal(`<h3>${esc(label)}</h3><p style="color:var(--mut);font-size:12.5px;margin:4px 0 0">${esc(key)}</p>${field}<div class="mf"><button class="btn w" onclick="closeM()">Cancel</button><button class="btn g" onclick="saveSetting('${key}')">Save</button></div>`);setTimeout(()=>{const e=$('setv');if(e){e.focus();if(e.select)e.select();}},60);}
+async function saveSetting(key){const v=val('setv');const {error}=await sb.from('app_config').update({value:v,updated_at:new Date().toISOString(),updated_by:USER.id}).eq('key',key);if(error){toast(error.message);return;}await audit('setting_updated','app_config',key,key+'='+v);closeM();toast('Saved');pSettings();}
+
+/* ===== SECURITY · 2FA (self-service) ===== */
+async function pSecurity(){loading('Security');try{
+ const {data:fl}=await sb.auth.mfa.listFactors();
+ const verified=((fl&&fl.totp)||[]).filter(f=>f.status==='verified');
+ const {data:aal}=await sb.auth.mfa.getAuthenticatorAssuranceLevel();
+ const lvl=(aal&&aal.currentLevel)||'—';
+ const rows=verified.map(f=>`<div style="display:flex;align-items:center;gap:12px;padding:14px 18px;border-top:1px solid var(--line2)"><span style="width:9px;height:9px;border-radius:50%;background:var(--green);box-shadow:0 0 0 3px rgba(31,164,99,.18)"></span><div style="flex:1"><b style="font-size:13.5px">${esc(f.friendly_name||'Authenticator app')}</b><br><span class="mut" style="font-size:12px">TOTP · added ${f.created_at?fmtDate(f.created_at):'—'}</span></div><button class="btn r" onclick="secRemove('${f.id}')">Remove</button></div>`).join('')||'<div class="empty">No authenticator set up. Add one below.</div>';
+ $('main').innerHTML=`<h2>Security · 2FA</h2><div class="subt">Manage the authenticator that protects the admin console · only affects your admin login, never the app</div>
+  <div class="kpis"><div class="kpi"><div class="k">This session</div><b style="${lvl==='aal2'?'color:var(--green)':'color:var(--amber)'}">${lvl==='aal2'?'2FA verified':esc(lvl)}</b></div>
+   <div class="kpi"><div class="k">Authenticators</div><b>${verified.length}</b></div>
+   <div class="kpi"><div class="k">Admin</div><b style="font-size:14px">${esc((USER&&USER.email)||'')}</b></div></div>
+  <div class="card"><div class="ch">Your authenticators</div>${rows}</div>
+  <div id="sec_add"></div>
+  <div style="margin-top:2px"><button class="btn g" onclick="secAdd()">Add authenticator</button></div>
+  <div class="subt" style="margin-top:14px">This laptop stays signed in with 2FA after you verify once — the verified session is kept on this device. Any other computer has to enter your password and a fresh 2FA code, so the console is effectively tied to the devices you've verified.</div>`;
+}catch(e){$('main').innerHTML='<h2>Security</h2>'+errBox(e);}}
+async function secAdd(){
+ const box=$('sec_add');if(!box)return;
+ box.innerHTML='<div class="card"><div class="ch">Add authenticator</div><div style="padding:16px 18px" class="mut">Generating…</div></div>';
+ try{const {data:fl}=await sb.auth.mfa.listFactors();for(const f of ((fl&&fl.all)||[])){if(f.status!=='verified')await sb.auth.mfa.unenroll({factorId:f.id});}}catch(e){}
+ const {data,error}=await sb.auth.mfa.enroll({factorType:'totp',friendlyName:'TrustTrade Admin '+new Date().toLocaleDateString('en-AU')});
+ if(error){box.innerHTML='<div class="err">'+esc(error.message)+'</div>';return;}
+ window.SEC_ENROLL=data.id;
+ const uri=data.totp.uri||('otpauth://totp/TrustTrade%20Admin?secret='+data.totp.secret+'&issuer=TrustTrade');
+ box.innerHTML=`<div class="card"><div class="ch">Add authenticator</div><div style="padding:18px;display:flex;gap:22px;flex-wrap:wrap;align-items:flex-start">
+   <div style="background:#fff;padding:12px;border-radius:12px;border:1px solid var(--line)"><canvas id="sec_qr"></canvas></div>
+   <div style="flex:1;min-width:230px">
+     <div style="font-size:13.5px;font-weight:650;margin-bottom:6px">1. Scan with Google Authenticator or Authy</div>
+     <div class="mut" style="font-size:12px">Can't scan? Add this key manually:</div>
+     <div style="font-family:ui-monospace,monospace;font-size:12.5px;background:var(--line2);border-radius:8px;padding:9px 11px;margin:6px 0 4px;word-break:break-all"><b>${esc(data.totp.secret)}</b></div>
+     <div style="font-size:11px;color:var(--goldd);margin-bottom:14px">⚠️ Save this key or screenshot the QR now — it's your only backup if you lose the device.</div>
+     <div style="font-size:13.5px;font-weight:650;margin-bottom:6px">2. Enter the 6-digit code</div>
+     <input id="sec_code" placeholder="123456" inputmode="numeric" maxlength="6" style="width:150px;letter-spacing:3px;font-size:15px">
+     <div id="sec_err" class="err" style="display:none;margin-top:10px"></div>
+     <div style="margin-top:12px;display:flex;gap:8px"><button class="btn g" onclick="secVerify()">Verify &amp; save</button><button class="btn w" onclick="pSecurity()">Cancel</button></div>
+   </div></div></div>`;
+ setTimeout(()=>{if(window.QRCode&&QRCode.toCanvas){QRCode.toCanvas($('sec_qr'),uri,{width:190,margin:1,color:{dark:'#14161B',light:'#ffffff'}},()=>{});}const c=$('sec_code');if(c)c.focus();},40);
+}
+async function secVerify(){
+ const code=(val('sec_code')||'').trim(),err=$('sec_err');
+ const {data:ch,error:ce}=await sb.auth.mfa.challenge({factorId:window.SEC_ENROLL});
+ if(ce){if(err){err.style.display='block';err.textContent=ce.message;}return;}
+ const {error}=await sb.auth.mfa.verify({factorId:window.SEC_ENROLL,challengeId:ch.id,code});
+ if(error){if(err){err.style.display='block';err.textContent='Wrong code — try again.';}return;}
+ try{await audit('admin_2fa_added','security',window.SEC_ENROLL,'authenticator enrolled');}catch(e){}
+ toast('Authenticator added');pSecurity();
+}
+async function secRemove(id){ask('Remove this authenticator?','You will scan a new QR the next time you sign in. Only your admin login is affected — the app is untouched.','Note (optional)',async r=>{const {error}=await sb.auth.mfa.unenroll({factorId:id});if(error){toast(error.message);return;}try{await audit('admin_2fa_removed','security',id,r||'removed');}catch(e){}closeM();toast('Authenticator removed');pSecurity();});}
+
+/* ===== SUBSCRIPTION ACTIONS ===== */
+async function subPause(id){const until=new Date(Date.now()+30*864e5).toISOString();const {error}=await sb.from('subscriptions').update({hold_until:until}).eq('id',id);if(error){toast(error.message);return;}await audit('subscription_paused','subscription',id,'hold 30d');toast('Paused — settle billing in Stripe');pMoney();}
+async function subResume(id){const {error}=await sb.from('subscriptions').update({hold_until:null}).eq('id',id);if(error){toast(error.message);return;}await audit('subscription_resumed','subscription',id,'resumed');toast('Resumed');pMoney();}
+async function subCancel(id,name){ask('Cancel subscription'+(name?' for '+name:'')+'?','Marks it canceled in TrustTrade. Cancel the actual charge in Stripe too. Audited.','Reason for cancelling',async r=>{if(r.trim().length<5){toast('Add a reason');return;}const {error}=await sb.from('subscriptions').update({status:'canceled'}).eq('id',id);if(error){toast(error.message);return;}await audit('subscription_canceled','subscription',id,r);closeM();toast('Subscription canceled');pMoney();},true);}
+
+/* ===== MESSAGES (reason-gated thread viewer) ===== */
+async function pMessages(){loading('Messages');try{
+ const [{data,error},names]=await Promise.all([sb.from('enquiries').select('id,from_name,from_town,messages,stage,status,created_at,listing_id').order('created_at',{ascending:false}).limit(300),listingNames()]);
+ if(error)throw error;
+ const threads=(data||[]).filter(e=>Array.isArray(e.messages)&&e.messages.length);
+ $('main').innerHTML=`<h2>Messages</h2><div class="subt">${threads.length} threads · opening one needs a reason (logged)</div>
+  <div class="card"><table><thead><tr><th>Customer</th><th>Tradie</th><th>Msgs</th><th>Stage</th><th>When</th><th class="right">Action</th></tr></thead><tbody>
+  ${threads.map(e=>`<tr><td><b>${esc(e.from_name||'—')}</b><br><span class="mut" style="font-size:12px">${esc(e.from_town||'')}</span></td><td>${esc(names[e.listing_id]||'—')}</td><td class="mono">${e.messages.length}</td><td>${esc(e.stage||e.status||'—')}</td><td class="mut">${ago(e.created_at)}</td><td class="right"><button class="btn w" onclick="viewThread('${e.id}')">View thread</button></td></tr>`).join('')||'<tr><td colspan=6 class="empty">No message threads yet — they appear once a customer and tradie start chatting.</td></tr>'}
+  </tbody></table></div>`;
+}catch(e){$('main').innerHTML='<h2>Messages</h2>'+errBox(e);}}
+function viewThread(id){ask('Open this private conversation?','Reading private messages is logged with your reason. Only do this to resolve a report or a safety issue.','Why are you opening this thread?',async r=>{if(r.trim().length<9){toast('Reason too short');return;}closeM();await audit('thread_viewed','enquiry',id,r);openThread(id);});}
+async function openThread(id){loading('Thread');try{
+ const {data:e,error}=await sb.from('enquiries').select('*').eq('id',id).single();if(error)throw error;
+ let tradie='';if(e.listing_id){const r=await sb.from('listings').select('name').eq('id',e.listing_id).maybeSingle();tradie=(r.data&&r.data.name)||'';}
+ const msgs=Array.isArray(e.messages)?e.messages:[];
+ const bubbles=msgs.map(m=>{const who=(m.sender||m.from||m.role||'').toString().toLowerCase();const mine=who.includes('trad')||who.includes('pro')||who.includes('listing');const txt=esc(m.text||m.body||m.message||(typeof m==='string'?m:JSON.stringify(m)));const when=m.at||m.created_at||m.time;return `<div style="display:flex;justify-content:${mine?'flex-end':'flex-start'};margin:6px 0"><div style="max-width:70%;padding:9px 13px;border-radius:14px;font-size:13px;line-height:1.4;background:${mine?'var(--goldSoft,#F8ECD5)':'var(--line2)'}">${txt}${when&&typeof when==='string'?`<div class="mut" style="font-size:10px;margin-top:4px">${esc(when)}</div>`:''}</div></div>`;}).join('');
+ $('main').innerHTML=`<div style="display:flex;align-items:flex-start"><div><h2>${esc(e.from_name||'Customer')} ↔ ${esc(tradie||'Tradie')}</h2><div class="subt">Private thread · access logged · ${ago(e.created_at)}</div></div>
+   <button class="btn w" style="margin-left:auto" onclick="go('tradies')">← Back</button></div>
+  <div class="card"><div class="ch">Conversation (${msgs.length})</div><div style="padding:12px 18px">${bubbles||'<div class="empty">No readable messages in this thread.</div>'}</div></div>`;
+}catch(err){$('main').innerHTML='<h2>Thread</h2>'+errBox(err);}}
+
+/* ===== WAITLIST ===== */
+async function pWaitlist(){loading('Waitlist');try{
+ const {data,error}=await sb.from('waitlist_signups').select('*').order('created_at',{ascending:false}).limit(500);if(error)throw error;
+ const tradies=(data||[]).filter(w=>(w.role||'').toLowerCase().includes('trad')).length;
+ $('main').innerHTML=`<div style="display:flex;align-items:flex-start"><div><h2>Waitlist</h2><div class="subt">${(data||[]).length} signups · ${tradies} tradies · click a column to sort</div></div><button class="btn w" style="margin-left:auto" onclick="exportCSV('waitlist')">Export CSV</button></div>
+  <div class="card"><table><thead><tr><th class="srt" onclick="sortBy(this,0,'text')">Name <span class="ar"></span></th><th class="srt" onclick="sortBy(this,1,'text')">Email <span class="ar"></span></th><th class="srt" onclick="sortBy(this,2,'text')">Role <span class="ar"></span></th><th class="srt" onclick="sortBy(this,3,'text')">Postcode <span class="ar"></span></th><th>Source</th><th class="srt" onclick="sortBy(this,5,'date')">When <span class="ar"></span></th></tr></thead><tbody>
+  ${(data||[]).map(w=>`<tr><td><b>${esc(w.name||w.business_name||'—')}</b></td><td class="mut">${esc(w.email||'')}</td><td>${esc(w.role||'')}</td><td>${esc(w.postcode||'')}</td><td class="mut">${esc(w.source||'')}</td><td class="mut">${fmtDate(w.created_at)}</td></tr>`).join('')||'<tr><td colspan=6 class="empty">No signups yet.</td></tr>'}
+  </tbody></table></div>`;
+}catch(e){$('main').innerHTML='<h2>Waitlist</h2>'+errBox(e);}}
+
+/* ===== INVOICE + QUOTE DETAIL (money drill-in) ===== */
+async function openInvoice(id){loading('Invoice');try{
+ const {data:i,error}=await sb.from('invoices').select('*').eq('id',id).single();if(error)throw error;
+ const [li,ln,cust]=await Promise.all([
+  sb.from('invoice_line_items').select('*').eq('invoice_id',id).order('sort'),
+  i.listing_id?sb.from('listings').select('name').eq('id',i.listing_id).maybeSingle():Promise.resolve({data:null}),
+  i.customer_id?sb.from('profiles').select('name,email').eq('id',i.customer_id).maybeSingle():Promise.resolve({data:null})]);
+ const tradie=(ln.data&&ln.data.name)||'—',cu=cust.data;
+ const rows=(li.data||[]).map(x=>`<tr><td>${esc(x.description||'')}</td><td class="mono">${x.qty??''}</td><td class="mono">$${x.unit_price??''}</td><td class="mono">$${x.amount??''}</td></tr>`).join('')||'<tr><td colspan=4 class="empty">No line items recorded.</td></tr>';
+ $('main').innerHTML=`<div style="display:flex;align-items:flex-start"><div><h2>Invoice ${esc(i.number||'')}</h2><div class="subt">${esc(tradie)} · ${i.status==='paid'?'Paid':esc(i.status||'—')} · ${ago(i.created_at)}</div></div><button class="btn w" style="margin-left:auto" onclick="go('money')">← Money</button></div>
+  <div class="mgrid"><div class="mcard"><div class="l">Subtotal</div><div class="v">$${i.subtotal??'—'}</div></div><div class="mcard"><div class="l">GST</div><div class="v">$${i.gst??'—'}</div></div><div class="mcard"><div class="l">Total</div><div class="v">$${i.total??'—'}</div></div></div>
+  <div class="card"><div class="ch">Line items</div><table><thead><tr><th>Description</th><th>Qty</th><th>Unit</th><th>Amount</th></tr></thead><tbody>${rows}</tbody></table></div>
+  <div class="card"><div class="ch">Parties &amp; payment</div><table><tbody><tr><td class="mut">Tradie</td><td>${esc(tradie)}</td></tr>${cu?`<tr><td class="mut">Customer</td><td>${esc(cu.name||'—')}${cu.email?' · '+esc(cu.email):''}</td></tr>`:''}<tr><td class="mut">Paid</td><td>${i.paid_at?fmtDate(i.paid_at):'—'}</td></tr><tr><td class="mut">Payment ref</td><td class="mono">${esc(i.stripe_payment_intent_id||i.stripe_payment_intent||'—')}</td></tr></tbody></table><div class="subt" style="padding:2px 18px 14px">Paid directly to the tradie — TrustTrade takes $0.</div></div>`;
+}catch(err){$('main').innerHTML='<h2>Invoice</h2>'+errBox(err);}}
+async function openQuote(id){loading('Quote');try{
+ const {data:q,error}=await sb.from('quotes').select('*').eq('id',id).single();if(error)throw error;
+ const [li,ln]=await Promise.all([sb.from('quote_line_items').select('*').eq('quote_id',id).order('position'),q.tradie_listing_id?sb.from('listings').select('name').eq('id',q.tradie_listing_id).maybeSingle():Promise.resolve({data:null})]);
+ const tradie=(ln.data&&ln.data.name)||'—';
+ const rows=(li.data||[]).map(x=>`<tr><td>${esc(x.description||'')}</td><td class="mono">${x.quantity??''}</td><td class="mono">$${x.unit_price??''}</td><td class="mono">$${x.line_total??''}</td></tr>`).join('')||'<tr><td colspan=4 class="empty">No line items recorded.</td></tr>';
+ $('main').innerHTML=`<div style="display:flex;align-items:flex-start"><div><h2>Quote ${esc(q.quote_number||'')}</h2><div class="subt">${esc(q.job_title||'—')} · ${esc(q.status||'—')} · ${ago(q.created_at)}</div></div><button class="btn w" style="margin-left:auto" onclick="go('money')">← Money</button></div>
+  <div class="mgrid"><div class="mcard"><div class="l">Subtotal (ex GST)</div><div class="v">$${q.subtotal_ex_gst??'—'}</div></div><div class="mcard"><div class="l">GST</div><div class="v">$${q.gst_amount??'—'}</div></div><div class="mcard"><div class="l">Total (inc GST)</div><div class="v">$${q.total_inc_gst??'—'}</div></div></div>
+  ${q.scope_of_work?`<div class="card"><div class="ch">Scope of work</div><div style="padding:14px 18px;line-height:1.55">${esc(q.scope_of_work)}</div></div>`:''}
+  <div class="card"><div class="ch">Line items</div><table><thead><tr><th>Description</th><th>Qty</th><th>Unit</th><th>Total</th></tr></thead><tbody>${rows}</tbody></table></div>
+  <div class="card"><div class="ch">Customer &amp; validity</div><table><tbody><tr><td class="mut">Name</td><td>${esc(q.customer_name||'—')}</td></tr>${q.customer_email?`<tr><td class="mut">Email</td><td>${esc(q.customer_email)}</td></tr>`:''}<tr><td class="mut">Tradie</td><td>${esc(tradie)}</td></tr><tr><td class="mut">Valid until</td><td>${q.valid_until?fmtDate(q.valid_until):'—'}</td></tr></tbody></table></div>`;
+}catch(err){$('main').innerHTML='<h2>Quote</h2>'+errBox(err);}}
+
+/* ===== NOTIFICATIONS + BROADCAST ===== */
+async function pNotifs(){loading('Notifications');try{
+ const {data,error}=await sb.from('notifications').select('id,type,title,body,read,created_at,user_id').order('created_at',{ascending:false}).limit(200);if(error)throw error;
+ $('main').innerHTML=`<div style="display:flex;align-items:flex-start"><div><h2>Notifications</h2><div class="subt">${(data||[]).length} recent · send an in-app broadcast</div></div><button class="btn g" style="margin-left:auto" onclick="broadcastForm()">New broadcast</button></div>
+  <div class="card"><table><thead><tr><th>Title</th><th>Type</th><th>Body</th><th>Read</th><th>When</th></tr></thead><tbody>
+  ${(data||[]).map(n=>`<tr><td><b>${esc(n.title||'—')}</b></td><td>${esc(n.type||'')}</td><td class="mut" style="max-width:340px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(n.body||'')}</td><td>${n.read?'<span class="mut">read</span>':'<span class="pill a">unread</span>'}</td><td class="mut">${ago(n.created_at)}</td></tr>`).join('')||'<tr><td colspan=5 class="empty">No notifications yet.</td></tr>'}
+  </tbody></table></div>`;
+}catch(e){$('main').innerHTML='<h2>Notifications</h2>'+errBox(e);}}
+function broadcastForm(){modal(`<h3>New broadcast</h3><p style="color:var(--mut);font-size:12.5px;margin:4px 0 10px">Inserts an in-app notification for everyone in the audience. Audited.</p>
+  <label class="mut" style="font-size:11px;font-weight:700">Audience</label><select id="bcaud" style="margin:4px 0 10px"><option value="customer">All customers</option><option value="tradie">All tradies</option><option value="all">Everyone</option></select>
+  <input id="bctitle" placeholder="Title" style="margin-bottom:8px"><textarea id="bcbody" placeholder="Message" style="min-height:80px"></textarea>
+  <div class="mf"><button class="btn w" onclick="closeM()">Cancel</button><button class="btn g" onclick="sendBroadcast()">Send</button></div>`);setTimeout(()=>{const e=$('bctitle');if(e)e.focus();},60);}
+async function sendBroadcast(){const aud=val('bcaud'),title=val('bctitle').trim(),body=val('bcbody').trim();if(title.length<2||body.length<2){toast('Add a title and message');return;}
+ let q=sb.from('profiles').select('id');if(aud!=='all')q=q.eq('role',aud);const {data:us,error}=await q;if(error){toast(error.message);return;}
+ const ids=(us||[]).map(u=>u.id);if(!ids.length){toast('No recipients');return;}
+ if(ids.length>500){toast('Too many recipients ('+ids.length+') — narrow the audience');return;}
+ const rows=ids.map(uid=>({user_id:uid,type:'broadcast',title,body,read:false}));
+ const {error:e2}=await sb.from('notifications').insert(rows);if(e2){toast(e2.message);return;}
+ await audit('broadcast_sent','notification',aud,title+' → '+ids.length+' users');closeM();toast('Sent to '+ids.length);pNotifs();}
+
+/* ===== MODERATION (blocklists) ===== */
+let MODTAB='words';
+function modTab(k){MODTAB=k;pModeration();}
+async function pModeration(){loading('Moderation');try{
+ const tab=(k,l)=>`<div class="${MODTAB===k?'on':''}" onclick="modTab('${k}')">${l}</div>`;
+ let body='';
+ if(MODTAB==='gallery'){
+   const [g,names]=await Promise.all([sb.from('gallery_images').select('*').order('created_at',{ascending:false}).limit(200),listingNames()]);
+   const data=g.data||[];
+   body=`<div class="card"><div style="padding:14px 18px;display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px">${data.map(im=>`<div style="border:1px solid var(--line2);border-radius:12px;overflow:hidden;${im.hidden?'opacity:.5':''}"><div style="aspect-ratio:1;background:#e9e9ec url('${esc(im.image_url||'')}') center/cover"></div><div style="padding:8px 10px"><div class="mut" style="font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(names[im.listing_id]||'—')}</div>${im.caption?`<div style="font-size:12px;margin:2px 0 6px">${esc(im.caption)}</div>`:'<div style="height:4px"></div>'}${im.hidden?`<button class="btn g" style="width:100%" onclick="restoreImage('${im.id}')">Restore</button>`:`<button class="btn r" style="width:100%" onclick="hideImage('${im.id}')">Hide</button>`}</div></div>`).join('')||'<div class="empty">No gallery images yet.</div>'}</div></div>`;
+ } else if(MODTAB==='identifiers'){
+   const bi=await sb.from('banned_identifiers').select('*').order('banned_at',{ascending:false});
+   body=`<div class="card"><div class="ch" style="display:flex;align-items:center">Banned identifiers<button class="btn g" style="margin-left:auto" onclick="addBannedId()">Add</button></div><table><thead><tr><th>Kind</th><th>Value</th><th class="right">Action</th></tr></thead><tbody>${(bi.data||[]).map(x=>`<tr><td>${esc(x.kind||'')}</td><td class="mono">${esc(x.value||'')}</td><td class="right"><button class="btn r" onclick="delBannedId('${x.id}')">Remove</button></td></tr>`).join('')||'<tr><td colspan=3 class="empty">No banned identifiers.</td></tr>'}</tbody></table></div>`;
+ } else {
+   const bw=await sb.from('banned_words').select('*').order('word');
+   body=`<div class="card"><div class="ch" style="display:flex;align-items:center">Banned words<button class="btn g" style="margin-left:auto" onclick="addBannedWord()">Add</button></div><table><thead><tr><th>Word</th><th>Severity</th><th class="right">Action</th></tr></thead><tbody>${(bw.data||[]).map(w=>`<tr><td><b>${esc(w.word||'')}</b></td><td>${esc(w.severity||'')}</td><td class="right"><button class="btn r" onclick="delBannedWord('${esc(w.word||'')}')">Remove</button></td></tr>`).join('')||'<tr><td colspan=3 class="empty">No banned words.</td></tr>'}</tbody></table></div>`;
+ }
+ $('main').innerHTML=`<h2>Moderation</h2><div class="subt">Blocklists and content moderation · every change is audited</div>
+  <div class="tabs">${tab('words','Banned words')}${tab('identifiers','Identifiers')}${tab('gallery','Gallery')}</div>${body}`;
+}catch(e){$('main').innerHTML='<h2>Moderation</h2>'+errBox(e);}}
+function addBannedWord(){modal(`<h3>Add banned word</h3><input id="bwword" placeholder="word or phrase" style="margin-bottom:8px"><select id="bwsev"><option value="block">block</option><option value="review">review</option><option value="warn">warn</option></select><div class="mf"><button class="btn w" onclick="closeM()">Cancel</button><button class="btn g" onclick="saveBannedWord()">Add</button></div>`);setTimeout(()=>{const e=$('bwword');if(e)e.focus();},60);}
+async function saveBannedWord(){const w=val('bwword').trim().toLowerCase(),s=val('bwsev');if(w.length<2){toast('Enter a word');return;}const {error}=await sb.from('banned_words').insert({word:w,severity:s});if(error){toast(error.message);return;}await audit('banned_word_added','banned_word',w,'severity='+s);closeM();toast('Added');pModeration();}
+async function delBannedWord(w){ask('Remove “'+w+'” from the blocklist?','It will no longer be filtered. Audited.','Reason (optional)',async r=>{const {error}=await sb.from('banned_words').delete().eq('word',w);if(error){toast(error.message);return;}await audit('banned_word_removed','banned_word',w,r||'removed');closeM();toast('Removed');pModeration();});}
+function addBannedId(){modal(`<h3>Add banned identifier</h3><select id="bikind" style="margin-bottom:8px"><option value="email">email</option><option value="phone">phone</option><option value="abn">abn</option><option value="ip">ip</option></select><input id="bival" placeholder="value" style="margin-bottom:8px"><input id="bireason" placeholder="reason (optional)"><div class="mf"><button class="btn w" onclick="closeM()">Cancel</button><button class="btn g" onclick="saveBannedId()">Add</button></div>`);setTimeout(()=>{const e=$('bival');if(e)e.focus();},60);}
+async function saveBannedId(){const k=val('bikind'),v=val('bival').trim(),r=val('bireason').trim();if(v.length<2){toast('Enter a value');return;}const {error}=await sb.from('banned_identifiers').insert({kind:k,value:v,reason:r||null});if(error){toast(error.message);return;}await audit('banned_id_added','banned_identifier',k+':'+v,r||'added');closeM();toast('Added');pModeration();}
+async function delBannedId(id){ask('Remove this banned identifier?','It will no longer be blocked. Audited.','Reason (optional)',async r=>{const {error}=await sb.from('banned_identifiers').delete().eq('id',id);if(error){toast(error.message);return;}await audit('banned_id_removed','banned_identifier',id,r||'removed');closeM();toast('Removed');pModeration();});}
+
+/* ===== SYSTEM HEALTH (live status tracker) ===== */
+const HEALTH_AREAS=[['Profiles / accounts','profiles'],['Tradie listings','listings'],['Enquiries','enquiries'],['Chat messages','enquiries'],['Jobs / bookings','bookings'],['Reviews','listing_reviews'],['Quotes & invoices','invoices'],['Subscriptions / billing','subscriptions'],['Notifications','notifications'],['Reports / moderation','content_reports'],['Error log','error_logs'],['Stripe webhooks','stripe_events']];
+async function probe(table){const t0=performance.now();try{const {error}=await sb.from(table).select('*',{count:'exact',head:true});const ms=Math.round(performance.now()-t0);return error?{ok:false,ms,err:error.message}:{ok:true,ms};}catch(e){return{ok:false,ms:Math.round(performance.now()-t0),err:String(e&&e.message||e)};}}
+function pHealth(){
+ $('main').innerHTML=`<div style="display:flex;align-items:flex-start"><div><h2>System health</h2><div class="subt">Auto-checks every 5 minutes · <span id="hl_last">checking…</span></div></div><button class="btn w" style="margin-left:auto" onclick="runHealth()">Check now</button></div>
+  <div class="card"><div class="ch">Service status</div><div id="hl_rows"></div></div>
+  <div id="hl_up"></div>
+  <div id="hl_extra"></div>`;
+ runHealth();
+ if(window.HEALTH_TIMER)clearInterval(window.HEALTH_TIMER);
+ window.HEALTH_TIMER=setInterval(()=>{if(PAGE==='health')runHealth();else{clearInterval(window.HEALTH_TIMER);window.HEALTH_TIMER=null;}},300000);
+}
+async function runHealth(){
+ const el=$('hl_rows');if(!el)return;
+ el.innerHTML=HEALTH_AREAS.map(([l])=>`<div style="display:flex;align-items:center;gap:12px;padding:11px 18px;border-top:1px solid var(--line2)"><span style="width:9px;height:9px;border-radius:50%;background:var(--mut)"></span><b style="font-size:13.5px;flex:1">${esc(l)}</b><span class="mut" style="font-size:12px">checking…</span></div>`).join('');
+ const results=await Promise.all(HEALTH_AREAS.map(([l,t])=>probe(t)));
+ if($('hl_rows'))$('hl_rows').innerHTML=HEALTH_AREAS.map(([l],i)=>{const r=results[i];const col=r.ok?(r.ms>1500?'var(--amber)':'var(--green)'):'var(--red)';const st=r.ok?(r.ms>1500?'Slow':'Operational'):'Down';const pill=r.ok?(r.ms>1500?'a':'g'):'r';return `<div style="display:flex;align-items:center;gap:12px;padding:11px 18px;border-top:1px solid var(--line2)"><span style="width:9px;height:9px;border-radius:50%;background:${col};box-shadow:0 0 0 3px ${col}22;flex-shrink:0"></span><b style="font-size:13.5px;flex:1">${esc(l)}</b><span class="pill ${pill}">${st}</span><span class="mono mut" style="width:64px;text-align:right;font-size:12px">${r.ms} ms</span></div>`;}).join('');
+ const bad=results.filter(r=>!r.ok).length,slow=results.filter(r=>r.ok&&r.ms>1500).length;
+ const last=$('hl_last');if(last)last.innerHTML=`last checked ${new Date().toLocaleTimeString('en-AU',{hour:'numeric',minute:'2-digit'})} · ${bad?`<span style="color:var(--red);font-weight:700">${bad} down</span>`:slow?`<span style="color:var(--amber);font-weight:700">${slow} slow</span>`:'<span style="color:var(--green);font-weight:700">all operational</span>'}`;
+ healthLog(results);renderUptime();renderHealthExtra();
+}
+function healthLog(results){try{let log=JSON.parse(localStorage.getItem('tt_health_log')||'[]');const worst=Math.max(...results.map(r=>r.ok?(r.ms>1500?1:0):2));log.push({t:Date.now(),w:worst});const cutoff=Date.now()-370*864e5;log=log.filter(x=>x.t>cutoff);if(log.length>7000)log=log.slice(log.length-7000);localStorage.setItem('tt_health_log',JSON.stringify(log));}catch(e){}}
+const HWINS={day:{ms:864e5,n:288,lbl:'5 min'},week:{ms:7*864e5,n:168,lbl:'1 hour'},month:{ms:30*864e5,n:120,lbl:'6 hours'},year:{ms:365*864e5,n:365,lbl:'1 day'}};
+function setHWin(k){window.HWIN=k;renderUptime();}
+function renderUptime(){
+ const el=$('hl_up');if(!el)return;const HWIN=window.HWIN||'day';
+ let spanMs,n;const now=Date.now();
+ if(HWIN==='ytd'){const s=new Date(new Date().getFullYear(),0,1).getTime();spanMs=now-s;n=Math.max(1,Math.ceil(spanMs/864e5));}else{spanMs=HWINS[HWIN].ms;n=HWINS[HWIN].n;}
+ const start=now-spanMs,bms=spanMs/n;
+ let log=[];try{log=JSON.parse(localStorage.getItem('tt_health_log')||'[]');}catch(e){}
+ const buckets=new Array(n).fill(-1);
+ log.forEach(x=>{if(x.t<start)return;const idx=Math.min(n-1,Math.floor((x.t-start)/bms));buckets[idx]=Math.max(buckets[idx],x.w);});
+ const seg=buckets.map(v=>{const col=v<0?'var(--line2)':v===0?'var(--green)':v===1?'var(--amber)':'var(--red)';return `<span style="flex:1;min-width:1px;height:30px;border-radius:2px;background:${col}"></span>`;}).join('');
+ const checks=log.filter(x=>x.t>=start),up=checks.length?Math.round(checks.filter(x=>x.w===0).length/checks.length*100):null;
+ const rb=(k,l)=>`<button class="${HWIN===k?'on':''}" onclick="setHWin('${k}')">${l}</button>`;
+ const barLbl=HWIN==='ytd'?'1 day':HWINS[HWIN].lbl;
+ el.innerHTML=`<div class="card"><div class="ch" style="display:flex;align-items:center;flex-wrap:wrap;gap:8px">Uptime history${up!=null?` <span class="mut" style="font-weight:500;font-size:12px">· ${up}% healthy (${checks.length} checks)</span>`:''}<div class="seg" style="margin-left:auto">${rb('day','Day')}${rb('week','Week')}${rb('month','Month')}${rb('year','Year')}${rb('ytd','YTD')}</div></div>
+  <div style="padding:16px 18px"><div style="display:flex;gap:1px;align-items:flex-end">${seg}</div>
+   <div class="mut" style="font-size:11px;margin-top:9px;display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap"><span>${new Date(start).toLocaleDateString('en-AU',{day:'numeric',month:'short'})}</span><span>each bar ≈ ${barLbl} · <span style="color:var(--green)">■</span> ok <span style="color:var(--amber)">■</span> slow <span style="color:var(--red)">■</span> down <span style="color:var(--mut)">■</span> no check</span><span>now</span></div>
+   <div class="mut" style="font-size:11px;margin-top:6px">History builds as checks run (every 5 min while this page is open). Stored on this device.</div></div></div>`;
+}
+async function renderHealthExtra(){
+ const el=$('hl_extra');if(!el)return;
+ const [errs,evs,pay]=await Promise.all([sb.from('error_logs').select('*').order('created_at',{ascending:false}).limit(20),sb.from('stripe_events').select('*').order('received_at',{ascending:false}).limit(20),sb.from('payout_accounts').select('*')]);
+ const errRows=(errs.data||[]).map(e=>`<tr><td class="mut">${ago(e.created_at)}</td><td>${esc(e.route||'')}</td><td>${esc(e.platform||'')} ${esc(e.app_version||'')}</td><td class="mut" style="max-width:360px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(e.message||'')}</td></tr>`).join('')||'<tr><td colspan=4 class="empty">No errors logged — clean.</td></tr>';
+ const payReady=(pay.data||[]).filter(p=>p.charges_enabled&&p.payouts_enabled).length;
+ const payRows=(pay.data||[]).map(p=>{const ok=p.charges_enabled&&p.payouts_enabled;const due=Array.isArray(p.requirements_due)?p.requirements_due.length:(p.requirements_due&&typeof p.requirements_due==='object'?Object.keys(p.requirements_due).length:0);return `<tr><td class="mono">${esc(p.stripe_account_id||'—')}</td><td>${p.details_submitted?'<span class="pill g">Submitted</span>':'<span class="pill a">Incomplete</span>'}</td><td>${ok?'<span class="pill g">Ready</span>':'<span class="pill r">Blocked</span>'}</td><td class="mono">${due||0}</td></tr>`;}).join('')||'<tr><td colspan=4 class="empty">No connected payout accounts.</td></tr>';
+ el.innerHTML=`<div class="card"><div class="ch">Recent errors</div><table><thead><tr><th>When</th><th>Route</th><th>Platform</th><th>Message</th></tr></thead><tbody>${errRows}</tbody></table></div>
+  <div class="card"><div class="ch">Payout readiness (${payReady} of ${(pay.data||[]).length})</div><table><thead><tr><th>Account</th><th>Onboarding</th><th>Status</th><th>Reqs due</th></tr></thead><tbody>${payRows}</tbody></table></div>`;
+}
+
+async function hideImage(id){ask('Hide this photo?','It stops showing in the app. Soft — recoverable and audited.','Why hide it?',async r=>{if(r.trim().length<5){toast('Add a reason');return;}const {error}=await sb.from('gallery_images').update({hidden:true,hidden_reason:r,hidden_at:new Date().toISOString()}).eq('id',id);if(error){toast(error.message);return;}await audit('gallery_hidden','gallery_image',id,r);closeM();toast('Photo hidden');MODTAB='gallery';pModeration();},true);}
+async function restoreImage(id){const {error}=await sb.from('gallery_images').update({hidden:false,hidden_reason:null,hidden_at:null}).eq('id',id);if(error){toast(error.message);return;}await audit('gallery_restored','gallery_image',id,'restored');toast('Restored');MODTAB='gallery';pModeration();}
+
+/* ===== TRADIE PROFILE (live) ===== */
+const kv=(l,v)=>`<div style="display:flex;flex-direction:column;gap:3px;padding:11px 2px;border-bottom:1px solid var(--line2)"><span style="font-size:11px;color:var(--mut);font-weight:600;text-transform:uppercase;letter-spacing:.03em">${esc(l)}</span><span style="font-size:14px;font-weight:500">${v==null||v===''?'<span class="mut">—</span>':esc(v)}</span></div>`;
+const stars=r=>'★'.repeat(r||0)+'☆'.repeat(5-(r||0));
+const DAYORD=['mon','tue','wed','thu','fri','sat','sun'];
+function t12(hhmm){const m=/^(\d{1,2}):(\d{2})/.exec(hhmm||'');if(!m)return hhmm||'';let h=+m[1];const ap=h>=12?'PM':'AM';h=h%12||12;return h+':'+m[2]+' '+ap;}
+function fmtHours(v){if(v==null)return '—';if(typeof v==='string')return v;if(typeof v==='object'){if(v.closed||v.mode==='closed')return 'Closed';if(v.mode==='emergency')return 'Emergency only';if(v.mode==='24h'||(v.open==='00:00'&&(v.close==='23:59'||v.close==='24:00')))return 'Open 24 hours';if(v.open&&v.close)return t12(v.open)+' – '+t12(v.close);}return '—';}
+function collectPhotos(t){let a=[];[t.photos,t.gallery].forEach(x=>{if(Array.isArray(x))a=a.concat(x);});if(Array.isArray(t.work_photos))a=a.concat(t.work_photos.map(w=>typeof w==='string'?w:(w&&w.url)));return a.filter(u=>typeof u==='string'&&u.indexOf('http')===0);}
+let TP=null,TPTAB=0;const TPTABS=['Overview','Verification','Services','Gallery','Availability','Reviews','Jobs','Messages','Insights'];
+async function openTradie(id){loading('Tradie');try{
+ const [{data:t,error},bk,rev,enq]=await Promise.all([
+  sb.from('listings').select('*').eq('id',id).single(),
+  sb.from('bookings').select('id,job_title,status,slot_start').eq('listing_id',id).order('slot_start',{ascending:false}).limit(10),
+  sb.from('listing_reviews').select('from_name,rating,review_text,reply_text,source,hidden,created_at').eq('listing_id',id).order('created_at',{ascending:false}).limit(20),
+  sb.from('enquiries').select('id,from_name,messages,stage,status,created_at').eq('listing_id',id).order('created_at',{ascending:false}).limit(50)]);
+ if(error)throw error;
+ TP={t,bk:bk.data||[],rev:rev.data||[],enq:enq.data||[]};TPTAB=0;renderTP();
+}catch(e){$('main').innerHTML='<h2>Tradie</h2>'+errBox(e);}}
+function tpTab(i){TPTAB=i;renderTP();}
+function renderTP(){const t=TP.t,bk=TP.bk,rev=TP.rev;
+ const respAvg=t.stat_response_count?Math.round((t.stat_response_hours_total/t.stat_response_count)*60):null;
+ const svc=Array.isArray(t.priced_services)?t.priced_services:[];
+ const photos=collectPhotos(t);
+ const bh=t.business_hours||t.opening_hours;
+ const hoursRows=(bh&&typeof bh==='object'&&!Array.isArray(bh))?Object.entries(bh).sort((a,b)=>DAYORD.indexOf((a[0]||'').slice(0,3).toLowerCase())-DAYORD.indexOf((b[0]||'').slice(0,3).toLowerCase())).map(([d,v])=>{const lbl=(d||'').slice(0,3);const label=lbl.charAt(0).toUpperCase()+lbl.slice(1).toLowerCase();const hv=fmtHours(v);const closed=/Closed/.test(hv);return `<div style="display:flex;justify-content:space-between;align-items:center;padding:11px 2px;border-bottom:1px solid var(--line2);font-size:13.5px"><span style="font-weight:650;width:48px">${esc(label)}</span><span class="${closed?'mut':''}">${esc(hv)}</span></div>`;}).join(''):'';
+ const body=[
+  `${t.description?`<div class="card"><div class="ch">About</div><div style="padding:16px 18px;font-size:14px;line-height:1.6;color:var(--ink2)">${esc(t.description)}</div></div>`:''}
+   <div class="card"><div class="ch">Contact, rates &amp; payouts</div><div style="padding:6px 18px">${kv('Email',t.email)}${kv('Phone',t.phone)}${kv('Website',t.website)}${kv('Team size',t.team_size)}${kv('Hourly rate',t.hourly_rate?'$'+t.hourly_rate:'—')}${kv('Call-out fee',t.call_out_fee?'$'+t.call_out_fee:'—')}${kv('Joined',fmtDate(t.joined_at))}${kv('Stripe payouts',t.stripe_charges_enabled?'Enabled ('+esc(t.stripe_account_id||'')+')':'Not connected')}${kv('Pay link',t.pay_link)}${kv('Google',t.google_url)}${kv('Instagram',t.instagram_url)}</div></div>`,
+  `<div class="card"><div class="ch">Verification</div><div style="padding:6px 18px">${kv('ABN',t.abn)}${kv('Licence',t.licence)}${kv('Insured',t.insured?'Yes':'No')}${kv('Insurance expiry',t.insurance_expiry_date)}${kv('Insurance document',t.insurance_doc_url?'On file':'—')}${kv('Qualified / licensed',t.qualified?'Yes':'No')}${kv('Google rating',t.google_rating?t.google_rating+' ('+(t.google_review_count||0)+' reviews)':'—')}</div></div>`,
+  svc.length?`<div class="card"><div class="ch">Services &amp; pricing</div><div style="padding:6px 18px">${svc.map(s=>`<div style="display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--line2)"><span>${esc(s.name||s.title||s.label||'Service')}${s.detail?' <span class="mut" style="font-size:12px">'+esc(s.detail)+'</span>':''}</span><b>${s.price!=null?'$'+esc(s.price):esc(s.priceText||s.amount||'')}</b></div>`).join('')}</div></div>`:'<div class="card"><div class="empty">No services listed.</div></div>',
+  photos.length?`<div class="card"><div class="ch">Gallery (${photos.length})</div><div style="padding:14px 18px;display:grid;grid-template-columns:repeat(4,1fr);gap:8px">${photos.slice(0,12).map(u=>`<img src="${esc(u)}" style="width:100%;aspect-ratio:1;object-fit:cover;border-radius:10px">`).join('')}</div></div>`:'<div class="card"><div class="empty">No photos yet.</div></div>',
+  `<div class="card"><div class="ch">Availability &amp; area</div><div style="padding:6px 18px">${hoursRows||kv('Business hours','—')}${kv('Service radius',t.service_radius_km?t.service_radius_km+' km':'—')}${kv('Suburb · postcode',(t.suburb||'')+' '+(t.postcode||''))}${kv('Cap slot',t.cap_slot||'—')}</div></div>`,
+  `<div class="card"><div class="ch">Reviews (${rev.length})</div><div style="padding:6px 18px">${rev.length?rev.map(r=>`<div style="padding:13px 0;border-bottom:1px solid var(--line2)"><div style="display:flex;align-items:center;gap:8px"><b>${esc(r.from_name||'—')}</b><span style="color:var(--gold)">${stars(r.rating)}</span><span class="pill ${r.source==='google'?'n':'g'}" style="margin-left:auto">${esc(r.source||'trusttrade')}</span>${r.hidden?'<span class="pill r">Hidden</span>':''}</div><div style="font-size:13px;color:var(--ink2);margin-top:6px">${esc(r.review_text||'')}</div>${r.reply_text?`<div style="margin-top:8px;padding:9px 11px;background:#FBFBFC;border:1px solid var(--line2);border-radius:8px;font-size:12.5px"><b>Reply</b> ${esc(r.reply_text)}</div>`:''}</div>`).join(''):'<div class="empty" style="padding:14px 0">No reviews yet.</div>'}</div></div>`,
+  `<div class="card"><div class="ch">Bookings (${bk.length})</div>${bk.length?`<table><tbody>${bk.map(b=>`<tr><td><b>${esc(b.job_title||'Job')}</b></td><td>${esc(b.status||'')}</td><td class="mut">${fmtDate(b.slot_start)}</td></tr>`).join('')}</tbody></table>`:'<div class="empty">No bookings yet.</div>'}</div>`,
+  `<div class="card"><div class="ch">Conversations (${(TP.enq||[]).length})</div>${(TP.enq&&TP.enq.length)?`<table><thead><tr><th>Customer</th><th>Msgs</th><th>Stage</th><th>When</th><th class="right">Action</th></tr></thead><tbody>${TP.enq.map(e=>`<tr><td><b>${esc(e.from_name||'—')}</b></td><td class="mono">${Array.isArray(e.messages)?e.messages.length:0}</td><td>${esc(e.stage||e.status||'—')}</td><td class="mut">${ago(e.created_at)}</td><td class="right">${Array.isArray(e.messages)&&e.messages.length?`<button class="btn w" onclick="viewThread('${e.id}')">View thread</button>`:'<span class="mut">—</span>'}</td></tr>`).join('')}</tbody></table>`:'<div class="empty">No conversations for this tradie yet.</div>'}</div>`,
+  `<div class="kpis" style="margin:0"><div class="kpi"><div class="k">Profile views</div><b>${t.stat_views||0}</b></div><div class="kpi"><div class="k">Enquiries</div><b>${t.stat_enquiries||0}</b></div><div class="kpi"><div class="k">Calls</div><b>${t.stat_calls||0}</b></div><div class="kpi"><div class="k">Emails</div><b>${t.stat_emails||0}</b></div><div class="kpi"><div class="k">Jobs done</div><b>${t.stat_jobs_complete||0}</b></div><div class="kpi"><div class="k">Reply time</div><b>${respAvg!=null?respAvg+'m':'—'}</b></div></div>`
+ ][TPTAB];
+ $('main').innerHTML=`<div style="margin-bottom:12px"><a class="mut" style="cursor:pointer" onclick="go('tradies')">← Tradies</a></div>
+  <div style="display:flex;align-items:center;gap:14px;margin-bottom:8px"><h2>${esc(t.name)}</h2>
+   ${t.status==='approved'?'<span class="pill g">Live</span>':t.status==='hidden'?'<span class="pill r">Hidden</span>':'<span class="pill n">'+esc(t.status||'')+'</span>'}${t.insured?'<span class="pill g">Insured</span>':'<span class="pill a">No insurance</span>'}${t.qualified?'<span class="pill b">Licensed</span>':''}
+   <span style="margin-left:auto"></span><button class="btn w" onclick="editTradieForm()">Edit</button> ${t.status==='hidden'?`<button class="btn g" onclick="restoreListing('${t.id}','${esc(t.name)}')">Restore</button>`:`<button class="btn r" onclick="hideListing('${t.id}','${esc(t.name)}')">Hide</button>`} <button class="btn r" onclick="deleteListing('${t.id}','${esc(t.name)}')"><svg viewBox="0 0 24 24" style="width:13px;height:13px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round"><path d="M3 6h18M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>Delete</button></div>
+  <div class="subt">${esc(t.trade||'')} · ${esc(t.suburb||t.location||'')} ${esc(t.postcode||'')} · ABN ${esc(t.abn||'—')}</div>
+  <div class="kpis" style="margin:16px 0 6px">
+   <div class="kpi"><div class="k">Rating</div><b>${t.rating||'—'}</b><div class="d">${t.review_count||0} reviews</div></div>
+   <div class="kpi"><div class="k">Jobs done</div><b>${t.stat_jobs_complete||0}</b></div>
+   <div class="kpi"><div class="k">Reply time</div><b>${respAvg!=null?respAvg+'m':'—'}</b></div>
+   <div class="kpi"><div class="k">Cap slot</div><b>${t.cap_slot||'—'}</b></div>
+  </div>
+  <div class="tabs">${TPTABS.map((x,i)=>`<div class="${i===TPTAB?'on':''}" onclick="tpTab(${i})">${esc(x)}</div>`).join('')}</div>
+  ${body}`;
+}
+
+/* ===== JOBS (bookings) ===== */
+let LNAMES=null;
+async function listingNames(){if(LNAMES)return LNAMES;const {data}=await sb.from('listings').select('id,name');LNAMES={};(data||[]).forEach(l=>LNAMES[l.id]=l.name);return LNAMES;}
+async function pJobs(){loading('Jobs');try{
+ const [{data,error},names]=await Promise.all([sb.from('bookings').select('id,job_title,status,slot_start,listing_id,created_at').order('created_at',{ascending:false}).limit(100),listingNames()]);
+ if(error)throw error;
+ $('main').innerHTML=`<h2>Jobs</h2><div class="subt">${data.length} bookings · live</div>
+  <div class="card"><table><thead><tr><th>Job</th><th>Tradie</th><th>Status</th><th>When</th></tr></thead><tbody>
+  ${data.map(b=>`<tr onclick="openJob('${b.id}')" style="cursor:pointer"><td><b>${esc(b.job_title||'Job')}</b></td><td>${esc(names[b.listing_id]||'—')}</td><td>${b.status==='completed'?'<span class="pill g">Completed</span>':b.status==='disputed'?'<span class="pill r">Disputed</span>':'<span class="pill b">'+esc(b.status||'')+'</span>'}</td><td class="mut">${fmtDate(b.slot_start||b.created_at)}</td></tr>`).join('')||'<tr><td colspan=4 class="empty">No jobs yet — a job is created when a customer books a tradie.</td></tr>'}
+  </tbody></table></div>`;
+}catch(e){$('main').innerHTML='<h2>Jobs</h2>'+errBox(e);}}
+
+/* ===== MONEY ===== */
+async function pMoney(){loading('Money');try{
+ const [subs,inv,quo,names]=await Promise.all([sb.from('subscriptions').select('*').order('created_at',{ascending:false}),sb.from('invoices').select('id,number,total,status,paid_at,listing_id,created_at').order('created_at',{ascending:false}).limit(50),sb.from('quotes').select('id,quote_number,job_title,total_inc_gst,status,tradie_listing_id,created_at').order('created_at',{ascending:false}).limit(50),listingNames()]);
+ const active=(subs.data||[]).filter(s=>s.status==='active').length;
+ $('main').innerHTML=`<h2>Money</h2><div class="subt">Subscriptions + job invoices · TrustTrade takes $0 on jobs</div>
+  <div class="kpis"><div class="kpi"><div class="k">Active subs</div><b>${active}</b><div class="d">$${subPrice()}/mo each</div></div>
+   <div class="kpi"><div class="k">MRR</div><b>$${active*subPrice()}</b></div>
+   <div class="kpi"><div class="k">Our cut on jobs</div><b>$0</b><div class="d">paid direct</div></div></div>
+  <div class="card"><div class="ch">Subscriptions</div>${(subs.data&&subs.data.length)?`<table><thead><tr><th>Tradie</th><th>Status</th><th>Renews</th><th>Failed</th><th class="right">Action</th></tr></thead><tbody>
+   ${subs.data.map(s=>{const canceled=/cancel/.test(s.status||'');const paused=!!s.hold_until;return `<tr><td><b>${esc(names[s.listing_id]||'—')}</b></td><td>${canceled?'<span class="pill r">Canceled</span>':(paused?'<span class="pill a">Paused</span>':(s.status==='active'?'<span class="pill g">Active</span>':'<span class="pill a">'+esc(s.status||'')+'</span>'))}</td><td class="mut">${fmtDate(s.current_period_end)}</td><td class="mono">${s.failed_attempts||0}</td><td class="right">${canceled?'<span class="mut">—</span>':`${paused?`<button class="btn g" onclick="subResume('${s.id}')">Resume</button>`:`<button class="btn w" onclick="subPause('${s.id}')">Pause</button>`} <button class="btn r" onclick="subCancel('${s.id}','${esc(names[s.listing_id]||'')}')">Cancel</button>`}</td></tr>`;}).join('')}</tbody></table>`:'<div class="empty">No subscriptions yet.</div>'}</div>
+  <div class="card"><div class="ch">Job invoices (tracked, paid direct)</div>${(inv.data&&inv.data.length)?`<table><thead><tr><th>Number</th><th>Tradie</th><th>Total</th><th>Status</th><th>When</th></tr></thead><tbody>
+   ${inv.data.map(i=>`<tr onclick="openInvoice('${i.id}')" style="cursor:pointer"><td class="mono">${esc(i.number||'')}</td><td>${esc(names[i.listing_id]||'—')}</td><td class="mono">$${i.total||0}</td><td>${i.status==='paid'?'<span class="pill g">Paid</span>':'<span class="pill a">'+esc(i.status||'')+'</span>'}</td><td class="mut">${fmtDate(i.paid_at||i.created_at)}</td></tr>`).join('')}</tbody></table>`:'<div class="empty">No invoices yet.</div>'}</div>
+  <div class="card"><div class="ch">Quotes</div>${(quo.data&&quo.data.length)?`<table><thead><tr><th>Quote</th><th>Job</th><th>Tradie</th><th>Total</th><th>Status</th></tr></thead><tbody>
+   ${quo.data.map(q=>`<tr onclick="openQuote('${q.id}')" style="cursor:pointer"><td class="mono">${esc(q.quote_number||'')}</td><td>${esc(q.job_title||'—')}</td><td>${esc(names[q.tradie_listing_id]||'—')}</td><td class="mono">$${q.total_inc_gst||0}</td><td>${esc(q.status||'—')}</td></tr>`).join('')}</tbody></table>`:'<div class="empty">No quotes yet.</div>'}</div>`;
+}catch(e){$('main').innerHTML='<h2>Money</h2>'+errBox(e);}}
+
+/* ===== MAP & AREAS (merged) ===== */
+let MAPTAB='map',MAPF={trade:''},MAP_DATA=null;
+function mapTab(k){MAPTAB=k;pMap();}
+function tradeColor(tr){if(!tr)return '#8A8F99';let h=0;for(let i=0;i<tr.length;i++)h=tr.charCodeAt(i)+((h<<5)-h);return `hsl(${((h%360)+360)%360},66%,48%)`;}
+async function pMap(){
+ MAP_DATA=null;
+ const tab=(k,l)=>`<div class="${MAPTAB===k?'on':''}" onclick="mapTab('${k}')">${l}</div>`;
+ $('main').innerHTML=`<h2>Map &amp; areas</h2><div class="subt">Tradie locations and area caps in one place</div><div class="tabs">${tab('map','Map')}${tab('caps','Area caps')}</div><div id="ma_body"></div>`;
+ if(MAPTAB==='caps')return renderCaps();
+ await drawMapView();
+}
+async function drawMapView(){
+ const body=$('ma_body');if(!body)return;
+ try{
+  if(!MAP_DATA){const {data,error}=await sb.from('listings').select('id,name,trade,suburb,lat,lng,status').is('deleted_at',null);if(error)throw error;MAP_DATA=data||[];}
+  const trades=[...new Set(MAP_DATA.map(t=>t.trade).filter(Boolean))].sort();
+  body.innerHTML=`<div class="fbar"><select onchange="MAPF.trade=this.value;drawMapView()"><option value="">All trades</option>${trades.map(t=>`<option value="${esc(t)}" ${MAPF.trade===t?'selected':''}>${esc(t)}</option>`).join('')}</select><span class="mut" id="ma_count" style="font-size:12.5px"></span></div>
+   <div class="d2" style="grid-template-columns:1fr 300px"><div class="card" style="padding:0;overflow:hidden"><div id="mapdiv" style="height:600px"></div></div><div class="card" style="max-height:600px;overflow:auto"><div class="ch">Tradies</div><div id="maplist"></div></div></div>`;
+  if(window.MAP){window.MAP.remove();window.MAP=null;}
+  const dark=document.documentElement.getAttribute('data-theme')==='dark';
+  window.MAP=L.map('mapdiv',{zoomControl:true,attributionControl:false}).setView([-38.03,145.35],10);
+  L.tileLayer(dark?'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png':'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',{maxZoom:19,subdomains:'abcd'}).addTo(window.MAP);
+  const shown=MAP_DATA.filter(t=>t.lat&&t.lng&&(!MAPF.trade||t.trade===MAPF.trade)),pts=[],markers={};
+  shown.forEach(t=>{const col=tradeColor(t.trade);const dim=t.status!=='approved';const icon=L.divIcon({className:'',html:`<div title="${esc(t.trade||'')}" style="width:24px;height:24px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);background:${col};opacity:${dim?.55:1};border:2.5px solid #fff;box-shadow:0 3px 8px rgba(0,0,0,.4);display:grid;place-items:center"><span style="transform:rotate(45deg);font-size:10px;font-weight:800;color:#fff">${esc(((t.trade||'?')[0]||'?').toUpperCase())}</span></div>`,iconSize:[24,24],iconAnchor:[12,22]});const m=L.marker([t.lat,t.lng],{icon}).addTo(window.MAP);m.bindPopup('<b>'+esc(t.name)+'</b><br>'+esc(t.trade||'')+' · '+esc(t.suburb||''));markers[t.id]=m;pts.push([t.lat,t.lng]);});
+  if(pts.length)window.MAP.fitBounds(pts,{padding:[40,40],maxZoom:12});
+  window.MAPMARKERS=markers;
+  const list=$('maplist');if(list)list.innerHTML=shown.map(t=>`<div onclick="mapFocus('${t.id}',${t.lat},${t.lng})" style="padding:10px 16px;border-top:1px solid var(--line2);cursor:pointer"><div style="display:flex;align-items:center;gap:8px"><span style="width:9px;height:9px;border-radius:50%;background:${tradeColor(t.trade)}"></span><b style="font-size:13px">${esc(t.name)}</b></div><div class="mut" style="font-size:11.5px;margin:2px 0 0 17px">${esc(t.trade||'')} · ${esc(t.suburb||'')}</div></div>`).join('')||'<div class="empty">No tradies match.</div>';
+  const c=$('ma_count');if(c)c.textContent=shown.length+' shown';
+ }catch(e){body.innerHTML=errBox(e);}
+}
+function mapFocus(id,lat,lng){if(!window.MAP)return;window.MAP.setView([lat,lng],14);const m=window.MAPMARKERS&&window.MAPMARKERS[id];if(m)m.openPopup();}
+async function renderCaps(){
+ const body=$('ma_body');if(!body)return;
+ try{const [caps,lst]=await Promise.all([sb.from('area_caps').select('*'),sb.from('listings').select('area_key,trade_key,status')]);if(caps.error)throw caps.error;
+  const filled={};(lst.data||[]).filter(l=>l.status==='approved').forEach(l=>{const k=(l.area_key||'')+'|'+(l.trade_key||'');filled[k]=(filled[k]||0)+1;});
+  body.innerHTML=`<div class="card"><table><thead><tr><th>Area</th><th>Trade</th><th>Filled</th><th>Status</th><th class="right">Action</th></tr></thead><tbody>${(caps.data||[]).map(c=>{const n=filled[(c.area||'')+'|'+(c.trade||'')]||0;const full=n>=c.max_tradies;return `<tr><td><b>${esc(c.area||'')}</b></td><td>${esc(c.trade||'')}</td><td class="mono">${n} / ${c.max_tradies}</td><td>${full?'<span class="pill r">Full</span>':'<span class="pill g">Open</span>'}</td><td class="right"><button class="btn w" onclick="editCap('${c.id}','${esc(c.area||'')}','${esc(c.trade||'')}',${c.max_tradies||0})">Edit cap</button></td></tr>`;}).join('')||'<tr><td colspan=5 class="empty">No caps set.</td></tr>'}</tbody></table></div>`;
+ }catch(e){body.innerHTML=errBox(e);}
+}
+
+/* ===== FLAGS (expiring insurance + flagged reviews) ===== */
+async function pFlags(){loading('Flags');try{
+ const [lst,rev,bw,names]=await Promise.all([
+  sb.from('listings').select('id,name,suburb,insurance_expiry_date,insured,status').is('deleted_at',null).not('insurance_expiry_date','is',null),
+  sb.from('listing_reviews').select('id,from_name,rating,review_text,hidden,listing_id,created_at').order('created_at',{ascending:false}).limit(500),
+  sb.from('banned_words').select('word'),
+  listingNames()]);
+ const days=d=>Math.round((new Date(d)-Date.now())/864e5);
+ const expiring=(lst.data||[]).map(t=>({...t,dd:days(t.insurance_expiry_date)})).filter(t=>t.dd<45).sort((a,b)=>a.dd-b.dd);
+ const words=(bw.data||[]).map(w=>(w.word||'').toLowerCase()).filter(Boolean);
+ const lowRev=(rev.data||[]).filter(r=>!r.hidden&&(r.rating||0)>0&&(r.rating||0)<=2);
+ const flagged=(rev.data||[]).filter(r=>!r.hidden&&r.review_text&&words.some(w=>r.review_text.toLowerCase().includes(w)));
+ const expRows=expiring.map(t=>{const st=t.dd<0?['r','Lapsed']:['a','Soon'];return `<tr><td><b style="cursor:pointer;color:var(--goldd)" onclick="openTradie('${t.id}')">${esc(t.name)}</b><br><span class="mut" style="font-size:12px">${esc(t.suburb||'')}</span></td><td>${fmtDate(t.insurance_expiry_date)}</td><td class="mono">${t.dd}d</td><td><span class="pill ${st[0]}">${st[1]}</span></td></tr>`;}).join('')||'<tr><td colspan=4 class="empty">No insurance expiring in 45 days.</td></tr>';
+ const revRow=r=>`<tr><td><b>${esc(r.from_name||'—')}</b><br><span class="mut" style="font-size:12px">${esc(names[r.listing_id]||'')}</span></td><td style="color:var(--gold)">${stars(r.rating)}</td><td class="mut" style="max-width:340px">${esc(r.review_text||'')}</td><td class="mut">${ago(r.created_at)}</td><td class="right"><button class="btn r" onclick="hideReview('${r.id}')">Hide</button></td></tr>`;
+ const lowRows=lowRev.map(revRow).join('')||'<tr><td colspan=5 class="empty">No low-rated reviews.</td></tr>';
+ const flagRows=flagged.map(revRow).join('')||'<tr><td colspan=5 class="empty">No reviews contain banned words.</td></tr>';
+ $('main').innerHTML=`<h2>Flags</h2><div class="subt">Things that need a look — insurance about to lapse and reviews that tripped a rule</div>
+  <div class="kpis"><div class="kpi"><div class="k">Insurance expiring</div><b style="${expiring.some(t=>t.dd<0)?'color:var(--red)':''}">${expiring.length}</b></div>
+   <div class="kpi"><div class="k">Low-rated reviews (≤2★)</div><b>${lowRev.length}</b></div>
+   <div class="kpi"><div class="k">Flagged-word reviews</div><b style="${flagged.length?'color:var(--red)':''}">${flagged.length}</b></div></div>
+  <div class="card"><div class="ch">Insurance expiring / lapsed</div><table><thead><tr><th>Tradie</th><th>Expiry</th><th>Days</th><th>State</th></tr></thead><tbody>${expRows}</tbody></table></div>
+  <div class="card"><div class="ch">Low-rated reviews (2★ or under)</div><table><thead><tr><th>Reviewer</th><th>Rating</th><th>Review</th><th>When</th><th class="right">Action</th></tr></thead><tbody>${lowRows}</tbody></table></div>
+  <div class="card"><div class="ch">Reviews containing banned words</div><table><thead><tr><th>Reviewer</th><th>Rating</th><th>Review</th><th>When</th><th class="right">Action</th></tr></thead><tbody>${flagRows}</tbody></table></div>`;
+}catch(e){$('main').innerHTML='<h2>Flags</h2>'+errBox(e);}}
+
+/* ===== POLICIES ===== */
+async function pPolicies(){loading('Policies');try{
+ const [{data,error},cons]=await Promise.all([
+  sb.from('policy_versions').select('doc_key,version,effective_at,requires_consent,applies_to,summary,is_current').order('effective_at',{ascending:false}),
+  sb.from('consents').select('doc_key,version')]);
+ if(error)throw error;
+ const cc={};(cons.data||[]).forEach(c=>{const k=(c.doc_key||'')+'|'+(c.version||'');cc[k]=(cc[k]||0)+1;});
+ $('main').innerHTML=`<div style="display:flex;align-items:flex-start"><div><h2>Policies</h2><div class="subt">Versioned documents · publishing a version makes it current and re-prompts consent</div></div><div style="margin-left:auto;display:flex;gap:8px"><button class="btn w" onclick="policyPack('homeowner')">Homeowner pack</button><button class="btn w" onclick="policyPack('tradie')">Tradie pack</button></div></div>
+  <div class="card"><table><thead><tr><th>Document</th><th>Version</th><th>Applies to</th><th>Consents</th><th>Current</th><th class="right">Action</th></tr></thead><tbody>
+  ${data.map(p=>{const n=cc[(p.doc_key||'')+'|'+(p.version||'')]||0;return `<tr><td><b>${esc(p.doc_key||'')}</b>${p.requires_consent?' <span class="pill a">consent</span>':''}${p.summary?'<br><span class="mut" style="font-size:12px">'+esc(p.summary)+'</span>':''}</td><td>${esc(p.version||'')}<br><span class="mut" style="font-size:11px">${fmtDate(p.effective_at)}</span></td><td>${esc(p.applies_to||'all')}</td><td class="mono">${n}</td><td>${p.is_current?'<span class="pill g">Current</span>':'<span class="pill n">—</span>'}</td><td class="right"><button class="btn w" onclick="editPolicy('${esc(p.doc_key||'')}','${esc(p.version||'')}')">Edit</button> ${p.is_current?'<span class="mut">live</span>':`<button class="btn g" onclick="publishPolicy('${esc(p.doc_key||'')}','${esc(p.version||'')}')">Publish</button>`}</td></tr>`;}).join('')||'<tr><td colspan=6 class="empty">No policies.</td></tr>'}
+  </tbody></table></div>`;
+}catch(e){$('main').innerHTML='<h2>Policies</h2>'+errBox(e);}}
+async function policyPack(aud){
+ const {data,error}=await sb.from('policy_versions').select('*').eq('is_current',true).order('doc_key');
+ if(error){toast(error.message);return;}
+ const list=(data||[]).filter(p=>{const a=(p.applies_to||'all').toLowerCase();return a==='all'||a===aud||(aud==='homeowner'&&a==='customer');});
+ const html=list.map(p=>`<div style="padding:15px 0;border-top:1px solid var(--line2)"><div style="font-weight:750;font-size:14px;text-transform:capitalize">${esc(p.doc_key)} <span class="mut" style="font-weight:500;font-size:12px">· v${esc(p.version)} · ${esc(p.applies_to||'all')}</span></div><div style="font-size:13px;line-height:1.6;color:var(--ink2);margin-top:6px">${esc(p.summary||'— no summary —')}</div></div>`).join('')||'<div class="empty">No current policies for this audience.</div>';
+ modal(`<h3>${aud==='homeowner'?'Homeowner':'Tradie'} policy pack</h3><p style="color:var(--mut);font-size:12.5px;margin-top:4px">The current documents a ${aud==='homeowner'?'homeowner':'tradie'} agrees to, stitched into one.</p><div style="max-height:58vh;overflow:auto;margin-top:6px">${html}</div><div class="mf"><button class="btn w" onclick="closeM()">Close</button></div>`,'xwide');}
+async function publishPolicy(doc,ver){ask(`Publish ${doc} ${ver} as current?`,'Marks this the live version, unsets the others for this document, and flags it for consent so users re-agree. Audited.','Note (optional)',async r=>{
+ await sb.from('policy_versions').update({is_current:false}).eq('doc_key',doc);
+ const {error}=await sb.from('policy_versions').update({is_current:true,requires_consent:true}).eq('doc_key',doc).eq('version',ver);
+ if(error){toast(error.message);return;}
+ await audit('policy_published','policy',doc+' '+ver,r||'published');closeM();toast('Published — now current');pPolicies();});}
+async function editPolicy(doc,ver){
+ const {data:p,error}=await sb.from('policy_versions').select('*').eq('doc_key',doc).eq('version',ver).maybeSingle();
+ if(error){toast(error.message);return;}
+ const pp=p||{};
+ modal(`<h3>Edit policy · ${esc(doc)} ${esc(ver)}</h3><p style="color:var(--mut);font-size:12.5px;margin-top:4px">View and edit this version. Saving will offer to notify users.</p>
+  <label style="display:block;margin-top:12px">Summary<textarea id="pol_sum" style="min-height:120px">${esc(pp.summary||'')}</textarea></label>
+  <label style="display:block;margin-top:10px">Applies to<select id="pol_app"><option value="all" ${pp.applies_to==='all'||!pp.applies_to?'selected':''}>all</option><option value="tradie" ${pp.applies_to==='tradie'?'selected':''}>tradie</option><option value="customer" ${pp.applies_to==='customer'?'selected':''}>customer</option></select></label>
+  <label style="display:flex;align-items:center;gap:8px;margin-top:12px;font-size:13px;font-weight:500"><input type="checkbox" id="pol_rc" ${pp.requires_consent?'checked':''} style="width:auto"> Requires consent — users must re-agree</label>
+  <div class="mf"><button class="btn w" onclick="closeM()">Cancel</button><button class="btn g" onclick="savePolicy('${esc(doc)}','${esc(ver)}')">Save changes</button></div>`,true);
+ setTimeout(()=>{const e=$('pol_sum');if(e)e.focus();},60);}
+async function savePolicy(doc,ver){
+ const summary=val('pol_sum'),applies=val('pol_app'),rc=$('pol_rc')&&$('pol_rc').checked;
+ const {error}=await sb.from('policy_versions').update({summary,applies_to:applies,requires_consent:rc}).eq('doc_key',doc).eq('version',ver);
+ if(error){toast(error.message);return;}
+ await audit('policy_edited','policy',doc+' '+ver,'summary/applies/consent updated');
+ modal(`<h3 style="color:var(--green)">✓ Policy saved</h3><p style="color:var(--mut);font-size:13px;margin-top:6px"><b>${esc(doc)} ${esc(ver)}</b> was updated. Do you want to notify affected users about this change?</p>
+  <div class="mf"><button class="btn w" onclick="closeM();pPolicies()">Not now</button><button class="btn g" onclick="notifyPolicy('${esc(doc)}','${esc(ver)}','${esc(applies)}')">Notify users</button></div>`);}
+async function notifyPolicy(doc,ver,applies){
+ let q=sb.from('profiles').select('id');if(applies&&applies!=='all')q=q.eq('role',applies);
+ const {data:us,error}=await q;if(error){toast(error.message);return;}
+ const ids=(us||[]).map(u=>u.id);if(!ids.length){toast('No recipients');return;}
+ if(ids.length>500){toast('Too many recipients — use the Notifications page');return;}
+ const rows=ids.map(uid=>({user_id:uid,type:'policy',title:'Policy updated: '+doc,body:'Our '+doc+' ('+ver+') has changed. Please review it in the app.',read:false}));
+ const {error:e2}=await sb.from('notifications').insert(rows);if(e2){toast(e2.message);return;}
+ await audit('policy_notified','policy',doc+' '+ver,'notified '+ids.length);closeM();toast('Notified '+ids.length+' users');pPolicies();}
+
+async function openUser(id){loading('Customer');try{
+ const [{data:u,error},bk]=await Promise.all([
+  sb.from('profiles').select('*').eq('id',id).single(),
+  sb.from('bookings').select('id,job_title,status,slot_start,listing_id,created_at').eq('customer_id',id).order('created_at',{ascending:false}).limit(20)]);
+ if(error)throw error;const names=await listingNames();
+ $('main').innerHTML=`<div style="margin-bottom:12px"><a class="mut" style="cursor:pointer" onclick="go('cust')">← Customers</a></div>
+  <div style="display:flex;align-items:center;gap:14px"><h2>${esc(u.name||'—')}</h2>${u.suspended?'<span class="pill r">Suspended</span>':'<span class="pill g">Active</span>'}<span style="margin-left:auto"></span>${u.suspended?`<button class="btn g" onclick="unsuspendUser('${u.id}')">Unsuspend</button>`:`<button class="btn r" onclick="suspendUser('${u.id}','${esc(u.name||'')}')">Suspend</button>`}</div>
+  <div class="subt">${esc(u.email||'')} · ${esc(u.phone||'')} · ${esc(u.suburb||'')} ${esc(u.postcode||'')} ${esc(u.state||'')}</div>
+  <div class="kpis"><div class="kpi"><div class="k">Jobs booked</div><b>${(bk.data||[]).length}</b></div>
+   <div class="kpi"><div class="k">Joined</div><b style="font-size:16px">${fmtDate(u.created_at)}</b></div>
+   <div class="kpi"><div class="k">Last seen</div><b style="font-size:16px">${u.last_seen?ago(u.last_seen):'—'}</b></div></div>
+  <div class="card"><div class="ch">Account</div><div style="padding:6px 18px">
+   ${kv('Email',u.email)}${kv('Phone',u.phone)}${kv('Role',u.role)}${kv('Address on file',u.address?'Yes — released to a tradie only during a booking':'—')}${kv('Heard about us',u.heard_about)}${u.suspended?kv('Suspended reason',u.suspended_reason):''}
+  </div></div>
+  <div class="card"><div class="ch">Bookings (${(bk.data||[]).length})</div>${(bk.data&&bk.data.length)?`<table><tbody>${bk.data.map(b=>`<tr><td><b>${esc(b.job_title||'Job')}</b></td><td>${esc(names[b.listing_id]||'')}</td><td>${esc(b.status||'')}</td><td class="mut">${fmtDate(b.slot_start||b.created_at)}</td></tr>`).join('')}</tbody></table>`:'<div class="empty">No bookings.</div>'}</div>`;
+}catch(e){$('main').innerHTML='<h2>Customer</h2>'+errBox(e);}}
+async function deleteListing(id,name){ask('Delete '+name+'?','Removes the listing from the app. This is a soft delete — it\'s recoverable and audited, not wiped. Reason required.','Reason (min 9 chars)',async r=>{if(r.trim().length<9){toast('Reason too short');return;}const {error}=await sb.from('listings').update({deleted_at:new Date().toISOString(),status:'hidden',cap_slot:null}).eq('id',id);if(error){toast(error.message);return;}await audit('listing_deleted','listing',id,r);closeM();go('tradies');toastAction('Listing deleted','Undo',()=>undeleteListing(id));},true);}
+async function suspendUser(id,name){ask('Suspend '+name+'?','Blocks their app access. Reason is logged.','Reason (min 9 chars)',async r=>{if(r.trim().length<9){toast('Reason too short');return;}const {error}=await sb.from('profiles').update({suspended:true,suspended_reason:r,suspended_at:new Date().toISOString()}).eq('id',id);if(error){toast(error.message);return;}await audit('user_suspended','profile',id,r);closeM();toast('Suspended');openUser(id);},true);}
+async function unsuspendUser(id){const {error}=await sb.from('profiles').update({suspended:false,suspended_reason:null}).eq('id',id);if(error){toast(error.message);return;}await audit('user_unsuspended','profile',id,'lifted');toast('Unsuspended');openUser(id);}
+const val=id=>($(id)?$(id).value:'');
+function toggleTheme(){const h=document.documentElement,d=h.getAttribute('data-theme')==='dark';h.setAttribute('data-theme',d?'light':'dark');const l=$('themeLbl');if(l)l.textContent=d?'Dark mode':'Light mode';try{localStorage.setItem('tt_theme',d?'light':'dark');}catch(e){}}
+const DASH_KEYS=[
+ ['mrr','MRR','Metric cards'],['tradies','Live tradies','Metric cards'],['newtr','New tradies · 7d','Metric cards'],
+ ['bookings','Bookings','Metric cards'],['jobsdone','Jobs completed','Metric cards'],['enq7','Enquiries · 7d','Metric cards'],
+ ['rating','Avg rating','Metric cards'],['active','Active today','Metric cards'],['waitlist','Waitlist','Metric cards'],
+ ['pendapp','Pending apps','Metric cards'],['openrep','Open reports','Metric cards'],
+ ['today','Today action queue','Panels'],['chart','App activity chart','Panels'],['top','Top trades','Panels'],['recent','Recent activity','Panels'],['attention','Needs attention','Panels']];
+const DASH_DEFAULT_OFF=new Set(['newtr','jobsdone','enq7','rating','waitlist','pendapp','openrep']);
+let DASHCFG={};try{DASHCFG=JSON.parse(localStorage.getItem('tt_dash'))||{};}catch(e){}
+const dashOn=k=>DASHCFG[k]!==undefined?DASHCFG[k]!==false:!DASH_DEFAULT_OFF.has(k);
+function dashSet(on){DASH_KEYS.forEach(([k])=>{const cb=$('dc_'+k);if(cb)cb.checked=on;});}
+function customiseDash(){
+ const groups=[...new Set(DASH_KEYS.map(g=>g[2]))];
+ const body=groups.map(gr=>`<div class="fl" style="margin:14px 0 4px">${gr}</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:2px 14px">${DASH_KEYS.filter(x=>x[2]===gr).map(([k,l])=>`<label style="display:flex;align-items:center;gap:9px;padding:7px 0;font-size:13px;font-weight:500"><input type="checkbox" id="dc_${k}" ${dashOn(k)?'checked':''} style="width:auto"> ${l}</label>`).join('')}</div>`).join('');
+ modal(`<h3>Customise dashboard</h3><p style="color:var(--mut);font-size:12.5px;margin-top:4px">Pick the cards and panels you want. Saved on this device.</p>
+  <div style="display:flex;gap:8px;margin-top:10px"><button class="btn w" onclick="dashSet(true)">Select all</button><button class="btn w" onclick="dashSet(false)">Clear all</button></div>
+  ${body}
+  <div class="mf"><button class="btn w" onclick="closeM()">Cancel</button><button class="btn" onclick="saveDash()">Save</button></div>`,true);}
+function saveDash(){DASH_KEYS.forEach(([k])=>{const cb=$('dc_'+k);if(cb)DASHCFG[k]=cb.checked;});try{localStorage.setItem('tt_dash',JSON.stringify(DASHCFG));}catch(e){}closeM();pDash();}
+function editTradieForm(){const t=TP.t;const svcText=(Array.isArray(t.priced_services)?t.priced_services:[]).map(s=>`${s.name||s.title||''} | ${s.detail||''} | ${s.price!=null?s.price:(s.amount||'')}`).join('\n');
+ modal(`<h3>Edit ${esc(t.name)}</h3><p style="color:var(--mut);font-size:12px;margin-top:4px">Edit on the left — the preview on the right updates live, the way tradies see their profile. ABN / licence / insurance stay register-verified.</p>
+ <div style="display:grid;grid-template-columns:1fr 300px;gap:22px;margin-top:14px;align-items:start">
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;font-size:11.5px;font-weight:600;color:var(--ink2)">
+   <label style="grid-column:1/3">Business name<input id="e_name" value="${esc(t.name||'')}" oninput="epreview()"></label>
+   <label>Trade<input id="e_trade" value="${esc(t.trade||'')}" oninput="epreview()"></label>
+   <label>Phone<input id="e_phone" value="${esc(t.phone||'')}" oninput="epreview()"></label>
+   <label style="grid-column:1/3">Email<input id="e_email" value="${esc(t.email||'')}" oninput="epreview()"></label>
+   <label>Suburb<input id="e_suburb" value="${esc(t.suburb||'')}" oninput="epreview()"></label>
+   <label>Postcode<input id="e_pc" value="${esc(t.postcode||'')}" oninput="epreview()"></label>
+   <label>Hourly rate ($)<input id="e_rate" value="${t.hourly_rate??''}" oninput="epreview()"></label>
+   <label>Call-out fee ($)<input id="e_call" value="${t.call_out_fee??''}" oninput="epreview()"></label>
+   <label>Service radius (km)<input id="e_rad" value="${t.service_radius_km??''}" oninput="epreview()"></label>
+   <label>Website<input id="e_web" value="${esc(t.website||'')}" oninput="epreview()"></label>
+   <label style="grid-column:1/3">About<textarea id="e_desc" oninput="epreview()">${esc(t.description||'')}</textarea></label>
+   <label style="grid-column:1/3">Services — one per line: name | detail | price<textarea id="e_svc" style="min-height:88px" oninput="epreview()">${esc(svcText)}</textarea></label>
+  </div>
+  <div style="position:sticky;top:0"><div class="fl" style="margin-bottom:7px">Live preview</div><div id="eprev"></div></div>
+ </div>
+ <div class="mf"><button class="btn w" onclick="closeM()">Cancel</button><button class="btn" onclick="saveTradieProfile('${t.id}')">Save changes</button></div>`,'xwide');
+ epreview();}
+function epreview(){const el=$('eprev');if(!el)return;const t=TP.t||{};
+ const name=val('e_name')||'Business name',trade=val('e_trade')||'Trade',sub=val('e_suburb'),rate=val('e_rate'),call=val('e_call'),about=val('e_desc');
+ const svc=val('e_svc').split('\n').map(l=>l.split('|').map(x=>x.trim())).filter(a=>a[0]);
+ const initials=(name.trim().split(/\s+/).slice(0,2).map(w=>w[0]||'').join('')||'T').toUpperCase();
+ const rating=t.rating||0,rc=t.review_count||0,starN=Math.round(rating);
+ el.innerHTML=`<div style="border:1px solid var(--line);border-radius:22px;overflow:hidden;background:var(--panel);box-shadow:0 12px 30px rgba(0,0,0,.14);font-family:var(--f)">
+  <div style="height:78px;background:linear-gradient(135deg,#FFCB63,#F2A222)"></div>
+  <div style="padding:0 15px 16px;margin-top:-30px">
+   <div style="width:62px;height:62px;border-radius:19px;border:3px solid var(--panel);box-shadow:0 3px 10px rgba(0,0,0,.22);overflow:hidden">${t.profile_photo_url?`<img src="${esc(t.profile_photo_url)}" style="width:100%;height:100%;object-fit:cover">`:`<div style="width:100%;height:100%;background:linear-gradient(135deg,#FFCB63,#F2A222);display:grid;place-items:center;color:#231700;font-weight:800;font-size:21px">${esc(initials)}</div>`}</div>
+   <div style="font-size:17px;font-weight:800;letter-spacing:-.02em;margin-top:9px">${esc(name)}</div>
+   <div class="mut" style="font-size:12.5px;margin-top:2px">${esc(trade)}${sub?' · '+esc(sub):''}</div>
+   <div style="display:flex;align-items:center;gap:7px;margin-top:9px;flex-wrap:wrap">${rating?`<span style="color:var(--gold);font-size:13px;letter-spacing:1px">${'★'.repeat(starN)}${'☆'.repeat(5-starN)}</span><span class="mut" style="font-size:12px">${rating} · ${rc} reviews</span>`:'<span class="mut" style="font-size:12px">No reviews yet</span>'}</div>
+   <div style="display:flex;gap:6px;margin-top:9px;flex-wrap:wrap">${t.insured?'<span class="pill g">Insured</span>':''}${t.qualified?'<span class="pill b">Licensed</span>':''}<span class="pill n">Verified by TrustTrade</span></div>
+   <div style="display:flex;margin:14px 0;border-radius:14px;background:var(--bg,var(--line2));overflow:hidden">
+     <div style="flex:1;padding:12px 14px"><div class="fl">Hourly</div><div style="font-weight:800;font-size:16px;margin-top:3px">${rate?'$'+esc(rate):'—'}</div></div>
+     <div style="flex:1;padding:12px 14px;border-left:1px solid var(--line)"><div class="fl">Call-out</div><div style="font-weight:800;font-size:16px;margin-top:3px">${call?'$'+esc(call):'—'}</div></div>
+   </div>
+   <div class="fl" style="margin-bottom:5px">About</div>
+   ${about?`<div style="font-size:12.5px;line-height:1.55;color:var(--ink2)">${esc(about.slice(0,210))}${about.length>210?'…':''}</div>`:'<div class="mut" style="font-size:12.5px">No about text yet.</div>'}
+   ${svc.length?`<div style="margin-top:15px"><div class="fl" style="margin-bottom:6px">Services</div>${svc.slice(0,5).map(s=>`<div style="display:flex;justify-content:space-between;gap:8px;font-size:12.5px;padding:8px 0;border-top:1px solid var(--line2)"><span>${esc(s[0])}${s[1]?'<span class="mut"> · '+esc(s[1])+'</span>':''}</span><span style="font-weight:700;white-space:nowrap">${s[2]?'$'+esc(s[2]):''}</span></div>`).join('')}</div>`:''}
+   <button style="width:100%;margin-top:16px;padding:13px;border:0;border-radius:14px;background:#F2A222;color:#231700;font-weight:800;font-size:14px;font-family:inherit;box-shadow:0 4px 12px rgba(242,162,34,.35)">Message ${esc(name.split(' ')[0]||'tradie')}</button>
+  </div></div>`;}
+async function saveTradieProfile(id){
+ const svc=val('e_svc').split('\n').map(l=>l.split('|').map(x=>x.trim())).filter(a=>a[0]).map(a=>({name:a[0],detail:a[1]||'',price:isNaN(+a[2])?(a[2]||''):+a[2]}));
+ const upd={name:val('e_name'),trade:val('e_trade'),phone:val('e_phone'),email:val('e_email'),suburb:val('e_suburb'),postcode:val('e_pc'),website:val('e_web'),description:val('e_desc'),priced_services:svc};
+ const hr=parseFloat(val('e_rate'));if(!isNaN(hr))upd.hourly_rate=hr;
+ const co=parseFloat(val('e_call'));if(!isNaN(co))upd.call_out_fee=co;
+ const rd=parseInt(val('e_rad'),10);if(!isNaN(rd))upd.service_radius_km=rd;
+ const {error}=await sb.from('listings').update(upd).eq('id',id);if(error){toast(error.message);return;}
+ await audit('listing_edited','listing',id,'profile edited');closeM();toast('Profile updated');openTradie(id);}
+try{if(localStorage.getItem('tt_theme')==='dark'){document.documentElement.setAttribute('data-theme','dark');const l=$('themeLbl');if(l)l.textContent='Light mode';}}catch(e){}
+init();
+</script>
+</body></html>

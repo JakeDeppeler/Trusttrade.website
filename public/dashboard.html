@@ -1,5 +1,6 @@
 <!doctype html><html lang="en"><head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
 <title>TrustTrade — Tradie Dashboard</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
@@ -123,8 +124,19 @@ function fmtHours(v){if(v==null)return '—';if(typeof v==='string')return v;if(
 async function doPw(){$('e-pw').innerHTML='';
  const {error}=await sb.auth.signInWithPassword({email:val('em').trim(),password:val('pw')});
  if(error){$('e-pw').innerHTML='<div class="err">'+esc(error.message)+'</div>';return;}
+ if(await adminRedirect()) return;               // admins run the full admin console
  if(await mfaRequired()){ showMfaChallenge(); return; }
  route();}
+// This dashboard is the tradie side. Admins (profiles.role='admin') get sent to
+// the admin console, which controls everything and has its own 2FA gate.
+async function adminRedirect(){
+ try{
+  const {data:{user}}=await sb.auth.getUser(); if(!user) return false;
+  const {data}=await sb.from('profiles').select('role').eq('id',user.id).maybeSingle();
+  if(data && data.role==='admin'){ location.replace('/admin'); return true; }
+ }catch(e){}
+ return false;
+}
 // True when the account has a verified 2FA factor but the session is still aal1.
 async function mfaRequired(){
  try{ const {data}=await sb.auth.mfa.getAuthenticatorAssuranceLevel();
@@ -458,6 +470,7 @@ async function pBilling(){loading('Billing');try{
 
 // boot: resume session if present
 (async()=>{const {data}=await sb.auth.getSession();if(data&&data.session){
+  if(await adminRedirect()) return;
   if(await mfaRequired()){ $('gate').style.display=''; $('app').classList.remove('on'); showMfaChallenge(); return; }
   route();
 }})();

@@ -2,6 +2,7 @@
   "buildCommand": "node scripts/gen-tradie-pages.mjs && vite build",
   "rewrites": [
     { "source": "/dashboard", "destination": "/dashboard.html" },
+    { "source": "/admin", "destination": "/admin.html" },
     { "source": "/((?!api/).*)", "destination": "/index.html" }
   ]
 }

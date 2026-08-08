@@ -52,7 +52,7 @@ const HOMEOWNER_STORIES = [
     eyebrow: "Verified locals",
     headline: "See who you're actually hiring.",
     body: "Every tradie's licence is checked at the state regulator before you see them. What you see is the receipt.",
-    screenshot: "/assets/app-profile.png",
+    screenshot: "/assets/app-profile.webp",
     alt: "A verified tradie's public profile",
     overlayCards: [
       {
@@ -67,7 +67,7 @@ const HOMEOWNER_STORIES = [
     eyebrow: "Fixed quote",
     headline: "The price is the price.",
     body: "The tradie sends a call-out fee — one number, in writing — before anyone rolls. You approve or you don't.",
-    screenshot: "/assets/app-quote.png",
+    screenshot: "/assets/app-quote.webp",
     alt: "A chat thread with a fixed call-out fee approved",
     overlayCards: [
       {
@@ -83,7 +83,7 @@ const HOMEOWNER_STORIES = [
     eyebrow: "Browse verified",
     headline: "You pick. Not the algorithm.",
     body: "No job posting, no SMS blast at 7am. Browse verified locals, tap the one you trust, contact them direct.",
-    screenshot: "/assets/app-browse.png",
+    screenshot: "/assets/app-browse.webp",
     alt: "The Trust Trade browse screen",
     overlayCards: [
       {
@@ -98,7 +98,7 @@ const HOMEOWNER_STORIES = [
     eyebrow: "One thread per job",
     headline: "No more \"which Sarah?\"",
     body: "Every job has its own conversation. Gate codes, dogs to watch, photos, receipts — all in one place.",
-    screenshot: "/assets/app-messages-list.png",
+    screenshot: "/assets/app-messages-list.webp",
     alt: "The homeowner messages list",
     overlayCards: [
       {
@@ -276,7 +276,7 @@ export default function ForHomeownersPage() {
         title="What we promise,"
         italicWord="in writing."
         items={HOMEOWNER_PROMISES}
-        screenshot="/assets/app-home.png"
+        screenshot="/assets/app-home.webp"
         alt="Trust Trade homeowner home — Find a tradie. Done proper."
       />
 

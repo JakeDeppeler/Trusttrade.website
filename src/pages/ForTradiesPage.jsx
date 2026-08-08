@@ -21,30 +21,30 @@ const TRADIE_FAQ_GROUPS = [
     name: "Joining & pricing",
     items: [
       { q: "What does it cost to join as a tradie?", a: "Free to apply, free to be listed at launch. Founding members (the first 100 verified tradies) lock in lifetime founding-member pricing on any future paid tiers. Standard fees come in after public launch in 2027." },
-      { q: "Do you take a cut of my job?", a: "No. Trust Trade doesn't sit between you and your customer's money. You invoice them direct, you get paid direct. We're the paper trail and the routing layer — not a middleman." },
+      { q: "Do you take a cut of my job?", a: "No. Trust Trade doesn't sit between you and your customer's money. You invoice them direct, you get paid direct. We're the paper trail and the routing layer, not a middleman." },
       { q: "How do I get verified?", a: "Apply via the waitlist, upload your licence, insurance certificate of currency, ABN, and ID. We check with the relevant state regulator and confirm the documents. Two reference jobs (two past customers willing to vouch in writing). Usually 48-72 hours end to end." },
-      { q: "Can I set my own call-out fee?", a: "Yes — per job, every job. Your default rate is saved, but you can override it on any specific job before sending. No platform-set minimums, no algorithmic discount." },
+      { q: "Can I set my own call-out fee?", a: "Yes, per job, every job. Your default rate is saved, but you can override it on any specific job before sending. No platform-set minimums, no algorithmic discount." },
       { q: "What if I want to take a few weeks off?", a: "Switch yourself to Unavailable in the app. No jobs route to you. Switch back on whenever. No lock-in, no penalty, no clawback." },
       { q: "Can I be on multiple lead-gen platforms at once?", a: "Yeah, that's your call. We don't ask for exclusivity. Most tradies in our beta run us alongside one other platform during launch and drop the other once we've ramped." },
-      { q: "What trades do you cover?", a: "Thirty-five trades across six categories at launch — wet trades, electrical, building/carpentry, surfaces, outside work, and specialists. Full list on the Trades we cover page. If your trade isn't there, email Jake — we add by request." },
+      { q: "What trades do you cover?", a: "Thirty-five trades across six categories at launch, wet trades, electrical, building/carpentry, surfaces, outside work, and specialists. Full list on the Trades we cover page. If your trade isn't there, email Jake, we add by request." },
     ],
   },
   {
     name: "About the business",
     items: [
-      { q: "Who's behind Trust Trade?", a: "Jake — a tradie's son, ex-software — running Trust Trade solo for now. ABN 40 873 784 535, registered in Victoria, no outside investment yet (and I like it that way for now)." },
+      { q: "Who's behind Trust Trade?", a: "Jake, a tradie's son, ex-software, running Trust Trade solo for now. ABN 40 873 784 535, registered in Victoria, no outside investment yet (and I like it that way for now)." },
       { q: "Are you regulated by anyone?", a: "Trust Trade itself is a platform, not a trade. The tradies we list are regulated by their state authority (VBA, ESV, etc.) and we verify against those regulators. Consumer Affairs Victoria oversees us as an Australian Consumer Law-bound business like any other marketplace." },
-      { q: "Can I invest / partner / sell into Trust Trade?", a: "We're not raising at the moment. For partnerships — insurance, regulator integrations, trade associations — email jake@trusttrade.au with a one-pager." },
-      { q: "Is the name actually trademarked?", a: "Yep — Trust Trade® is a registered Australian trademark in classes 9, 35 and 42 (software, marketplace services, app development). Use of the mark for anything else needs our written nod." },
+      { q: "Can I invest / partner / sell into Trust Trade?", a: "We're not raising at the moment. For partnerships, insurance, regulator integrations, trade associations, email jake@trusttrade.au with a one-pager." },
+      { q: "Is the name actually trademarked?", a: "Yep, Trust Trade® is a registered Australian trademark in classes 9, 35 and 42 (software, marketplace services, app development). Use of the mark for anything else needs our written nod." },
     ],
   },
 ];
 
 const ELIGIBILITY = [
-  { h: "A current trade licence", p: "Checked with the state regulator — VBA, ESV, VBPRB. Apprentices under a qualified holder.", s: "Regulator check" },
+  { h: "A current trade licence", p: "Checked with the state regulator, VBA, ESV, VBPRB. Apprentices under a qualified holder.", s: "Regulator check" },
   { h: "Public liability + workers' comp", p: "Minimum $10m PL, workers' comp if you employ. Certificate of currency on file.", s: "Insurance verified" },
-  { h: "An active ABN", p: "Sole trader, partnership or Pty Ltd. We check the ABR — suspended means no listing.", s: "ABR-checked" },
-  { h: "A Victoria work address", p: "VIC-only at launch. NSW, QLD, SA from mid-2027 — pop your ABN in for the wait.", s: "VIC at launch" },
+  { h: "An active ABN", p: "Sole trader, partnership or Pty Ltd. We check the ABR, suspended means no listing.", s: "ABR-checked" },
+  { h: "A Victoria work address", p: "VIC-only at launch. NSW, QLD, SA from mid-2027, pop your ABN in for the wait.", s: "VIC at launch" },
   { h: "A clean disciplinary record", p: "No active suspensions or consumer-affairs orders. Checked at apply, re-checked quarterly.", s: "Quarterly re-check" },
   { h: "A phone with a camera", p: "That's the hardware list. Any iPhone or Android from the last five years works.", s: "iOS 16+ / Android 10+" },
 ];
@@ -52,8 +52,8 @@ const ELIGIBILITY = [
 const FOUNDING_LOCKS = [
   { h: "Lifetime founding pricing.", p: "Whatever premium routing costs in 2028 or 2032, you pay 2026 rates. Forever, on the same ABN.", s: "Lock 01" },
   { h: "Founding badge on your profile.", p: "Customers see the mark. We surface founding members first in your trade + radius until 2027.", s: "Lock 02" },
-  { h: "Direct line to the team.", p: "A real human on a real phone — Jake's mobile — for your first 12 months. No ticket queue.", s: "Lock 03" },
-  { h: "Free to apply, free to list.", p: "No card, no commitment. Get verified, get listed, take jobs — all at zero cost at launch.", s: "Lock 04" },
+  { h: "Direct line to the team.", p: "A real human on a real phone, Jake's mobile, for your first 12 months. No ticket queue.", s: "Lock 03" },
+  { h: "Free to apply, free to list.", p: "No card, no commitment. Get verified, get listed, take jobs, all at zero cost at launch.", s: "Lock 04" },
 ];
 
 export default function ForTradiesPage() {
@@ -76,7 +76,7 @@ export default function ForTradiesPage() {
               More jobs. <span className="it">Less mucking around.</span>
             </h1>
             <p className="page-hero-subhead">
-              Real homeowners. Real jobs. Routed to you by trade and postcode — on your terms. Skip
+              Real homeowners. Real jobs. Routed to you by trade and postcode, on your terms. Skip
               the lead-gen rort and the race-to-the-bottom bidding.
             </p>
             <div className="page-hero-cta-row">
@@ -117,7 +117,7 @@ export default function ForTradiesPage() {
           <div className="stat-band reveal" style={{ marginTop: 56, "--rd": "80ms" }}>
             <div className="stat-cell">
               <div className="n">$20<span className="sm">–80</span></div>
-              <div className="k">Per cold lead on the usual platforms — paid whether you win it or not.</div>
+              <div className="k">Per cold lead on the usual platforms, paid whether you win it or not.</div>
             </div>
             <div className="stat-cell">
               <div className="n">4<span className="sm">–5</span></div>
@@ -125,11 +125,11 @@ export default function ForTradiesPage() {
             </div>
             <div className="stat-cell">
               <div className="n"><span className="it">½</span></div>
-              <div className="k">Of those leads ghost you — free-email tyre-kickers with no intent.</div>
+              <div className="k">Of those leads ghost you, free-email tyre-kickers with no intent.</div>
             </div>
             <div className="stat-cell">
               <div className="n">6</div>
-              <div className="k">Places the job lives — SMS, email, Facebook, Gumtree. One of them's a Sarah.</div>
+              <div className="k">Places the job lives, SMS, email, Facebook, Gumtree. One of them's a Sarah.</div>
             </div>
           </div>
         </div>
@@ -141,7 +141,7 @@ export default function ForTradiesPage() {
           <div className="mid-head reveal">
             <div className="eyebrow accent">The fix</div>
             <h2 className="h-1">We built the <span className="it">opposite.</span></h2>
-            <p className="lede">Same trade, same postcode — a completely different deal. Here's the side-by-side.</p>
+            <p className="lede">Same trade, same postcode, a completely different deal. Here's the side-by-side.</p>
           </div>
 
           <div className="vs reveal" style={{ "--rd": "60ms" }}>
@@ -150,7 +150,7 @@ export default function ForTradiesPage() {
               <h3>The old way</h3>
               <div className="vs-list">
                 {[
-                  "Pay per lead — $20–80 a click for tyre-kickers",
+                  "Pay per lead, $20–80 a click for tyre-kickers",
                   "Your lead resold to 4–5 other tradies",
                   "Bidding war. Lowest quote wins, margins bleed",
                   "Anyone with a free email can request",
@@ -168,7 +168,7 @@ export default function ForTradiesPage() {
               <div className="vs-list">
                 {[
                   "No lead fees. Free to be listed. Founding-100 locked in for life",
-                  "One tradie at a time. They pick you — or it moves on",
+                  "One tradie at a time. They pick you, or it moves on",
                   "You set the call-out, per job. They approve before you roll",
                   "Verified, mobile-confirmed accounts with a brief on file",
                   "One inbox. One thread per job. Receipts baked in",
@@ -188,7 +188,7 @@ export default function ForTradiesPage() {
           <div className="mid-head reveal">
             <div className="eyebrow accent">On the tools</div>
             <h2 className="h-1">What the app actually <span className="it">does for you.</span></h2>
-            <p className="lede">No dashboard homework. Open it between jobs — it's already sorted your day.</p>
+            <p className="lede">No dashboard homework. Open it between jobs, it's already sorted your day.</p>
           </div>
 
           <DevRow
@@ -196,10 +196,10 @@ export default function ForTradiesPage() {
             kicker="Every job, one inbox"
             title="The whole day"
             italic="in one screen."
-            body="New enquiries, quoted work, booked jobs and finished receipts — all in one list. Emergencies pin themselves to the top. No scrolling six apps to find which Sarah had the laundry tap."
+            body="New enquiries, quoted work, booked jobs and finished receipts, all in one list. Emergencies pin themselves to the top. No scrolling six apps to find which Sarah had the laundry tap."
             img="/assets/app-jobs.webp"
             facts={[
-              "Routed by trade + postcode — never blasted to a mailing list",
+              "Routed by trade + postcode, never blasted to a mailing list",
               "Emergencies auto-pin to the top of your day",
               "Customer name and ABN-verified mobile attached to every brief",
             ]}
@@ -215,10 +215,10 @@ export default function ForTradiesPage() {
             kicker="You set the price"
             title="One number."
             italic="They approve."
-            body="Send your call-out fee — your standard rate or a job-specific one. The customer approves it on their phone before you roll. No tendering, no haggling, no undercutting. If they ghost the quote, it auto-releases."
+            body="Send your call-out fee, your standard rate or a job-specific one. The customer approves it on their phone before you roll. No tendering, no haggling, no undercutting. If they ghost the quote, it auto-releases."
             img="/assets/app-booking.webp"
             facts={[
-              "Your default rate is saved — override it per job in a tap",
+              "Your default rate is saved, override it per job in a tap",
               "Ghosted quotes auto-release in 30 min. No wasted morning",
               "Booking logged with your ABN, their address and the fee",
             ]}
@@ -233,10 +233,10 @@ export default function ForTradiesPage() {
             kicker="One thread per job"
             title="No more"
             italic="phone tag."
-            body="Every job gets its own conversation — the brief, the photos, the location, the chat. ETA pings send as you drive. Mark it complete and a receipt emails both sides instantly. The paper trail writes itself."
+            body="Every job gets its own conversation, the brief, the photos, the location, the chat. ETA pings send as you drive. Mark it complete and a receipt emails both sides instantly. The paper trail writes itself."
             img="/assets/app-messages.webp"
             facts={[
-              "In-app chat scoped to THIS job — no Facebook DM archaeology",
+              "In-app chat scoped to THIS job, no Facebook DM archaeology",
               "ETA pings to the customer as you drive",
               "Mark complete → receipt + review request, both sides, instantly",
             ]}
@@ -252,10 +252,10 @@ export default function ForTradiesPage() {
             kicker="Your rules, in the app"
             title="On your"
             italic="terms."
-            body="Set your radius, your hours, your availability. On-call, business-hours, weekends-only, after-hours premium — flick it in the app and we route around it. Taking a few weeks off? Switch to Unavailable. No lock-in, no penalty."
+            body="Set your radius, your hours, your availability. On-call, business-hours, weekends-only, after-hours premium, flick it in the app and we route around it. Taking a few weeks off? Switch to Unavailable. No lock-in, no penalty."
             img="/assets/app-account.webp"
             facts={[
-              "Radius: 5km, 25km, whole metro — we won't send what you can't reach",
+              "Radius: 5km, 25km, whole metro, we won't send what you can't reach",
               "Hours + availability toggle per day, per week",
               "Pause or leave anytime. No cancellation fee, no clawback",
             ]}
@@ -274,7 +274,7 @@ export default function ForTradiesPage() {
             <div className="eyebrow accent">A free add-on</div>
             <h2 className="h-1">Know what an hour <span className="it">actually costs you.</span></h2>
             <p className="lede">
-              Every listed tradie gets the Trust Trade Job Calculator — free. Put your real numbers
+              Every listed tradie gets the Trust Trade Job Calculator, free. Put your real numbers
               in and it tells you your break-even rate, prices every job off that number, and builds
               a customer-ready price list you can publish straight to your listing. Built to help you
               make a living, not just win work.
@@ -323,7 +323,7 @@ export default function ForTradiesPage() {
           <div className="mid-head reveal">
             <div className="eyebrow accent">Founding 100</div>
             <h2 className="h-1">First 100 in are <span className="it">locked in for life.</span></h2>
-            <p className="lede">No paid tier exists yet. When it does — premium routing and analytics — the first 100 verified tradies pay founding rates. Forever. The moment we're full, the badge is gone.</p>
+            <p className="lede">No paid tier exists yet. When it does, premium routing and analytics, the first 100 verified tradies pay founding rates. Forever. The moment we're full, the badge is gone.</p>
           </div>
 
           <div className="meter reveal" style={{ "--pct": "50%" }}>
@@ -361,7 +361,7 @@ export default function ForTradiesPage() {
           <div className="mid-head reveal">
             <div className="eyebrow accent">What we need from you</div>
             <h2 className="h-1">To get listed, <span className="it">you'll need…</span></h2>
-            <p className="lede">Six things. We check every one against the source — the regulator, the ABR, the insurer — before you take a single job.</p>
+            <p className="lede">Six things. We check every one against the source, the regulator, the ABR, the insurer, before you take a single job.</p>
           </div>
 
           <div className="checklist reveal" style={{ "--rd": "60ms" }}>
@@ -382,7 +382,7 @@ export default function ForTradiesPage() {
           <div className="mid-head reveal">
             <div className="eyebrow accent">Tradie FAQ</div>
             <h2 className="h-1">The questions <span className="it">every tradie asks.</span></h2>
-            <p className="lede">Cost, cuts, verification, lock-in — plus the honest word on who's behind Trust Trade. Something we haven't covered? Email jake@trusttrade.au.</p>
+            <p className="lede">Cost, cuts, verification, lock-in, plus the honest word on who's behind Trust Trade. Something we haven't covered? Email jake@trusttrade.au.</p>
           </div>
           <div className="reveal"><FaqAccordion groups={TRADIE_FAQ_GROUPS} idPrefix="tradie-faq" /></div>
         </div>

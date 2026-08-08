@@ -18,7 +18,7 @@ const VALUES = [
   {
     n: "01",
     h: "Verified by a tradie",
-    p: "Every application is checked personally: ABN, licence with state regulators, $5M insurance, photo ID. I've been on the tools — I can spot real work from BS.",
+    p: "Every application is checked personally: ABN, licence with state regulators, $5M insurance, photo ID. I've been on the tools, I can spot real work from BS.",
   },
   {
     n: "02",
@@ -28,7 +28,7 @@ const VALUES = [
   {
     n: "03",
     h: "Capped per area",
-    p: "We don't accept everyone. Limited tradies per trade, per area — so every tradie gets real work and every customer gets someone who wants the job.",
+    p: "We don't accept everyone. Limited tradies per trade, per area, so every tradie gets real work and every customer gets someone who wants the job.",
   },
   {
     n: "04",
@@ -43,7 +43,7 @@ const VALUES = [
   {
     n: "06",
     h: "A real person answers",
-    p: "Questions go straight to Jake, not a ticket queue. Founder's inbox, no bots — and usually a same-day reply.",
+    p: "Questions go straight to Jake, not a ticket queue. Founder's inbox, no bots, and usually a same-day reply.",
   },
 ];
 
@@ -65,7 +65,7 @@ export default function OurStoryPage() {
         eyebrow="Our story"
         title="Finding a good tradie"
         italicWord="shouldn't be this hard."
-        lede="It came from years on the tools — watching customers get ripped off with no idea who to trust, and good tradies get lost in the noise. Trust Trade is here to fix both: connect people who want a quality job done with the tradies who take pride in doing it right."
+        lede="It came from years on the tools, watching customers get ripped off with no idea who to trust, and good tradies get lost in the noise. Trust Trade is here to fix both: connect people who want a quality job done with the tradies who take pride in doing it right."
       />
 
       {/* ===== Stats bar (promises, not vanity metrics) ===== */}
@@ -93,13 +93,13 @@ export default function OurStoryPage() {
           </div>
           <div className="story-prose reveal">
             <p>
-              I'm Jake — a licensed plumber and gas-fitter in Melbourne, still on the tools. The
+              I'm Jake, a licensed plumber and gas-fitter in Melbourne, still on the tools. The
               hardest part of owning a home was never the repair. It's working out who to trust to
               do it right. Recommendations run out, reviews can't be trusted, and you've no idea if
               the person at the door is even licensed or insured.
             </p>
             <p>
-              Meanwhile the good tradies — the ones who take real pride in their work — get lost in
+              Meanwhile the good tradies, the ones who take real pride in their work, get lost in
               the noise, while the ones who game the system get the calls. That's a broken industry,
               and it's bad for everyone.
             </p>
@@ -172,7 +172,7 @@ export default function OurStoryPage() {
               <div className="ph"><span>Verification partner</span></div>
               <h5>Verification partner</h5>
               <div className="role">Tradie Outreach &amp; Verification</div>
-              <p>Handles tradie outreach and on-the-ground verification. (Name and blurb to come — send them through and I'll add them.)</p>
+              <p>Handles tradie outreach and on-the-ground verification. (Name and blurb to come, send them through and I'll add them.)</p>
             </div>
           </div>
         </div>
@@ -184,7 +184,7 @@ export default function OurStoryPage() {
           <div className="mid-head reveal">
             <h2 className="h-1">For the ones who show up and <span className="it">do the job right.</span></h2>
             <p className="lede">
-              Questions? Email me directly — <a href="mailto:jake@trusttrade.au">jake@trusttrade.au</a>.
+              Questions? Email me directly<a href="mailto:jake@trusttrade.au">jake@trusttrade.au</a>.
               A real person answers. Usually me.
             </p>
             <div style={{ display: "flex", gap: 12, justifyContent: "center", flexWrap: "wrap", marginTop: 26 }}>

@@ -247,7 +247,7 @@ export function PageDownloadCTA({
   eyebrow = "Ready when you are",
   title = "Get it",
   italic = "done proper.",
-  lede = "Verified, insured, recommended local tradies — landing on your phone soon. Download Trust Trade and find the right human, first time.",
+  lede = "Verified, insured, recommended local tradies, landing on your phone soon. Download Trust Trade and find the right human, first time.",
   photoNote = "Photo · tradie ute + toolbox, warm dusk",
 }) {
   return (

@@ -21,7 +21,7 @@ const TOOLS = [
     status: "live",
     icon: "🌬️",
     name: "Duct Designer",
-    desc: "Upload a floor plan, drop your ceiling outlets, and it sizes the whole run — then builds a customer-ready quote. Optional AI auto-design.",
+    desc: "Upload a floor plan, drop your ceiling outlets, and it sizes the whole run, then builds a customer-ready quote. Optional AI auto-design.",
     href: "/duct-sizing.html",
     cta: "Open the designer",
   },
@@ -38,7 +38,7 @@ export default function ToolsPage() {
         eyebrow="Free trade tools"
         title="Tools built to help"
         italicWord="the trade."
-        lede="We're not here to sell you leads — we're here to help tradies run a better business. Free tools that make your day easier and your numbers clearer. Two live now — the Job Calculator and the Duct Designer — with more on the way."
+        lede="We're not here to sell you leads, we're here to help tradies run a better business. Free tools that make your day easier and your numbers clearer. Two live now, the Job Calculator and the Duct Designer, with more on the way."
       />
 
       {/* ===== Tools grid ===== */}
@@ -70,7 +70,7 @@ export default function ToolsPage() {
                 <span className="tool-badge idea">Your idea</span>
               </div>
               <h3>What should we build next?</h3>
-              <p>These tools come straight from what tradies ask for. Tell us what would make your job easier — it might be the next one we build.</p>
+              <p>These tools come straight from what tradies ask for. Tell us what would make your job easier, it might be the next one we build.</p>
               <a
                 href="mailto:jake@trusttrade.au?subject=Tool%20idea&body=A%20tool%20that%20would%20help%20me%3A%20"
                 className="btn btn-ghost tool-cta"
@@ -92,7 +92,7 @@ export default function ToolsPage() {
             </h2>
             <p className="lede">
               The industry got sold out by lead-gen platforms that take a cut and give nothing back.
-              We're doing the opposite — genuinely useful tools, free, that make you better at running
+              We're doing the opposite, genuinely useful tools, free, that make you better at running
               your business. The app is where the work comes from; the tools are how we back the tradies
               who do the job right.
             </p>
@@ -108,7 +108,7 @@ export default function ToolsPage() {
         eyebrow="The tools are free"
         title="The work's in"
         italic="the app."
-        lede="Know your numbers with the tools, then let Trust Trade bring you the customers — verified, local, and no per-lead fees."
+        lede="Know your numbers with the tools, then let Trust Trade bring you the customers, verified, local, and no per-lead fees."
       />
 
       <PageFooter />

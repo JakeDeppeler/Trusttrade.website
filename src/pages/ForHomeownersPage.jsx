@@ -25,7 +25,7 @@ function IntegrationsRow() {
     <section className="integrations-row" aria-label="Regulators we verify against">
       <div className="container">
         <div className="integrations-head">
-          <div className="eyebrow accent">— Verified against</div>
+          <div className="eyebrow accent">Verified against</div>
           <p>
             Every licence, insurance certificate and ABN is checked at the source before a tradie
             is listed. Not honour-system.
@@ -66,7 +66,7 @@ const HOMEOWNER_STORIES = [
   {
     eyebrow: "Fixed quote",
     headline: "The price is the price.",
-    body: "The tradie sends a call-out fee — one number, in writing — before anyone rolls. You approve or you don't.",
+    body: "The tradie sends a call-out fee, one number, in writing, before anyone rolls. You approve or you don't.",
     screenshot: "/assets/app-quote.webp",
     alt: "A chat thread with a fixed call-out fee approved",
     overlayCards: [
@@ -97,7 +97,7 @@ const HOMEOWNER_STORIES = [
   {
     eyebrow: "One thread per job",
     headline: "No more \"which Sarah?\"",
-    body: "Every job has its own conversation. Gate codes, dogs to watch, photos, receipts — all in one place.",
+    body: "Every job has its own conversation. Gate codes, dogs to watch, photos, receipts, all in one place.",
     screenshot: "/assets/app-messages-list.webp",
     alt: "The homeowner messages list",
     overlayCards: [
@@ -133,9 +133,9 @@ const HOMEOWNER_PROMISES = [
   { title: "Free to use", body: "Finding, booking and messaging tradies is free. No surcharge, ever." },
   { title: "No spam", body: "We don't sell your details to a queue of 5 tradies. You browse. You pick." },
   { title: "Quotes live in the app", body: "Anything a tradie quotes you sits in writing. No hand-shake guessing." },
-  { title: "One thread per job", body: "ETA pings, photos, receipts — all in one conversation." },
+  { title: "One thread per job", body: "ETA pings, photos, receipts, all in one conversation." },
   { title: "Reviews from real jobs", body: "Only confirmed bookings can review. No bot armies, no drive-bys." },
-  { title: "Verified badge on every listing", body: "Licence, insurance, ABN, conduct — four hard checks, one badge." },
+  { title: "Verified badge on every listing", body: "Licence, insurance, ABN, conduct, four hard checks, one badge." },
   { title: "Emergency filter", body: "Filter by who can be there today. Verified and available." },
   { title: "Nothing gets sold", body: "Your address, your phone, your job details. Yours. Full stop." },
 ];
@@ -174,7 +174,7 @@ const COMPARE_ROWS = [
   },
   {
     label: "The quote",
-    them: "\"We'll have a look on the day\" — then a $480 surprise.",
+    them: "\"We'll have a look on the day\"then a $480 surprise.",
     us: "Fixed call-out fee, in writing, approved before they roll.",
   },
   {
@@ -204,7 +204,7 @@ function ComparisonBlock() {
     <section className="page-section comparison-block">
       <div className="container">
         <div className="behind-head">
-          <div className="eyebrow accent">— The old way vs Trust Trade</div>
+          <div className="eyebrow accent">The old way vs Trust Trade</div>
           <h2 className="h-1">
             Not another <span className="it">tradie-finder site.</span>
           </h2>
@@ -277,7 +277,7 @@ export default function ForHomeownersPage() {
         italicWord="in writing."
         items={HOMEOWNER_PROMISES}
         screenshot="/assets/app-home.webp"
-        alt="Trust Trade homeowner home — Find a tradie. Done proper."
+        alt="Trust Trade homeowner home, Find a tradie. Done proper."
       />
 
       <PrivacyBreak

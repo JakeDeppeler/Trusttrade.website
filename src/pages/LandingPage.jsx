@@ -99,7 +99,7 @@ function IntegrationsRow() {
     <section className="integrations-row" aria-label="Regulators we verify against">
       <div className="container">
         <div className="integrations-head">
-          <div className="eyebrow accent">— Verified against</div>
+          <div className="eyebrow accent">Verified against</div>
           <p>Every licence, insurance certificate and ABN is checked at the source before a tradie is listed. Not honour-system.</p>
         </div>
         <ul className="integrations-list">
@@ -174,7 +174,7 @@ const HOMEPAGE_STORIES = [
   {
     eyebrow: "Real numbers",
     headline: "Numbers behind your listing.",
-    body: "Profile views, enquiries, first-reply time — plus a health score that tells you what to fix next.",
+    body: "Profile views, enquiries, first-reply time, plus a health score that tells you what to fix next.",
     screenshot: "/assets/app-insights.webp",
     alt: "The tradie insights dashboard",
     overlayCards: [
@@ -208,9 +208,9 @@ const HOMEPAGE_BEHIND_SCENES = [
 
 const HOMEPAGE_ADDITIONAL = [
   { title: "Nearest first", body: "Sort verified locals by distance. No 25 km commute quotes." },
-  { title: "Emergency filter", body: "Filter by who can be there today — verified and available." },
+  { title: "Emergency filter", body: "Filter by who can be there today, verified and available." },
   { title: "Reviews from real jobs", body: "Only confirmed bookings can leave a review. No bot armies." },
-  { title: "In-app chat", body: "One thread per job. ETA pings, photos, receipts — one place." },
+  { title: "In-app chat", body: "One thread per job. ETA pings, photos, receipts, one place." },
   { title: "Fixed call-out fees", body: "Every tradie sets their own. In writing, approved up front." },
   { title: "Multi-postcode reach", body: "Tradies choose their radius. 5 km, 25 km, or the whole metro." },
   { title: "Founding 50 pricing", body: "First 50 tradies in lock in lifetime founding rates." },
@@ -245,14 +245,14 @@ function ForTradiesSection({ onJoin }) {
         <div className="tradies-grid">
           <div>
             <div className="eyebrow" style={{ marginBottom: 24 }}>
-              — For tradies
+, For tradies
             </div>
             <h2 className="h-1">
               More jobs. <span className="it">Less mucking around.</span>
             </h2>
             <p className="lede" style={{ marginTop: 24, marginBottom: 40 }}>
               Skip the lead-gen rort. Real homeowners, real jobs, routed to you by trade and
-              postcode — on your terms.
+              postcode, on your terms.
             </p>
             <div className="tradies-list">
               <div className="item">
@@ -261,7 +261,7 @@ function ForTradiesSection({ onJoin }) {
                   <h4>Customers who care about the work.</h4>
                   <p>
                     Verified accounts only. People who picked you because they want the job done
-                    right — not because you're the cheapest bid.
+                    right, not because you're the cheapest bid.
                   </p>
                 </div>
               </div>
@@ -291,7 +291,7 @@ function ForTradiesSection({ onJoin }) {
                   <h4>Reviews from real bookings.</h4>
                   <p>
                     Only verified customers can review you. Build a profile homeowners actually
-                    trust — no fake stars, no drive-by sniping.
+                    trust, no fake stars, no drive-by sniping.
                   </p>
                 </div>
               </div>
@@ -408,7 +408,7 @@ function WaitlistMoment() {
         <div className="waitlist-inner">
           <div>
             <div className="eyebrow" style={{ marginBottom: 24 }}>
-              — The waitlist
+, The waitlist
             </div>
             <h2 className="h-1">
               Be first in.
@@ -443,7 +443,7 @@ function WaitlistMoment() {
               <h3>{alreadyOnList ? "Already on the list." : "You're in, mate."}</h3>
               <p>
                 {alreadyOnList
-                  ? "Good news — you signed up earlier. We'll email you the day before access opens."
+                  ? "Good news, you signed up earlier. We'll email you the day before access opens."
                   : submittedRole === "tradie"
                   ? "We'll email you a temporary password and a link to download the app the day before verification opens. Check your inbox for a confirmation."
                   : "We'll email you the day before web access opens. Check your inbox for a confirmation."}
@@ -551,12 +551,12 @@ function WaitlistMoment() {
 
 const LANDING_FAQS = [
   { q: "When does the app launch?", a: "We're rolling out invites fortnightly from Q4 2026, starting with Victoria. iOS first, Android close behind. Web access opens for waitlist members before public launch." },
-  { q: "Is Trust Trade free for homeowners?", a: "Yeah — finding and booking a tradie is free. You only ever pay the tradie's quoted call-out fee, and only after you've approved it in writing." },
+  { q: "Is Trust Trade free for homeowners?", a: "Yeah, finding and booking a tradie is free. You only ever pay the tradie's quoted call-out fee, and only after you've approved it in writing." },
   { q: "How do you verify tradies?", a: "We check licence numbers with the relevant state regulator (e.g. VBA for builders, ESV for sparkies), confirm public liability and workers' comp insurance, and only show reviews from confirmed bookings on the platform." },
   { q: "Which trades are covered?", a: "At launch: electricians, plumbers, HVAC, carpenters, builders, painters, tilers, roofers, plasterers, landscapers, concreters, fencers, handymen, bricklayers and floorers. More on request." },
-  { q: "Does the AI replace talking to a real tradie?", a: "Nope. The AI's job is to work out which trade you actually need from a plain-English description — then point you at verified humans. The fix-it bit is still done by a real, insured person, on site." },
-  { q: "I'm a tradie — what does it cost to join?", a: "Free to apply and free to be listed. Founding members (the first 50 in) get lifetime founding-member pricing on any future paid tiers. Standard fees kick in after public launch." },
-  { q: "Where are you operating?", a: "Starting in Victoria — Melbourne metro, Geelong, and Gippsland (yes, including Pakenham). NSW, QLD and SA in the months after launch." },
+  { q: "Does the AI replace talking to a real tradie?", a: "Nope. The AI's job is to work out which trade you actually need from a plain-English description, then point you at verified humans. The fix-it bit is still done by a real, insured person, on site." },
+  { q: "I'm a tradie, what does it cost to join?", a: "Free to apply and free to be listed. Founding members (the first 50 in) get lifetime founding-member pricing on any future paid tiers. Standard fees kick in after public launch." },
+  { q: "Where are you operating?", a: "Starting in Victoria, Melbourne metro, Geelong, and Gippsland (yes, including Pakenham). NSW, QLD and SA in the months after launch." },
   { q: "What if it goes wrong on the day?", a: "Every booking has a receipt: name, address, time, price, the lot. If something's off, both sides have the record. We mediate disputes between verified accounts within 48 hours." },
 ];
 
@@ -566,7 +566,7 @@ function FAQSection() {
     <section className="block" id="faq">
       <div className="container">
         <div className="section-head">
-          <div className="eyebrow accent">— Questions</div>
+          <div className="eyebrow accent">Questions</div>
           <div>
             <h2 className="h-1">
               You ask. <span className="it">We answer.</span>
@@ -644,7 +644,7 @@ function BevelHero() {
           <span className="it">Done proper.</span>
         </h1>
         <p className="lede">
-          Trust Trade makes sense of your job — from a leaking tap to a full reno — and routes you
+          Trust Trade makes sense of your job, from a leaking tap to a full reno, and routes you
           to a verified, insured local who can actually fix it.
         </p>
         <div className="hero-actions">
@@ -728,7 +728,7 @@ function HowItWorksSteps() {
     <section className="block" id="how">
       <div className="container">
         <div className="section-head">
-          <div className="eyebrow accent">— Homeowners</div>
+          <div className="eyebrow accent">Homeowners</div>
           <div>
             <h2 className="h-1">
               Three taps. Real humans. <span className="it">Done proper.</span>
@@ -743,19 +743,19 @@ function HowItWorksSteps() {
           <div className="step">
             <div className="step-num">01</div>
             <h3 className="h-3">Tell us what's gone wrong.</h3>
-            <p>Leaking tap. Tripping fuse. Planning a reno. Plain English — our AI works out which trade you actually need.</p>
+            <p>Leaking tap. Tripping fuse. Planning a reno. Plain English, our AI works out which trade you actually need.</p>
             <div className="step-visual"><img src="/assets/app-askai.webp" alt="Ask AI screen" /></div>
           </div>
           <div className="step">
             <div className="step-num">02</div>
             <h3 className="h-3">We route to vetted locals.</h3>
-            <p>Insured, licenced, reviewed. Nearest first. No marketplace mosh-pit — just a shortlist of mates who can do the job.</p>
+            <p>Insured, licenced, reviewed. Nearest first. No marketplace mosh-pit, just a shortlist of mates who can do the job.</p>
             <div className="step-visual"><img src="/assets/app-browse.webp" alt="Browse tradies screen" /></div>
           </div>
           <div className="step">
             <div className="step-num">03</div>
             <h3 className="h-3">Approve the price. Book it in.</h3>
-            <p>Fixed call-out fee, in writing, up front. Tap Approve and you've got a booking confirmation — name, time, address, all logged.</p>
+            <p>Fixed call-out fee, in writing, up front. Tap Approve and you've got a booking confirmation, name, time, address, all logged.</p>
             <div className="step-visual"><img src="/assets/app-booking.webp" alt="Booking confirmation screen" /></div>
           </div>
         </div>
@@ -770,7 +770,7 @@ function FeaturesBento() {
     <section className="block" id="features" style={{ paddingTop: 0 }}>
       <div className="container">
         <div className="section-head">
-          <div className="eyebrow accent">— Why Trust Trade</div>
+          <div className="eyebrow accent">Why Trust Trade</div>
           <div>
             <h2 className="h-1">
               Built like the trades you'd <span className="it">actually recommend.</span>
@@ -781,7 +781,7 @@ function FeaturesBento() {
           <div className="feat feat-1 feat-verified">
             <div className="feat-eyebrow">Verified · Step 0</div>
             <h3 className="h-big">Every tradie checked before they're listed.</h3>
-            <p>Licence numbers verified with the regulator. Public liability and workers' comp on file. Reviews from real, confirmed jobs — not rideshare-style spam.</p>
+            <p>Licence numbers verified with the regulator. Public liability and workers' comp on file. Reviews from real, confirmed jobs, not rideshare-style spam.</p>
             <div className="feat-visual">
               <div className="verified-stack">
                 <div className="verified-card">
@@ -801,11 +801,11 @@ function FeaturesBento() {
           <div className="feat feat-2 feat-ai">
             <div className="feat-eyebrow">Ask AI</div>
             <h3>Describe it in plain English.</h3>
-            <p>We work out the trade — and route you to the right one.</p>
+            <p>We work out the trade, and route you to the right one.</p>
             <div className="ai-bubble">
               "Hot water's running cold and there's a hissing noise from the cylinder."
               <br /><br />
-              <span style={{ color: "var(--accent)", fontWeight: 600 }}>Sounds like a plumber — gas hot water specialist.</span>
+              <span style={{ color: "var(--accent)", fontWeight: 600 }}>Sounds like a plumber, gas hot water specialist.</span>
               <span className="typing"><span /><span /><span /></span>
             </div>
           </div>
@@ -826,7 +826,7 @@ function FeaturesBento() {
             <div className="feat-eyebrow">In-app chat</div>
             <h3>One thread per job.</h3>
             <div className="msg-thread">
-              <div className="bubble in">On my way — 20 min ETA</div>
+              <div className="bubble in">On my way, 20 min ETA</div>
               <div className="bubble out">Sweet, gate's unlocked</div>
               <div className="bubble in">Done. Receipt emailed.</div>
             </div>
@@ -848,7 +848,7 @@ function FeaturesBento() {
           <div className="feat feat-6">
             <div className="feat-eyebrow">Receipts</div>
             <h3>Both sides protected.</h3>
-            <p>Name, address, time, price — all logged in your inbox. If something goes sideways, the record's there.</p>
+            <p>Name, address, time, price, all logged in your inbox. If something goes sideways, the record's there.</p>
           </div>
         </div>
       </div>
@@ -863,13 +863,13 @@ function ForTradiesSplit() {
       <div className="container">
         <div className="tradies-grid">
           <div>
-            <div className="eyebrow" style={{ marginBottom: 24 }}>— For tradies</div>
+            <div className="eyebrow" style={{ marginBottom: 24 }}>For tradies</div>
             <h2 className="h-1">
               More jobs. <span className="it">Less mucking around.</span>
             </h2>
             <p className="lede" style={{ marginTop: 24, marginBottom: 40 }}>
               Skip the lead-gen rort. Real homeowners, real jobs, routed to you by trade and postcode
-              — on your terms.
+, on your terms.
             </p>
             <div className="tradies-list">
               <div className="item">
@@ -950,7 +950,7 @@ function Showcase() {
         <div className="eyebrow accent dot" style={{ justifyContent: "center", marginBottom: 16 }}>
           The whole app
         </div>
-        <h2 className="h-2">See exactly how it works — before you download.</h2>
+        <h2 className="h-2">See exactly how it works, before you download.</h2>
       </div>
       <div className="showcase-marquee">
         <div className="showcase-track">
@@ -1011,7 +1011,7 @@ const ASKAI_URL = "https://pvcblfpxgrznzqgxbujy.supabase.co/functions/v1/ask-ai"
 const ASKAI_KEY = "sb_publishable_xXxZpIBsumD14mC4zn9qLQ_i4Su8yEN";
 
 function AskAiDemo() {
-  const GREETING = "G'day — tell me what's gone wrong at home (leaking tap, tripping fuse, planning a reno) and I'll work out which trade you need.";
+  const GREETING = "G'day, tell me what's gone wrong at home (leaking tap, tripping fuse, planning a reno) and I'll work out which trade you need.";
   const [thread, setThread] = useState([{ role: "assistant", content: GREETING, intro: true }]);
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
@@ -1042,12 +1042,12 @@ function AskAiDemo() {
       const data = await res.json().catch(() => ({}));
       const reply = data && data.reply
         ? String(data.reply)
-        : "Hmm, I couldn't reach the assistant just now — give it another go.";
+        : "Hmm, I couldn't reach the assistant just now, give it another go.";
       setThread((t) => [...t, { role: "assistant", content: reply }]);
     } catch {
       setThread((t) => [
         ...t,
-        { role: "assistant", content: "Couldn't reach the assistant — check your connection and try again." },
+        { role: "assistant", content: "Couldn't reach the assistant, check your connection and try again." },
       ]);
     } finally {
       setBusy(false);
@@ -1141,7 +1141,7 @@ function FeatureBreakdowns() {
           visual={<AskAiDemo />}
           eyebrow="Ask AI"
           title="Describe it in plain English."
-          body="Leaking tap, tripping fuse, planning a reno — say it how you'd say it to a mate. Our assistant works out which trade you actually need and points you at the verified pros nearby."
+          body="Leaking tap, tripping fuse, planning a reno, say it how you'd say it to a mate. Our assistant works out which trade you actually need and points you at the verified pros nearby."
           points={["No guessing which trade to call", "Understands emergencies vs routine jobs", "Suggests the right local, first time"]}
           img="/assets/app-askai.webp"
           cards={
@@ -1149,7 +1149,7 @@ function FeatureBreakdowns() {
               <div className="ai-line">
                 <span className="q">"Hot water's gone cold and there's a hissing from the cylinder."</span>
                 <span className="a">
-                  Sounds like a plumber — gas hot water specialist.
+                  Sounds like a plumber, gas hot water specialist.
                   <span className="typing"><span /><span /><span /></span>
                 </span>
               </div>
@@ -1160,7 +1160,7 @@ function FeatureBreakdowns() {
           flip
           eyebrow="Verified · Step 0"
           title="Every tradie checked before they're listed."
-          body="Licence numbers verified with the regulator. Public liability and workers' comp on file. Reviews only from real, confirmed jobs — never rideshare-style spam."
+          body="Licence numbers verified with the regulator. Public liability and workers' comp on file. Reviews only from real, confirmed jobs, never rideshare-style spam."
           points={["Licence + insurance confirmed", "Nearest-first, so help's close by", "Real reviews from booked jobs only"]}
           img="/assets/app-browse.webp"
           cards={
@@ -1203,7 +1203,7 @@ function FeatureBreakdowns() {
           flip
           eyebrow="In-app chat"
           title="One thread per job. Nothing lost."
-          body="Every enquiry gets its own conversation — quote, ETA, photos, booking receipt, all in one place. No more scrolling texts trying to find which Sarah had the laundry tap."
+          body="Every enquiry gets its own conversation, quote, ETA, photos, booking receipt, all in one place. No more scrolling texts trying to find which Sarah had the laundry tap."
           points={["Quote, chat and receipt in one thread", "Share photos of the problem", "Both sides keep the full record"]}
           img="/assets/app-messages.webp"
           cards={
@@ -1224,7 +1224,7 @@ function ForTradiesBand() {
   const items = [
     ["01", "Real customers, not tyre-kickers.", "Verified accounts only. They've told us what they need before you ever see the job."],
     ["02", "You set the call-out fee. Per job.", "No race-to-the-bottom bidding. Quote what the job's worth; they approve before you roll."],
-    ["03", "One inbox. One thread per job.", "Every job lives in its own conversation. Quote, chat, receipt — sorted."],
+    ["03", "One inbox. One thread per job.", "Every job lives in its own conversation. Quote, chat, receipt, sorted."],
     ["04", "Get paid faster.", "Receipts, bookings and confirmations baked in. Disputes drop, payments speed up."],
   ];
   return (
@@ -1238,7 +1238,7 @@ function ForTradiesBand() {
             </h2>
             <p className="lede" style={{ marginTop: 20 }}>
               Skip the lead-gen rort. Real homeowners, real jobs, routed to you by trade and postcode
-              — on your terms.
+, on your terms.
             </p>
             <div className="tradies-list">
               {items.map(([n, h, p]) => (
@@ -1283,11 +1283,11 @@ function ForTradiesBand() {
 
 /* ===== Feature grid ===== */
 const GRID = [
-  ["◎", "Nearest-first matching", "See who's genuinely around the corner — sorted by distance, not who paid the most."],
+  ["◎", "Nearest-first matching", "See who's genuinely around the corner, sorted by distance, not who paid the most."],
   ["✦", "Insurance on file", "Public liability and workers' comp confirmed before a tradie ever lands in your feed."],
   ["◈", "Booking receipts", "Name, address, time and price logged for every job. Protection for both sides."],
   ["✱", "Emergency call-outs", "Flag it urgent and we prioritise tradies who can be on site today."],
-  ["✧", "Real reviews only", "Ratings come from confirmed bookings on the platform — no fake five-stars."],
+  ["✧", "Real reviews only", "Ratings come from confirmed bookings on the platform, no fake five-stars."],
   ["◇", "No cold leads", "Homeowners get matched, not auctioned. Tradies get jobs, not spam."],
   ["⬡", "Postcode routing", "Type your suburb once; we keep everything local from then on."],
   ["◐", "Fixed quotes", "Call-out fees agreed in writing and approved before anyone turns up."],
@@ -1320,14 +1320,14 @@ function FeatureGrid() {
 /* ===== Reviews wall ===== */
 const REVIEWS = [
   { s: 5, t: "Sparkie was here same arvo", r: "Fuse kept tripping, described it in the app and had a verified sparkie booked within the hour. Fixed price up front, no dramas.", who: "Bianca R.", loc: "Berwick, VIC", tag: "Homeowner", av: "B" },
-  { s: 5, t: "No more tyre-kickers", r: "Every lead's a real job now. Homeowner's already told the app what they need before I even reply. Massive time saver.", who: "Dave — DK Plumbing", loc: "Pakenham, VIC", tag: "Tradie", av: "D" },
+  { s: 5, t: "No more tyre-kickers", r: "Every lead's a real job now. Homeowner's already told the app what they need before I even reply. Massive time saver.", who: "Dave, DK Plumbing", loc: "Pakenham, VIC", tag: "Tradie", av: "D" },
   { s: 5, t: "Finally, a quote in writing", r: "Loved seeing the call-out fee before he came out. Tapped approve and got a booking confirmation with everything logged.", who: "Marcus T.", loc: "Officer, VIC", tag: "Homeowner", av: "M" },
-  { s: 5, t: "Reckon it's the future", r: "Being verified against my licence and insurance actually means something. Customers trust the badge, so they book quicker.", who: "Jess — Valley Electrics", loc: "Yarra Valley, VIC", tag: "Tradie", av: "J" },
+  { s: 5, t: "Reckon it's the future", r: "Being verified against my licence and insurance actually means something. Customers trust the badge, so they book quicker.", who: "Jess, Valley Electrics", loc: "Yarra Valley, VIC", tag: "Tradie", av: "J" },
   { s: 5, t: "Knew who I was dealing with", r: "The verified tick and real reviews gave me the confidence to book someone I'd never heard of. Turned up on time, did it proper.", who: "Priya S.", loc: "Cranbourne, VIC", tag: "Homeowner", av: "P" },
-  { s: 5, t: "One thread, no chaos", r: "Everything for the job lives in one chat — quote, photos, the lot. Way better than losing texts across three numbers.", who: "Tom H.", loc: "Narre Warren, VIC", tag: "Homeowner", av: "T" },
-  { s: 5, t: "Set my own price", r: "No racing to the bottom on price. I quote what the job's worth and they approve it. That's how it should be.", who: "Sam — Ace Carpentry", loc: "Gippsland, VIC", tag: "Tradie", av: "S" },
+  { s: 5, t: "One thread, no chaos", r: "Everything for the job lives in one chat, quote, photos, the lot. Way better than losing texts across three numbers.", who: "Tom H.", loc: "Narre Warren, VIC", tag: "Homeowner", av: "T" },
+  { s: 5, t: "Set my own price", r: "No racing to the bottom on price. I quote what the job's worth and they approve it. That's how it should be.", who: "Sam, Ace Carpentry", loc: "Gippsland, VIC", tag: "Tradie", av: "S" },
   { s: 5, t: "Emergency sorted fast", r: "Flagged a burst pipe as urgent at 6pm and had someone on site by 8. Genuinely saved the kitchen ceiling.", who: "Lauren M.", loc: "Melbourne, VIC", tag: "Homeowner", av: "L" },
-  { s: 5, t: "Payments come quicker", r: "Booking receipts mean no arguing about what was agreed. Invoices get paid without the usual chasing.", who: "Nick — Metro HVAC", loc: "Dandenong, VIC", tag: "Tradie", av: "N" },
+  { s: 5, t: "Payments come quicker", r: "Booking receipts mean no arguing about what was agreed. Invoices get paid without the usual chasing.", who: "Nick, Metro HVAC", loc: "Dandenong, VIC", tag: "Tradie", av: "N" },
 ];
 function RevCard({ rv }) {
   return (

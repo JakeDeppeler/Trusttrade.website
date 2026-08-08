@@ -3,10 +3,10 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-    <title>Trust Trade® — Find a Verified, Insured Local Tradie | Australia</title>
+    <title>Trust Trade®: Find a Verified, Insured Local Tradie in Australia</title>
     <meta
       name="description"
-      content="Find a tradie, done proper. Trust Trade routes you to verified, insured, licence-checked local tradies across Australia — electricians, plumbers, HVAC and more. Free to use."
+      content="Find a tradie, done proper. Trust Trade routes you to verified, insured, licence-checked local tradies across Australia: electricians, plumbers, HVAC and more. Free to use."
     />
     <meta name="keywords" content="find a tradie, verified tradies, licensed electrician, licensed plumber, insured tradie Australia, local tradie app, hire a tradie" />
     <link rel="canonical" href="https://trusttrade.au/" />
@@ -22,7 +22,7 @@
     <!-- Open Graph -->
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="Trust Trade" />
-    <meta property="og:title" content="Trust Trade® — Find a Verified, Insured Local Tradie" />
+    <meta property="og:title" content="Trust Trade®: Find a Verified, Insured Local Tradie" />
     <meta property="og:description" content="Find a tradie, done proper. Verified, insured, licence-checked local tradies across Australia. Free to use." />
     <meta property="og:url" content="https://trusttrade.au/" />
     <meta property="og:image" content="https://trusttrade.au/og-image.png" />
@@ -32,16 +32,31 @@
 
     <!-- Twitter -->
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content="Trust Trade® — Find a Verified, Insured Local Tradie" />
+    <meta name="twitter:title" content="Trust Trade®: Find a Verified, Insured Local Tradie" />
     <meta name="twitter:description" content="Find a tradie, done proper. Verified, insured, licence-checked local tradies across Australia." />
     <meta name="twitter:image" content="https://trusttrade.au/og-image.png" />
 
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <!-- Load fonts off the critical path so they don't block first paint.
+         display=swap shows a system fallback instantly, then swaps to Archivo. -->
+    <link
+      rel="preload"
+      as="style"
+      href="https://fonts.googleapis.com/css2?family=Archivo:ital,wght@0,400;0,500;0,600;0,700;0,800;0,900;1,400;1,500;1,700;1,800;1,900&family=JetBrains+Mono:wght@400;500;600&display=swap"
+    />
     <link
       href="https://fonts.googleapis.com/css2?family=Archivo:ital,wght@0,400;0,500;0,600;0,700;0,800;0,900;1,400;1,500;1,700;1,800;1,900&family=JetBrains+Mono:wght@400;500;600&display=swap"
       rel="stylesheet"
+      media="print"
+      onload="this.media='all'"
     />
+    <noscript>
+      <link
+        href="https://fonts.googleapis.com/css2?family=Archivo:ital,wght@0,400;0,500;0,600;0,700;0,800;0,900;1,400;1,500;1,700;1,800;1,900&family=JetBrains+Mono:wght@400;500;600&display=swap"
+        rel="stylesheet"
+      />
+    </noscript>
 
     <!-- Structured data: Organization + the mobile app + site search -->
     <script type="application/ld+json">

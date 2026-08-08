@@ -2,6 +2,7 @@ import React from "react";
 import ReactDOM from "react-dom/client";
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
 import { ScrollToTop } from "./components/PageChrome.jsx";
+import Seo from "./components/Seo.jsx";
 import LandingPage from "./pages/LandingPage.jsx";
 import HowItWorksPage from "./pages/HowItWorksPage.jsx";
 import VerifyPage from "./pages/VerifyPage.jsx";
@@ -48,6 +49,7 @@ ReactDOM.createRoot(document.getElementById("root")).render(
   <React.StrictMode>
     <BrowserRouter>
       <ScrollToTop />
+      <Seo />
       <AnimatedRoutes />
     </BrowserRouter>
   </React.StrictMode>

@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 
 /* Scroll-reveal: add `.in` to every `.reveal` as it enters the viewport.
-   Throttled rect check — reliable and dependency-free. Shared by the
+   Throttled rect check, reliable and dependency-free. Shared by the
    redesigned pages (How it works, For tradies). */
 export function usePageReveal() {
   useEffect(() => {

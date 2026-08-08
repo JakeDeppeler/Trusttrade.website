@@ -98,7 +98,7 @@ export default function TradesPage() {
         eyebrow="Trades we cover"
         title="Thirty-five trades."
         italicWord="One platform."
-        lede="At launch we cover every trade Australian homes actually need. If we don't have a verified specialist in your postcode for a niche trade, you'll see that up-front — no false promises."
+        lede="At launch we cover every trade Australian homes actually need. If we don't have a verified specialist in your postcode for a niche trade, you'll see that up-front, no false promises."
         meta={[
           { k: "Trades at launch", v: `${totalTrades} trades · ${TRADE_CATEGORIES.length} categories` },
           { k: "Coverage", v: "Victoria-wide" },
@@ -112,7 +112,7 @@ export default function TradesPage() {
           {TRADE_CATEGORIES.map((cat) => (
             <div key={cat.n} className="trade-cat">
               <div className="trade-cat-head">
-                <div className="cat-num">— Category {cat.n}</div>
+                <div className="cat-num">Category {cat.n}</div>
                 <h3>{cat.name}</h3>
                 <p>{cat.blurb}</p>
               </div>
@@ -132,13 +132,13 @@ export default function TradesPage() {
       <section className="page-section cream">
         <div className="container">
           <div className="mid-head">
-            <div className="eyebrow accent">— Not in the list?</div>
+            <div className="eyebrow accent">Not in the list?</div>
             <h2 className="h-1">
               Tell us <span className="it">what's missing.</span>
             </h2>
             <p className="lede">
               If your trade isn't here, or you need someone specific in your postcode, we'd rather
-              know than guess. Email Jake — actual founder, actual inbox.
+              know than guess. Email Jake, actual founder, actual inbox.
             </p>
           </div>
           <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
@@ -153,7 +153,7 @@ export default function TradesPage() {
               className="btn btn-ghost btn-lg"
               style={{ borderColor: "rgba(12,9,7,0.18)", color: "var(--on-accent)" }}
             >
-              I'm a tradie — apply to be listed
+              I'm a tradie, apply to be listed
             </PageLink>
           </div>
         </div>

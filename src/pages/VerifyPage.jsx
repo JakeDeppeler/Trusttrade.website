@@ -8,37 +8,37 @@ import PageLink from "../components/PageLink.jsx";
 
 const CHECKS = [
   {
-    ticker: "— Check 01",
+    ticker: "Check 01",
     title: "Trade licence verified with the state regulator.",
-    body: "We check the licence number directly with the relevant authority — VBA for builders, ESV for sparkies, VBPRB for plumbers — and surface the licence class to you.",
+    body: "We check the licence number directly with the relevant authority, VBA for builders, ESV for sparkies, VBPRB for plumbers, and surface the licence class to you.",
     stamp: "Direct regulator API where possible, manual lookup otherwise",
   },
   {
-    ticker: "— Check 02",
+    ticker: "Check 02",
     title: "Insurance certificate on file.",
-    body: "Minimum $10m public liability. Workers' comp if they employ. Certificate of currency uploaded, expiry tracked — they can't take a job past the expiry date.",
+    body: "Minimum $10m public liability. Workers' comp if they employ. Certificate of currency uploaded, expiry tracked, they can't take a job past the expiry date.",
     stamp: "Cert expiry auto-tracked",
   },
   {
-    ticker: "— Check 03",
+    ticker: "Check 03",
     title: "ABN active, not on hold.",
     body: "We check the Australian Business Register. If the ABN is cancelled, suspended, or doesn't match the named business, we don't list them.",
     stamp: "ABR-checked",
   },
   {
-    ticker: "— Check 04",
+    ticker: "Check 04",
     title: "No active disciplinary action.",
     body: "Consumer Affairs Victoria, the regulator, court records for trade-related judgements. Active suspension or order? No listing. Re-checked quarterly.",
     stamp: "CAV + regulator + court records",
   },
   {
-    ticker: "— Plus",
+    ticker: "Plus",
     title: "Photo ID matched to the licence-holder.",
     body: "Selfie + drivers licence matched to the trade licence. Stops someone listing under a mate's licence.",
     stamp: "Liveness check",
   },
   {
-    ticker: "— Plus",
+    ticker: "Plus",
     title: "Two reference jobs.",
     body: "Two past customers who'll vouch in writing. We call them. If we can't reach both, the application stalls until we can.",
     stamp: "Phone-confirmed references",
@@ -66,17 +66,17 @@ const REVIEW_RULES = [
 
 const DISPUTE_STEPS = [
   {
-    ticker: "— On the record",
-    title: "Booking, ETA, fee, chat — all logged.",
+    ticker: "On the record",
+    title: "Booking, ETA, fee, chat, all logged.",
     body: "Every job has a logged timeline. You said yes at 9:14. They said on-site at 10:23. Receipt issued at 12:08. Both sides see the same record.",
   },
   {
-    ticker: "— On the day",
+    ticker: "On the day",
     title: "Tap the help button. We're in within an hour.",
     body: "If the tradie no-shows, or the work's clearly wrong, you tap one button. A human reads the thread and gets back to both sides within 60 minutes (business hours).",
   },
   {
-    ticker: "— Resolution",
+    ticker: "Resolution",
     title: "48 hours, both sides, in writing.",
     body: "Most disputes are misunderstandings. The few that aren't, we resolve within 48 hours of you flagging it. The decision is logged on both accounts.",
   },
@@ -92,7 +92,7 @@ const DOC_ROWS = [
       </>
     ),
   },
-  { k: "Trade licence", v: "Sample — Plumbing (Gas)" },
+  { k: "Trade licence", v: "Sample, Plumbing (Gas)" },
   { k: "Issuer", v: "State regulator · re-checked quarterly" },
   { k: "Public liability", v: "$20m · sample insurer" },
   { k: "PL expiry", v: "Logged · auto-reminded" },
@@ -130,13 +130,13 @@ export default function VerifyPage() {
       <section className="page-section">
         <div className="container">
           <div className="mid-head">
-            <div className="eyebrow accent">— The four checks</div>
+            <div className="eyebrow accent">The four checks</div>
             <h2 className="h-1">
               Four ticks. <span className="it">Or no listing.</span>
             </h2>
             <p className="lede">
               If a tradie fails any one of these, they don't get on the platform. Not a "yellow flag,
-              proceed with caution" — a hard no.
+              proceed with caution"a hard no.
             </p>
           </div>
 
@@ -157,7 +157,7 @@ export default function VerifyPage() {
       <section className="page-section bordered">
         <div className="container">
           <div className="mid-head">
-            <div className="eyebrow accent">— What you see on a profile</div>
+            <div className="eyebrow accent">What you see on a profile</div>
             <h2 className="h-1">
               Every claim on a profile <span className="it">links to a check.</span>
             </h2>
@@ -201,7 +201,7 @@ export default function VerifyPage() {
                 <li>→ The insurance certificate is on file and not expired.</li>
                 <li>→ The ABN matches the listed business name.</li>
                 <li>→ A human at our office has clapped eyes on every document.</li>
-                <li>→ The badge expires if any check lapses — no zombie verifieds.</li>
+                <li>→ The badge expires if any check lapses, no zombie verifieds.</li>
               </ul>
             </div>
           </div>
@@ -212,7 +212,7 @@ export default function VerifyPage() {
       <section className="page-section cream">
         <div className="container">
           <div className="mid-head">
-            <div className="eyebrow accent">— Reviews</div>
+            <div className="eyebrow accent">Reviews</div>
             <h2 className="h-1">
               Reviews from <span className="it">verified bookings only.</span>
             </h2>
@@ -243,7 +243,7 @@ export default function VerifyPage() {
       <section className="page-section bordered">
         <div className="container">
           <div className="mid-head">
-            <div className="eyebrow accent">— When it goes sideways</div>
+            <div className="eyebrow accent">When it goes sideways</div>
             <h2 className="h-1">
               Every job leaves <span className="it">a paper trail.</span>
             </h2>
@@ -269,7 +269,7 @@ export default function VerifyPage() {
               <h5>One thing we don't do:</h5>
               <p>
                 We don't hold or pay-out the tradie's money. Trust Trade isn't an escrow. You pay
-                your tradie direct — but every dollar paid is logged in the receipt, and the booking
+                your tradie direct, but every dollar paid is logged in the receipt, and the booking
                 record is admissible in any small-claims action either side might take. We're the
                 paper trail, not the bank.
               </p>

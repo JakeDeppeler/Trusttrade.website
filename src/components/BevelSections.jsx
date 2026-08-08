@@ -81,7 +81,7 @@ export function BehindTheScenes({
     <section className="behind-scenes">
       <div className="container">
         <div className="behind-head">
-          <div className="eyebrow accent">— {eyebrow}</div>
+          <div className="eyebrow accent">{eyebrow}</div>
           <h2 className="h-1">
             {title} {italicWord && <span className="it">{italicWord}</span>}
           </h2>
@@ -90,7 +90,7 @@ export function BehindTheScenes({
         <div className="behind-grid">
           {items.map((it) => (
             <article className="behind-item" key={it.headline}>
-              <div className="behind-eyebrow">— {it.eyebrow}</div>
+              <div className="behind-eyebrow">{it.eyebrow}</div>
               <h3 className="behind-title">{it.headline}</h3>
               <p className="behind-body">{it.body}</p>
             </article>
@@ -117,7 +117,7 @@ export function AdditionalFeatures({
     <section className="additional-features">
       <div className="container">
         <div className="additional-head">
-          <div className="eyebrow accent">— {eyebrow}</div>
+          <div className="eyebrow accent">{eyebrow}</div>
           <h2 className="h-1">
             {title} {italicWord && <span className="it">{italicWord}</span>}
           </h2>
@@ -170,7 +170,7 @@ export function PrivacyBreak({
       <div className="privacy-decor" aria-hidden="true" />
       <div className="container">
         <div className="privacy-inner">
-          <div className="eyebrow accent">— {eyebrow}</div>
+          <div className="eyebrow accent">{eyebrow}</div>
           <h2 className="h-1">
             {title} {italicWord && <span className="it">{italicWord}</span>}
           </h2>
@@ -205,7 +205,7 @@ export function VoiceCards({
     <section className="voice-cards">
       <div className="container">
         <div className="voice-head">
-          <div className="eyebrow accent">— {eyebrow}</div>
+          <div className="eyebrow accent">{eyebrow}</div>
           <h2 className="h-1">
             {title} {italicWord && <span className="it">{italicWord}</span>}
           </h2>
@@ -213,7 +213,7 @@ export function VoiceCards({
         <div className="voice-grid">
           {quotes.map((v) => (
             <article className="voice-card" key={v.title}>
-              <div className="voice-eyebrow">— {v.title}</div>
+              <div className="voice-eyebrow">{v.title}</div>
               <blockquote>{v.quote}</blockquote>
               <div className="voice-attr">
                 <div className="voice-avatar" aria-hidden="true">

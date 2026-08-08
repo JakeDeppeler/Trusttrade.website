@@ -1,18 +1,21 @@
-import React from "react";
+import React, { Suspense, lazy } from "react";
 import ReactDOM from "react-dom/client";
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
 import { ScrollToTop } from "./components/PageChrome.jsx";
 import Seo from "./components/Seo.jsx";
+// Homepage loads eagerly (it's the LCP route + most traffic). Every other route
+// is code-split into its own chunk so it's only downloaded when visited — this
+// keeps the initial JS payload small (PageSpeed "reduce unused JavaScript").
 import LandingPage from "./pages/LandingPage.jsx";
-import HowItWorksPage from "./pages/HowItWorksPage.jsx";
-import VerifyPage from "./pages/VerifyPage.jsx";
-import ForTradiesPage from "./pages/ForTradiesPage.jsx";
-import ForHomeownersPage from "./pages/ForHomeownersPage.jsx";
-import TradesPage from "./pages/TradesPage.jsx";
-import FAQPage from "./pages/FAQPage.jsx";
-import AboutPage from "./pages/AboutPage.jsx";
-import OurStoryPage from "./pages/OurStoryPage.jsx";
-import ToolsPage from "./pages/ToolsPage.jsx";
+const HowItWorksPage = lazy(() => import("./pages/HowItWorksPage.jsx"));
+const VerifyPage = lazy(() => import("./pages/VerifyPage.jsx"));
+const ForTradiesPage = lazy(() => import("./pages/ForTradiesPage.jsx"));
+const ForHomeownersPage = lazy(() => import("./pages/ForHomeownersPage.jsx"));
+const TradesPage = lazy(() => import("./pages/TradesPage.jsx"));
+const FAQPage = lazy(() => import("./pages/FAQPage.jsx"));
+const AboutPage = lazy(() => import("./pages/AboutPage.jsx"));
+const OurStoryPage = lazy(() => import("./pages/OurStoryPage.jsx"));
+const ToolsPage = lazy(() => import("./pages/ToolsPage.jsx"));
 import "./styles/landing.css";
 import "./styles/pages.css";
 import "./styles/chrome.css";
@@ -28,6 +31,7 @@ function AnimatedRoutes() {
   const location = useLocation();
   return (
     <div className="page-fade" key={location.pathname}>
+      <Suspense fallback={null}>
       <Routes location={location}>
         <Route path="/" element={<LandingPage />} />
         <Route path="/how-it-works" element={<HowItWorksPage />} />
@@ -41,6 +45,7 @@ function AnimatedRoutes() {
         <Route path="/tools" element={<ToolsPage />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
+      </Suspense>
     </div>
   );
 }

@@ -147,6 +147,9 @@ async function loadCounts(){
 }
 function signout(){sb.auth.signOut().then(()=>location.reload());}
 function go(p){PAGE=p;document.querySelectorAll('.nv').forEach(n=>n.classList.toggle('on',n.dataset.p===p||(p==='quoteNew'&&n.dataset.p==='leads')));
+ // No listing on this account (e.g. admin/founder) → every tradie page needs
+ // LST, so show the welcome/no-listing state instead of dereferencing null.
+ if(!LST){noListing(ME);return;}
  ({home:pHome,leads:pLeads,quoteNew:pQuoteNew,quotes:pQuotes,jobs:pJobs,invoices:pInvoices,reviews:pReviews,profile:pProfile,hours:pHours,gallery:pGallery,billing:pBilling}[p])();}
 function loading(t){$('main').innerHTML=`<h1>${t}</h1><div class="subt">Loading…</div>`;}
 function errBox(e){return `<div class="card"><div class="empty">Couldn't load — ${esc(e.message||e)}</div></div>`;}

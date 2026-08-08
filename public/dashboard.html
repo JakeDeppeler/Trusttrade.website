@@ -95,6 +95,7 @@ tr:last-child td{border-bottom:0}
   <div class="nv" data-p="hours" onclick="go('hours')"><span class="lbl">Availability</span></div>
   <div class="nv" data-p="gallery" onclick="go('gallery')"><span class="lbl">Gallery</span></div>
   <div class="slbl">Account</div>
+  <div class="nv" data-p="security" onclick="go('security')"><span class="lbl">Security (2FA)</span></div>
   <div class="nv" data-p="billing" onclick="go('billing')"><span class="lbl">Billing</span></div>
   <div class="me"><b id="w-email" style="color:var(--ink);display:block;font-size:12.5px">—</b><span id="w-theme" onclick="toggleTheme()" style="cursor:pointer">Dark mode</span> · <a onclick="signout()">Sign out</a></div>
  </aside>
@@ -122,7 +123,34 @@ function fmtHours(v){if(v==null)return '—';if(typeof v==='string')return v;if(
 async function doPw(){$('e-pw').innerHTML='';
  const {error}=await sb.auth.signInWithPassword({email:val('em').trim(),password:val('pw')});
  if(error){$('e-pw').innerHTML='<div class="err">'+esc(error.message)+'</div>';return;}
+ if(await mfaRequired()){ showMfaChallenge(); return; }
  route();}
+// True when the account has a verified 2FA factor but the session is still aal1.
+async function mfaRequired(){
+ try{ const {data}=await sb.auth.mfa.getAuthenticatorAssuranceLevel();
+  return !!data && data.nextLevel==='aal2' && data.currentLevel!=='aal2'; }catch(e){ return false; }
+}
+function showMfaChallenge(){
+ const c=document.querySelector('#gate .lcard'); if(!c) return;
+ c.innerHTML=`<div class="brand"><div class="lg"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#231700" stroke-width="1.8"><path d="M12 2l8 3v6c0 5-3.4 9.4-8 11-4.6-1.6-8-6-8-11V5l8-3z"/><path d="M9 12l2 2 4-4"/></svg></div><div><b>TrustTrade</b><span>Two-factor authentication</span></div></div>
+  <label>6-digit code</label><input id="mfa_login" inputmode="numeric" autocomplete="one-time-code" placeholder="123456" onkeydown="if(event.key==='Enter')verifyMfaLogin()">
+  <div id="e-mfa"></div>
+  <button class="btn gold" onclick="verifyMfaLogin()">Verify</button>
+  <div class="mut" style="font-size:11.5px;margin-top:14px;text-align:center">Enter the code from your authenticator app.</div>`;
+ const i=$('mfa_login'); if(i) i.focus();
+}
+async function verifyMfaLogin(){$('e-mfa').innerHTML='';
+ const code=(val('mfa_login')||'').replace(/\s/g,'');
+ if(code.length<6){$('e-mfa').innerHTML='<div class="err">Enter the 6-digit code</div>';return;}
+ try{
+  const {data:factors}=await sb.auth.mfa.listFactors();
+  const f=(factors&&factors.totp||[])[0]; if(!f){route();return;}
+  const {data:ch,error:ce}=await sb.auth.mfa.challenge({factorId:f.id});
+  if(ce){$('e-mfa').innerHTML='<div class="err">'+esc(ce.message)+'</div>';return;}
+  const {error:ve}=await sb.auth.mfa.verify({factorId:f.id,challengeId:ch.id,code});
+  if(ve){$('e-mfa').innerHTML='<div class="err">'+esc(ve.message||'Wrong code, try again')+'</div>';return;}
+  route();
+ }catch(e){$('e-mfa').innerHTML='<div class="err">'+esc(e.message)+'</div>';}}
 async function route(){
  const {data:{user}}=await sb.auth.getUser();ME=user;if(!user)return;
  const {data:list,error}=await sb.from('listings').select('*').eq('auth_user_id',user.id).order('joined_at',{ascending:false}).limit(1);
@@ -149,8 +177,9 @@ function signout(){sb.auth.signOut().then(()=>location.reload());}
 function go(p){PAGE=p;document.querySelectorAll('.nv').forEach(n=>n.classList.toggle('on',n.dataset.p===p||(p==='quoteNew'&&n.dataset.p==='leads')));
  // No listing on this account (e.g. admin/founder) → every tradie page needs
  // LST, so show the welcome/no-listing state instead of dereferencing null.
- if(!LST){noListing(ME);return;}
- ({home:pHome,leads:pLeads,quoteNew:pQuoteNew,quotes:pQuotes,jobs:pJobs,invoices:pInvoices,reviews:pReviews,profile:pProfile,hours:pHours,gallery:pGallery,billing:pBilling}[p])();}
+ // Security (2FA) is account-level, not listing-level, so it's always allowed.
+ if(!LST && p!=='security'){noListing(ME);return;}
+ ({home:pHome,leads:pLeads,quoteNew:pQuoteNew,quotes:pQuotes,jobs:pJobs,invoices:pInvoices,reviews:pReviews,profile:pProfile,hours:pHours,gallery:pGallery,billing:pBilling,security:pSecurity}[p])();}
 function loading(t){$('main').innerHTML=`<h1>${t}</h1><div class="subt">Loading…</div>`;}
 function errBox(e){return `<div class="card"><div class="empty">Couldn't load — ${esc(e.message||e)}</div></div>`;}
 
@@ -359,6 +388,64 @@ async function pGallery(){loading('Gallery');try{
   </div></div>`;
 }catch(e){$('main').innerHTML='<h1>Gallery</h1>'+errBox(e);}}
 
+// ── SECURITY / 2FA (Supabase TOTP MFA) ──────────────────────────────
+let MFA_ENROLL=null;
+async function pSecurity(){loading('Security');
+ let totp=[];
+ try{const {data}=await sb.auth.mfa.listFactors();totp=((data&&data.totp)||[]).filter(f=>f.status==='verified');}catch(e){}
+ if(totp.length){
+  $('main').innerHTML=`<h1>Security</h1><div class="subt">Two-factor authentication keeps your account safe.</div>
+   <div class="card"><div style="padding:20px">
+    <div style="display:flex;align-items:center;gap:10px"><span class="pill g">2FA is on</span><span class="mut">Authenticator app</span></div>
+    <p class="mut" style="font-size:13.5px;margin:12px 0">You'll be asked for a 6-digit code from your authenticator app each time you sign in.</p>
+    <button class="btn r" onclick="removeMfa('${totp[0].id}')">Turn off 2FA</button>
+   </div></div>`;
+  return;
+ }
+ $('main').innerHTML=`<h1>Security</h1><div class="subt">Add two-factor authentication (2FA) for an extra layer of security.</div>
+  <div class="card"><div style="padding:20px">
+   <p style="font-size:14px;margin-bottom:6px">Protect your account with a 6-digit code from an authenticator app.</p>
+   <p class="mut" style="font-size:13px;margin-bottom:16px">Works with Google Authenticator, Authy, 1Password, Microsoft Authenticator and more.</p>
+   <button class="btn gold" style="width:auto;height:40px" onclick="startMfa()">Set up 2FA</button>
+  </div></div>`;
+}
+async function startMfa(){
+ try{
+  const {data,error}=await sb.auth.mfa.enroll({factorType:'totp',friendlyName:'TrustTrade '+new Date().toISOString().slice(0,10)});
+  if(error){toast(error.message);return;}
+  MFA_ENROLL=data;
+  const qr=(data.totp&&data.totp.qr_code)||'';
+  const img=/^data:/.test(qr)?`<img src="${qr}" alt="2FA QR code" style="width:190px;height:190px">`:(qr.indexOf('<svg')>=0?`<div style="width:190px;height:190px">${qr}</div>`:'');
+  $('main').innerHTML=`<h1>Set up 2FA</h1><div class="subt">Scan the QR with your authenticator app, then enter the 6-digit code it shows.</div>
+   <div class="card"><div style="padding:22px;text-align:center">
+    <div style="display:inline-block;background:#fff;padding:10px;border-radius:12px;border:1px solid var(--line)">${img||'<div class="mut" style="padding:20px">Use the key below</div>'}</div>
+    <div class="mut" style="font-size:12px;margin:14px 0 4px">Can't scan? Enter this key manually:</div>
+    <div class="mono" style="font-weight:700;letter-spacing:2px;user-select:all;word-break:break-all">${esc((data.totp&&data.totp.secret)||'')}</div>
+    <div style="max-width:220px;margin:20px auto 0"><input id="mfa_code" inputmode="numeric" autocomplete="one-time-code" placeholder="123456" onkeydown="if(event.key==='Enter')confirmMfa()" style="text-align:center;font-size:20px;letter-spacing:6px;padding:12px;border:1px solid var(--line);border-radius:11px;background:var(--bg);color:var(--ink);width:100%"></div>
+    <div id="e-mfaset"></div>
+    <button class="btn gold" style="width:auto;height:42px;margin-top:14px" onclick="confirmMfa()">Verify &amp; turn on</button>
+    <div><a class="mut" style="cursor:pointer;font-size:13px;display:inline-block;margin-top:12px" onclick="go('security')">Cancel</a></div>
+   </div></div>`;
+ }catch(e){toast(e.message||'Could not start 2FA setup');}
+}
+async function confirmMfa(){
+ if(!MFA_ENROLL)return;
+ const box=$('e-mfaset');if(box)box.innerHTML='';
+ const code=(val('mfa_code')||'').replace(/\s/g,'');
+ if(code.length<6){if(box)box.innerHTML='<div class="err">Enter the 6-digit code</div>';return;}
+ try{
+  const {data:ch,error:ce}=await sb.auth.mfa.challenge({factorId:MFA_ENROLL.id});
+  if(ce){if(box)box.innerHTML='<div class="err">'+esc(ce.message)+'</div>';return;}
+  const {error:ve}=await sb.auth.mfa.verify({factorId:MFA_ENROLL.id,challengeId:ch.id,code});
+  if(ve){if(box)box.innerHTML='<div class="err">'+esc(ve.message||'Wrong code, try again')+'</div>';return;}
+  MFA_ENROLL=null;toast('2FA is on');go('security');
+ }catch(e){if(box)box.innerHTML='<div class="err">'+esc(e.message)+'</div>';}
+}
+async function removeMfa(id){
+ if(!confirm('Turn off 2FA? Your account will no longer ask for a code at sign-in.'))return;
+ try{const {error}=await sb.auth.mfa.unenroll({factorId:id});if(error){toast(error.message);return;}toast('2FA turned off');go('security');}catch(e){toast(e.message);}
+}
+
 async function pBilling(){loading('Billing');try{
  let sub=null;try{const {data}=await sb.from('subscriptions').select('*').eq('listing_id',LST.id).limit(1);sub=data&&data[0];}catch(e){}
  $('main').innerHTML=`<h1>Billing</h1><div class="subt">Your TrustTrade membership</div>
@@ -370,6 +457,9 @@ async function pBilling(){loading('Billing');try{
 }catch(e){$('main').innerHTML='<h1>Billing</h1>'+errBox(e);}}
 
 // boot: resume session if present
-(async()=>{const {data}=await sb.auth.getSession();if(data&&data.session){route();}})();
+(async()=>{const {data}=await sb.auth.getSession();if(data&&data.session){
+  if(await mfaRequired()){ $('gate').style.display=''; $('app').classList.remove('on'); showMfaChallenge(); return; }
+  route();
+}})();
 </script>
 </body></html>

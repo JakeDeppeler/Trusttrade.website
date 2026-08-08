@@ -4156,7 +4156,9 @@ body.theme-cream .header-pill .dot {
  * headline. */
 body.theme-cream .hero {
   background: var(--bg);
-  padding-top: clamp(72px, 8vw, 128px);
+  /* floor raised so the hero clears the fixed nav pill (bottom ~64px) with a
+     comfortable gap on mobile — the old 72px min left the eyebrow almost touching it */
+  padding-top: clamp(116px, 8vw, 128px);
   padding-bottom: clamp(80px, 10vw, 160px);
   position: relative;
   overflow: hidden;

@@ -7,3 +7,7 @@ dist/
 .env.*
 !.env.example
 .vercel
+
+# generated tradie SEO pages (built fresh each deploy)
+public/tradie/
+public/sitemap-tradies.xml

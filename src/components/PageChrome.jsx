@@ -344,7 +344,15 @@ export function PageFooter() {
         </div>
         <div className="footer-bottom">
           <div>© 2026 Trust Trade® · ABN 40 873 784 535</div>
-          <div>Made in Melbourne · Australia</div>
+          <div>
+            Made in Melbourne · Australia
+            {" · "}
+            {/* Discreet tradie/admin entry — homeowners don't need it, so it sits
+                quietly in the footer at the same muted colour as the rest. */}
+            <a href="/dashboard" style={{ color: "inherit", opacity: 0.7, textDecoration: "none" }}>
+              Tradie login
+            </a>
+          </div>
         </div>
       </div>
     </footer>

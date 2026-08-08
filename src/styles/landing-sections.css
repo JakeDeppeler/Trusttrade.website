@@ -10,6 +10,17 @@
 }
 .tt-home .glow{position:absolute;inset:-10% -6%;z-index:0;background:radial-gradient(closest-side,rgba(242,184,31,0.18),transparent 70%);filter:blur(12px);pointer-events:none;}
 
+/* Mobile performance: the homepage stacks ~8700px of sections below the hero.
+   content-visibility lets the browser skip laying out / painting each one until
+   it's scrolled near, cutting a lot of main-thread work on first load. The hero
+   (above the fold) is excluded so it paints immediately. contain-intrinsic-size
+   reserves space with the `auto` keyword (browser remembers real height after
+   first render) so nothing shifts — CLS stays 0. */
+.tt-home > section:not(.hero) {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 900px;
+}
+
 @keyframes pulse {
   0%, 100% { box-shadow: 0 0 0 4px rgba(242,184,31,0.18); }
   50% { box-shadow: 0 0 0 8px rgba(242,184,31,0.04); }

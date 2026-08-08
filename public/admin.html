@@ -866,27 +866,38 @@ async function runHealth(){
  if($('hl_rows'))$('hl_rows').innerHTML=HEALTH_AREAS.map(([l],i)=>{const r=results[i];const col=r.ok?(r.ms>1500?'var(--amber)':'var(--green)'):'var(--red)';const st=r.ok?(r.ms>1500?'Slow':'Operational'):'Down';const pill=r.ok?(r.ms>1500?'a':'g'):'r';return `<div style="display:flex;align-items:center;gap:12px;padding:11px 18px;border-top:1px solid var(--line2)"><span style="width:9px;height:9px;border-radius:50%;background:${col};box-shadow:0 0 0 3px ${col}22;flex-shrink:0"></span><b style="font-size:13.5px;flex:1">${esc(l)}</b><span class="pill ${pill}">${st}</span><span class="mono mut" style="width:64px;text-align:right;font-size:12px">${r.ms} ms</span></div>`;}).join('');
  const bad=results.filter(r=>!r.ok).length,slow=results.filter(r=>r.ok&&r.ms>1500).length;
  const last=$('hl_last');if(last)last.innerHTML=`last checked ${new Date().toLocaleTimeString('en-AU',{hour:'numeric',minute:'2-digit'})} · ${bad?`<span style="color:var(--red);font-weight:700">${bad} down</span>`:slow?`<span style="color:var(--amber);font-weight:700">${slow} slow</span>`:'<span style="color:var(--green);font-weight:700">all operational</span>'}`;
- healthLog(results);renderUptime();renderHealthExtra();
+ await healthLog(results);renderUptime();renderHealthExtra();
 }
-function healthLog(results){try{let log=JSON.parse(localStorage.getItem('tt_health_log')||'[]');const worst=Math.max(...results.map(r=>r.ok?(r.ms>1500?1:0):2));log.push({t:Date.now(),w:worst});const cutoff=Date.now()-370*864e5;log=log.filter(x=>x.t>cutoff);if(log.length>7000)log=log.slice(log.length-7000);localStorage.setItem('tt_health_log',JSON.stringify(log));}catch(e){}}
+// Save each check to the cloud (system_health, admin-RLS) so history persists and
+// syncs across devices — alongside the 5-min server cron. No longer this-device.
+async function healthLog(results){
+ try{
+  const worst=Math.max(...results.map(r=>r.ok?(r.ms>1500?1:0):2));
+  const services=HEALTH_AREAS.map(([l],i)=>({name:l,ok:results[i].ok,ms:results[i].ms}));
+  await sb.from('system_health').insert({worst,services,source:'client'});
+ }catch(e){}
+}
 const HWINS={day:{ms:864e5,n:288,lbl:'5 min'},week:{ms:7*864e5,n:168,lbl:'1 hour'},month:{ms:30*864e5,n:120,lbl:'6 hours'},year:{ms:365*864e5,n:365,lbl:'1 day'}};
 function setHWin(k){window.HWIN=k;renderUptime();}
-function renderUptime(){
+async function renderUptime(){
  const el=$('hl_up');if(!el)return;const HWIN=window.HWIN||'day';
  let spanMs,n;const now=Date.now();
  if(HWIN==='ytd'){const s=new Date(new Date().getFullYear(),0,1).getTime();spanMs=now-s;n=Math.max(1,Math.ceil(spanMs/864e5));}else{spanMs=HWINS[HWIN].ms;n=HWINS[HWIN].n;}
  const start=now-spanMs,bms=spanMs/n;
- let log=[];try{log=JSON.parse(localStorage.getItem('tt_health_log')||'[]');}catch(e){}
+ // Read history from the cloud (system_health) — populated by the 5-min server
+ // cron + every client check. Persists and syncs across devices.
+ let rows=[];
+ try{const {data}=await sb.from('system_health').select('checked_at,worst').gte('checked_at',new Date(start).toISOString()).order('checked_at',{ascending:false}).limit(8000);rows=data||[];}catch(e){}
  const buckets=new Array(n).fill(-1);
- log.forEach(x=>{if(x.t<start)return;const idx=Math.min(n-1,Math.floor((x.t-start)/bms));buckets[idx]=Math.max(buckets[idx],x.w);});
+ rows.forEach(x=>{const t=new Date(x.checked_at).getTime();if(t<start)return;const idx=Math.min(n-1,Math.floor((t-start)/bms));buckets[idx]=Math.max(buckets[idx],x.worst);});
  const seg=buckets.map(v=>{const col=v<0?'var(--line2)':v===0?'var(--green)':v===1?'var(--amber)':'var(--red)';return `<span style="flex:1;min-width:1px;height:30px;border-radius:2px;background:${col}"></span>`;}).join('');
- const checks=log.filter(x=>x.t>=start),up=checks.length?Math.round(checks.filter(x=>x.w===0).length/checks.length*100):null;
+ const up=rows.length?Math.round(rows.filter(x=>x.worst===0).length/rows.length*100):null;
  const rb=(k,l)=>`<button class="${HWIN===k?'on':''}" onclick="setHWin('${k}')">${l}</button>`;
  const barLbl=HWIN==='ytd'?'1 day':HWINS[HWIN].lbl;
- el.innerHTML=`<div class="card"><div class="ch" style="display:flex;align-items:center;flex-wrap:wrap;gap:8px">Uptime history${up!=null?` <span class="mut" style="font-weight:500;font-size:12px">· ${up}% healthy (${checks.length} checks)</span>`:''}<div class="seg" style="margin-left:auto">${rb('day','Day')}${rb('week','Week')}${rb('month','Month')}${rb('year','Year')}${rb('ytd','YTD')}</div></div>
+ el.innerHTML=`<div class="card"><div class="ch" style="display:flex;align-items:center;flex-wrap:wrap;gap:8px">Uptime history${up!=null?` <span class="mut" style="font-weight:500;font-size:12px">· ${up}% healthy (${rows.length} checks)</span>`:''}<div class="seg" style="margin-left:auto">${rb('day','Day')}${rb('week','Week')}${rb('month','Month')}${rb('year','Year')}${rb('ytd','YTD')}</div></div>
   <div style="padding:16px 18px"><div style="display:flex;gap:1px;align-items:flex-end">${seg}</div>
    <div class="mut" style="font-size:11px;margin-top:9px;display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap"><span>${new Date(start).toLocaleDateString('en-AU',{day:'numeric',month:'short'})}</span><span>each bar ≈ ${barLbl} · <span style="color:var(--green)">■</span> ok <span style="color:var(--amber)">■</span> slow <span style="color:var(--red)">■</span> down <span style="color:var(--mut)">■</span> no check</span><span>now</span></div>
-   <div class="mut" style="font-size:11px;margin-top:6px">History builds as checks run (every 5 min while this page is open). Stored on this device.</div></div></div>`;
+   <div class="mut" style="font-size:11px;margin-top:6px">Checks run every 5 minutes in the cloud (24/7) and save to your account — synced across devices.</div></div></div>`;
 }
 async function renderHealthExtra(){
  const el=$('hl_extra');if(!el)return;

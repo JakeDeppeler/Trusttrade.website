@@ -630,7 +630,24 @@ function MobileStickyCTA({ onJoin }) {
 }
 
 // ===== Hero — centered "Done proper." design hero =====
+// The two side phones are decorative and hidden under 720px. `loading="lazy"`
+// doesn't stop Chrome downloading display:none images, so we skip rendering them
+// entirely on mobile — that's ~120KB the mobile LCP window gets back.
+function useIsDesktop() {
+  const [desktop, setDesktop] = useState(
+    typeof window !== "undefined" ? window.matchMedia("(min-width: 721px)").matches : true
+  );
+  useEffect(() => {
+    const mq = window.matchMedia("(min-width: 721px)");
+    const on = () => setDesktop(mq.matches);
+    mq.addEventListener("change", on);
+    return () => mq.removeEventListener("change", on);
+  }, []);
+  return desktop;
+}
+
 function BevelHero() {
+  const showSides = useIsDesktop();
   return (
     <section className="hero bevel-hero" id="top">
       <div className="hero-sky" aria-hidden="true" />
@@ -673,21 +690,33 @@ function BevelHero() {
         </div>
 
         <div className="hero-trio">
-          <div className="phone side left">
-            <div className="phone-screen">
-              <img src="/assets/app-browse.webp" alt="Browse verified tradies" />
+          {showSides && (
+            <div className="phone side left">
+              <div className="phone-screen">
+                <img src="/assets/app-browse.webp" alt="Browse verified tradies" loading="lazy" decoding="async" />
+              </div>
             </div>
-          </div>
+          )}
           <div className="phone center">
             <div className="phone-screen">
-              <img src="/assets/app-home.webp" alt="Trust Trade app home screen" />
+              {/* the LCP element on mobile — load it first */}
+              <img
+                src="/assets/app-home.webp"
+                alt="Trust Trade app home screen"
+                width={1284}
+                height={2778}
+                fetchPriority="high"
+                decoding="async"
+              />
             </div>
           </div>
-          <div className="phone side right">
-            <div className="phone-screen">
-              <img src="/assets/app-booking.webp" alt="Booking confirmation" />
+          {showSides && (
+            <div className="phone side right">
+              <div className="phone-screen">
+                <img src="/assets/app-booking.webp" alt="Booking confirmation" loading="lazy" decoding="async" />
+              </div>
             </div>
-          </div>
+          )}
         </div>
       </div>
     </section>

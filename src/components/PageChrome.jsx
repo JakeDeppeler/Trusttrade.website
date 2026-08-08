@@ -292,7 +292,7 @@ export function PageFooter() {
         <div className="footer-top">
           <div className="footer-brand">
             <div className="brand">
-              <img className="brand-mascot" src="/assets/mascot-toolbox.webp" alt="" aria-hidden="true" />
+              <img className="brand-mascot" src="/assets/mascot-toolbox.webp" alt="" aria-hidden="true" loading="lazy" decoding="async" />
               Trust Trade<span className="reg">®</span>
             </div>
             <p>

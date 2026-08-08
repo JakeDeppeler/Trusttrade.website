@@ -87,6 +87,9 @@ export default function ForTradiesPage() {
                 Read the tradie FAQ
               </a>
             </div>
+            <p style={{ marginTop: 16, fontSize: 14 }}>
+              Already listed? <a href="/dashboard" style={{ color: "var(--accent)", fontWeight: 700 }}>Log in to your dashboard →</a>
+            </p>
             <div className="ftr-hero-ticks">
               <span><span className="tk">✓</span> Free to apply</span>
               <span><span className="tk">✓</span> Founding-100 perks</span>

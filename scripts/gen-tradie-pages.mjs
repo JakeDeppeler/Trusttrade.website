@@ -128,6 +128,13 @@ ${STYLE}</head><body>
  <p class="fineprint">Verified, insured and recommended. Message and book through the Trust Trade app.</p>
 </main>
 <footer class="foot"><div class="wrap"><a href="/tradie" class="back">← All tradies</a> · Trust Trade® — Australia's honest trade app</div></footer>
+<script>
+// LIVE: if this tradie has been hidden/denied/removed in admin since the last
+// build, reflect it immediately instead of showing a stale profile.
+(function(){var slug='${l.slug}';
+ fetch('${SB}/rest/v1/listings?select=slug&status=eq.approved&seeded=eq.false&slug=eq.'+encodeURIComponent(slug),{headers:{apikey:'${KEY}',authorization:'Bearer ${KEY}'}})
+ .then(function(r){return r.json();}).then(function(d){if(Array.isArray(d)&&d.length===0){var m=document.querySelector('main.prof');if(m)m.innerHTML='<div class="card" style="text-align:center;margin-top:34px"><h2>Not available</h2><p class="body">This listing isn\\u2019t available right now.</p><a class="big" href="/tradie">Browse verified tradies \\u2192</a></div>';}}).catch(function(){});})();
+</script>
 </body></html>`;
 }
 
@@ -158,9 +165,18 @@ ${STYLE}</head><body>
  <div id="none" class="none" style="display:none">No tradies match — try a different search.</div>
 </main>
 <script>
-function flt(){var q=(document.getElementById('q').value||'').toLowerCase().trim(),t=document.getElementById('tr').value,n=0;
- document.querySelectorAll('.tc').forEach(function(c){var ok=(!q||c.dataset.s.indexOf(q)>=0)&&(!t||c.dataset.trade===t);c.style.display=ok?'':'none';if(ok)n++;});
- document.getElementById('none').style.display=n?'none':'block';}
+var SB='${SB}',KEY='${KEY}';
+var GLYPH='<svg viewBox="0 0 24 24" width="46" height="46" fill="none" stroke="#15110d" stroke-opacity=".22" stroke-width="1.4"><path d="M14.7 6.3a4 4 0 0 0-5.4 5.4l-6 6 2 2 6-6a4 4 0 0 0 5.4-5.4l-2.3 2.3-1.7-.3-.3-1.7 2.3-2.3z"/></svg>';
+function esc(s){return (s==null?'':String(s)).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
+function stars(r){r=Math.round(r||0);return '\\u2605'.repeat(r)+'\\u2606'.repeat(5-r);}
+function tint(t){t=(t||'').toLowerCase();if(t.indexOf('elec')>=0)return '#F7E9C6';if(t.indexOf('plumb')>=0)return '#DCE7FF';if(t.indexOf('hvac')>=0||t.indexOf('air')>=0||t.indexOf('gas')>=0)return '#D9EEDE';if(t.indexOf('carp')>=0||t.indexOf('build')>=0)return '#F0E4D4';if(t.indexOf('paint')>=0)return '#F3DFE6';return '#EDE7DA';}
+function coverOf(l){var a=[];[].concat(l.work_photos||[]).forEach(function(p){var u=typeof p==='string'?p:(p&&p.url);if(u)a.push(u);});[].concat(l.photos||[]).forEach(function(u){if(u)a.push(u);});if(l.img)a.push(l.img);if(l.photo)a.push(l.photo);return a[0]||null;}
+function cover(l){var c=coverOf(l);var inner=c?("background:#e9e9ec url('"+c+"') center/cover"):('background:'+tint(l.trade)+';display:grid;place-items:center');return '<div class="cover" style="'+inner+';height:150px">'+(c?'':GLYPH)+'<span class="verified">\\u2713 Verified</span></div>';}
+function card(l){var rating=(+l.rating)||(+l.google_rating)||0,rc=(+l.review_count)||(+l.google_review_count)||0;var rl=rc?('<span class="rate">'+stars(rating)+'</span> <b>'+rating.toFixed(1)+'</b> <span class="muted">('+rc+')</span>'):'<b>New</b>';var s=((l.name||'')+' '+(l.trade||'')+' '+(l.suburb||'')+' '+(l.postcode||'')).toLowerCase();return '<a class="tc" href="/tradie/'+encodeURIComponent(l.slug)+'" data-s="'+esc(s)+'" data-trade="'+esc((l.trade||'').toLowerCase())+'">'+cover(l)+'<div class="tcb"><div class="tn">'+esc(l.name)+'</div><div class="tt">'+esc(l.trade||'')+(l.suburb?' \\u00b7 '+esc(l.suburb):'')+'</div><div class="tr">'+rl+(l.insured?'<span class="pill sm">Insured</span>':'')+'</div></div></a>';}
+function flt(){var q=(document.getElementById('q').value||'').toLowerCase().trim(),t=document.getElementById('tr').value,n=0;document.querySelectorAll('.tc').forEach(function(c){var ok=(!q||c.dataset.s.indexOf(q)>=0)&&(!t||c.dataset.trade===t);c.style.display=ok?'':'none';if(ok)n++;});document.getElementById('none').style.display=n?'none':'block';}
+// LIVE: re-render the grid from current Supabase data on every load, so admin
+// changes (approve / hide / edit) show immediately without a redeploy.
+(function(){fetch(SB+'/rest/v1/listings?select=slug,name,trade,suburb,postcode,rating,review_count,google_rating,google_review_count,insured,photos,work_photos,img,photo&status=eq.approved&seeded=eq.false&order=rating.desc.nullslast',{headers:{apikey:KEY,authorization:'Bearer '+KEY}}).then(function(r){return r.json();}).then(function(d){if(!Array.isArray(d))return;var g=document.getElementById('g');g.innerHTML=d.filter(function(l){return l.slug;}).map(card).join('');var none=document.getElementById('none');if(!d.length){none.textContent='No tradies listed yet — check back soon.';none.style.display='block';}flt();}).catch(function(){});})();
 </script>
 </body></html>`;
 }
@@ -220,10 +236,60 @@ a{color:inherit;text-decoration:none}
 .foot{border-top:1px solid rgba(21,17,13,.07);margin-top:26px;padding:24px 0;color:#8b7c66;font-size:13px;text-align:center;background:#fff}
 </style>`;
 
+// Dynamic profile: served for any /tradie/<slug> that has no static page yet
+// (e.g. a tradie you just approved in admin). Renders the same design fully
+// client-side from live Supabase data — so new tradies work with no redeploy.
+function dynamicProfile() {
+  return `<!doctype html><html lang="en-AU"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Tradie · Trust Trade</title><meta name="robots" content="index, follow">
+<meta name="theme-color" content="#f2a900"><link rel="icon" type="image/png" sizes="48x48" href="/favicon-48.png">
+${STYLE}</head><body>
+<header class="top"><div class="wrap"><a class="logo" href="/"><span class="m"></span>Trust Trade</a><a class="cta" href="/">Find a tradie</a></div></header>
+<main class="wrap prof" id="root"><div class="card" style="text-align:center;margin-top:34px"><p class="body">Loading…</p></div></main>
+<footer class="foot"><div class="wrap"><a href="/tradie" class="back">← All tradies</a> · Trust Trade®</div></footer>
+<script>
+var SB='${SB}',KEY='${KEY}';
+function esc(s){return (s==null?'':String(s)).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
+function stars(r){r=Math.round(r||0);return '\\u2605'.repeat(r)+'\\u2606'.repeat(5-r);}
+function tint(t){t=(t||'').toLowerCase();if(t.indexOf('elec')>=0)return '#F7E9C6';if(t.indexOf('plumb')>=0)return '#DCE7FF';if(t.indexOf('hvac')>=0||t.indexOf('air')>=0||t.indexOf('gas')>=0)return '#D9EEDE';if(t.indexOf('carp')>=0||t.indexOf('build')>=0)return '#F0E4D4';if(t.indexOf('paint')>=0)return '#F3DFE6';return '#EDE7DA';}
+var GLYPH='<svg viewBox="0 0 24 24" width="46" height="46" fill="none" stroke="#15110d" stroke-opacity=".22" stroke-width="1.4"><path d="M14.7 6.3a4 4 0 0 0-5.4 5.4l-6 6 2 2 6-6a4 4 0 0 0 5.4-5.4l-2.3 2.3-1.7-.3-.3-1.7 2.3-2.3z"/></svg>';
+function photos(l){var a=[];[].concat(l.work_photos||[]).forEach(function(p){var u=typeof p==='string'?p:(p&&p.url);if(u)a.push(u);});[].concat(l.photos||[]).forEach(function(u){if(u)a.push(u);});if(l.img)a.push(l.img);if(l.photo)a.push(l.photo);return a.slice(0,8);}
+function notFound(){document.getElementById('root').innerHTML='<div class="card" style="text-align:center;margin-top:34px"><h2>Not available</h2><p class="body">This listing isn\\u2019t available right now.</p><a class="big" href="/tradie">Browse verified tradies \\u2192</a></div>';}
+var slug=location.pathname.split('/').filter(Boolean).pop();
+fetch(SB+'/rest/v1/listings?select=*&status=eq.approved&seeded=eq.false&slug=eq.'+encodeURIComponent(slug),{headers:{apikey:KEY,authorization:'Bearer '+KEY}})
+.then(function(r){return r.json();}).then(function(d){
+ if(!Array.isArray(d)||!d.length){notFound();return;}
+ var l=d[0];var trade=l.trade||'Tradie',suburb=l.suburb||'';
+ document.title=l.name+' — '+trade+(suburb?' in '+suburb:'')+', VIC | Trust Trade';
+ var rating=(+l.rating)||(+l.google_rating)||0,rc=(+l.review_count)||(+l.google_review_count)||0;
+ var rl=rc?('<span class="rate">'+stars(rating)+'</span> <b>'+rating.toFixed(1)+'</b> <span class="muted">('+rc+' review'+(rc===1?'':'s')+')</span>'):'<b>New</b> <span class="muted">· No reviews yet</span>';
+ var ph=photos(l);var cov=ph[0];
+ var coverInner=cov?("background:#e9e9ec url('"+cov+"') center/cover"):('background:'+tint(trade)+';display:grid;place-items:center');
+ var badges=[];if(l.insured)badges.push('Insured');if(l.qualified)badges.push('Qualified');if(l.licence)badges.push('Licensed');
+ var svc=(l.priced_services||[]).map(function(s){return {name:s.name||s.title||'',detail:s.detail||'',price:(s.price!=null?s.price:(s.amount!=null?s.amount:''))};}).filter(function(s){return s.name;});
+ var html='<div class="phero"><div class="cover" style="'+coverInner+';height:200px">'+(cov?'':GLYPH)+'<span class="verified">\\u2713 Verified</span></div>'
+  +'<div class="pbody"><div class="ptop"><div><h1>'+esc(l.name)+'</h1><div class="sub">'+esc(trade)+(suburb?' \\u00b7 '+esc(suburb)+', VIC':'')+'</div></div><div class="prate">'+rl+'</div></div>'
+  +'<div class="pills">'+badges.map(function(b){return '<span class="pill">'+esc(b)+'</span>';}).join('')+'</div></div></div>';
+ if(l.description)html+='<div class="card"><h2>About</h2><p class="body">'+esc(l.description)+'</p></div>';
+ if(svc.length)html+='<div class="card"><h2>Services &amp; pricing</h2>'+svc.map(function(s){return '<div class="svc"><div><div class="n">'+esc(s.name)+'</div>'+(s.detail?'<div class="d">'+esc(s.detail)+'</div>':'')+'</div><div class="p">'+(s.price!==''&&s.price!=null?(isNaN(+s.price)?esc(s.price):'$'+s.price):'')+'</div></div>';}).join('')+'</div>';
+ if(ph.length)html+='<div class="card"><h2>Recent work</h2><div class="grid">'+ph.map(function(p){return '<img src="'+esc(p)+'" alt="'+esc(l.name)+' work photo" loading="lazy">';}).join('')+'</div></div>';
+ html+='<div class="card"><h2>Get in touch</h2>'+(suburb?'<div class="kv"><span>Area</span><b>'+esc(suburb)+' '+esc(l.postcode||'')+'</b></div>':'')+(l.service_radius_km?'<div class="kv"><span>Service radius</span><b>'+esc(l.service_radius_km)+' km</b></div>':'')+(l.hourly_rate?'<div class="kv"><span>Hourly rate</span><b>$'+esc(l.hourly_rate)+'</b></div>':'')+(l.call_out_fee?'<div class="kv"><span>Call-out fee</span><b>$'+esc(l.call_out_fee)+'</b></div>':'')+'</div>';
+ html+='<a class="big" href="/">Get a quote from '+esc((l.name||'').split(' ')[0]||l.name)+' on Trust Trade \\u2192</a><p class="fineprint">Verified, insured and recommended. Message and book through the Trust Trade app.</p>';
+ document.getElementById('root').innerHTML=html;
+ fetch(SB+'/rest/v1/listing_reviews?select=from_name,rating,review_text&order=created_at.desc&listing_id=eq.'+l.id,{headers:{apikey:KEY,authorization:'Bearer '+KEY}}).then(function(r){return r.json();}).then(function(rv){if(Array.isArray(rv)&&rv.length){var box=document.createElement('div');box.className='card';box.innerHTML='<h2>Reviews</h2>'+rv.slice(0,5).map(function(x){return '<div class="rev"><div class="rh"><b>'+esc(x.from_name||'Customer')+'</b><span class="st">'+stars(x.rating)+'</span></div><p>'+esc(x.review_text||'')+'</p></div>';}).join('');var big=document.querySelector('#root .big');if(big)big.parentNode.insertBefore(box,big);else document.getElementById('root').appendChild(box);}}).catch(function(){});
+}).catch(notFound);
+</script>
+</body></html>`;
+}
+
 (async () => {
   try {
+    // Only genuinely live, REAL tradies: currently approved + not demo/seed data.
+    // Fully controlled by the status field an admin sets (approved/hidden/denied),
+    // so hiding or approving in the admin console changes what's public.
     const listings = (await api(
-      "listings?or=(status.eq.approved,was_approved.eq.true)&select=id,slug,name,trade,suburb,postcode,description,priced_services,photos,work_photos,gallery,img,photo,badges,rating,review_count,google_rating,google_review_count,insured,qualified,licence,phone,email,website,hourly_rate,call_out_fee,service_radius_km,status,was_approved&order=rating.desc.nullslast"
+      "listings?status=eq.approved&seeded=eq.false&select=id,slug,name,trade,suburb,postcode,description,priced_services,photos,work_photos,gallery,img,photo,badges,rating,review_count,google_rating,google_review_count,insured,qualified,licence,phone,email,website,hourly_rate,call_out_fee,service_radius_km&order=rating.desc.nullslast"
     )).filter((l) => l.slug);
 
     let reviewsById = {};
@@ -242,12 +308,13 @@ a{color:inherit;text-decoration:none}
       writeFileSync(join(OUT, l.slug, "index.html"), page(l, reviewsById[l.id]));
     }
     writeFileSync(join(OUT, "index.html"), directory(listings));
+    writeFileSync(join(OUT, "_dynamic.html"), dynamicProfile());
 
     const urls = [`${SITE}/tradie`, ...listings.map((l) => `${SITE}/tradie/${l.slug}`)];
     writeFileSync("public/sitemap-tradies.xml",
       `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls.map((u) => `  <url><loc>${u}</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>`).join("\n")}\n</urlset>\n`);
 
-    console.log(`[tradie-pages] generated ${listings.length} profiles (app filter: approved OR was_approved) + directory + sitemap`);
+    console.log(`[tradie-pages] generated ${listings.length} profiles (filter: status=approved AND not seeded) + directory + _dynamic + sitemap`);
   } catch (e) {
     console.warn("[tradie-pages] SKIPPED (non-fatal):", e.message);
   }

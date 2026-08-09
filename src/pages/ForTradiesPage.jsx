@@ -32,7 +32,7 @@ const TRADIE_FAQ_GROUPS = [
   {
     name: "About the business",
     items: [
-      { q: "Who's behind Trust Trade?", a: "Jake, a tradie's son, ex-software, running Trust Trade solo for now. ABN 40 873 784 535, registered in Victoria, no outside investment yet (and I like it that way for now)." },
+      { q: "Who's behind Trust Trade?", a: "Jake, a plumber who built Trust Trade himself and runs it solo for now. ABN 40 873 784 535, registered in Victoria, no outside investment yet (and I like it that way for now)." },
       { q: "Are you regulated by anyone?", a: "Trust Trade itself is a platform, not a trade. The tradies we list are regulated by their state authority (VBA, ESV, etc.) and we verify against those regulators. Consumer Affairs Victoria oversees us as an Australian Consumer Law-bound business like any other marketplace." },
       { q: "Can I invest / partner / sell into Trust Trade?", a: "We're not raising at the moment. For partnerships, insurance, regulator integrations, trade associations, email jake@trusttrade.au with a one-pager." },
       { q: "Is the name actually trademarked?", a: "Yep, Trust Trade® is a registered Australian trademark in classes 9, 35 and 42 (software, marketplace services, app development). Use of the mark for anything else needs our written nod." },
@@ -304,9 +304,9 @@ export default function ForTradiesPage() {
             <div className="col-label">A note from us</div>
             <div>
               <blockquote>
-                "I'm a tradie's son. The lead-gen rort cost my old man four years of work he should
-                have been billing.
-                <span className="accent"> Trust Trade is the platform he should've had.</span>"
+                "I'm a plumber. The lead-gen rort bled me dry chasing jobs that never landed, so I
+                built it myself.
+                <span className="accent"> Trust Trade is the platform I wish I'd had.</span>"
               </blockquote>
               <div className="quote-attr">
                 <div className="avatar">J</div>

@@ -136,6 +136,29 @@ html[data-theme="dark"] .pill.n{background:#26272E;color:var(--ink2)}
 html[data-theme="dark"] .err{background:var(--redb);color:#FF9B93}
 html[data-theme="dark"] .btn.w:hover{background:#25262D}
 html[data-theme="dark"] .tabs div.on{color:var(--ink)}
+/* ===== design refresh (v1) — cohesive polish across every admin page ===== */
+:root{--line:#E9EAEE;--line2:#F2F3F5;--r:16px;--sh:0 1px 2px rgba(20,22,30,.05),0 10px 26px -14px rgba(20,22,30,.14)}
+main{padding:30px 38px 76px}
+h2{font-size:24px;letter-spacing:-.035em}
+.subt{font-size:13px;margin:6px 0 22px}
+.card{border-radius:var(--r);box-shadow:var(--sh)}
+.ch{padding:16px 20px;font-weight:700;font-size:14.5px}
+th{padding:12px 20px}
+td{padding:14px 20px;font-size:13.5px}
+tbody tr{transition:background .12s}
+tbody tr:hover td{background:var(--line2)}
+.kpi{border-radius:var(--r);padding:18px;transition:transform .12s,box-shadow .12s}
+.kpi:hover{transform:translateY(-1px);box-shadow:0 2px 6px rgba(20,22,30,.07),0 22px 46px -20px rgba(20,22,30,.26)}
+html[data-theme="dark"] .kpi:hover{box-shadow:0 2px 6px rgba(0,0,0,.5),0 22px 46px -18px rgba(0,0,0,.55)}
+.kpi b{font-size:30px}
+.kpis{gap:14px;margin-bottom:20px}
+.btn{height:34px;border-radius:10px;font-size:12.5px;padding:0 14px}
+.pill{padding:4px 10px;font-weight:700}
+.seg{border-radius:11px}
+.modal{border-radius:18px}
+.nv{border-radius:10px;font-size:14px}
+.nv.on{position:relative}
+.nv.on::before{content:"";position:absolute;left:-10px;top:7px;bottom:7px;width:3px;border-radius:0 4px 4px 0;background:var(--gold)}
 </style></head><body>
 
 <!-- STEP 1: PASSWORD -->

@@ -70,7 +70,7 @@ function Hero({ onJoin }) {
               <div className="phone">
                 <div className="phone-screen">
                   <img
-                    src="/assets/app-home.webp"
+                    src="/assets/app-home.webp?v=2"
                     alt="Trust Trade app home screen"
                     width={1284}
                     height={2778}
@@ -129,7 +129,7 @@ const HOMEPAGE_STORIES = [
     eyebrow: "Verified profile",
     headline: "See who you're actually hiring.",
     body: "Every tradie's licence is checked at the state regulator before they're listed. What you see is the receipt.",
-    screenshot: "/assets/app-profile.webp",
+    screenshot: "/assets/app-profile.webp?v=2",
     alt: "A verified tradie's public profile in the Trust Trade app",
     overlayCards: [
       {
@@ -144,7 +144,7 @@ const HOMEPAGE_STORIES = [
     eyebrow: "Fixed quote",
     headline: "The price is the price.",
     body: "Call-out fees are quoted in writing, in the chat, before anyone rolls. You approve or you don't.",
-    screenshot: "/assets/app-quote.webp",
+    screenshot: "/assets/app-quote.webp?v=2",
     alt: "A chat thread with a fixed call-out fee approved in writing",
     overlayCards: [
       {
@@ -160,7 +160,7 @@ const HOMEPAGE_STORIES = [
     eyebrow: "One inbox",
     headline: "Every job in one place.",
     body: "New enquiries, quoted work, and completed jobs live in a single inbox. Emergencies pin to the top.",
-    screenshot: "/assets/app-inbox.webp",
+    screenshot: "/assets/app-inbox.webp?v=2",
     alt: "The tradie inbox in the Trust Trade app",
     overlayCards: [
       {
@@ -175,7 +175,7 @@ const HOMEPAGE_STORIES = [
     eyebrow: "Real numbers",
     headline: "Numbers behind your listing.",
     body: "Profile views, enquiries, first-reply time, plus a health score that tells you what to fix next.",
-    screenshot: "/assets/app-insights.webp",
+    screenshot: "/assets/app-insights.webp?v=2",
     alt: "The tradie insights dashboard",
     overlayCards: [
       {
@@ -320,7 +320,7 @@ function ForTradiesSection({ onJoin }) {
             <div className="phone">
               <div className="phone-screen">
                 <img
-                  src="/assets/app-inbox.webp"
+                  src="/assets/app-inbox.webp?v=2"
                   alt="Tradie inbox: every job in one place"
                   loading="lazy"
                   decoding="async"
@@ -693,7 +693,7 @@ function BevelHero() {
           {showSides && (
             <div className="phone side left">
               <div className="phone-screen">
-                <img src="/assets/app-browse.webp" alt="Browse verified tradies" loading="lazy" decoding="async" />
+                <img src="/assets/app-browse.webp?v=2" alt="Browse verified tradies" loading="lazy" decoding="async" />
               </div>
             </div>
           )}
@@ -701,7 +701,7 @@ function BevelHero() {
             <div className="phone-screen">
               {/* the LCP element on mobile — load it first */}
               <img
-                src="/assets/app-home.webp"
+                src="/assets/app-home.webp?v=2"
                 alt="Trust Trade app home screen"
                 width={1284}
                 height={2778}
@@ -713,7 +713,7 @@ function BevelHero() {
           {showSides && (
             <div className="phone side right">
               <div className="phone-screen">
-                <img src="/assets/app-booking.webp" alt="Booking confirmation" loading="lazy" decoding="async" />
+                <img src="/assets/app-booking.webp?v=2" alt="Booking confirmation" loading="lazy" decoding="async" />
               </div>
             </div>
           )}
@@ -773,19 +773,19 @@ function HowItWorksSteps() {
             <div className="step-num">01</div>
             <h3 className="h-3">Tell us what's gone wrong.</h3>
             <p>Leaking tap. Tripping fuse. Planning a reno. Plain English, our AI works out which trade you actually need.</p>
-            <div className="step-visual"><img src="/assets/app-askai.webp" alt="Ask AI screen" /></div>
+            <div className="step-visual"><img src="/assets/app-askai.webp?v=2" alt="Ask AI screen" /></div>
           </div>
           <div className="step">
             <div className="step-num">02</div>
             <h3 className="h-3">We route to vetted locals.</h3>
             <p>Insured, licenced, reviewed. Nearest first. No marketplace mosh-pit, just a shortlist of mates who can do the job.</p>
-            <div className="step-visual"><img src="/assets/app-browse.webp" alt="Browse tradies screen" /></div>
+            <div className="step-visual"><img src="/assets/app-browse.webp?v=2" alt="Browse tradies screen" /></div>
           </div>
           <div className="step">
             <div className="step-num">03</div>
             <h3 className="h-3">Approve the price. Book it in.</h3>
             <p>Fixed call-out fee, in writing, up front. Tap Approve and you've got a booking confirmation, name, time, address, all logged.</p>
-            <div className="step-visual"><img src="/assets/app-booking.webp" alt="Booking confirmation screen" /></div>
+            <div className="step-visual"><img src="/assets/app-booking.webp?v=2" alt="Booking confirmation screen" /></div>
           </div>
         </div>
       </div>
@@ -951,7 +951,7 @@ function ForTradiesSplit() {
             </div>
             <div className="phone">
               <div className="phone-screen">
-                <img src="/assets/app-jobs.webp" alt="My Jobs screen" />
+                <img src="/assets/app-jobs.webp?v=2" alt="My Jobs screen" />
               </div>
             </div>
             <div className="floater bottom-left">
@@ -986,7 +986,7 @@ function Showcase() {
           {loop.map((src, i) => (
             <div className="phone sm" key={i}>
               <div className="phone-screen">
-                <img src={`/assets/${src}.webp`} alt="Trust Trade app screen" loading="lazy" />
+                <img src={`/assets/${src}.webp?v=2`} alt="Trust Trade app screen" loading="lazy" />
               </div>
             </div>
           ))}
@@ -1172,7 +1172,7 @@ function FeatureBreakdowns() {
           title="Describe it in plain English."
           body="Leaking tap, tripping fuse, planning a reno, say it how you'd say it to a mate. Our assistant works out which trade you actually need and points you at the verified pros nearby."
           points={["No guessing which trade to call", "Understands emergencies vs routine jobs", "Suggests the right local, first time"]}
-          img="/assets/app-askai.webp"
+          img="/assets/app-askai.webp?v=2"
           cards={
             <div className="fcard pos-tr">
               <div className="ai-line">
@@ -1191,7 +1191,7 @@ function FeatureBreakdowns() {
           title="Every tradie checked before they're listed."
           body="Licence numbers verified with the regulator. Public liability and workers' comp on file. Reviews only from real, confirmed jobs, never rideshare-style spam."
           points={["Licence + insurance confirmed", "Nearest-first, so help's close by", "Real reviews from booked jobs only"]}
-          img="/assets/app-browse.webp"
+          img="/assets/app-browse.webp?v=2"
           cards={
             <>
               <div className="fcard amber pos-tl">
@@ -1212,7 +1212,7 @@ function FeatureBreakdowns() {
           title="Call-out fees in writing. Approved up front."
           body="The tradie quotes the job before they roll. You see the fee and ETA, tap Approve, and it's locked in. No surprise invoices, no cash-job awkwardness."
           points={["Price agreed before anyone turns up", "One-tap approve, in the app", "GST-clear and on the record"]}
-          img="/assets/app-booking.webp"
+          img="/assets/app-booking.webp?v=2"
           cards={
             <>
               <div className="fcard pos-tl">
@@ -1234,7 +1234,7 @@ function FeatureBreakdowns() {
           title="One thread per job. Nothing lost."
           body="Every enquiry gets its own conversation, quote, ETA, photos, booking receipt, all in one place. No more scrolling texts trying to find which Sarah had the laundry tap."
           points={["Quote, chat and receipt in one thread", "Share photos of the problem", "Both sides keep the full record"]}
-          img="/assets/app-messages.webp"
+          img="/assets/app-messages.webp?v=2"
           cards={
             <div className="fcard pos-tr">
               <div className="fc-eyebrow">On the way</div>
@@ -1290,7 +1290,7 @@ function ForTradiesBand() {
             <div className="glow" />
             <div className="phone">
               <div className="phone-screen">
-                <img src="/assets/app-jobs.webp" alt="Tradie jobs screen" loading="lazy" />
+                <img src="/assets/app-jobs.webp?v=2" alt="Tradie jobs screen" loading="lazy" />
               </div>
             </div>
             <div className="fcard pos-tr">

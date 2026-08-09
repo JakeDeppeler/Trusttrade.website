@@ -103,7 +103,7 @@ The homeowner flow</div>
             title="Plain English."
             italic="We work out the trade."
             body="Type it, say it, or snap a photo. Our AI reads 'hot water's gone cold and hissing' and works out you need a gas hot-water specialist, then confirms with you before routing anywhere."
-            img="/assets/app-askai.webp"
+            img="/assets/app-askai.webp?v=2"
             facts={[
               "Type, dictate or upload a photo of the problem",
               "Add urgency, emergency, this week, or scoping a reno",
@@ -122,7 +122,7 @@ The homeowner flow</div>
             title="A shortlist,"
             italic="not a mosh-pit."
             body="Insured, licenced, reviewed, nearest first, but sort by rating, ETA or price. No marketplace free-for-all. Just a handful of locals who can actually do the job today."
-            img="/assets/app-browse.webp"
+            img="/assets/app-browse.webp?v=2"
             facts={[
               "Every tradie licence-verified with the state regulator",
               "Reviews come from confirmed bookings, not internet drive-bys",
@@ -140,7 +140,7 @@ The homeowner flow</div>
             title="One tap."
             italic="Booked."
             body="The tradie sends a fixed call-out fee, in writing, up front. Tap Approve and you've got a confirmed booking with a name, an ETA and a paper trail. Reschedule free up to an hour before."
-            img="/assets/app-booking.webp"
+            img="/assets/app-booking.webp?v=2"
             facts={[
               "Call-out fee locked before they roll out",
               "Any work beyond the call-out is re-quoted before it starts",
@@ -264,7 +264,7 @@ The tradie side</div>
             title="One brief."
             italic="60 seconds to claim."
             body="Routed by postcode and trade, never blasted to a hundred addresses. They see your brief, quote one call-out fee, and once you approve, the job's in their diary with an ETA ticking to your phone."
-            img="/assets/app-jobs.webp"
+            img="/assets/app-jobs.webp?v=2"
             facts={[
               "Job title, trade, suburb, urgency, photos, one clean ticket",
               "They quote one call-out fee. No tendering, no haggling",

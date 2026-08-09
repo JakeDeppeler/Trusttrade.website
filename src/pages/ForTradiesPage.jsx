@@ -200,7 +200,7 @@ export default function ForTradiesPage() {
             title="The whole day"
             italic="in one screen."
             body="New enquiries, quoted work, booked jobs and finished receipts, all in one list. Emergencies pin themselves to the top. No scrolling six apps to find which Sarah had the laundry tap."
-            img="/assets/app-jobs.webp"
+            img="/assets/trade-jobs.webp"
             facts={[
               "Routed by trade + postcode, never blasted to a mailing list",
               "Emergencies auto-pin to the top of your day",
@@ -219,7 +219,7 @@ export default function ForTradiesPage() {
             title="One number."
             italic="They approve."
             body="Send your call-out fee, your standard rate or a job-specific one. The customer approves it on their phone before you roll. No tendering, no haggling, no undercutting. If they ghost the quote, it auto-releases."
-            img="/assets/app-booking.webp"
+            img="/assets/trade-price.webp"
             facts={[
               "Your default rate is saved, override it per job in a tap",
               "Ghosted quotes auto-release in 30 min. No wasted morning",
@@ -237,7 +237,7 @@ export default function ForTradiesPage() {
             title="No more"
             italic="phone tag."
             body="Every job gets its own conversation, the brief, the photos, the location, the chat. ETA pings send as you drive. Mark it complete and a receipt emails both sides instantly. The paper trail writes itself."
-            img="/assets/app-messages.webp"
+            img="/assets/trade-messages.webp"
             facts={[
               "In-app chat scoped to THIS job, no Facebook DM archaeology",
               "ETA pings to the customer as you drive",
@@ -256,7 +256,7 @@ export default function ForTradiesPage() {
             title="On your"
             italic="terms."
             body="Set your radius, your hours, your availability. On-call, business-hours, weekends-only, after-hours premium, flick it in the app and we route around it. Taking a few weeks off? Switch to Unavailable. No lock-in, no penalty."
-            img="/assets/app-account.webp"
+            img="/assets/trade-settings.webp"
             facts={[
               "Radius: 5km, 25km, whole metro, we won't send what you can't reach",
               "Hours + availability toggle per day, per week",

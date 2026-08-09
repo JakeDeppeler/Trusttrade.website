@@ -30,13 +30,14 @@ body{font-family:var(--f);background:var(--bg);color:var(--ink);-webkit-font-smo
 .secret{font-family:ui-monospace,monospace;font-size:12px;background:#F0F1F3;border-radius:8px;padding:8px 10px;word-break:break-all;color:var(--ink2);text-align:center}
 .badge2fa{display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:700;color:var(--green);background:var(--greenb);padding:5px 10px;border-radius:99px;margin-top:10px}
 .app{display:none;min-height:100vh}.app.on{display:flex}
-.side{width:220px;flex-shrink:0;background:var(--panel);border-right:1px solid var(--line);padding:16px 12px;display:flex;flex-direction:column;position:sticky;top:0;height:100vh;overflow-y:auto}
+.side{width:212px;flex-shrink:0;background:var(--panel);border-right:1px solid var(--line);padding:14px 10px;display:flex;flex-direction:column;position:sticky;top:0;height:100vh;overflow-y:auto}
 .brand{display:flex;align-items:center;gap:10px;padding:4px 8px 14px}
 .brand .lg{width:30px;height:30px;border-radius:8px;background:linear-gradient(135deg,#FFCB63,#F2A222);display:grid;place-items:center;color:#231700}
 .brand b{font-size:14px;font-weight:700;display:block;line-height:1}
 .live{font-size:9px;font-weight:800;letter-spacing:.06em;color:var(--green);display:flex;align-items:center;gap:4px}
 .live:before{content:"";width:6px;height:6px;border-radius:50%;background:var(--green);box-shadow:0 0 0 3px rgba(31,164,99,.2)}
-.nv{display:flex;align-items:center;gap:10px;padding:10px 13px;border-radius:10px;color:var(--ink2);cursor:pointer;font-weight:550;font-size:15px;margin-bottom:2px}
+.nv{display:flex;align-items:center;gap:10px;padding:8px 12px;border-radius:9px;color:var(--ink2);cursor:pointer;font-weight:550;font-size:14px;margin-bottom:1px}
+.nv .ct:empty{display:none}
 .dinp{padding:8px 10px;border:1px solid var(--line);border-radius:9px;background:#fff;color:var(--ink);font-family:inherit;font-size:13px}
 html[data-theme="dark"] .dinp{background:#1D1E24;color:var(--ink)}
 html[data-theme="dark"] .dinp::-webkit-calendar-picker-indicator{filter:invert(1) opacity(.7)}
@@ -92,7 +93,7 @@ tr:last-child td{border-bottom:0}
 .modal input,.modal select{width:100%;margin-top:5px;padding:9px 11px;border:1px solid var(--line);border-radius:9px;font-family:inherit;font-size:13.5px;background:#fff;color:var(--ink)}
 .modal label{display:block}
 .modal .mf{display:flex;gap:8px;justify-content:flex-end;margin-top:16px}
-.slbl{font-size:9.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--mut);padding:14px 11px 5px}
+.slbl{font-size:9.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--mut);padding:12px 12px 4px}
 .tabs{display:flex;gap:2px;border-bottom:1px solid var(--line);margin:2px 0 16px;overflow-x:auto}
 .tabs div{padding:11px 14px;font-size:13px;font-weight:600;color:var(--mut);cursor:pointer;border-bottom:2px solid transparent;white-space:nowrap}
 .tabs div.on{color:var(--ink);border-bottom-color:var(--gold)}
@@ -183,14 +184,15 @@ html[data-theme="dark"] .tabs div.on{color:var(--ink)}
   <div class="slbl">Overview</div>
   <div class="nv on" data-p="dash" onclick="go('dash')">Dashboard</div>
   <div class="slbl">Queues</div>
-  <div class="nv" data-p="apps" onclick="go('apps')">Applications<span class="ct" id="c-ap">–</span></div>
-  <div class="nv" data-p="reports" onclick="go('reports')">Reports<span class="ct" id="c-rp">–</span></div>
-  <div class="nv" data-p="flags" onclick="go('flags')">Flags<span class="ct" id="c-fl">–</span></div>
+  <div class="nv" data-p="apps" onclick="go('apps')">Applications<span class="ct" id="c-ap"></span></div>
+  <div class="nv" data-p="reports" onclick="go('reports')">Reports<span class="ct" id="c-rp"></span></div>
+  <div class="nv" data-p="flags" onclick="go('flags')">Flags<span class="ct" id="c-fl"></span></div>
+  <div class="nv" data-p="moderation" onclick="go('moderation')">Moderation</div>
   <div class="slbl">People</div>
-  <div class="nv" data-p="tradies" onclick="go('tradies')">Tradies<span class="ct" id="c-tr">–</span></div>
-  <div class="nv" data-p="cust" onclick="go('cust')">Customers<span class="ct" id="c-cu">–</span></div>
+  <div class="nv" data-p="tradies" onclick="go('tradies')">Tradies<span class="ct" id="c-tr"></span></div>
+  <div class="nv" data-p="cust" onclick="go('cust')">Customers<span class="ct" id="c-cu"></span></div>
   <div class="slbl">Activity</div>
-  <div class="nv" data-p="enq" onclick="go('enq')">Enquiries<span class="ct" id="c-en">–</span></div>
+  <div class="nv" data-p="enq" onclick="go('enq')">Enquiries<span class="ct" id="c-en"></span></div>
   <div class="nv" data-p="jobs" onclick="go('jobs')">Jobs</div>
   <div class="nv" data-p="reviews" onclick="go('reviews')">Reviews</div>
   <div class="slbl">Control</div>
@@ -202,7 +204,6 @@ html[data-theme="dark"] .tabs div.on{color:var(--ink)}
   <div class="slbl">System</div>
   <div class="nv" data-p="settings" onclick="go('settings')">Settings</div>
   <div class="nv" data-p="security" onclick="go('security')">Security · 2FA</div>
-  <div class="nv" data-p="moderation" onclick="go('moderation')">Moderation</div>
   <div class="nv" data-p="health" onclick="go('health')">System health</div>
   <div class="nv" data-p="audit" onclick="go('audit')">Audit log</div>
   <div class="me"><b id="whoami">—</b><span class="badge2fa">🔒 2FA active</span><br><a class="themebtn" onclick="toggleTheme()" style="margin:6px 12px 0 0;display:inline-block" id="themeLbl">Dark mode</a><a onclick="signout()" style="margin-top:6px;display:inline-block">Sign out</a></div>
@@ -380,11 +381,11 @@ async function loadCounts(){
   sb.from('profiles').select('*',{count:'exact',head:true}).eq('role','customer'),
   sb.from('content_reports').select('*',{count:'exact',head:true}).eq('status','open'),
   sb.from('listings').select('*',{count:'exact',head:true}).is('deleted_at',null).lt('insurance_expiry_date',cutoff)]);
- $('c-tr').textContent=tr.count??'–';$('c-cu').textContent=cu.count??'–';$('c-en').textContent=en.count??'–';
+ $('c-tr').textContent=tr.count??'';$('c-cu').textContent=cu.count??'';$('c-en').textContent=en.count??'';
  // badges that mean "needs you" turn red when > 0
  setBadge('c-ap',ap.count);setBadge('c-rp',rp.count);setBadge('c-fl',fl.count);
 }
-function setBadge(id,n){const el=$(id);if(!el)return;el.textContent=n??'–';const hot=(n||0)>0;el.style.background=hot?'rgba(224,74,58,.14)':'';el.style.color=hot?'#E04A3A':'';el.style.fontWeight=hot?'800':'';}
+function setBadge(id,n){const el=$(id);if(!el)return;const hot=(n||0)>0;el.textContent=hot?n:'';el.style.background=hot?'rgba(224,74,58,.14)':'';el.style.color=hot?'#E04A3A':'';el.style.fontWeight=hot?'800':'';}
 
 function spark(vals,color){if(!vals||!vals.length)return '';const mn=Math.min(...vals),mx=Math.max(...vals),rng=(mx-mn)||1,n=vals.length;const pts=vals.map((v,i)=>`${(i/(n-1||1)*100).toFixed(1)},${(29-((v-mn)/rng)*26-1).toFixed(1)}`).join(' ');return `<svg class="spark" viewBox="0 0 100 30" preserveAspectRatio="none"><polyline points="${pts}" fill="none" stroke="${color}" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>`;}
 function lineChart(vals,labels){const w=620,h=210,pad=26,mx=Math.max(...vals,1),n=vals.length;const X=i=>pad+i/(n-1||1)*(w-pad*2),Y=v=>h-pad-(v/mx)*(h-pad*2);const line=vals.map((v,i)=>`${X(i).toFixed(1)},${Y(v).toFixed(1)}`).join(' ');const area=`${pad},${h-pad} ${line} ${(w-pad)},${h-pad}`;

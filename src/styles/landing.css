@@ -571,8 +571,9 @@ button {
 .phone {
   position: relative;
   width: min(320px, 86vw);
-  /* Match shipped iPhone 13 Pro Max screenshot exactly: 1284 × 2778 */
-  aspect-ratio: 1284 / 2778;
+  /* Match the current app screenshots exactly (1320 × 2868) so they fill the
+     frame with no letterboxing or crop. */
+  aspect-ratio: 1320 / 2868;
   border-radius: 52px;
   padding: 11px;
   background: linear-gradient(160deg, #1b1410, #050402 60%, #1b1410);

@@ -314,7 +314,7 @@ fetch(SB+'/rest/v1/listings?select=*&status=eq.approved&deleted_at=is.null&slug=
     writeFileSync("public/sitemap-tradies.xml",
       `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls.map((u) => `  <url><loc>${u}</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>`).join("\n")}\n</urlset>\n`);
 
-    console.log(`[tradie-pages] generated ${listings.length} profiles (filter: status=approved AND not seeded) + directory + _dynamic + sitemap`);
+    console.log(`[tradie-pages] generated ${listings.length} profiles (filter: status=approved AND not deleted) + directory + _dynamic + sitemap`);
   } catch (e) {
     console.warn("[tradie-pages] SKIPPED (non-fatal):", e.message);
   }

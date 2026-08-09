@@ -445,7 +445,7 @@ async function saveCap(id){const v=parseInt(val('capv'),10);if(isNaN(v)||v<0){to
 async function loadCounts(){
  const cutoff=new Date(Date.now()+45*864e5).toISOString().slice(0,10);
  const [tr,ap,en,cu,rp,fl]=await Promise.all([
-  sb.from('listings').select('*',{count:'exact',head:true}),
+  sb.from('listings').select('*',{count:'exact',head:true}).is('deleted_at',null),
   sb.from('applications').select('*',{count:'exact',head:true}).eq('status','submitted'),
   sb.from('enquiries').select('*',{count:'exact',head:true}),
   sb.from('profiles').select('*',{count:'exact',head:true}).eq('role','customer'),

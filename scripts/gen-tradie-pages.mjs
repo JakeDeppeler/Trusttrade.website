@@ -132,7 +132,7 @@ ${STYLE}</head><body>
 // LIVE: if this tradie has been hidden/denied/removed in admin since the last
 // build, reflect it immediately instead of showing a stale profile.
 (function(){var slug='${l.slug}';
- fetch('${SB}/rest/v1/listings?select=slug&status=eq.approved&seeded=eq.false&slug=eq.'+encodeURIComponent(slug),{headers:{apikey:'${KEY}',authorization:'Bearer ${KEY}'}})
+ fetch('${SB}/rest/v1/listings?select=slug&status=eq.approved&seeded=eq.false&deleted_at=is.null&slug=eq.'+encodeURIComponent(slug),{headers:{apikey:'${KEY}',authorization:'Bearer ${KEY}'}})
  .then(function(r){return r.json();}).then(function(d){if(Array.isArray(d)&&d.length===0){var m=document.querySelector('main.prof');if(m)m.innerHTML='<div class="card" style="text-align:center;margin-top:34px"><h2>Not available</h2><p class="body">This listing isn\\u2019t available right now.</p><a class="big" href="/tradie">Browse verified tradies \\u2192</a></div>';}}).catch(function(){});})();
 </script>
 </body></html>`;
@@ -176,7 +176,7 @@ function card(l){var rating=(+l.rating)||(+l.google_rating)||0,rc=(+l.review_cou
 function flt(){var q=(document.getElementById('q').value||'').toLowerCase().trim(),t=document.getElementById('tr').value,n=0;document.querySelectorAll('.tc').forEach(function(c){var ok=(!q||c.dataset.s.indexOf(q)>=0)&&(!t||c.dataset.trade===t);c.style.display=ok?'':'none';if(ok)n++;});document.getElementById('none').style.display=n?'none':'block';}
 // LIVE: re-render the grid from current Supabase data on every load, so admin
 // changes (approve / hide / edit) show immediately without a redeploy.
-(function(){fetch(SB+'/rest/v1/listings?select=slug,name,trade,suburb,postcode,rating,review_count,google_rating,google_review_count,insured,photos,work_photos,img,photo&status=eq.approved&seeded=eq.false&order=rating.desc.nullslast',{headers:{apikey:KEY,authorization:'Bearer '+KEY}}).then(function(r){return r.json();}).then(function(d){if(!Array.isArray(d))return;var g=document.getElementById('g');g.innerHTML=d.filter(function(l){return l.slug;}).map(card).join('');var none=document.getElementById('none');if(!d.length){none.textContent='No tradies listed yet — check back soon.';none.style.display='block';}flt();}).catch(function(){});})();
+(function(){fetch(SB+'/rest/v1/listings?select=slug,name,trade,suburb,postcode,rating,review_count,google_rating,google_review_count,insured,photos,work_photos,img,photo&status=eq.approved&seeded=eq.false&deleted_at=is.null&order=rating.desc.nullslast',{headers:{apikey:KEY,authorization:'Bearer '+KEY}}).then(function(r){return r.json();}).then(function(d){if(!Array.isArray(d))return;var g=document.getElementById('g');g.innerHTML=d.filter(function(l){return l.slug;}).map(card).join('');var none=document.getElementById('none');if(!d.length){none.textContent='No tradies listed yet — check back soon.';none.style.display='block';}flt();}).catch(function(){});})();
 </script>
 </body></html>`;
 }
@@ -257,7 +257,7 @@ var GLYPH='<svg viewBox="0 0 24 24" width="46" height="46" fill="none" stroke="#
 function photos(l){var a=[];[].concat(l.work_photos||[]).forEach(function(p){var u=typeof p==='string'?p:(p&&p.url);if(u)a.push(u);});[].concat(l.photos||[]).forEach(function(u){if(u)a.push(u);});if(l.img)a.push(l.img);if(l.photo)a.push(l.photo);return a.slice(0,8);}
 function notFound(){document.getElementById('root').innerHTML='<div class="card" style="text-align:center;margin-top:34px"><h2>Not available</h2><p class="body">This listing isn\\u2019t available right now.</p><a class="big" href="/tradie">Browse verified tradies \\u2192</a></div>';}
 var slug=location.pathname.split('/').filter(Boolean).pop();
-fetch(SB+'/rest/v1/listings?select=*&status=eq.approved&seeded=eq.false&slug=eq.'+encodeURIComponent(slug),{headers:{apikey:KEY,authorization:'Bearer '+KEY}})
+fetch(SB+'/rest/v1/listings?select=*&status=eq.approved&seeded=eq.false&deleted_at=is.null&slug=eq.'+encodeURIComponent(slug),{headers:{apikey:KEY,authorization:'Bearer '+KEY}})
 .then(function(r){return r.json();}).then(function(d){
  if(!Array.isArray(d)||!d.length){notFound();return;}
  var l=d[0];var trade=l.trade||'Tradie',suburb=l.suburb||'';
@@ -289,7 +289,7 @@ fetch(SB+'/rest/v1/listings?select=*&status=eq.approved&seeded=eq.false&slug=eq.
     // Fully controlled by the status field an admin sets (approved/hidden/denied),
     // so hiding or approving in the admin console changes what's public.
     const listings = (await api(
-      "listings?status=eq.approved&seeded=eq.false&select=id,slug,name,trade,suburb,postcode,description,priced_services,photos,work_photos,gallery,img,photo,badges,rating,review_count,google_rating,google_review_count,insured,qualified,licence,phone,email,website,hourly_rate,call_out_fee,service_radius_km&order=rating.desc.nullslast"
+      "listings?status=eq.approved&seeded=eq.false&deleted_at=is.null&select=id,slug,name,trade,suburb,postcode,description,priced_services,photos,work_photos,gallery,img,photo,badges,rating,review_count,google_rating,google_review_count,insured,qualified,licence,phone,email,website,hourly_rate,call_out_fee,service_radius_km&order=rating.desc.nullslast"
     )).filter((l) => l.slug);
 
     let reviewsById = {};

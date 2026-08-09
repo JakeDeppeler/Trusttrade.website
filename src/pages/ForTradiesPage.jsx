@@ -197,8 +197,8 @@ export default function ForTradiesPage() {
           <DevRow
             idx="01"
             kicker="Every job, one inbox"
-            title="The whole day"
-            italic="in one screen."
+            title="Every job,"
+            italic="in one place."
             body="New enquiries, quoted work, booked jobs and finished receipts, all in one list. Emergencies pin themselves to the top. No scrolling six apps to find which Sarah had the laundry tap."
             img="/assets/trade-jobs.webp"
             facts={[

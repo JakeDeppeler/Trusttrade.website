@@ -159,6 +159,19 @@ html[data-theme="dark"] .kpi:hover{box-shadow:0 2px 6px rgba(0,0,0,.5),0 22px 46
 .nv{border-radius:10px;font-size:14px}
 .nv.on{position:relative}
 .nv.on::before{content:"";position:absolute;left:-10px;top:7px;bottom:7px;width:3px;border-radius:0 4px 4px 0;background:var(--gold)}
+/* ===== design refresh (v2) — forms, modals, states, buttons ===== */
+.modal input,.modal select,.modal textarea,.fbar select,.sfield input{border-radius:10px}
+.modal input:focus,.modal select:focus,.modal textarea:focus,.fbar select:focus{outline:none;border-color:var(--gold);box-shadow:0 0 0 3px var(--goldb)}
+.modal{border-radius:18px;box-shadow:0 24px 70px -20px rgba(20,22,30,.42)}
+.modal h3{font-size:18px;letter-spacing:-.02em}
+.btn{transition:filter .12s,background .12s,box-shadow .12s}
+.btn:hover{filter:brightness(.96)}
+.empty{text-align:center;padding:34px 20px;color:var(--mut);font-size:13.5px}
+.fbar select,.sfield input{height:38px}
+.seg{border-radius:11px}
+.ch{letter-spacing:-.01em}
+th{letter-spacing:.07em}
+.kpi .k{letter-spacing:.05em}
 </style></head><body>
 
 <!-- STEP 1: PASSWORD -->

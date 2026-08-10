@@ -35,6 +35,19 @@ function tradeCat(trade) {
   const s = slugify(trade) || "tradies";
   return { slug: s, plural: (trade || "Tradies"), singular: (trade || "tradie").toLowerCase() };
 }
+// Canonical trades the platform supports — one hub page each (indexed once it
+// has ≥1 verified tradie; a browsable "onboarding" page, noindexed, until then).
+const ALL_TRADES = [
+  { slug: "plumbers", plural: "Plumbers", singular: "plumber" },
+  { slug: "gas-fitters", plural: "Gas fitters", singular: "gas fitter" },
+  { slug: "electricians", plural: "Electricians", singular: "electrician" },
+  { slug: "hvac", plural: "HVAC & air-con technicians", singular: "HVAC technician" },
+  { slug: "carpenters", plural: "Carpenters", singular: "carpenter" },
+  { slug: "roofers", plural: "Roofers", singular: "roofer" },
+  { slug: "painters", plural: "Painters", singular: "painter" },
+  { slug: "tilers", plural: "Tilers", singular: "tiler" },
+  { slug: "handyman-services", plural: "Handyman services", singular: "handyman" },
+];
 // Great-circle distance in km between two lat/lng points.
 function haversine(a, b, c, d) {
   if ([a, b, c, d].some((v) => v == null || isNaN(+v))) return null;
@@ -171,7 +184,7 @@ ${STYLE}</head><body>
 </body></html>`;
 }
 
-function directory(listings, areaLinks) {
+function directory(listings, hubLinks, areaLinks) {
   const cards = listings.map((l) => {
     const { rating, rc } = ratingBits(l);
     const rl = rc ? `<span class="rate">${stars(rating)}</span> <b>${(rating || 0).toFixed(1)}</b> <span class="muted">(${rc})</span>` : `<b>New</b>`;
@@ -193,6 +206,7 @@ function directory(listings, areaLinks) {
 ${STYLE}</head><body>
 <header class="top"><div class="wrap"><a class="logo" href="/"><span class="m"></span>Trust Trade</a><a href="/" class="back">Home</a></div></header>
 <main class="wrap"><h1 class="dh">Find a verified tradie</h1><div class="dsub">Every tradie is ABN-checked, licence-verified and insured.</div>
+ ${hubLinks && hubLinks.length ? `<div class="links" style="margin:6px 0 18px"><h3>Browse by trade</h3><div class="lg">${hubLinks.map((a) => `<a href="${a.url}">${H(a.label)}</a>`).join("")}</div></div>` : ""}
  <div class="filters"><input id="q" placeholder="Search name, trade or suburb…" oninput="flt()"><select id="tr" onchange="flt()"><option value="">All trades</option>${trades.map((t) => `<option value="${H(t.toLowerCase())}">${H(t)}</option>`).join("")}</select></div>
  <div class="g" id="g">${cards}</div>
  <div id="none" class="none" style="display:none">No tradies match — try a different search.</div>
@@ -282,6 +296,77 @@ function cover(l){var c=coverOf(l);var inner=c?("background:#e9e9ec url('"+c+"')
 function card(l){var rating=(+l.rating)||(+l.google_rating)||0,rc=(+l.review_count)||(+l.google_review_count)||0;var rl=rc?('<span class="rate">'+stars(rating)+'</span> <b>'+rating.toFixed(1)+'</b> <span class="muted">('+rc+')</span>'):'<b>New</b>';return '<a class="tc" href="/tradie/'+encodeURIComponent(l.slug)+'">'+cover(l)+'<div class="tcb"><div class="tn">'+esc(l.name)+'</div><div class="tt">'+esc(l.trade||'')+(l.suburb?' \\u00b7 '+esc(l.suburb):'')+'</div><div class="tr">'+rl+(l.insured?'<span class="pill sm">Insured</span>':'')+'</div></div></a>';}
 // LIVE: re-render from current data so approvals/edits/new tradies show with no redeploy.
 (function(){fetch(SB+'/rest/v1/listings?select=slug,name,trade,suburb,postcode,rating,review_count,google_rating,google_review_count,insured,photos,work_photos,img,photo,lat,lng,service_radius_km&status=eq.approved&deleted_at=is.null&order=rating.desc.nullslast',{headers:{apikey:KEY,authorization:'Bearer '+KEY}}).then(function(r){return r.json();}).then(function(d){if(!Array.isArray(d))return;var list=d.filter(function(l){return l.slug&&catOf(l.trade)===CATSLUG&&serves(l);});var g=document.getElementById('g'),none=document.getElementById('none');g.innerHTML=list.map(card).join('');none.style.display=list.length?'none':'block';}).catch(function(){});})();
+</script>
+</body></html>`;
+}
+
+// Trade hub page — /find/<trade> — lists every verified tradie of that trade
+// across all areas. Indexed when it has ≥1; a browsable, noindexed "onboarding"
+// page until then (so users see the trade, but Google isn't fed an empty page).
+function tradeHubPage(cat, tradies, areaSuburbs) {
+  const url = `${SITE}/find/${cat.slug}`;
+  const has = tradies.length > 0;
+  const title = has
+    ? `Verified ${cat.plural} in Victoria — Insured & Licence-Checked | Trust Trade`
+    : `${cat.plural} — Verified & Insured | Trust Trade`;
+  const desc = has
+    ? `Find a verified ${cat.singular} on Trust Trade. Every ${cat.singular} is licence-checked, ABN-verified and $5M insured. Browse ${tradies.length} across Victoria, see reviews and get a quote.`
+    : `Trust Trade is onboarding verified, insured ${cat.plural.toLowerCase()} across Australia. Every one licence-checked and ABN-verified. Get the app to be first in line.`;
+  const cards = tradies.map(areaCard).join("");
+  const suburbLinks = areaSuburbs.map((s) => `<a href="/find/${cat.slug}-in-${slugify(s.suburb)}">${H(cat.plural)} in ${H(s.suburb)}</a>`).join("");
+  const ld = {
+    "@context": "https://schema.org",
+    "@graph": [
+      { "@type": "CollectionPage", "@id": url + "#page", url, name: title, description: desc,
+        about: { "@type": "Service", serviceType: cat.plural, areaServed: { "@type": "State", name: "Victoria, Australia" }, provider: { "@id": "https://trusttrade.au/#org" } } },
+      { "@type": "BreadcrumbList", itemListElement: [
+        { "@type": "ListItem", position: 1, name: "Home", item: SITE + "/" },
+        { "@type": "ListItem", position: 2, name: "Find a tradie", item: SITE + "/tradie" },
+        { "@type": "ListItem", position: 3, name: cat.plural, item: url } ] },
+      ...(has ? [{ "@type": "ItemList", itemListElement: tradies.map((l, i) => ({ "@type": "ListItem", position: i + 1, url: `${SITE}/tradie/${l.slug}`, name: l.name })) }] : []),
+    ],
+  };
+  const body = has
+    ? `<h1 class="dh">${H(cat.plural)} on Trust Trade</h1>
+ <div class="dsub">Verified, insured and licence-checked ${H(cat.plural.toLowerCase())} across Victoria. Pick one, message them, and book — no lead auctions, no spam.</div>
+ <div class="trust"><span>✓ Licence verified</span><span>✓ $5M insured</span><span>✓ ABN checked</span><span>✓ Real reviews</span></div>
+ <div class="g" id="g">${cards}</div>
+ <div id="none" class="none" style="display:none">No ${H(cat.plural.toLowerCase())} listed yet — <a href="/tradie">browse all verified tradies</a>.</div>
+ ${suburbLinks ? `<div class="links"><h3>${H(cat.plural)} by suburb</h3><div class="lg">${suburbLinks}</div></div>` : ""}
+ <div class="card"><h2>Why book a ${H(cat.singular)} through Trust Trade</h2><p class="body">Every ${H(cat.singular)} is hand-checked before they appear: a current licence for the work they do, $5M public-liability insurance sighted, ABN verified against the Australian Business Register, and photo ID confirmed. You message and book the one you choose — no auctions, no five callbacks.</p></div>
+ <a class="big" href="/">Find your ${H(cat.singular)} on Trust Trade →</a>`
+    : `<h1 class="dh">${H(cat.plural)}</h1>
+ <div class="dsub">We're onboarding verified, insured ${H(cat.plural.toLowerCase())} right now. Every one is licence-checked and ABN-verified before they can appear.</div>
+ <div class="trust"><span>✓ Licence verified</span><span>✓ $5M insured</span><span>✓ ABN checked</span><span>✓ Real reviews</span></div>
+ <div class="g" id="g"></div>
+ <div class="card"><h2>Be first when a ${H(cat.singular)} joins</h2><p class="body">Trust Trade only lists a handful of tradies per area, then it locks. Get the app and we'll notify you the moment a verified ${H(cat.singular)} covers your suburb.</p><a class="big" href="/">Get the Trust Trade app →</a></div>
+ <div class="card"><h2>Are you a ${H(cat.singular)}?</h2><p class="body">List your business free while we grow — a few spots per suburb, then it locks. Verified tradies get real jobs, not lead-auction spam.</p><a class="big" href="/for-tradies">List your business →</a></div>`;
+
+  return `<!doctype html><html lang="en-AU"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>${H(title)}</title><meta name="description" content="${H(desc)}">
+<link rel="canonical" href="${url}"><meta name="robots" content="${has ? "index, follow, max-image-preview:large" : "noindex, follow"}">
+<meta name="theme-color" content="#f2a900"><link rel="icon" href="/favicon.ico" sizes="any"><link rel="icon" type="image/png" sizes="48x48" href="/favicon-48.png"><link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<meta property="og:type" content="website"><meta property="og:title" content="${H(cat.plural + " — Trust Trade")}"><meta property="og:description" content="${H(desc)}"><meta property="og:url" content="${url}"><meta property="og:image" content="${SITE}/og-image.png"><meta property="og:site_name" content="Trust Trade"><meta property="og:locale" content="en_AU">
+<script type="application/ld+json">${JSON.stringify(ld)}</script>
+${STYLE}</head><body>
+<header class="top"><div class="wrap"><a class="logo" href="/"><span class="m"></span>Trust Trade</a><a class="cta" href="/">Find a tradie</a></div></header>
+<main class="wrap">
+ <nav class="crumbs"><a href="/">Home</a> › <a href="/tradie">Find a tradie</a> › <span>${H(cat.plural)}</span></nav>
+ ${body}
+</main>
+<footer class="foot"><div class="wrap"><a href="/tradie" class="back">← All verified tradies</a> · Trust Trade® — Australia's honest trade app</div></footer>
+<script>
+var SB='${SB}',KEY='${KEY}',CATSLUG=${JSON.stringify(cat.slug)};
+var GLYPH='<svg viewBox="0 0 24 24" width="46" height="46" fill="none" stroke="#15110d" stroke-opacity=".22" stroke-width="1.4"><path d="M14.7 6.3a4 4 0 0 0-5.4 5.4l-6 6 2 2 6-6a4 4 0 0 0 5.4-5.4l-2.3 2.3-1.7-.3-.3-1.7 2.3-2.3z"/></svg>';
+function esc(s){return (s==null?'':String(s)).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
+function stars(r){r=Math.round(r||0);return '\\u2605'.repeat(r)+'\\u2606'.repeat(5-r);}
+function tint(t){t=(t||'').toLowerCase();if(t.indexOf('elec')>=0)return '#F7E9C6';if(t.indexOf('plumb')>=0)return '#DCE7FF';if(t.indexOf('hvac')>=0||t.indexOf('air')>=0||t.indexOf('gas')>=0)return '#D9EEDE';if(t.indexOf('carp')>=0||t.indexOf('build')>=0)return '#F0E4D4';if(t.indexOf('paint')>=0)return '#F3DFE6';return '#EDE7DA';}
+function catOf(t){t=(t||'').toLowerCase();if(t.indexOf('plumb')>=0)return 'plumbers';if(t.indexOf('elec')>=0)return 'electricians';if(t.indexOf('gas')>=0)return 'gas-fitters';if(t.indexOf('hvac')>=0||t.indexOf('air')>=0||t.indexOf('heat')>=0||t.indexOf('cool')>=0)return 'hvac';if(t.indexOf('carp')>=0||t.indexOf('build')>=0)return 'carpenters';if(t.indexOf('roof')>=0)return 'roofers';if(t.indexOf('paint')>=0)return 'painters';if(t.indexOf('tile')>=0)return 'tilers';if(t.indexOf('handy')>=0)return 'handyman-services';return (t||'').replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'')+'s';}
+function coverOf(l){var a=[];[].concat(l.work_photos||[]).forEach(function(p){var u=typeof p==='string'?p:(p&&p.url);if(u)a.push(u);});[].concat(l.photos||[]).forEach(function(u){if(u)a.push(u);});if(l.img)a.push(l.img);if(l.photo)a.push(l.photo);return a[0]||null;}
+function cover(l){var c=coverOf(l);var inner=c?("background:#e9e9ec url('"+c+"') center/cover"):('background:'+tint(l.trade)+';display:grid;place-items:center');return '<div class="cover" style="'+inner+';height:150px">'+(c?'':GLYPH)+'<span class="verified">\\u2713 Verified</span></div>';}
+function card(l){var rating=(+l.rating)||(+l.google_rating)||0,rc=(+l.review_count)||(+l.google_review_count)||0;var rl=rc?('<span class="rate">'+stars(rating)+'</span> <b>'+rating.toFixed(1)+'</b> <span class="muted">('+rc+')</span>'):'<b>New</b>';return '<a class="tc" href="/tradie/'+encodeURIComponent(l.slug)+'">'+cover(l)+'<div class="tcb"><div class="tn">'+esc(l.name)+'</div><div class="tt">'+esc(l.trade||'')+(l.suburb?' \\u00b7 '+esc(l.suburb):'')+'</div><div class="tr">'+rl+(l.insured?'<span class="pill sm">Insured</span>':'')+'</div></div></a>';}
+(function(){fetch(SB+'/rest/v1/listings?select=slug,name,trade,suburb,postcode,rating,review_count,google_rating,google_review_count,insured,photos,work_photos,img,photo&status=eq.approved&deleted_at=is.null&order=rating.desc.nullslast',{headers:{apikey:KEY,authorization:'Bearer '+KEY}}).then(function(r){return r.json();}).then(function(d){if(!Array.isArray(d))return;var list=d.filter(function(l){return l.slug&&catOf(l.trade)===CATSLUG;});var g=document.getElementById('g');if(g)g.innerHTML=list.map(card).join('');var none=document.getElementById('none');if(none)none.style.display=list.length?'none':'block';}).catch(function(){});})();
 </script>
 </body></html>`;
 }
@@ -452,7 +537,10 @@ fetch(SB+'/rest/v1/listings?select=*&status=eq.approved&deleted_at=is.null&slug=
       }
     }
 
-    writeFileSync(join(OUT, "index.html"), directory(listings, areaLinks));
+    // Every supported trade gets a browsable hub link (even ones with no tradie yet).
+    const hubLinks = ALL_TRADES.map((t) => ({ url: `/find/${t.slug}`, label: t.plural }));
+
+    writeFileSync(join(OUT, "index.html"), directory(listings, hubLinks, areaLinks));
     writeFileSync(join(OUT, "_dynamic.html"), dynamicProfile());
 
     const areaOut = "public/find";
@@ -468,11 +556,22 @@ fetch(SB+'/rest/v1/listings?select=*&status=eq.approved&deleted_at=is.null&slug=
       areaUrls.push(`${SITE}/find/${c.slug}-in-${slugify(loc.suburb)}`);
     }
 
-    const urls = [`${SITE}/tradie`, ...listings.map((l) => `${SITE}/tradie/${l.slug}`), ...areaUrls];
+    // Trade hub pages: /find/<trade> — indexed only when it has ≥1 verified tradie.
+    const hubUrls = [];
+    let hubIndexed = 0;
+    for (const t of ALL_TRADES) {
+      const mine = listings.filter((l) => tradeCat(l.trade).slug === t.slug);
+      const dir = join(areaOut, t.slug);
+      mkdirSync(dir, { recursive: true });
+      writeFileSync(join(dir, "index.html"), tradeHubPage(t, mine, coveredByCat[t.slug] || []));
+      if (mine.length) { hubUrls.push(`${SITE}/find/${t.slug}`); hubIndexed++; }
+    }
+
+    const urls = [`${SITE}/tradie`, ...listings.map((l) => `${SITE}/tradie/${l.slug}`), ...hubUrls, ...areaUrls];
     writeFileSync("public/sitemap-tradies.xml",
       `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls.map((u) => `  <url><loc>${u}</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>`).join("\n")}\n</urlset>\n`);
 
-    console.log(`[tradie-pages] generated ${listings.length} profiles + ${areaUrls.length} area pages + directory + _dynamic + sitemap`);
+    console.log(`[tradie-pages] generated ${listings.length} profiles + ${ALL_TRADES.length} trade hubs (${hubIndexed} indexed) + ${areaUrls.length} area pages + directory + _dynamic + sitemap`);
   } catch (e) {
     console.warn("[tradie-pages] SKIPPED (non-fatal):", e.message);
   }

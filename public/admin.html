@@ -136,76 +136,61 @@ html[data-theme="dark"] .pill.n{background:#26272E;color:var(--ink2)}
 html[data-theme="dark"] .err{background:var(--redb);color:#FF9B93}
 html[data-theme="dark"] .btn.w:hover{background:#25262D}
 html[data-theme="dark"] .tabs div.on{color:var(--ink)}
-/* ===== design refresh (v1) — cohesive polish across every admin page ===== */
-:root{--line:#E9EAEE;--line2:#F2F3F5;--r:16px;--sh:0 1px 2px rgba(20,22,30,.05),0 10px 26px -14px rgba(20,22,30,.14)}
-main{padding:30px 38px 76px}
-h2{font-size:24px;letter-spacing:-.035em}
-.subt{font-size:13px;margin:6px 0 22px}
-.card{border-radius:var(--r);box-shadow:var(--sh)}
-.ch{padding:16px 20px;font-weight:700;font-size:14.5px}
-th{padding:12px 20px}
+/* ===== Consolidated design layer — one clean, consistent scale =====
+   Replaces the old stacked v1–v4 refresh layers (which redefined the same
+   values 3–4× and drifted). Single source of truth for spacing/type/radius. */
+:root{
+  --line:#E9EAEE;--line2:#F2F3F5;
+  --r-sm:10px;--r:14px;--r-lg:18px;
+  --sh:0 1px 2px rgba(20,22,30,.05),0 8px 22px -14px rgba(20,22,30,.14);
+  --f:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+}
+body{font-size:14.5px;letter-spacing:-.008em}
+main{padding:28px 34px 72px;background:radial-gradient(150% 90% at 100% -10%,rgba(242,162,34,.045),transparent 45%)}
+h2{font-size:23px;font-weight:800;letter-spacing:-.03em}
+.subt{font-size:13.5px;margin:6px 0 22px}
+
+/* sidebar */
+.side{padding:16px 12px}
+.side .brand b{font-size:15px}
+.nv{border-radius:var(--r-sm);font-size:14.5px;padding:9px 12px;position:relative;margin-bottom:2px}
+.nv.on{font-weight:800;background:var(--goldb)}
+.nv.on::before{content:"";position:absolute;left:-12px;top:7px;bottom:7px;width:3px;border-radius:0 3px 3px 0;background:var(--gold)}
+
+/* KPIs — one size, one rhythm */
+.kpis{gap:14px;margin-bottom:22px}
+.kpi{border-radius:var(--r);padding:18px 20px;transition:transform .12s,box-shadow .12s}
+.kpi:hover{transform:translateY(-1px);box-shadow:0 2px 6px rgba(20,22,30,.07),0 22px 46px -22px rgba(20,22,30,.24)}
+.kpi .k{font-size:10.5px;font-weight:800;letter-spacing:.05em}
+.kpi b{font-size:29px;font-weight:800;letter-spacing:-.035em;margin-top:9px}
+
+/* cards + tables */
+.card,.bulkbar{border-radius:var(--r)}
+.ch{padding:15px 20px;font-weight:750;font-size:14.5px;letter-spacing:-.01em}
+th{padding:12px 20px;letter-spacing:.06em;font-size:10.5px}
 td{padding:14px 20px;font-size:13.5px}
 tbody tr{transition:background .12s}
 tbody tr:hover td{background:var(--line2)}
-.kpi{border-radius:var(--r);padding:18px;transition:transform .12s,box-shadow .12s}
-.kpi:hover{transform:translateY(-1px);box-shadow:0 2px 6px rgba(20,22,30,.07),0 22px 46px -20px rgba(20,22,30,.26)}
-html[data-theme="dark"] .kpi:hover{box-shadow:0 2px 6px rgba(0,0,0,.5),0 22px 46px -18px rgba(0,0,0,.55)}
-.kpi b{font-size:30px}
-.kpis{gap:14px;margin-bottom:20px}
-.btn{height:34px;border-radius:10px;font-size:12.5px;padding:0 14px}
+
+/* controls */
+.btn{height:34px;border-radius:var(--r-sm);font-size:12.5px;padding:0 14px;transition:filter .12s}
+.btn:hover{filter:brightness(.96)}
 .pill{padding:4px 10px;font-weight:700}
 .seg{border-radius:11px}
-.modal{border-radius:18px}
-.nv{border-radius:10px;font-size:14px}
-.nv.on{position:relative}
-.nv.on::before{content:"";position:absolute;left:-10px;top:7px;bottom:7px;width:3px;border-radius:0 4px 4px 0;background:var(--gold)}
-/* ===== design refresh (v2) — forms, modals, states, buttons ===== */
-.modal input,.modal select,.modal textarea,.fbar select,.sfield input{border-radius:10px}
-.modal input:focus,.modal select:focus,.modal textarea:focus,.fbar select:focus{outline:none;border-color:var(--gold);box-shadow:0 0 0 3px var(--goldb)}
-.modal{border-radius:18px;box-shadow:0 24px 70px -20px rgba(20,22,30,.42)}
+.modal{border-radius:var(--r-lg);box-shadow:0 24px 70px -20px rgba(20,22,30,.42)}
 .modal h3{font-size:18px;letter-spacing:-.02em}
-.btn{transition:filter .12s,background .12s,box-shadow .12s}
-.btn:hover{filter:brightness(.96)}
-.empty{text-align:center;padding:34px 20px;color:var(--mut);font-size:13.5px}
+.modal input,.modal select,.modal textarea,.fbar select,.sfield input{border-radius:var(--r-sm)}
+.modal input:focus,.modal select:focus,.modal textarea:focus,.fbar select:focus,.sfield input:focus{outline:none;border-color:var(--gold);box-shadow:0 0 0 3px var(--goldb)}
 .fbar select,.sfield input{height:38px}
-.seg{border-radius:11px}
-.ch{letter-spacing:-.01em}
-th{letter-spacing:.07em}
-.kpi .k{letter-spacing:.05em}
-/* ===== design refresh (v3) — bolder, more visible ===== */
-h2{font-size:27px;font-weight:800}
-.card,.kpi,.bulkbar{border-radius:18px}
-.kpi{padding:20px}
-.kpi .k{font-size:11px;font-weight:800}
-.kpi b{font-size:34px;font-weight:800;margin-top:10px}
-.ch{font-size:15px;font-weight:750;padding:17px 22px}
-td{padding:15px 22px}th{padding:13px 22px}
-.nv{padding:9px 12px}
-.nv.on{font-weight:800;background:var(--goldb)}
-.nv.on::before{width:4px;left:-10px;top:6px;bottom:6px}
-/* cards visibly lift off the background, esp. in dark mode */
+.sfield input{font-size:14px;border-radius:11px}
+.empty{text-align:center;padding:34px 20px;color:var(--mut);font-size:13.5px}
+
+/* cards lift off the background (esp. dark) */
 .card,.kpi{border:1px solid var(--line)}
 html[data-theme="dark"] .card,html[data-theme="dark"] .kpi,html[data-theme="dark"] .bulkbar{background:#1B1C23;border-color:#2C2E37}
 html[data-theme="dark"] .side{background:#131419}
 html[data-theme="dark"] main{background:radial-gradient(150% 90% at 100% -10%,rgba(242,162,34,.06),transparent 45%)}
-html[data-theme="light"] main,:root main{background:radial-gradient(150% 90% at 100% -10%,rgba(242,162,34,.05),transparent 45%)}
-.side .brand b{font-size:16px}
-/* ===== v4 — app-like typography & spacing (native SF font, roomier) ===== */
-:root{--f:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Roboto,Helvetica,Arial,sans-serif}
-body{font-size:15px;letter-spacing:-.01em}
-h2{font-size:28px;letter-spacing:-.03em}
-.subt{font-size:14px;margin:6px 0 22px}
-.card,.kpi{border-radius:20px}
-.ch{font-size:15.5px;font-weight:750;padding:18px 22px}
-td{padding:16px 22px;font-size:14.5px}
-th{padding:14px 22px;font-size:10.5px}
-.kpi{padding:22px}
-.kpi b{font-size:36px}
-.nv{font-size:15px;padding:10px 12px}
-main{padding:32px 42px 84px}
-.btn{height:36px;border-radius:11px;font-size:13px}
-.pill{font-size:11.5px;padding:5px 11px}
-.sfield input{height:44px;font-size:15px;border-radius:13px}
+html[data-theme="dark"] .kpi:hover{box-shadow:0 2px 6px rgba(0,0,0,.5),0 22px 46px -18px rgba(0,0,0,.55)}
 </style></head><body>
 
 <!-- STEP 1: PASSWORD -->

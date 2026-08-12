@@ -490,8 +490,55 @@ async function pBilling(){loading('Billing');try{
   <div class="card"><div style="padding:16px 18px" class="mut">Homeowners pay you directly for the work. TrustTrade never touches your job money.</div></div>`;
 }catch(e){$('main').innerHTML='<h1>Billing</h1>'+errBox(e);}}
 
+// ===== Admin preview mode =====
+// An admin can open /dashboard?preview=<listing_id> to see any tradie's dashboard
+// exactly as they'd see it — READ-ONLY. Reads run under the admin's session (admin
+// RLS allows reading listings/enquiries/quotes/bookings/invoices/reviews/gallery);
+// every write is neutered so a preview can never mutate the tradie's data.
+let PREVIEW=false;
+async function isAdmin(){
+ try{ const {data:{user}}=await sb.auth.getUser(); if(!user) return false;
+  const {data}=await sb.from('profiles').select('role').eq('id',user.id).maybeSingle();
+  return !!(data&&data.role==='admin'); }catch(e){ return false; }
+}
+// A chainable no-op: any method returns another no-op; awaiting resolves to {data:null,error:null}.
+function roNoop(){ const p=Promise.resolve({data:null,error:null});
+ const h={get:(_t,k)=> k==='then'?p.then.bind(p): k==='catch'?p.catch.bind(p): k==='finally'?p.finally.bind(p): ()=>new Proxy({},h)};
+ return new Proxy({},h); }
+function installReadOnly(){
+ const from0=sb.from.bind(sb);
+ sb.from=(t)=>{ const q=from0(t); ['insert','update','upsert','delete'].forEach(m=>{ q[m]=()=>roNoop(); }); return q; };
+ const store0=sb.storage.from.bind(sb.storage);
+ sb.storage.from=(b)=>{ const s=store0(b); s.upload=()=>Promise.resolve({data:null,error:{message:'Preview is read-only'}}); s.remove=()=>Promise.resolve({data:null,error:null}); return s; };
+ sb.rpc=()=>Promise.resolve({data:null,error:null});
+ if(sb.functions) sb.functions.invoke=()=>Promise.resolve({data:null,error:null});
+}
+function showPreviewBanner(name){
+ if(document.getElementById('pvBanner')) return;
+ const b=document.createElement('div'); b.id='pvBanner';
+ b.style.cssText='position:sticky;top:0;z-index:50;display:flex;align-items:center;gap:10px;padding:9px 16px;background:#14161B;color:#fff;font-size:13px;font-weight:600';
+ b.innerHTML='<span style="background:#F2A222;color:#231700;font-size:10px;font-weight:800;letter-spacing:.05em;padding:3px 8px;border-radius:99px">PREVIEW</span><span>Viewing <b>'+esc(name||'this tradie')+'</b>’s dashboard — read-only.</span><a onclick="location.replace(\'/admin\')" style="margin-left:auto;color:#F5BE68;cursor:pointer;font-weight:700">Back to admin</a>';
+ const app=document.getElementById('app'); if(app) app.insertBefore(b, app.firstChild);
+}
+async function enterPreview(listingId){
+ PREVIEW=true; installReadOnly();
+ const {data:list}=await sb.from('listings').select('*').eq('id',listingId).limit(1);
+ $('gate').style.display='none'; $('app').classList.add('on');
+ if(!list||!list.length){ $('main').innerHTML='<h1>Preview</h1><div class="card"><div class="empty">Listing not found, or not readable.</div></div>'; return; }
+ LST=list[0]; ME={id:LST.auth_user_id, email:LST.email||''};
+ $('w-name').textContent=LST.name||'Business';
+ $('w-sub').textContent=(LST.trade||'')+(LST.suburb?' · '+LST.suburb:'');
+ const we=$('w-email'); if(we) we.textContent=(LST.email||'')+' · preview';
+ // 2FA/billing are the admin's own, not the tradie's — hide them in a preview.
+ document.querySelectorAll('.nv[data-p="security"],.nv[data-p="billing"]').forEach(n=>n.style.display='none');
+ showPreviewBanner(LST.name);
+ try{loadCounts();}catch(e){}
+ go('home');
+}
 // boot: resume session if present
 (async()=>{const {data}=await sb.auth.getSession();if(data&&data.session){
+  const pv=new URLSearchParams(location.search).get('preview');
+  if(pv && await isAdmin()){ enterPreview(pv); return; }
   if(await adminRedirect()) return;
   if(await mfaRequired()){ $('gate').style.display=''; $('app').classList.remove('on'); showMfaChallenge(); return; }
   route();

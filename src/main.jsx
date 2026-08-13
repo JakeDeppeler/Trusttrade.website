@@ -1,4 +1,4 @@
-import React, { Suspense, lazy } from "react";
+import React, { Suspense, lazy, useRef } from "react";
 import ReactDOM from "react-dom/client";
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
 import { ScrollToTop } from "./components/PageChrome.jsx";
@@ -27,10 +27,17 @@ document.body.classList.add("theme-cream");
 
 // Fade each page in on navigation so route changes flow more smoothly.
 // Keyed by pathname so the animation replays on every route change.
+// IMPORTANT: the fade animates from opacity:0, which makes the hero (the LCP
+// element) invisible for ~1s on the very first paint — Lighthouse then can't
+// register any Largest Contentful Paint (NO_LCP). So skip the fade on the
+// initial load; only run it on subsequent client-side route changes.
 function AnimatedRoutes() {
   const location = useLocation();
+  const firstRef = useRef(true);
+  const cls = firstRef.current ? undefined : "page-fade";
+  firstRef.current = false;
   return (
-    <div className="page-fade" key={location.pathname}>
+    <div className={cls} key={location.pathname}>
       <Suspense fallback={null}>
       <Routes location={location}>
         <Route path="/" element={<LandingPage />} />

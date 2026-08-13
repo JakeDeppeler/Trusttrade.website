@@ -693,7 +693,7 @@ function BevelHero() {
           {showSides && (
             <div className="phone side left">
               <div className="phone-screen">
-                <img src="/assets/app-browse.webp?v=2" alt="Browse verified tradies" loading="lazy" decoding="async" />
+                <img src="/assets/app-browse.webp?v=2" alt="Browse verified tradies" width={640} height={1391} loading="eager" decoding="async" />
               </div>
             </div>
           )}
@@ -713,7 +713,7 @@ function BevelHero() {
           {showSides && (
             <div className="phone side right">
               <div className="phone-screen">
-                <img src="/assets/app-booking.webp?v=2" alt="Booking confirmation" loading="lazy" decoding="async" />
+                <img src="/assets/app-booking.webp?v=2" alt="Booking confirmation" width={640} height={1391} loading="eager" decoding="async" />
               </div>
             </div>
           )}

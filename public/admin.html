@@ -235,6 +235,14 @@ html[data-theme="dark"] .kpi:hover{box-shadow:0 2px 6px rgba(0,0,0,.5),0 22px 46
 .trust .trow .tic svg{width:16px;height:16px;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
 .trust .trow b{font-size:13.5px;font-weight:650;flex:1}
 .trust .trow .tn{font-weight:800;font-size:15px}.trust .trow .tar{color:var(--mut);opacity:.6}
+.sysgrid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
+@media(max-width:720px){.sysgrid{grid-template-columns:1fr}}
+.syscard{display:flex;align-items:center;gap:14px;padding:16px 16px;background:var(--panel);border:1px solid var(--line);border-radius:14px;box-shadow:var(--sh);cursor:pointer;transition:transform .12s ease,box-shadow .12s ease,border-color .12s ease}
+.syscard:hover{transform:translateY(-2px);box-shadow:0 8px 22px rgba(0,0,0,.06);border-color:var(--line2)}
+.syscard-t{flex:1;display:flex;flex-direction:column;gap:2px;min-width:0}
+.syscard-t b{font-size:14.5px;font-weight:700}
+.syscard-t span{font-size:12.5px;color:var(--mut);line-height:1.4}
+.syscard-ch{width:18px;height:18px;fill:none;stroke:var(--mut);stroke-width:2;stroke-linecap:round;stroke-linejoin:round;opacity:.5;flex-shrink:0}
 .dashhead{display:flex;align-items:flex-start;gap:12px;margin-bottom:4px}
 .dashhead .ha{margin-left:auto;display:flex;gap:9px}
 </style></head><body>
@@ -283,8 +291,8 @@ html[data-theme="dark"] .kpi:hover{box-shadow:0 2px 6px rgba(0,0,0,.5),0 22px 46
    <div><b>TrustTrade</b><span class="sub">Management</span></div></div>
   <div class="nv" onclick="gsearch()" style="margin-top:4px">🔍 Search<span class="ct" style="background:transparent;color:var(--mut)">⌘K</span></div>
   <div class="nv on" data-p="dash" onclick="go('dash')">Dashboard</div>
-  <div class="navsec" data-sec="queues"><div class="slbl" onclick="toggleSec(this)">Queues<svg class="chev" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg></div><div class="navgroup">
-   <div class="nv" data-p="apps" onclick="go('apps')">Applications<span class="ct" id="c-ap"></span></div>
+  <div class="nv" data-p="apps" onclick="go('apps')">Applications<span class="ct" id="c-ap"></span></div>
+  <div class="navsec" data-sec="trust"><div class="slbl" onclick="toggleSec(this)">Trust &amp; safety<svg class="chev" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg></div><div class="navgroup">
    <div class="nv" data-p="reports" onclick="go('reports')">Reports<span class="ct" id="c-rp"></span></div>
    <div class="nv" data-p="flags" onclick="go('flags')">Flags<span class="ct" id="c-fl"></span></div>
    <div class="nv" data-p="moderation" onclick="go('moderation')">Moderation</div>
@@ -306,6 +314,7 @@ html[data-theme="dark"] .kpi:hover{box-shadow:0 2px 6px rgba(0,0,0,.5),0 22px 46
    <div class="nv" data-p="policies" onclick="go('policies')">Policies</div>
   </div></div>
   <div class="navsec" data-sec="system"><div class="slbl" onclick="toggleSec(this)">System<svg class="chev" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg></div><div class="navgroup">
+   <div class="nv" data-p="system" onclick="go('system')">System</div>
    <div class="nv" data-p="settings" onclick="go('settings')">Settings</div>
    <div class="nv" data-p="security" onclick="go('security')">Security · 2FA</div>
    <div class="nv" data-p="health" onclick="go('health')">System health</div>
@@ -479,7 +488,7 @@ function toggleSec(el){const s=el.closest('.navsec');if(!s)return;s.classList.to
 function restoreNav(){try{const c=JSON.parse(localStorage.getItem('adminNav')||'[]');document.querySelectorAll('.navsec').forEach(s=>s.classList.toggle('collapsed',c.includes(s.dataset.sec)));}catch(e){}}
 function go(p){PAGE=p;SEL.clear();if(window.HEALTH_TIMER){clearInterval(window.HEALTH_TIMER);window.HEALTH_TIMER=null;}document.querySelectorAll('.nv').forEach(n=>n.classList.toggle('on',n.dataset.p===p));
  {const on=document.querySelector('.nv.on');const sec=on&&on.closest('.navsec');if(sec)sec.classList.remove('collapsed');}
- ({dash:pDash,tradies:pTradies,apps:pApps,enq:pEnq,jobs:pJobs,reviews:pReviews,reports:pReports,flags:pFlags,cust:pCust,money:pMoney,waitlist:pWaitlist,notifs:pNotifs,map:pMap,policies:pPolicies,settings:pSettings,security:pSecurity,moderation:pModeration,health:pHealth,audit:pAudit}[p])();}
+ ({dash:pDash,tradies:pTradies,apps:pApps,enq:pEnq,jobs:pJobs,reviews:pReviews,reports:pReports,flags:pFlags,cust:pCust,money:pMoney,waitlist:pWaitlist,notifs:pNotifs,map:pMap,policies:pPolicies,settings:pSettings,security:pSecurity,moderation:pModeration,health:pHealth,audit:pAudit,system:pSystem}[p])();}
 /* ── multi-select / bulk actions ── */
 let SEL=new Set();
 function selRow(cb){if(cb.checked)SEL.add(cb.value);else SEL.delete(cb.value);updateBulk();}
@@ -1035,6 +1044,38 @@ async function delBannedId(id){ask('Remove this banned identifier?','It will no 
 /* ===== SYSTEM HEALTH (live status tracker) ===== */
 const HEALTH_AREAS=[['Profiles / accounts','profiles'],['Tradie listings','listings'],['Enquiries','enquiries'],['Chat messages','enquiries'],['Jobs / bookings','bookings'],['Reviews','listing_reviews'],['Quotes & invoices','invoices'],['Subscriptions / billing','subscriptions'],['Notifications','notifications'],['Reports / moderation','content_reports'],['Error log','error_logs'],['Stripe webhooks','stripe_events']];
 async function probe(table){const t0=performance.now();try{const {error}=await sb.from(table).select('*',{count:'exact',head:true});const ms=Math.round(performance.now()-t0);return error?{ok:false,ms,err:error.message}:{ok:true,ms};}catch(e){return{ok:false,ms:Math.round(performance.now()-t0),err:String(e&&e.message||e)};}}
+/* ===== SYSTEM (hub) ===== */
+const SYSICO={grid:'<rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/>',pulse:'<path d="M3 12h4l2 6 4-14 2 8h6"/>',gear:'<circle cx="12" cy="12" r="3.2"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M5 5l2 2M17 17l2 2M19 5l-2 2M7 17l-2 2"/>',scroll:'<path d="M5 4h11a2 2 0 0 1 2 2v13a1 1 0 0 0 2 0V8h-2"/><path d="M5 4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2h13"/><path d="M8 8h6M8 12h6M8 16h4"/>',shield:'<path d="M12 3l7 3v5c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6z"/><path d="M9 12l2 2 4-4"/>',book:'<path d="M4 5a2 2 0 0 1 2-2h13v16H6a2 2 0 0 0-2 2z"/><path d="M4 5v14"/>'};
+async function pSystem(){loading('System');try{
+ // Pull the last 24h of health checks (populated by the 5-min cloud cron + client checks)
+ // so the strip shows real uptime + current status, not a placeholder.
+ let rows=[];try{const {data}=await sb.from('system_health').select('checked_at,worst').gte('checked_at',new Date(Date.now()-864e5).toISOString()).order('checked_at',{ascending:false}).limit(2000);rows=data||[];}catch(e){}
+ const last=rows[0];
+ const up=rows.length?Math.round(rows.filter(x=>x.worst===0).length/rows.length*100):null;
+ const stMap={0:['g','All systems operational'],1:['a','Degraded — some services slow'],2:['r','Incident — a service is down']};
+ const st=last?stMap[last.worst]||['n','Unknown']:['n','No checks yet'];
+ const dot=st[0]==='g'?'var(--green)':st[0]==='a'?'var(--amber)':st[0]==='r'?'var(--red)':'var(--mut)';
+ const dbg=st[0]==='g'?'#E9F7EF':st[0]==='a'?'#FDF3E2':st[0]==='r'?'#FBEBEB':'var(--bg)';
+ const card=(ic,bg,col,title,desc,dest)=>`<div class="syscard" onclick="go('${dest}')"><span class="kpi-ic" style="background:${bg}"><svg viewBox="0 0 24 24" stroke="${col}">${SYSICO[ic]}</svg></span><div class="syscard-t"><b>${title}</b><span>${desc}</span></div><svg class="syscard-ch" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg></div>`;
+ $('main').innerHTML=`<div style="display:flex;align-items:flex-start"><div><h2>System</h2><div class="subt">Platform controls &amp; configuration</div></div><button class="btn w" style="margin-left:auto" onclick="go('health')">Open health monitor</button></div>
+  <div class="card" style="padding:0;margin:14px 0 18px"><div style="display:flex;align-items:center;gap:14px;padding:16px 18px">
+    <span style="width:40px;height:40px;border-radius:12px;display:grid;place-items:center;flex-shrink:0;background:${dbg}"><span style="width:11px;height:11px;border-radius:50%;background:${dot};box-shadow:0 0 0 4px ${dot}22"></span></span>
+    <div style="flex:1"><div style="font-weight:750;font-size:15px">${st[1]}</div><div class="mut" style="font-size:12px">${last?'Last checked '+ago(last.checked_at):'Cloud checks run every 5 minutes'}</div></div>
+    <div style="display:flex;gap:26px;text-align:right">
+     <div><div class="mut" style="font-size:11px;text-transform:uppercase;letter-spacing:.03em;font-weight:600">Uptime 24h</div><div style="font-weight:800;font-size:19px">${up!=null?up+'%':'—'}</div></div>
+     <div><div class="mut" style="font-size:11px;text-transform:uppercase;letter-spacing:.03em;font-weight:600">Checks 24h</div><div style="font-weight:800;font-size:19px">${rows.length}</div></div>
+     <div><div class="mut" style="font-size:11px;text-transform:uppercase;letter-spacing:.03em;font-weight:600">Console</div><div style="font-weight:800;font-size:19px">Web</div></div>
+    </div>
+  </div></div>
+  <div class="sysgrid">
+   ${card('grid','#EEF2FF','#4C6FFF','Area caps &amp; map','Coverage limits and live tradie map by suburb','map')}
+   ${card('pulse','#E9F7EF','#1F9D57','System health','Service status, uptime history and error logs','health')}
+   ${card('gear','#F1F0F4','#6B7280','Settings','Platform configuration and account preferences','settings')}
+   ${card('scroll','#FDF3E2','#D98A00','Audit log','Every admin action, timestamped and attributed','audit')}
+   ${card('shield','#FBEBEB','#D64545','Security · 2FA','Admin authentication and two-factor enrolment','security')}
+   ${card('book','#EEF2FF','#4C6FFF','Policies','Versioned legal documents and consent tracking','policies')}
+  </div>`;
+}catch(e){$('main').innerHTML='<h2>System</h2>'+errBox(e);}}
 function pHealth(){
  $('main').innerHTML=`<div style="display:flex;align-items:flex-start"><div><h2>System health</h2><div class="subt">Auto-checks every 5 minutes · <span id="hl_last">checking…</span></div></div><button class="btn w" style="margin-left:auto" onclick="runHealth()">Check now</button></div>
   <div class="card"><div class="ch">Service status</div><div id="hl_rows"></div></div>

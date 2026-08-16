@@ -132,6 +132,9 @@ html[data-theme="dark"] .modal{background:var(--panel);color:var(--ink);box-shad
 html[data-theme="dark"] .modal h3{color:var(--ink)}
 html[data-theme="dark"] .modal input,html[data-theme="dark"] .modal select,html[data-theme="dark"] .modal textarea{background:#101116;color:var(--ink);border-color:var(--line)}
 html[data-theme="dark"] .nv:hover{background:#1D1E24}
+html[data-theme="dark"] .nv.on{background:rgba(242,162,34,.13);color:#F7C877}
+html[data-theme="dark"] .nv.nsearch{background:#101116;color:var(--mut)}
+html[data-theme="dark"] .nv.nsearch .ct.kbd{border-color:#2C2E37}
 html[data-theme="dark"] .pill.n{background:#26272E;color:var(--ink2)}
 html[data-theme="dark"] .err{background:var(--redb);color:#FF9B93}
 html[data-theme="dark"] .btn.w:hover{background:#25262D}
@@ -152,10 +155,19 @@ h2{font-size:23px;font-weight:800;letter-spacing:-.03em}
 
 /* sidebar */
 .side{padding:16px 12px}
+.side .brand{padding:2px 6px 16px}
 .side .brand b{font-size:15px}
-.nv{border-radius:var(--r-sm);font-size:14.5px;padding:9px 12px;position:relative;margin-bottom:2px}
-.nv.on{font-weight:800;background:var(--goldb)}
+.side .brand .lg{width:34px;height:34px;border-radius:10px;overflow:hidden;flex-shrink:0;box-shadow:0 1px 3px rgba(20,22,30,.14);background:#FBF3E4}
+.side .brand .lg img{width:100%;height:100%;object-fit:cover;display:block}
+.nv{border-radius:var(--r-sm);font-size:14px;padding:8px 11px;position:relative;margin-bottom:1px;gap:11px}
+.nv .ni{width:18px;height:18px;flex-shrink:0;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;opacity:.55;transition:opacity .12s}
+.nv:hover .ni{opacity:.85}
+.nv.on{font-weight:750;background:var(--goldb)}
+.nv.on .ni{opacity:1}
 .nv.on::before{content:"";position:absolute;left:-12px;top:7px;bottom:7px;width:3px;border-radius:0 3px 3px 0;background:var(--gold)}
+.nv.nsearch{background:var(--bg);color:var(--mut);margin-bottom:8px}
+.nv.nsearch .ct.kbd{background:transparent;color:var(--mut);font-weight:600;font-size:11px;border:1px solid var(--line);padding:0 5px;border-radius:6px}
+.slbl{margin-top:10px;padding:6px 11px 5px}
 
 /* KPIs — one size, one rhythm */
 .kpis{gap:14px;margin-bottom:22px}
@@ -287,38 +299,38 @@ html[data-theme="dark"] .kpi:hover{box-shadow:0 2px 6px rgba(0,0,0,.5),0 22px 46
 <!-- APP -->
 <div class="app" id="app">
  <aside class="side">
-  <div class="brand"><div class="lg"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#231700" stroke-width="1.7"><path d="M12 2l8 3v6c0 5-3.4 9.4-8 11-4.6-1.6-8-6-8-11V5l8-3z"/><path d="M9 12l2 2 4-4"/></svg></div>
+  <div class="brand"><div class="lg"><img src="/icon-512.png" alt="TrustTrade" width="34" height="34"></div>
    <div><b>TrustTrade</b><span class="sub">Management</span></div></div>
-  <div class="nv" onclick="gsearch()" style="margin-top:4px">🔍 Search<span class="ct" style="background:transparent;color:var(--mut)">⌘K</span></div>
-  <div class="nv on" data-p="dash" onclick="go('dash')">Dashboard</div>
-  <div class="nv" data-p="apps" onclick="go('apps')">Applications<span class="ct" id="c-ap"></span></div>
+  <div class="nv nsearch" onclick="gsearch()"><svg class="ni" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>Search<span class="ct kbd">⌘K</span></div>
+  <div class="nv on" data-p="dash" onclick="go('dash')"><svg class="ni" viewBox="0 0 24 24"><path d="M3 11l9-7 9 7"/><path d="M5 10v10h5v-6h4v6h5V10"/></svg>Dashboard</div>
+  <div class="nv" data-p="apps" onclick="go('apps')"><svg class="ni" viewBox="0 0 24 24"><path d="M3 12h5l2 3h4l2-3h5"/><path d="M5 5h14a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2z"/></svg>Applications<span class="ct" id="c-ap"></span></div>
   <div class="navsec" data-sec="trust"><div class="slbl" onclick="toggleSec(this)">Trust &amp; safety<svg class="chev" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg></div><div class="navgroup">
-   <div class="nv" data-p="reports" onclick="go('reports')">Reports<span class="ct" id="c-rp"></span></div>
-   <div class="nv" data-p="flags" onclick="go('flags')">Flags<span class="ct" id="c-fl"></span></div>
-   <div class="nv" data-p="moderation" onclick="go('moderation')">Moderation</div>
+   <div class="nv" data-p="reports" onclick="go('reports')"><svg class="ni" viewBox="0 0 24 24"><path d="M12 4l9 16H3z"/><path d="M12 10v4M12 17h.01"/></svg>Reports<span class="ct" id="c-rp"></span></div>
+   <div class="nv" data-p="flags" onclick="go('flags')"><svg class="ni" viewBox="0 0 24 24"><path d="M5 21V4M5 4h11l-2 4 2 4H5"/></svg>Flags<span class="ct" id="c-fl"></span></div>
+   <div class="nv" data-p="moderation" onclick="go('moderation')"><svg class="ni" viewBox="0 0 24 24"><path d="M12 3l7 3v5c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6z"/><path d="M9 12l2 2 4-4"/></svg>Moderation</div>
   </div></div>
   <div class="navsec" data-sec="people"><div class="slbl" onclick="toggleSec(this)">People<svg class="chev" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg></div><div class="navgroup">
-   <div class="nv" data-p="tradies" onclick="go('tradies')">Tradies<span class="ct" id="c-tr"></span></div>
-   <div class="nv" data-p="cust" onclick="go('cust')">Customers<span class="ct" id="c-cu"></span></div>
+   <div class="nv" data-p="tradies" onclick="go('tradies')"><svg class="ni" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.2"/><path d="M3.5 20a5.5 5.5 0 0 1 11 0"/><path d="M16 6a3 3 0 0 1 0 6M20.5 20a5 5 0 0 0-4-4.9"/></svg>Tradies<span class="ct" id="c-tr"></span></div>
+   <div class="nv" data-p="cust" onclick="go('cust')"><svg class="ni" viewBox="0 0 24 24"><circle cx="12" cy="8" r="3.6"/><path d="M5 20a7 7 0 0 1 14 0"/></svg>Customers<span class="ct" id="c-cu"></span></div>
   </div></div>
   <div class="navsec" data-sec="activity"><div class="slbl" onclick="toggleSec(this)">Activity<svg class="chev" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg></div><div class="navgroup">
-   <div class="nv" data-p="enq" onclick="go('enq')">Enquiries<span class="ct" id="c-en"></span></div>
-   <div class="nv" data-p="jobs" onclick="go('jobs')">Jobs</div>
-   <div class="nv" data-p="reviews" onclick="go('reviews')">Reviews</div>
+   <div class="nv" data-p="enq" onclick="go('enq')"><svg class="ni" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3.5 7l8.5 6 8.5-6"/></svg>Enquiries<span class="ct" id="c-en"></span></div>
+   <div class="nv" data-p="jobs" onclick="go('jobs')"><svg class="ni" viewBox="0 0 24 24"><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>Jobs</div>
+   <div class="nv" data-p="reviews" onclick="go('reviews')"><svg class="ni" viewBox="0 0 24 24"><path d="M12 3l2.7 5.5 6 .9-4.3 4.2 1 6L12 17l-5.4 2.6 1-6L3.3 9.4l6-.9z"/></svg>Reviews</div>
   </div></div>
   <div class="navsec" data-sec="control"><div class="slbl" onclick="toggleSec(this)">Control<svg class="chev" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg></div><div class="navgroup">
-   <div class="nv" data-p="money" onclick="go('money')">Money</div>
-   <div class="nv" data-p="waitlist" onclick="go('waitlist')">Waitlist</div>
-   <div class="nv" data-p="notifs" onclick="go('notifs')">Notifications</div>
-   <div class="nv" data-p="map" onclick="go('map')">Map &amp; areas</div>
-   <div class="nv" data-p="policies" onclick="go('policies')">Policies</div>
+   <div class="nv" data-p="money" onclick="go('money')"><svg class="ni" viewBox="0 0 24 24"><path d="M12 2v20"/><path d="M17 6.5c0-2-2.2-3-5-3s-5 1-5 3.2c0 4.6 10 2 10 6.3 0 2.2-2.2 3.2-5 3.2s-5-1.2-5-3.2"/></svg>Money</div>
+   <div class="nv" data-p="waitlist" onclick="go('waitlist')"><svg class="ni" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/></svg>Waitlist</div>
+   <div class="nv" data-p="notifs" onclick="go('notifs')"><svg class="ni" viewBox="0 0 24 24"><path d="M6 9a6 6 0 0 1 12 0c0 5 2 6 2 6H4s2-1 2-6z"/><path d="M10 20a2 2 0 0 0 4 0"/></svg>Notifications</div>
+   <div class="nv" data-p="map" onclick="go('map')"><svg class="ni" viewBox="0 0 24 24"><path d="M12 21s-7-6.3-7-11a7 7 0 0 1 14 0c0 4.7-7 11-7 11z"/><circle cx="12" cy="10" r="2.5"/></svg>Map &amp; areas</div>
+   <div class="nv" data-p="policies" onclick="go('policies')"><svg class="ni" viewBox="0 0 24 24"><path d="M4 5a2 2 0 0 1 2-2h13v16H6a2 2 0 0 0-2 2z"/><path d="M4 5v14"/></svg>Policies</div>
   </div></div>
   <div class="navsec" data-sec="system"><div class="slbl" onclick="toggleSec(this)">System<svg class="chev" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg></div><div class="navgroup">
-   <div class="nv" data-p="system" onclick="go('system')">System</div>
-   <div class="nv" data-p="settings" onclick="go('settings')">Settings</div>
-   <div class="nv" data-p="security" onclick="go('security')">Security · 2FA</div>
-   <div class="nv" data-p="health" onclick="go('health')">System health</div>
-   <div class="nv" data-p="audit" onclick="go('audit')">Audit log</div>
+   <div class="nv" data-p="system" onclick="go('system')"><svg class="ni" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>System</div>
+   <div class="nv" data-p="settings" onclick="go('settings')"><svg class="ni" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M5 5l2 2M17 17l2 2M19 5l-2 2M7 17l-2 2"/></svg>Settings</div>
+   <div class="nv" data-p="security" onclick="go('security')"><svg class="ni" viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>Security · 2FA</div>
+   <div class="nv" data-p="health" onclick="go('health')"><svg class="ni" viewBox="0 0 24 24"><path d="M3 12h4l2 6 4-14 2 8h6"/></svg>System health</div>
+   <div class="nv" data-p="audit" onclick="go('audit')"><svg class="ni" viewBox="0 0 24 24"><path d="M8 6h12M8 12h12M8 18h9"/><circle cx="4" cy="6" r="1"/><circle cx="4" cy="12" r="1"/><circle cx="4" cy="18" r="1"/></svg>Audit log</div>
   </div></div>
   <div class="usercard">
    <div class="av" id="whoami-av">A</div>
@@ -1058,13 +1070,12 @@ async function pSystem(){loading('System');try{
  const dbg=st[0]==='g'?'#E9F7EF':st[0]==='a'?'#FDF3E2':st[0]==='r'?'#FBEBEB':'var(--bg)';
  const card=(ic,bg,col,title,desc,dest)=>`<div class="syscard" onclick="go('${dest}')"><span class="kpi-ic" style="background:${bg}"><svg viewBox="0 0 24 24" stroke="${col}">${SYSICO[ic]}</svg></span><div class="syscard-t"><b>${title}</b><span>${desc}</span></div><svg class="syscard-ch" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg></div>`;
  $('main').innerHTML=`<div style="display:flex;align-items:flex-start"><div><h2>System</h2><div class="subt">Platform controls &amp; configuration</div></div><button class="btn w" style="margin-left:auto" onclick="go('health')">Open health monitor</button></div>
-  <div class="card" style="padding:0;margin:14px 0 18px"><div style="display:flex;align-items:center;gap:14px;padding:16px 18px">
+  <div class="card" style="padding:0;margin:14px 0 18px"><div style="display:flex;align-items:center;gap:14px;padding:16px 18px;flex-wrap:wrap">
     <span style="width:40px;height:40px;border-radius:12px;display:grid;place-items:center;flex-shrink:0;background:${dbg}"><span style="width:11px;height:11px;border-radius:50%;background:${dot};box-shadow:0 0 0 4px ${dot}22"></span></span>
-    <div style="flex:1"><div style="font-weight:750;font-size:15px">${st[1]}</div><div class="mut" style="font-size:12px">${last?'Last checked '+ago(last.checked_at):'Cloud checks run every 5 minutes'}</div></div>
-    <div style="display:flex;gap:26px;text-align:right">
+    <div style="flex:1;min-width:150px"><div style="font-weight:750;font-size:15px">${st[1]}</div><div class="mut" style="font-size:12px">${last?'Last checked '+ago(last.checked_at):'Cloud checks run every 5 minutes'}</div></div>
+    <div style="display:flex;gap:22px;text-align:right;flex-shrink:0">
      <div><div class="mut" style="font-size:11px;text-transform:uppercase;letter-spacing:.03em;font-weight:600">Uptime 24h</div><div style="font-weight:800;font-size:19px">${up!=null?up+'%':'—'}</div></div>
      <div><div class="mut" style="font-size:11px;text-transform:uppercase;letter-spacing:.03em;font-weight:600">Checks 24h</div><div style="font-weight:800;font-size:19px">${rows.length}</div></div>
-     <div><div class="mut" style="font-size:11px;text-transform:uppercase;letter-spacing:.03em;font-weight:600">Console</div><div style="font-weight:800;font-size:19px">Web</div></div>
     </div>
   </div></div>
   <div class="sysgrid">

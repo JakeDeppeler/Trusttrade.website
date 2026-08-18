@@ -247,6 +247,7 @@ html[data-theme="dark"] .kpi:hover{box-shadow:0 2px 6px rgba(0,0,0,.5),0 22px 46
 .trust .trow .tic svg{width:16px;height:16px;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
 .trust .trow b{font-size:13.5px;font-weight:650;flex:1}
 .trust .trow .tn{font-weight:800;font-size:15px}.trust .trow .tar{color:var(--mut);opacity:.6}
+.ssec-lbl{font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--mut);margin:0 2px 10px}
 .sysgrid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
 @media(max-width:720px){.sysgrid{grid-template-columns:1fr}}
 .syscard{display:flex;align-items:center;gap:14px;padding:16px 16px;background:var(--panel);border:1px solid var(--line);border-radius:14px;box-shadow:var(--sh);cursor:pointer;transition:transform .12s ease,box-shadow .12s ease,border-color .12s ease}
@@ -255,6 +256,13 @@ html[data-theme="dark"] .kpi:hover{box-shadow:0 2px 6px rgba(0,0,0,.5),0 22px 46
 .syscard-t b{font-size:14.5px;font-weight:700}
 .syscard-t span{font-size:12.5px;color:var(--mut);line-height:1.4}
 .syscard-ch{width:18px;height:18px;fill:none;stroke:var(--mut);stroke-width:2;stroke-linecap:round;stroke-linejoin:round;opacity:.5;flex-shrink:0}
+.zoomable{cursor:zoom-in;transition:filter .12s,transform .12s}
+.zoomable:hover{filter:brightness(.94)}
+.lbx{position:fixed;inset:0;z-index:9999;background:rgba(10,11,15,.88);display:flex;align-items:center;justify-content:center;padding:36px;cursor:zoom-out;-webkit-backdrop-filter:blur(4px);backdrop-filter:blur(4px);animation:lbxIn .14s ease}
+@keyframes lbxIn{from{opacity:0}}
+.lbx img{max-width:94vw;max-height:92vh;border-radius:12px;box-shadow:0 24px 70px rgba(0,0,0,.6);object-fit:contain}
+.lbx .lbx-x{position:absolute;top:16px;right:22px;color:#fff;font-size:34px;line-height:1;cursor:pointer;opacity:.8;font-weight:300}
+.lbx .lbx-x:hover{opacity:1}
 .dashhead{display:flex;align-items:flex-start;gap:12px;margin-bottom:4px}
 .dashhead .ha{margin-left:auto;display:flex;gap:9px}
 </style></head><body>
@@ -325,20 +333,12 @@ html[data-theme="dark"] .kpi:hover{box-shadow:0 2px 6px rgba(0,0,0,.5),0 22px 46
    <div class="nv" data-p="map" onclick="go('map')"><svg class="ni" viewBox="0 0 24 24"><path d="M12 21s-7-6.3-7-11a7 7 0 0 1 14 0c0 4.7-7 11-7 11z"/><circle cx="12" cy="10" r="2.5"/></svg>Map &amp; areas</div>
    <div class="nv" data-p="policies" onclick="go('policies')"><svg class="ni" viewBox="0 0 24 24"><path d="M4 5a2 2 0 0 1 2-2h13v16H6a2 2 0 0 0-2 2z"/><path d="M4 5v14"/></svg>Policies</div>
   </div></div>
-  <div class="navsec" data-sec="system"><div class="slbl" onclick="toggleSec(this)">System<svg class="chev" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg></div><div class="navgroup">
-   <div class="nv" data-p="system" onclick="go('system')"><svg class="ni" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>System</div>
-   <div class="nv" data-p="settings" onclick="go('settings')"><svg class="ni" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M5 5l2 2M17 17l2 2M19 5l-2 2M7 17l-2 2"/></svg>Settings</div>
-   <div class="nv" data-p="security" onclick="go('security')"><svg class="ni" viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>Security · 2FA</div>
-   <div class="nv" data-p="health" onclick="go('health')"><svg class="ni" viewBox="0 0 24 24"><path d="M3 12h4l2 6 4-14 2 8h6"/></svg>System health</div>
-   <div class="nv" data-p="audit" onclick="go('audit')"><svg class="ni" viewBox="0 0 24 24"><path d="M8 6h12M8 12h12M8 18h9"/><circle cx="4" cy="6" r="1"/><circle cx="4" cy="12" r="1"/><circle cx="4" cy="18" r="1"/></svg>Audit log</div>
-  </div></div>
-  <div class="usercard">
+  <div class="nv" data-p="system" onclick="go('system')" style="margin-top:6px"><svg class="ni" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>System</div>
+  <div class="usercard" onclick="go('settings')" title="Account &amp; settings" style="cursor:pointer">
    <div class="av" id="whoami-av">A</div>
    <div style="flex:1;min-width:0"><div class="un" id="whoami">—</div><div class="ur">Platform admin · 🔒 2FA</div></div>
-   <div style="display:flex;flex-direction:column;gap:3px;align-items:flex-end">
-    <a class="themebtn" onclick="toggleTheme()" id="themeLbl" style="cursor:pointer;font-size:10.5px">Dark</a>
-    <a onclick="signout()" style="cursor:pointer;color:var(--red);font-size:10.5px;font-weight:600">Sign out</a>
-   </div></div>
+   <svg viewBox="0 0 24 24" style="width:16px;height:16px;fill:none;stroke:var(--mut);stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M5 5l1.5 1.5M17.5 17.5L19 19M19 5l-1.5 1.5M6.5 17.5L5 19"/></svg>
+   </div>
  </aside>
  <main id="main"></main>
 </div>
@@ -478,6 +478,7 @@ async function approveApp(id,name){ask('Approve '+name+'?','Creates their login 
 async function goLiveListing(id,name){ask('Put '+name+' live?','Only do this once you have sighted their insurance certificate and enough work photos. This makes the profile public. Audited.','Note (optional)',async r=>{const {error}=await sb.from('listings').update({status:'approved',was_approved:true}).eq('id',id);if(error){toast(error.message);return;}await audit('listing_went_live','listing',id,r||'admin override go-live');closeM();toast('Live');go('tradies');});}
 // Open the tradie's OWN dashboard in read-only preview (see exactly what they see).
 function previewDash(id){ window.open('/dashboard?preview='+encodeURIComponent(id),'_blank','noopener'); }
+function publicProfile(slug,status){ if(!slug){toast('No public profile — needs a slug');return;} if(status&&status!=='approved')toast('Heads up: profile is only public while approved'); window.open('/tradie/'+encodeURIComponent(slug),'_blank','noopener'); }
 // Open a private apply-docs object (insurance certificate) via a short-lived signed URL.
 async function viewApplyDoc(path){ if(!path){toast('No document');return;} toast('Opening…'); const {data,error}=await sb.storage.from('apply-docs').createSignedUrl(path,120); if(error||!data){toast((error&&error.message)||'Could not open');return;} window.open(data.signedUrl,'_blank'); }
 async function rejectApp(id,name){ask('Reject '+name+'?','This reason is shown to the applicant so they can fix it and resubmit. Audited.','Reason (what needs fixing to resubmit)',async r=>{if(r.length<5){toast('Add a reason');return;}
@@ -498,7 +499,8 @@ async function resolveReport(id){ask('Resolve report?','Records the outcome for 
 // Collapsible sidebar sections (persisted; the active page's section is always open).
 function toggleSec(el){const s=el.closest('.navsec');if(!s)return;s.classList.toggle('collapsed');try{localStorage.setItem('adminNav',JSON.stringify([...document.querySelectorAll('.navsec.collapsed')].map(x=>x.dataset.sec)));}catch(e){}}
 function restoreNav(){try{const c=JSON.parse(localStorage.getItem('adminNav')||'[]');document.querySelectorAll('.navsec').forEach(s=>s.classList.toggle('collapsed',c.includes(s.dataset.sec)));}catch(e){}}
-function go(p){PAGE=p;SEL.clear();if(window.HEALTH_TIMER){clearInterval(window.HEALTH_TIMER);window.HEALTH_TIMER=null;}document.querySelectorAll('.nv').forEach(n=>n.classList.toggle('on',n.dataset.p===p));
+const SYS_SUBPAGES=['settings','security','health','audit'];
+function go(p){PAGE=p;SEL.clear();if(window.HEALTH_TIMER){clearInterval(window.HEALTH_TIMER);window.HEALTH_TIMER=null;}const hi=SYS_SUBPAGES.includes(p)?'system':p;document.querySelectorAll('.nv').forEach(n=>n.classList.toggle('on',n.dataset.p===hi));
  {const on=document.querySelector('.nv.on');const sec=on&&on.closest('.navsec');if(sec)sec.classList.remove('collapsed');}
  ({dash:pDash,tradies:pTradies,apps:pApps,enq:pEnq,jobs:pJobs,reviews:pReviews,reports:pReports,flags:pFlags,cust:pCust,money:pMoney,waitlist:pWaitlist,notifs:pNotifs,map:pMap,policies:pPolicies,settings:pSettings,security:pSecurity,moderation:pModeration,health:pHealth,audit:pAudit,system:pSystem}[p])();}
 /* ── multi-select / bulk actions ── */
@@ -625,7 +627,7 @@ async function pDash(){loading('Dashboard');try{
 
 let TRD=[],TRDF={q:'',trade:'',area:'',rating:0};
 async function pTradies(){loading('Tradies');try{
- const {data,error}=await sb.from('listings').select('id,name,trade,suburb,postcode,area_key,rating,review_count,status,insured,stat_jobs_complete').is('deleted_at',null).order('name');if(error)throw error;
+ const {data,error}=await sb.from('listings').select('id,name,slug,trade,suburb,postcode,area_key,rating,review_count,status,insured,stat_jobs_complete').is('deleted_at',null).order('name');if(error)throw error;
  TRD=data||[];trdShell();trdRender();
 }catch(e){$('main').innerHTML='<h2>Tradies</h2>'+errBox(e);}}
 function trdShell(){
@@ -650,7 +652,7 @@ function trdRender(){
    if(TRDF.rating&&!(+t.rating>=TRDF.rating))return false;
    if(q){const hay=((t.name||'')+' '+(t.trade||'')+' '+(t.suburb||'')+' '+(t.postcode||'')).toLowerCase();if(!hay.includes(q))return false;}
    return true;});
- const tb=$('trd_rows');if(tb)tb.innerHTML=rows.map(t=>`<tr><td><input type="checkbox" class="selbox" value="${t.id}" onclick="selRow(this)"></td><td><b style="cursor:pointer;color:var(--goldd)" onclick="openTradie('${t.id}')">${esc(t.name)}</b></td><td>${esc(t.trade||'—')}<br><span class="mut" style="font-size:12px">${esc(t.suburb||'')} ${esc(t.postcode||'')}</span></td><td>${t.rating?'<b>'+t.rating+'</b> <span class="mut">('+(t.review_count||0)+')</span>':'<span class="mut">—</span>'}</td><td class="mono">${t.stat_jobs_complete??0}</td><td>${t.status==='approved'?'<span class="pill g">Live</span>':t.status==='hidden'?'<span class="pill r">Hidden</span>':'<span class="pill n">'+esc(t.status||'—')+'</span>'}${t.insured?'':' <span class="pill a">no ins</span>'}</td><td class="right"><button class="btn w" onclick="previewDash('${t.id}')">Preview</button> ${t.status==='hidden'?`<button class="btn g" onclick="restoreListing('${t.id}','${esc(t.name)}')">Restore</button>`:t.status!=='approved'?`<button class="btn g" onclick="goLiveListing('${t.id}','${esc(t.name)}')">Go live</button>`:`<button class="btn r" onclick="hideListing('${t.id}','${esc(t.name)}')">Hide</button>`}</td></tr>`).join('')||'<tr><td colspan=7 class="empty">No tradies match these filters.</td></tr>';
+ const tb=$('trd_rows');if(tb)tb.innerHTML=rows.map(t=>`<tr><td><input type="checkbox" class="selbox" value="${t.id}" onclick="selRow(this)"></td><td><b style="cursor:pointer;color:var(--goldd)" onclick="openTradie('${t.id}')">${esc(t.name)}</b></td><td>${esc(t.trade||'—')}<br><span class="mut" style="font-size:12px">${esc(t.suburb||'')} ${esc(t.postcode||'')}</span></td><td>${t.rating?'<b>'+t.rating+'</b> <span class="mut">('+(t.review_count||0)+')</span>':'<span class="mut">—</span>'}</td><td class="mono">${t.stat_jobs_complete??0}</td><td>${t.status==='approved'?'<span class="pill g">Live</span>':t.status==='hidden'?'<span class="pill r">Hidden</span>':'<span class="pill n">'+esc(t.status||'—')+'</span>'}${t.insured?'':' <span class="pill a">no ins</span>'}</td><td class="right"><button class="btn w" onclick="previewDash('${t.id}')">Dashboard</button>${t.status==='approved'&&t.slug?` <button class="btn w" onclick="publicProfile('${esc(t.slug)}','${esc(t.status||'')}')">Public</button>`:''} ${t.status==='hidden'?`<button class="btn g" onclick="restoreListing('${t.id}','${esc(t.name)}')">Restore</button>`:t.status!=='approved'?`<button class="btn g" onclick="goLiveListing('${t.id}','${esc(t.name)}')">Go live</button>`:`<button class="btn r" onclick="hideListing('${t.id}','${esc(t.name)}')">Hide</button>`}</td></tr>`).join('')||'<tr><td colspan=7 class="empty">No tradies match these filters.</td></tr>';
  const c=$('trd_count');if(c)c.textContent=rows.length+' of '+TRD.length+' listings';}
 
 let APPTAB='submitted';
@@ -717,14 +719,14 @@ async function openApplication(id){loading('Application');try{
   ${svc.length?`<div class="card"><div class="ch">Services they take on</div><div style="padding:14px 18px;display:flex;flex-wrap:wrap;gap:7px">${svc.map(s=>`<span class="pill n">${esc(s)}</span>`).join('')}</div></div>`:''}
   ${(a.cover_photo_url||a.profile_photo_url||(Array.isArray(a.work_photo_urls)&&a.work_photo_urls.length))?`<div class="card"><div class="ch">Photos</div><div style="padding:14px 18px">
     <div style="display:flex;gap:18px;flex-wrap:wrap;margin-bottom:14px">
-      <div><div class="mut" style="font-size:12px;margin-bottom:6px">Team / cover</div>${a.cover_photo_url?`<img src="${esc(a.cover_photo_url)}" style="width:170px;height:100px;object-fit:cover;border-radius:10px;border:1px solid var(--line2)">`:'<span class="mut" style="font-size:12.5px">—</span>'}</div>
-      <div><div class="mut" style="font-size:12px;margin-bottom:6px">Logo / chat icon</div>${a.profile_photo_url?`<img src="${esc(a.profile_photo_url)}" style="width:64px;height:64px;object-fit:cover;border-radius:14px;border:1px solid var(--line2)">`:'<span class="mut" style="font-size:12.5px">—</span>'}</div>
+      <div><div class="mut" style="font-size:12px;margin-bottom:6px">Team / cover</div>${a.cover_photo_url?`<img class="zoomable" src="${esc(a.cover_photo_url)}" style="width:170px;height:100px;object-fit:cover;border-radius:10px;border:1px solid var(--line2)">`:'<span class="mut" style="font-size:12.5px">—</span>'}</div>
+      <div><div class="mut" style="font-size:12px;margin-bottom:6px">Logo / chat icon</div>${a.profile_photo_url?`<img class="zoomable" src="${esc(a.profile_photo_url)}" style="width:64px;height:64px;object-fit:cover;border-radius:14px;border:1px solid var(--line2)">`:'<span class="mut" style="font-size:12.5px">—</span>'}</div>
     </div>
     <div class="mut" style="font-size:12px;margin-bottom:6px">Work — ${(Array.isArray(a.work_photo_urls)?a.work_photo_urls.length:0)} photo${(Array.isArray(a.work_photo_urls)&&a.work_photo_urls.length===1)?'':'s'}${(!Array.isArray(a.work_photo_urls)||a.work_photo_urls.length<6)?' · below the 6 minimum':''}</div>
-    <div style="display:flex;flex-wrap:wrap;gap:8px">${(Array.isArray(a.work_photo_urls)?a.work_photo_urls:[]).map(u=>`<img src="${esc(u)}" style="width:84px;height:84px;object-fit:cover;border-radius:9px;border:1px solid var(--line2)">`).join('')||'<span class="mut" style="font-size:12.5px">No work photos uploaded</span>'}</div>
+    <div style="display:flex;flex-wrap:wrap;gap:8px">${(Array.isArray(a.work_photo_urls)?a.work_photo_urls:[]).map(u=>`<img class="zoomable" src="${esc(u)}" style="width:84px;height:84px;object-fit:cover;border-radius:9px;border:1px solid var(--line2)">`).join('')||'<span class="mut" style="font-size:12.5px">No work photos uploaded</span>'}</div>
   </div></div>`:''}
   ${(a.scenario_price||a.scenario_notes)?`<div class="card"><div class="ch">Pricing scenario</div><div style="padding:6px 18px">${kv('Their price',a.scenario_price?'$'+esc(a.scenario_price):'—')}${a.scenario_notes?`<div style="font-size:13.5px;color:var(--ink2);padding:10px 0;line-height:1.55">${esc(a.scenario_notes)}</div>`:''}</div></div>`:''}
-  <div class="card"><div class="ch">Signature</div><div style="padding:16px 18px">${sig?`<img src="${esc(sig)}" style="max-width:280px;background:#fff;border:1px solid var(--line2);border-radius:10px">`:'<span class="mut">Not signed</span>'}<div class="mut" style="font-size:12.5px;margin-top:8px">${esc(a.signature_name||'')}${a.signed_at?' · '+fmtDate(a.signed_at):''}${a.terms_agreed?' · agreed to terms':''}</div></div></div>`;
+  <div class="card"><div class="ch">Signature</div><div style="padding:16px 18px">${sig?`<img class="zoomable" src="${esc(sig)}" style="max-width:280px;background:#fff;border:1px solid var(--line2);border-radius:10px">`:'<span class="mut">Not signed</span>'}<div class="mut" style="font-size:12.5px;margin-top:8px">${esc(a.signature_name||'')}${a.signed_at?' · '+fmtDate(a.signed_at):''}${a.terms_agreed?' · agreed to terms':''}</div></div></div>`;
 }catch(e){$('main').innerHTML='<h2>Application</h2>'+errBox(e);}}
 
 let ENQ=[],ENQF={q:'',range:'all',from:'',to:''};
@@ -888,7 +890,25 @@ async function pSettings(){loading('Settings');try{
      <div style="font-size:20px;font-weight:800;min-width:66px;text-align:right;${isBool?(on?'color:var(--green)':'color:var(--mut)'):''}">${disp}</div>
      <button class="btn w" onclick="editSetting('${c.key}','${esc(c.label||c.key)}','${esc(c.value||'')}')">Edit</button>
    </div>`;};
- $('main').innerHTML=`<h2>Settings</h2><div class="subt">Platform config · read live across the app · every change is audited</div>
+ const who=($('whoami')&&$('whoami').textContent&&$('whoami').textContent!=='—')?$('whoami').textContent:((USER&&USER.email)||'Admin');
+ const inits=(String(who).replace(/@.*/,'').split(/[ .]+/).map(w=>w[0]||'').join('').slice(0,2)||'A').toUpperCase();
+ const isDark=document.documentElement.getAttribute('data-theme')==='dark';
+ $('main').innerHTML=`<h2>Settings</h2><div class="subt">Your account, appearance and platform config · every change is audited</div>
+  <div class="card"><div class="ch">Account &amp; session</div>
+   <div style="display:flex;align-items:center;gap:14px;padding:16px 18px">
+     <div class="av" style="width:42px;height:42px;border-radius:50%;background:linear-gradient(135deg,#7A5CE0,#5B3FD0);color:#fff;display:grid;place-items:center;font-weight:800;font-size:14px;flex-shrink:0">${esc(inits)}</div>
+     <div style="flex:1;min-width:0"><div style="font-weight:750;font-size:14.5px">${esc(who)}</div><div class="mut" style="font-size:12.5px">Platform admin · 🔒 2FA · ${esc((USER&&USER.email)||'')}</div></div>
+     <button class="btn r" onclick="signout()"><svg viewBox="0 0 24 24" style="width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;vertical-align:-2px;margin-right:5px"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5M21 12H9"/></svg>Sign out</button>
+   </div>
+   <div style="display:flex;align-items:center;gap:16px;padding:16px 18px;border-top:1px solid var(--line2)">
+     <div style="flex:1"><div style="font-weight:650;font-size:14px">Theme</div><div class="mut" style="font-size:12px;margin-top:3px">Light or dark appearance for the console. Saved to this device.</div></div>
+     <div class="seg"><button id="thLight" class="${isDark?'':'on'}" onclick="setTheme('light')">Light</button><button id="thDark" class="${isDark?'on':''}" onclick="setTheme('dark')">Dark</button></div>
+   </div>
+   <div style="display:flex;align-items:center;gap:16px;padding:16px 18px;border-top:1px solid var(--line2)">
+     <div style="flex:1"><div style="font-weight:650;font-size:14px">Two-factor authentication</div><div class="mut" style="font-size:12px;margin-top:3px">Manage the authenticator that protects this console.</div></div>
+     <button class="btn w" onclick="go('security')">Manage 2FA</button>
+   </div>
+  </div>
   <div class="card"><div class="ch">Platform configuration</div>${(data||[]).map(row).join('')||'<div class="empty">No settings yet.</div>'}</div>
   <div class="subt">These keys are the single source of truth — the app should read them so one change updates every surface.</div>`;
 }catch(e){$('main').innerHTML='<h2>Settings</h2>'+errBox(e);}}
@@ -1058,18 +1078,30 @@ const HEALTH_AREAS=[['Profiles / accounts','profiles'],['Tradie listings','listi
 async function probe(table){const t0=performance.now();try{const {error}=await sb.from(table).select('*',{count:'exact',head:true});const ms=Math.round(performance.now()-t0);return error?{ok:false,ms,err:error.message}:{ok:true,ms};}catch(e){return{ok:false,ms:Math.round(performance.now()-t0),err:String(e&&e.message||e)};}}
 /* ===== SYSTEM (hub) ===== */
 const SYSICO={grid:'<rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/>',pulse:'<path d="M3 12h4l2 6 4-14 2 8h6"/>',gear:'<circle cx="12" cy="12" r="3.2"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M5 5l2 2M17 17l2 2M19 5l-2 2M7 17l-2 2"/>',scroll:'<path d="M5 4h11a2 2 0 0 1 2 2v13a1 1 0 0 0 2 0V8h-2"/><path d="M5 4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2h13"/><path d="M8 8h6M8 12h6M8 16h4"/>',shield:'<path d="M12 3l7 3v5c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6z"/><path d="M9 12l2 2 4-4"/>',book:'<path d="M4 5a2 2 0 0 1 2-2h13v16H6a2 2 0 0 0-2 2z"/><path d="M4 5v14"/>'};
+const MICO={tradie:'<circle cx="9" cy="8" r="3.2"/><path d="M3.5 20a5.5 5.5 0 0 1 11 0"/><path d="M16 6a3 3 0 0 1 0 6M20.5 20a5 5 0 0 0-4-4.9"/>',home:'<path d="M3 11l9-7 9 7"/><path d="M5 10v10h14V10"/>',file:'<path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/>',mail:'<rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3.5 7l8.5 6 8.5-6"/>',job:'<rect x="3" y="7" width="18" height="13" rx="2"/><path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>',err:'<path d="M12 4l9 16H3z"/><path d="M12 10v4M12 17h.01"/>'};
+async function scount(build){try{const r=await build;return (r&&r.count)||0;}catch(e){return 0;}}
 async function pSystem(){loading('System');try{
- // Pull the last 24h of health checks (populated by the 5-min cloud cron + client checks)
- // so the strip shows real uptime + current status, not a placeholder.
- let rows=[];try{const {data}=await sb.from('system_health').select('checked_at,worst').gte('checked_at',new Date(Date.now()-864e5).toISOString()).order('checked_at',{ascending:false}).limit(2000);rows=data||[];}catch(e){}
+ const dayAgo=new Date(Date.now()-864e5).toISOString();
+ // Pull 24h health history + live platform counts in parallel — the metrics show
+ // "how everything is working", the strip shows current status + uptime.
+ const [rows,tradies,homeowners,appsWaiting,enq,jobs,errs]=await Promise.all([
+  (async()=>{try{const {data}=await sb.from('system_health').select('checked_at,worst').gte('checked_at',dayAgo).order('checked_at',{ascending:false}).limit(2000);return data||[];}catch(e){return [];}})(),
+  scount(sb.from('listings').select('*',{count:'exact',head:true}).eq('status','approved').is('deleted_at',null)),
+  scount(sb.from('profiles').select('*',{count:'exact',head:true}).eq('role','customer')),
+  scount(sb.from('applications').select('*',{count:'exact',head:true}).in('status',['submitted','pending','info_requested'])),
+  scount(sb.from('enquiries').select('*',{count:'exact',head:true})),
+  scount(sb.from('bookings').select('*',{count:'exact',head:true})),
+  scount(sb.from('error_logs').select('*',{count:'exact',head:true}).gte('created_at',dayAgo))
+ ]);
  const last=rows[0];
  const up=rows.length?Math.round(rows.filter(x=>x.worst===0).length/rows.length*100):null;
  const stMap={0:['g','All systems operational'],1:['a','Degraded — some services slow'],2:['r','Incident — a service is down']};
  const st=last?stMap[last.worst]||['n','Unknown']:['n','No checks yet'];
  const dot=st[0]==='g'?'var(--green)':st[0]==='a'?'var(--amber)':st[0]==='r'?'var(--red)':'var(--mut)';
  const dbg=st[0]==='g'?'#E9F7EF':st[0]==='a'?'#FDF3E2':st[0]==='r'?'#FBEBEB':'var(--bg)';
+ const mtile=(bg,col,ico,val,label,warn)=>`<div class="kpi"><div class="kpi-top"><span class="kpi-ic" style="background:${bg}"><svg viewBox="0 0 24 24" stroke="${col}">${MICO[ico]}</svg></span></div><b style="${warn?'color:var(--red)':''}">${val}</b><div class="k">${label}</div></div>`;
  const card=(ic,bg,col,title,desc,dest)=>`<div class="syscard" onclick="go('${dest}')"><span class="kpi-ic" style="background:${bg}"><svg viewBox="0 0 24 24" stroke="${col}">${SYSICO[ic]}</svg></span><div class="syscard-t"><b>${title}</b><span>${desc}</span></div><svg class="syscard-ch" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg></div>`;
- $('main').innerHTML=`<div style="display:flex;align-items:flex-start"><div><h2>System</h2><div class="subt">Platform controls &amp; configuration</div></div><button class="btn w" style="margin-left:auto" onclick="go('health')">Open health monitor</button></div>
+ $('main').innerHTML=`<div style="display:flex;align-items:flex-start"><div><h2>System</h2><div class="subt">How the platform is running · controls &amp; configuration</div></div><button class="btn w" style="margin-left:auto" onclick="go('health')">Open health monitor</button></div>
   <div class="card" style="padding:0;margin:14px 0 18px"><div style="display:flex;align-items:center;gap:14px;padding:16px 18px;flex-wrap:wrap">
     <span style="width:40px;height:40px;border-radius:12px;display:grid;place-items:center;flex-shrink:0;background:${dbg}"><span style="width:11px;height:11px;border-radius:50%;background:${dot};box-shadow:0 0 0 4px ${dot}22"></span></span>
     <div style="flex:1;min-width:150px"><div style="font-weight:750;font-size:15px">${st[1]}</div><div class="mut" style="font-size:12px">${last?'Last checked '+ago(last.checked_at):'Cloud checks run every 5 minutes'}</div></div>
@@ -1078,10 +1110,20 @@ async function pSystem(){loading('System');try{
      <div><div class="mut" style="font-size:11px;text-transform:uppercase;letter-spacing:.03em;font-weight:600">Checks 24h</div><div style="font-weight:800;font-size:19px">${rows.length}</div></div>
     </div>
   </div></div>
+  <div class="ssec-lbl">Platform metrics</div>
+  <div class="kpis" style="margin-bottom:20px">
+   ${mtile('#EEF6FF','#3A6FF0','tradie',tradies,'Live tradies')}
+   ${mtile('#EEF2FF','#4C6FFF','home',homeowners,'Homeowners')}
+   ${mtile('#FBF1DA','#D98A04','file',appsWaiting,'Applications waiting')}
+   ${mtile('#EAF4FF','#3A6FF0','mail',enq,'Enquiries')}
+   ${mtile('#F1F0F4','#6B7280','job',jobs,'Jobs booked')}
+   ${mtile(errs>0?'#FDECEC':'#E9F7EF',errs>0?'#D64545':'#1F9D57','err',errs,'Errors · 24h',errs>0)}
+  </div>
+  <div class="ssec-lbl">Manage</div>
   <div class="sysgrid">
    ${card('grid','#EEF2FF','#4C6FFF','Area caps &amp; map','Coverage limits and live tradie map by suburb','map')}
    ${card('pulse','#E9F7EF','#1F9D57','System health','Service status, uptime history and error logs','health')}
-   ${card('gear','#F1F0F4','#6B7280','Settings','Platform configuration and account preferences','settings')}
+   ${card('gear','#F1F0F4','#6B7280','Settings','Platform config, appearance and your account','settings')}
    ${card('scroll','#FDF3E2','#D98A00','Audit log','Every admin action, timestamped and attributed','audit')}
    ${card('shield','#FBEBEB','#D64545','Security · 2FA','Admin authentication and two-factor enrolment','security')}
    ${card('book','#EEF2FF','#4C6FFF','Policies','Versioned legal documents and consent tracking','policies')}
@@ -1178,7 +1220,7 @@ function renderTP(){const t=TP.t,bk=TP.bk,rev=TP.rev;
    <div class="card"><div class="ch">Contact, rates &amp; payouts</div><div style="padding:6px 18px">${kv('Email',t.email)}${kv('Phone',t.phone)}${kv('Website',t.website)}${kv('Team size',t.team_size)}${kv('Hourly rate',t.hourly_rate?'$'+t.hourly_rate:'—')}${kv('Call-out fee',t.call_out_fee?'$'+t.call_out_fee:'—')}${kv('Joined',fmtDate(t.joined_at))}${kv('Stripe payouts',t.stripe_charges_enabled?'Enabled ('+esc(t.stripe_account_id||'')+')':'Not connected')}${kv('Pay link',t.pay_link)}${kv('Google',t.google_url)}${kv('Instagram',t.instagram_url)}</div></div>`,
   `<div class="card"><div class="ch">Verification</div><div style="padding:6px 18px">${kv('ABN',t.abn)}${kv('Licence',t.licence)}${kv('Insured',t.insured?'Yes':'No')}${kv('Insurance expiry',t.insurance_expiry_date)}${kv('Insurance document',t.insurance_doc_url?'On file':'—')}${kv('Qualified / licensed',t.qualified?'Yes':'No')}${kv('Google rating',t.google_rating?t.google_rating+' ('+(t.google_review_count||0)+' reviews)':'—')}</div></div>`,
   svc.length?`<div class="card"><div class="ch">Services &amp; pricing</div><div style="padding:6px 18px">${svc.map(s=>`<div style="display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--line2)"><span>${esc(s.name||s.title||s.label||'Service')}${s.detail?' <span class="mut" style="font-size:12px">'+esc(s.detail)+'</span>':''}</span><b>${s.price!=null?'$'+esc(s.price):esc(s.priceText||s.amount||'')}</b></div>`).join('')}</div></div>`:'<div class="card"><div class="empty">No services listed.</div></div>',
-  photos.length?`<div class="card"><div class="ch">Gallery (${photos.length})</div><div style="padding:14px 18px;display:grid;grid-template-columns:repeat(4,1fr);gap:8px">${photos.slice(0,12).map(u=>`<img src="${esc(u)}" style="width:100%;aspect-ratio:1;object-fit:cover;border-radius:10px">`).join('')}</div></div>`:'<div class="card"><div class="empty">No photos yet.</div></div>',
+  photos.length?`<div class="card"><div class="ch">Gallery (${photos.length})</div><div style="padding:14px 18px;display:grid;grid-template-columns:repeat(4,1fr);gap:8px">${photos.slice(0,12).map(u=>`<img class="zoomable" src="${esc(u)}" style="width:100%;aspect-ratio:1;object-fit:cover;border-radius:10px">`).join('')}</div></div>`:'<div class="card"><div class="empty">No photos yet.</div></div>',
   `<div class="card"><div class="ch">Availability &amp; area</div><div style="padding:6px 18px">${hoursRows||kv('Business hours','—')}${kv('Service radius',t.service_radius_km?t.service_radius_km+' km':'—')}${kv('Suburb · postcode',(t.suburb||'')+' '+(t.postcode||''))}${kv('Cap slot',t.cap_slot||'—')}</div></div>`,
   `<div class="card"><div class="ch">Reviews (${rev.length})</div><div style="padding:6px 18px">${rev.length?rev.map(r=>`<div style="padding:13px 0;border-bottom:1px solid var(--line2)"><div style="display:flex;align-items:center;gap:8px"><b>${esc(r.from_name||'—')}</b><span style="color:var(--gold)">${stars(r.rating)}</span><span class="pill ${r.source==='google'?'n':'g'}" style="margin-left:auto">${esc(r.source||'trusttrade')}</span>${r.hidden?'<span class="pill r">Hidden</span>':''}</div><div style="font-size:13px;color:var(--ink2);margin-top:6px">${esc(r.review_text||'')}</div>${r.reply_text?`<div style="margin-top:8px;padding:9px 11px;background:#FBFBFC;border:1px solid var(--line2);border-radius:8px;font-size:12.5px"><b>Reply</b> ${esc(r.reply_text)}</div>`:''}</div>`).join(''):'<div class="empty" style="padding:14px 0">No reviews yet.</div>'}</div></div>`,
   `<div class="card"><div class="ch">Bookings (${bk.length})</div>${bk.length?`<table><tbody>${bk.map(b=>`<tr><td><b>${esc(b.job_title||'Job')}</b></td><td>${esc(b.status||'')}</td><td class="mut">${fmtDate(b.slot_start)}</td></tr>`).join('')}</tbody></table>`:'<div class="empty">No bookings yet.</div>'}</div>`,
@@ -1188,7 +1230,7 @@ function renderTP(){const t=TP.t,bk=TP.bk,rev=TP.rev;
  $('main').innerHTML=`<div style="margin-bottom:12px"><a class="mut" style="cursor:pointer" onclick="go('tradies')">← Tradies</a></div>
   <div style="display:flex;align-items:center;gap:14px;margin-bottom:8px"><h2>${esc(t.name)}</h2>
    ${t.status==='approved'?'<span class="pill g">Live</span>':t.status==='hidden'?'<span class="pill r">Hidden</span>':'<span class="pill n">'+esc(t.status||'')+'</span>'}${t.insured?'<span class="pill g">Insured</span>':'<span class="pill a">No insurance</span>'}${t.qualified?'<span class="pill b">Licensed</span>':''}
-   <span style="margin-left:auto"></span><button class="btn w" onclick="previewDash('${t.id}')">Preview dashboard</button> <button class="btn w" onclick="editTradieForm()">Edit</button> ${t.status==='hidden'?`<button class="btn g" onclick="restoreListing('${t.id}','${esc(t.name)}')">Restore</button>`:`<button class="btn r" onclick="hideListing('${t.id}','${esc(t.name)}')">Hide</button>`} <button class="btn r" onclick="deleteListing('${t.id}','${esc(t.name)}')"><svg viewBox="0 0 24 24" style="width:13px;height:13px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round"><path d="M3 6h18M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>Delete</button></div>
+   <span style="margin-left:auto"></span><button class="btn w" onclick="previewDash('${t.id}')">Dashboard</button> <button class="btn w" onclick="publicProfile('${esc(t.slug||'')}','${esc(t.status||'')}')">Public profile</button> <button class="btn w" onclick="editTradieForm()">Edit</button> ${t.status==='hidden'?`<button class="btn g" onclick="restoreListing('${t.id}','${esc(t.name)}')">Restore</button>`:`<button class="btn r" onclick="hideListing('${t.id}','${esc(t.name)}')">Hide</button>`} <button class="btn r" onclick="deleteListing('${t.id}','${esc(t.name)}')"><svg viewBox="0 0 24 24" style="width:13px;height:13px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round"><path d="M3 6h18M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>Delete</button></div>
   <div class="subt">${esc(t.trade||'')} · ${esc(t.suburb||t.location||'')} ${esc(t.postcode||'')} · ABN ${esc(t.abn||'—')}</div>
   <div class="kpis" style="margin:16px 0 6px">
    <div class="kpi"><div class="k">Rating</div><b>${t.rating||'—'}</b><div class="d">${t.review_count||0} reviews</div></div>
@@ -1361,7 +1403,12 @@ async function deleteListing(id,name){ask('Delete '+name+'?','Removes the listin
 async function suspendUser(id,name){ask('Suspend '+name+'?','Blocks their app access. Reason is logged.','Reason (min 9 chars)',async r=>{if(r.trim().length<9){toast('Reason too short');return;}const {error}=await sb.from('profiles').update({suspended:true,suspended_reason:r,suspended_at:new Date().toISOString()}).eq('id',id);if(error){toast(error.message);return;}await audit('user_suspended','profile',id,r);closeM();toast('Suspended');openUser(id);},true);}
 async function unsuspendUser(id){const {error}=await sb.from('profiles').update({suspended:false,suspended_reason:null}).eq('id',id);if(error){toast(error.message);return;}await audit('user_unsuspended','profile',id,'lifted');toast('Unsuspended');openUser(id);}
 const val=id=>($(id)?$(id).value:'');
-function toggleTheme(){const h=document.documentElement,d=h.getAttribute('data-theme')==='dark';h.setAttribute('data-theme',d?'light':'dark');const l=$('themeLbl');if(l)l.textContent=d?'Dark mode':'Light mode';try{localStorage.setItem('tt_theme',d?'light':'dark');}catch(e){}}
+function photoView(src){if(!src)return;const o=document.createElement('div');o.className='lbx';const img=document.createElement('img');img.src=src;const x=document.createElement('span');x.className='lbx-x';x.textContent='×';o.appendChild(x);o.appendChild(img);o.onclick=()=>{o.remove();document.removeEventListener('keydown',onKey);};function onKey(e){if(e.key==='Escape'){o.remove();document.removeEventListener('keydown',onKey);}}document.addEventListener('keydown',onKey);document.body.appendChild(o);}
+document.addEventListener('click',function(e){const im=e.target&&e.target.closest&&e.target.closest('img.zoomable');if(im){e.stopPropagation();photoView(im.src);}},true);
+function toggleTheme(){const d=document.documentElement.getAttribute('data-theme')==='dark';setTheme(d?'light':'dark');}
+function setTheme(mode){document.documentElement.setAttribute('data-theme',mode);try{localStorage.setItem('tt_theme',mode);}catch(e){}
+ const l=$('themeLbl');if(l)l.textContent=mode==='dark'?'Light mode':'Dark mode';
+ const bl=$('thLight'),bd=$('thDark');if(bl&&bd){bl.classList.toggle('on',mode!=='dark');bd.classList.toggle('on',mode==='dark');}}
 const DASH_KEYS=[
  ['mrr','MRR','Metric cards'],['tradies','Live tradies','Metric cards'],['newtr','New tradies · 7d','Metric cards'],
  ['bookings','Bookings','Metric cards'],['jobsdone','Jobs completed','Metric cards'],['enq7','Enquiries · 7d','Metric cards'],
@@ -1409,7 +1456,7 @@ function epreview(){const el=$('eprev');if(!el)return;const t=TP.t||{};
  el.innerHTML=`<div style="border:1px solid var(--line);border-radius:22px;overflow:hidden;background:var(--panel);box-shadow:0 12px 30px rgba(0,0,0,.14);font-family:var(--f)">
   <div style="height:78px;background:linear-gradient(135deg,#FFCB63,#F2A222)"></div>
   <div style="padding:0 15px 16px;margin-top:-30px">
-   <div style="width:62px;height:62px;border-radius:19px;border:3px solid var(--panel);box-shadow:0 3px 10px rgba(0,0,0,.22);overflow:hidden">${t.profile_photo_url?`<img src="${esc(t.profile_photo_url)}" style="width:100%;height:100%;object-fit:cover">`:`<div style="width:100%;height:100%;background:linear-gradient(135deg,#FFCB63,#F2A222);display:grid;place-items:center;color:#231700;font-weight:800;font-size:21px">${esc(initials)}</div>`}</div>
+   <div style="width:62px;height:62px;border-radius:19px;border:3px solid var(--panel);box-shadow:0 3px 10px rgba(0,0,0,.22);overflow:hidden">${t.profile_photo_url?`<img class="zoomable" src="${esc(t.profile_photo_url)}" style="width:100%;height:100%;object-fit:cover">`:`<div style="width:100%;height:100%;background:linear-gradient(135deg,#FFCB63,#F2A222);display:grid;place-items:center;color:#231700;font-weight:800;font-size:21px">${esc(initials)}</div>`}</div>
    <div style="font-size:17px;font-weight:800;letter-spacing:-.02em;margin-top:9px">${esc(name)}</div>
    <div class="mut" style="font-size:12.5px;margin-top:2px">${esc(trade)}${sub?' · '+esc(sub):''}</div>
    <div style="display:flex;align-items:center;gap:7px;margin-top:9px;flex-wrap:wrap">${rating?`<span style="color:var(--gold);font-size:13px;letter-spacing:1px">${'★'.repeat(starN)}${'☆'.repeat(5-starN)}</span><span class="mut" style="font-size:12px">${rating} · ${rc} reviews</span>`:'<span class="mut" style="font-size:12px">No reviews yet</span>'}</div>

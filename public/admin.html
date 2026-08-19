@@ -631,7 +631,7 @@ async function pDash(){loading('Dashboard');try{
 
 let TRD=[],TRDF={q:'',trade:'',area:'',rating:0};
 async function pTradies(){loading('Tradies');try{
- const {data,error}=await sb.from('listings').select('id,name,slug,trade,suburb,postcode,area_key,rating,review_count,status,insured,stat_jobs_complete').is('deleted_at',null).order('name');if(error)throw error;
+ const {data,error}=await sb.from('listings').select('id,name,slug,trade,suburb,postcode,area_key,rating,review_count,status,insured,stat_jobs_complete,is_demo').is('deleted_at',null).order('name');if(error)throw error;
  TRD=data||[];trdShell();trdRender();
 }catch(e){$('main').innerHTML='<h2>Tradies</h2>'+errBox(e);}}
 function trdShell(){
@@ -656,7 +656,7 @@ function trdRender(){
    if(TRDF.rating&&!(+t.rating>=TRDF.rating))return false;
    if(q){const hay=((t.name||'')+' '+(t.trade||'')+' '+(t.suburb||'')+' '+(t.postcode||'')).toLowerCase();if(!hay.includes(q))return false;}
    return true;});
- const tb=$('trd_rows');if(tb)tb.innerHTML=rows.map(t=>`<tr><td><input type="checkbox" class="selbox" value="${t.id}" onclick="selRow(this)"></td><td><b style="cursor:pointer;color:var(--goldd)" onclick="openTradie('${t.id}')">${esc(t.name)}</b></td><td>${esc(t.trade||'—')}<br><span class="mut" style="font-size:12px">${esc(t.suburb||'')} ${esc(t.postcode||'')}</span></td><td>${t.rating?'<b>'+t.rating+'</b> <span class="mut">('+(t.review_count||0)+')</span>':'<span class="mut">—</span>'}</td><td class="mono">${t.stat_jobs_complete??0}</td><td>${t.status==='approved'?'<span class="pill g">Live</span>':t.status==='hidden'?'<span class="pill r">Hidden</span>':'<span class="pill n">'+esc(t.status||'—')+'</span>'}${t.insured?'':' <span class="pill a">no ins</span>'}</td><td class="right"><button class="btn w" onclick="previewDash('${t.id}')">Dashboard</button>${t.status==='approved'&&t.slug?` <button class="btn w" onclick="publicProfile('${esc(t.slug)}','${esc(t.status||'')}')">Public</button>`:''} ${t.status==='hidden'?`<button class="btn g" onclick="restoreListing('${t.id}','${esc(t.name)}')">Restore</button>`:t.status!=='approved'?`<button class="btn g" onclick="goLiveListing('${t.id}','${esc(t.name)}')">Go live</button>`:`<button class="btn r" onclick="hideListing('${t.id}','${esc(t.name)}')">Hide</button>`}</td></tr>`).join('')||'<tr><td colspan=7 class="empty">No tradies match these filters.</td></tr>';
+ const tb=$('trd_rows');if(tb)tb.innerHTML=rows.map(t=>`<tr><td><input type="checkbox" class="selbox" value="${t.id}" onclick="selRow(this)"></td><td><b style="cursor:pointer;color:var(--goldd)" onclick="openTradie('${t.id}')">${esc(t.name)}</b>${t.is_demo?' <span class="pill b" title="Demo — hidden from the public site">Demo</span>':''}</td><td>${esc(t.trade||'—')}<br><span class="mut" style="font-size:12px">${esc(t.suburb||'')} ${esc(t.postcode||'')}</span></td><td>${t.rating?'<b>'+t.rating+'</b> <span class="mut">('+(t.review_count||0)+')</span>':'<span class="mut">—</span>'}</td><td class="mono">${t.stat_jobs_complete??0}</td><td>${t.status==='approved'?'<span class="pill g">Live</span>':t.status==='hidden'?'<span class="pill r">Hidden</span>':'<span class="pill n">'+esc(t.status||'—')+'</span>'}${t.insured?'':' <span class="pill a">no ins</span>'}</td><td class="right"><button class="btn w" onclick="previewDash('${t.id}')">Dashboard</button>${t.status==='approved'&&t.slug?` <button class="btn w" onclick="publicProfile('${esc(t.slug)}','${esc(t.status||'')}')">Public</button>`:''} ${t.status==='hidden'?`<button class="btn g" onclick="restoreListing('${t.id}','${esc(t.name)}')">Restore</button>`:t.status!=='approved'?`<button class="btn g" onclick="goLiveListing('${t.id}','${esc(t.name)}')">Go live</button>`:`<button class="btn r" onclick="hideListing('${t.id}','${esc(t.name)}')">Hide</button>`}</td></tr>`).join('')||'<tr><td colspan=7 class="empty">No tradies match these filters.</td></tr>';
  const c=$('trd_count');if(c)c.textContent=rows.length+' of '+TRD.length+' listings';}
 
 let APPTAB='submitted';
@@ -913,9 +913,24 @@ async function pSettings(){loading('Settings');try{
      <button class="btn w" onclick="go('security')">Manage 2FA</button>
    </div>
   </div>
+  <div class="card"><div class="ch">Sandbox · mock accounts</div>
+   <div style="padding:14px 18px">
+    <div class="mut" style="font-size:12.5px;margin-bottom:12px;line-height:1.5">Spin up demo accounts to build out. They're flagged <b>Demo</b> and hidden from the public website + app — only you see them here. Nothing here touches real users or the live site.</div>
+    <div style="display:flex;gap:9px;flex-wrap:wrap">
+     <button class="btn g" onclick="createMock('tradie')">+ Create mock tradie</button>
+     <button class="btn w" onclick="createMock('customer')">+ Create mock customer</button>
+    </div>
+   </div></div>
   <div class="card"><div class="ch">Platform configuration</div>${(data||[]).map(row).join('')||'<div class="empty">No settings yet.</div>'}</div>
   <div class="subt">These keys are the single source of truth — the app should read them so one change updates every surface.</div>`;
 }catch(e){$('main').innerHTML='<h2>Settings</h2>'+errBox(e);}}
+async function createMock(type){toast('Creating mock '+type+'…');
+ try{const {data,error}=await sb.functions.invoke('create-mock',{body:{type}});
+  if(error||!data||!data.ok){toast((data&&data.error)||(error&&error.message)||'Could not create mock '+type);return;}
+  try{await audit('mock_'+type+'_created',type==='tradie'?'listing':'profile',data.id,'sandbox account');}catch(e){}
+  toast('Mock '+type+' created — build it out');
+  if(data.kind==='tradie')openTradie(data.id);else openUser(data.id);
+ }catch(e){toast(String((e&&e.message)||e));}}
 function editSetting(key,label,cur){const isBool=/^(true|false)$/i.test(cur||'');const field=isBool?`<select id="setv" style="margin-top:10px"><option value="true" ${/^true$/i.test(cur)?'selected':''}>On</option><option value="false" ${/^false$/i.test(cur)?'selected':''}>Off</option></select>`:`<input id="setv" value="${esc(cur)}" style="margin-top:10px">`;modal(`<h3>${esc(label)}</h3><p style="color:var(--mut);font-size:12.5px;margin:4px 0 0">${esc(key)}</p>${field}<div class="mf"><button class="btn w" onclick="closeM()">Cancel</button><button class="btn g" onclick="saveSetting('${key}')">Save</button></div>`);setTimeout(()=>{const e=$('setv');if(e){e.focus();if(e.select)e.select();}},60);}
 async function saveSetting(key){const v=val('setv');const {error}=await sb.from('app_config').update({value:v,updated_at:new Date().toISOString(),updated_by:USER.id}).eq('key',key);if(error){toast(error.message);return;}await audit('setting_updated','app_config',key,key+'='+v);closeM();toast('Saved');pSettings();}
 
@@ -1233,7 +1248,7 @@ function renderTP(){const t=TP.t,bk=TP.bk,rev=TP.rev;
  ][TPTAB];
  $('main').innerHTML=`<div style="margin-bottom:12px"><a class="mut" style="cursor:pointer" onclick="go('tradies')">← Tradies</a></div>
   <div style="display:flex;align-items:center;gap:14px;margin-bottom:8px"><h2>${esc(t.name)}</h2>
-   ${t.status==='approved'?'<span class="pill g">Live</span>':t.status==='hidden'?'<span class="pill r">Hidden</span>':'<span class="pill n">'+esc(t.status||'')+'</span>'}${t.insured?'<span class="pill g">Insured</span>':'<span class="pill a">No insurance</span>'}${t.qualified?'<span class="pill b">Licensed</span>':''}
+   ${t.status==='approved'?'<span class="pill g">Live</span>':t.status==='hidden'?'<span class="pill r">Hidden</span>':'<span class="pill n">'+esc(t.status||'')+'</span>'}${t.is_demo?'<span class="pill b" title="Demo — hidden from the public site">Demo</span>':''}${t.insured?'<span class="pill g">Insured</span>':'<span class="pill a">No insurance</span>'}${t.qualified?'<span class="pill b">Licensed</span>':''}
    <span style="margin-left:auto"></span><button class="btn w" onclick="previewDash('${t.id}')">Dashboard</button> <button class="btn w" onclick="publicProfile('${esc(t.slug||'')}','${esc(t.status||'')}')">Public profile</button> <button class="btn w" onclick="editTradieForm()">Edit</button> ${t.status==='hidden'?`<button class="btn g" onclick="restoreListing('${t.id}','${esc(t.name)}')">Restore</button>`:`<button class="btn r" onclick="hideListing('${t.id}','${esc(t.name)}')">Hide</button>`} <button class="btn r" onclick="deleteListing('${t.id}','${esc(t.name)}')"><svg viewBox="0 0 24 24" style="width:13px;height:13px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round"><path d="M3 6h18M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>Delete</button></div>
   <div class="subt">${esc(t.trade||'')} · ${esc(t.suburb||t.location||'')} ${esc(t.postcode||'')} · ABN ${esc(t.abn||'—')}</div>
   <div class="kpis" style="margin:16px 0 6px">

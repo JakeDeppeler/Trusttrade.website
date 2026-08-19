@@ -14,8 +14,14 @@
     <meta name="theme-color" content="#f2a900" />
     <meta name="author" content="Trust Trade" />
 
-    <!-- Preload the hero image (mobile LCP) so it starts before React renders -->
-    <link rel="preload" as="image" href="/assets/app-home.webp" fetchpriority="high" />
+    <!-- Preload the hero phone image so it starts before React renders.
+         - href MUST match the <img src> byte-for-byte (query string included) or the
+           browser downloads it twice and the preload never serves the paint.
+         - media-scoped to >=980px ONLY: that's where the hero is two-column and the
+           phone is above the fold. Below 980px the hero stacks and the phone is BELOW
+           the fold (not the LCP — the headline text is), so preloading it there just
+           steals mobile bandwidth from the app JS that paints that headline. -->
+    <link rel="preload" as="image" href="/assets/app-home.webp?v=2" fetchpriority="high" media="(min-width: 980px)" />
 
     <!-- Icons -->
     <link rel="icon" href="/favicon.ico" sizes="any" />

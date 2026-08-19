@@ -69,12 +69,16 @@ function Hero({ onJoin }) {
               </div>
               <div className="phone">
                 <div className="phone-screen">
+                  {/* No fetchPriority here: on desktop the media-scoped preload in
+                      index.html already prioritises this (it's the above-fold LCP);
+                      on mobile the phone is below the fold, so forcing high priority
+                      would only steal bandwidth from the app JS that paints the
+                      headline (the real mobile LCP). */}
                   <img
                     src="/assets/app-home.webp?v=2"
                     alt="Trust Trade app home screen"
                     width={1284}
                     height={2778}
-                    fetchPriority="high"
                     decoding="async"
                   />
                 </div>

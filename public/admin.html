@@ -631,7 +631,7 @@ async function pDash(){loading('Dashboard');try{
 
 let TRD=[],TRDF={q:'',trade:'',area:'',rating:0};
 async function pTradies(){loading('Tradies');try{
- const {data,error}=await sb.from('listings').select('id,name,slug,trade,suburb,postcode,area_key,rating,review_count,status,insured,stat_jobs_complete,is_demo').is('deleted_at',null).order('name');if(error)throw error;
+ const {data,error}=await sb.from('listings').select('id,name,slug,trade,suburb,postcode,area_key,rating,review_count,status,insured,stat_jobs_complete,is_demo').is('deleted_at',null).eq('is_demo',false).order('name');if(error)throw error;
  TRD=data||[];trdShell();trdRender();
 }catch(e){$('main').innerHTML='<h2>Tradies</h2>'+errBox(e);}}
 function trdShell(){
@@ -862,8 +862,8 @@ async function pReports(){loading('Reports');try{
 }catch(e){$('main').innerHTML='<h2>Reports</h2>'+errBox(e);}}
 
 async function pCust(){loading('Customers');try{
- const {data,error}=await sb.from('profiles').select('id,name,email,suburb,postcode,role,created_at,last_seen,suspended').order('created_at',{ascending:false}).limit(200);if(error)throw error;
- const cust=data.filter(u=>u.role==='customer');
+ const {data,error}=await sb.from('profiles').select('id,name,email,suburb,postcode,role,created_at,last_seen,suspended,is_demo').order('created_at',{ascending:false}).limit(200);if(error)throw error;
+ const cust=data.filter(u=>u.role==='customer'&&!u.is_demo);
  $('main').innerHTML=`<div style="display:flex;align-items:flex-start"><div><h2>Customers</h2><div class="subt">${cust.length} customers · live · click a column to sort</div></div><button class="btn w" style="margin-left:auto" onclick="exportCSV('customers')">Export CSV</button></div>
   <div class="card"><table><thead><tr><th class="srt" onclick="sortBy(this,0,'text')">Name <span class="ar"></span></th><th class="srt" onclick="sortBy(this,1,'text')">Email <span class="ar"></span></th><th class="srt" onclick="sortBy(this,2,'text')">Area <span class="ar"></span></th><th class="srt" onclick="sortBy(this,3,'date')">Joined <span class="ar"></span></th><th>Last seen</th></tr></thead><tbody>
   ${cust.map(u=>`<tr><td><b style="cursor:pointer;color:var(--goldd)" onclick="openUser('${u.id}')">${esc(u.name||'—')}</b>${u.suspended?' <span class="pill r">Suspended</span>':''}</td><td class="mut">${esc(u.email||'')}</td><td>${esc(u.suburb||'')} ${esc(u.postcode||'')}</td><td class="mut">${fmtDate(u.created_at)}</td><td class="mut">${ago(u.last_seen)}</td></tr>`).join('')||'<tr><td colspan=5 class="empty">No customers.</td></tr>'}
@@ -882,6 +882,8 @@ async function pAudit(){loading('Audit log');try{
 let CFG={};
 async function loadConfig(){try{const {data}=await sb.from('app_config').select('key,value');CFG={};(data||[]).forEach(r=>CFG[r.key]=r.value);}catch(e){}}
 const subPrice=()=>{const n=parseFloat(CFG.sub_price);return isNaN(n)?49:n;};
+let SETTINGS_TAB='general';
+function setSettingsTab(t){SETTINGS_TAB=t;pSettings();}
 async function pSettings(){loading('Settings');try{
  const {data,error}=await sb.from('app_config').select('*').order('key');if(error)throw error;
  CFG={};(data||[]).forEach(r=>CFG[r.key]=r.value);
@@ -897,7 +899,7 @@ async function pSettings(){loading('Settings');try{
  const who=($('whoami')&&$('whoami').textContent&&$('whoami').textContent!=='—')?$('whoami').textContent:((USER&&USER.email)||'Admin');
  const inits=(String(who).replace(/@.*/,'').split(/[ .]+/).map(w=>w[0]||'').join('').slice(0,2)||'A').toUpperCase();
  const isDark=document.documentElement.getAttribute('data-theme')==='dark';
- $('main').innerHTML=`<h2>Settings</h2><div class="subt">Your account, appearance and platform config · every change is audited</div>
+ const generalHTML=`
   <div class="card"><div class="ch">Account &amp; session</div>
    <div style="display:flex;align-items:center;gap:14px;padding:16px 18px">
      <div class="av" style="width:42px;height:42px;border-radius:50%;background:linear-gradient(135deg,#7A5CE0,#5B3FD0);color:#fff;display:grid;place-items:center;font-weight:800;font-size:14px;flex-shrink:0">${esc(inits)}</div>
@@ -909,25 +911,41 @@ async function pSettings(){loading('Settings');try{
      <div class="seg"><button id="thLight" class="${isDark?'':'on'}" onclick="setTheme('light')">Light</button><button id="thDark" class="${isDark?'on':''}" onclick="setTheme('dark')">Dark</button></div>
    </div>
    <div style="display:flex;align-items:center;gap:16px;padding:16px 18px;border-top:1px solid var(--line2)">
-     <div style="flex:1"><div style="font-weight:650;font-size:14px">Two-factor authentication</div><div class="mut" style="font-size:12px;margin-top:3px">Manage the authenticator that protects this console.</div></div>
+     <div style="flex:1"><div style="font-weight:650;font-size:14px">Two-factor authentication</div><div class="mut" style="font-size:12px;margin-top:3px">Only you can sign in to this console. Manage the authenticator that protects it.</div></div>
      <button class="btn w" onclick="go('security')">Manage 2FA</button>
    </div>
   </div>
-  <div class="card"><div class="ch">Sandbox · mock accounts</div>
-   <div style="padding:14px 18px">
-    <div class="mut" style="font-size:12.5px;margin-bottom:12px;line-height:1.5">Spin up demo accounts to build out. They're flagged <b>Demo</b> and hidden from the public website + app — only you see them here. Nothing here touches real users or the live site.</div>
-    <div style="display:flex;gap:9px;flex-wrap:wrap">
-     <button class="btn g" onclick="createMock('tradie')">+ Create mock tradie</button>
-     <button class="btn w" onclick="createMock('customer')">+ Create mock customer</button>
-    </div>
-   </div></div>
   <div class="card"><div class="ch">Platform configuration</div>${(data||[]).map(row).join('')||'<div class="empty">No settings yet.</div>'}</div>
   <div class="subt">These keys are the single source of truth — the app should read them so one change updates every surface.</div>`;
+ const tab=(k,l)=>`<div class="${SETTINGS_TAB===k?'on':''}" onclick="setSettingsTab('${k}')">${l}</div>`;
+ $('main').innerHTML=`<h2>Settings</h2><div class="subt">Your account, appearance and platform config · every change is audited</div>
+  <div class="tabs">${tab('general','General')}${tab('demo','Demo &amp; sandbox')}</div>
+  ${SETTINGS_TAB==='demo'?'<div id="set_demo"><div class="mut" style="padding:20px 2px">Loading demo accounts…</div></div>':generalHTML}`;
+ if(SETTINGS_TAB==='demo')renderDemoAccounts();
 }catch(e){$('main').innerHTML='<h2>Settings</h2>'+errBox(e);}}
+async function renderDemoAccounts(){
+ const el=$('set_demo');if(!el)return;
+ try{
+  const [tr,cu]=await Promise.all([
+   sb.from('listings').select('id,name,trade,suburb,status').eq('is_demo',true).is('deleted_at',null).order('name'),
+   sb.from('profiles').select('id,name,email,created_at').eq('is_demo',true).eq('role','customer').order('created_at',{ascending:false})
+  ]);
+  const trRows=(tr.data||[]).map(t=>`<tr><td><b style="cursor:pointer;color:var(--goldd)" onclick="openTradie('${t.id}')">${esc(t.name)}</b></td><td>${esc(t.trade||'—')}</td><td class="mut">${esc(t.suburb||'')}</td><td>${t.status==='approved'?'<span class="pill g">Live</span>':'<span class="pill n">'+esc(t.status||'—')+'</span>'}</td><td class="right"><button class="btn w" onclick="openTradie('${t.id}')">Open</button></td></tr>`).join('')||'<tr><td colspan=5 class="empty">No mock tradies yet — create one above.</td></tr>';
+  const cuRows=(cu.data||[]).map(u=>`<tr><td><b style="cursor:pointer;color:var(--goldd)" onclick="openUser('${u.id}')">${esc(u.name||'—')}</b></td><td class="mut">${esc(u.email||'')}</td><td class="mut">${ago(u.created_at)}</td><td class="right"><button class="btn w" onclick="openUser('${u.id}')">Open</button></td></tr>`).join('')||'<tr><td colspan=4 class="empty">No mock customers yet — create one above.</td></tr>';
+  el.innerHTML=`
+   <div class="card"><div class="ch">Create a sandbox account</div><div style="padding:14px 18px">
+     <div class="mut" style="font-size:12.5px;margin-bottom:12px;line-height:1.5">Demo accounts are flagged <b>Demo</b> and hidden from the public website, the app, and the main Tradies / Customers lists — they only live here so you can build them out. Nothing here touches real users or the live site.</div>
+     <div style="display:flex;gap:9px;flex-wrap:wrap"><button class="btn g" onclick="createMock('tradie')">+ Create mock tradie</button><button class="btn w" onclick="createMock('customer')">+ Create mock customer</button></div>
+   </div></div>
+   <div class="card"><div class="ch">Mock tradies (${(tr.data||[]).length})</div><table><thead><tr><th>Name</th><th>Trade</th><th>Area</th><th>Status</th><th class="right">Action</th></tr></thead><tbody>${trRows}</tbody></table></div>
+   <div class="card"><div class="ch">Mock customers (${(cu.data||[]).length})</div><table><thead><tr><th>Name</th><th>Email</th><th>Created</th><th class="right">Action</th></tr></thead><tbody>${cuRows}</tbody></table></div>`;
+ }catch(e){el.innerHTML=errBox(e);}
+}
 async function createMock(type){toast('Creating mock '+type+'…');
  try{const {data,error}=await sb.functions.invoke('create-mock',{body:{type}});
   if(error||!data||!data.ok){toast((data&&data.error)||(error&&error.message)||'Could not create mock '+type);return;}
   try{await audit('mock_'+type+'_created',type==='tradie'?'listing':'profile',data.id,'sandbox account');}catch(e){}
+  SETTINGS_TAB='demo';
   toast('Mock '+type+' created — build it out');
   if(data.kind==='tradie')openTradie(data.id);else openUser(data.id);
  }catch(e){toast(String((e&&e.message)||e));}}

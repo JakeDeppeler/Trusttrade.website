@@ -520,8 +520,12 @@ function sortBy(th,idx,type){const table=th.closest('table'),tb=table.querySelec
 /* ── export the current table to CSV ── */
 function exportCSV(name){const t=$('main').querySelector('table');if(!t){toast('Nothing to export');return;}const rows=[...t.querySelectorAll('tr')].map(tr=>[...tr.children].map(td=>{if(td.querySelector('input[type=checkbox]'))return '';let s=(td.innerText||'').replace(/\s+/g,' ').trim();return '"'+s.replace(/"/g,'""')+'"';}).filter((_,i,a)=>true).join(','));const csv=rows.join('\n');const blob=new Blob([csv],{type:'text/csv'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name+'-'+new Date().toISOString().slice(0,10)+'.csv';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000);toast('Exported CSV');}
 /* ── editable area caps ── */
-function editCap(id,area,trade,cur){modal(`<h3>Cap · ${esc(area)} / ${esc(trade)}</h3><p style="color:var(--mut);font-size:12.5px;margin:4px 0 0">Max tradies allowed here before the area locks.</p><input id="capv" type="number" min="0" value="${cur}" style="margin-top:10px"><div class="mf"><button class="btn w" onclick="closeM()">Cancel</button><button class="btn g" onclick="saveCap('${id}')">Save cap</button></div>`);setTimeout(()=>{const e=$('capv');if(e){e.focus();e.select();}},60);}
-async function saveCap(id){const v=parseInt(val('capv'),10);if(isNaN(v)||v<0){toast('Enter a number');return;}const {error}=await sb.from('area_caps').update({max_tradies:v}).eq('id',id);if(error){toast(error.message);return;}await audit('area_cap_updated','area_cap',id,'max_tradies='+v);closeM();toast('Cap updated');MAPTAB='caps';pMap();}
+function editCap(id,area,trade,cur){modal(`<h3>Cap · ${esc(area)} / ${esc(trade)}</h3><p style="color:var(--mut);font-size:12.5px;margin:4px 0 0">Max tradies allowed in ${esc(area)} for ${esc(trade)} before the area locks.</p><input id="capv" type="number" min="0" value="${cur}" style="margin-top:10px"><div class="mf"><button class="btn w" onclick="closeM()">Cancel</button><button class="btn g" onclick="saveCap('${id}','${esc(area)}','${esc(trade)}')">Save cap</button></div>`);setTimeout(()=>{const e=$('capv');if(e){e.focus();e.select();}},60);}
+async function saveCap(id,area,trade){const v=parseInt(val('capv'),10);if(isNaN(v)||v<0){toast('Enter a number');return;}
+ let error;
+ if(id){({error}=await sb.from('area_caps').update({max_tradies:v}).eq('id',id));}
+ else{({error}=await sb.from('area_caps').insert({area,trade,max_tradies:v}));}
+ if(error){toast(error.message);return;}await audit(id?'area_cap_updated':'area_cap_created','area_cap',id||(area+'/'+trade),'max_tradies='+v);closeM();toast('Cap saved');MAPTAB='caps';pMap();}
 
 async function loadCounts(){
  const cutoff=new Date(Date.now()+45*864e5).toISOString().slice(0,10);
@@ -573,56 +577,56 @@ async function pDash(){loading('Dashboard');try{
  const recent=(ev.data||[]).slice(-10).reverse();
  const labels=[days[0].lbl,days[4].lbl,days[7].lbl,days[10].lbl,days[13].lbl];
  const a=series.slice(0,7).reduce((x,y)=>x+y,0),b=series.slice(7).reduce((x,y)=>x+y,0),t7=a?Math.round((b-a)/a*100):0;
- const cards=[
-  dashOn('mrr')&&`<div class="mcard"><div class="l">MRR</div><div class="v">$${activeSubs*subPrice()}</div><div class="tr up">${activeSubs} active subscriptions</div>${spark(series,'#1FA463')}</div>`,
-  dashOn('tradies')&&`<div class="mcard"><div class="l">Live tradies</div><div class="v">${live}</div><div class="tr up">${listings.length} listings total</div>${spark(series,'#3A6FF0')}</div>`,
-  dashOn('newtr')&&`<div class="mcard"><div class="l">New tradies · 7d</div><div class="v">${newTr7}</div><div class="tr up">joined this week</div></div>`,
-  dashOn('bookings')&&`<div class="mcard"><div class="l">Bookings</div><div class="v">${bookingsTotal}</div><div class="tr up">all time</div>${spark(series,'#7A5CE0')}</div>`,
-  dashOn('jobsdone')&&`<div class="mcard"><div class="l">Jobs completed</div><div class="v">${jobsDone}</div><div class="tr up">of ${bookingsTotal} booked</div></div>`,
-  dashOn('enq7')&&`<div class="mcard"><div class="l">Enquiries · 7d</div><div class="v">${enq7}</div><div class="tr up">${enqAll} all time</div></div>`,
-  dashOn('rating')&&`<div class="mcard"><div class="l">Avg rating</div><div class="v">${avgRating?avgRating.toFixed(2):'—'}</div><div class="tr up">${rated.length} rated tradies</div></div>`,
-  dashOn('active')&&`<div class="mcard"><div class="l">Active today</div><div class="v">${activeToday}</div><div class="tr ${t7>=0?'up':'dn'}">${t7>=0?'▲':'▼'} ${Math.abs(t7)}% vs prior week</div>${spark(series,'#F2A222')}</div>`,
-  dashOn('waitlist')&&`<div class="mcard"><div class="l">Waitlist</div><div class="v">${waitlist}</div><div class="tr up">signups</div></div>`,
-  dashOn('pendapp')&&`<div class="mcard"><div class="l">Pending apps</div><div class="v">${pending}</div><div class="tr ${pending?'dn':'up'}">${pending?'need review':'all clear'}</div></div>`,
-  dashOn('openrep')&&`<div class="mcard"><div class="l">Open reports</div><div class="v" style="${openRep?'color:var(--red)':''}">${openRep}</div><div class="tr ${openRep?'dn':'up'}">${openRep?'action needed':'none open'}</div></div>`
- ].filter(Boolean).join('');
- const chartW=dashOn('chart')?`<div class="card"><div class="ch">App activity · 14 days<span style="margin-left:auto;font-size:11px;color:var(--mut)">unique sessions / day</span></div><div style="padding:14px 6px 8px">${lineChart(series,labels)}</div></div>`:'';
- const topW=dashOn('top')?`<div class="card"><div class="ch">Top trades</div><div style="padding:10px 18px">${top.length?top.map(([n,v])=>`<div class="barrow"><span class="bn">${esc(n)}</span><span class="bt"><i style="width:${Math.round(v/topMax*100)}%"></i></span><span class="bv">${v}</span></div>`).join(''):'<div class="empty">No listings.</div>'}</div></div>`:'';
- const recentW=dashOn('recent')?`<div class="card"><div class="ch">Recent activity</div><div class="feed" style="padding:6px 18px">${recent.length?recent.map(e=>`<div class="fr"><span class="fd"></span><span class="ft">${esc(e.event_type||'event')}${e.page?' · <span class="mut">'+esc(e.page)+'</span>':''}</span><span class="fm">${ago(e.created_at)}</span></div>`).join(''):'<div class="empty">No recent events.</div>'}</div></div>`:'';
- const attW=dashOn('attention')?`<div class="card"><div class="ch">Needs attention</div><div style="padding:6px 18px"><div class="arow" onclick="go('reports')"><b>Open reports</b><span class="n" style="color:${openRep?'var(--red)':'var(--mut)'}">${openRep}</span></div><div class="arow" onclick="go('apps')"><b>Pending applications</b><span class="n">${pending}</span></div><div class="arow" onclick="go('expiring')"><b>Insurance expiring</b><span class="n" style="color:var(--goldd)">Review</span></div></div></div>`:'';
- const tItems=[];
- if(openRep>0)tItems.push(['reports',`${openRep} open report${openRep>1?'s':''}`,'var(--red)']);
- if(pending>0)tItems.push(['apps',`${pending} application${pending>1?'s':''} to review`,'var(--goldd)']);
- tItems.push(['expiring','Check insurance expiries','var(--mut)']);
- const todayW=dashOn('today')?`<div class="card" style="padding:14px 18px;margin-bottom:14px"><div style="display:flex;align-items:center;gap:8px;margin-bottom:10px"><b style="font-size:14px">Today</b><span class="mut" style="font-size:12px">what needs you</span></div><div style="display:flex;gap:9px;flex-wrap:wrap">${tItems.map(([p,t,c])=>`<button class="btn w" onclick="go('${p}')" style="border-color:${c};color:${c}">${esc(t)}</button>`).join('')}</div></div>`:'';
  const homeowners=cust.count||0;
  const suspended=listings.filter(l=>l.status==='hidden').length;
  const newestApps=(app.data||[]).filter(x=>x.status==='submitted').sort((x,y)=>(y.created_at||'').localeCompare(x.created_at||'')).slice(0,5);
- const ICO={wrench:'<path d="M14.7 6.3a4 4 0 0 0-5.4 5.4l-6 6 2 2 6-6a4 4 0 0 0 5.4-5.4l-2.3 2.3-1.7-.3-.3-1.7 2.3-2.3z"/>',users:'<circle cx="9" cy="8" r="3.2"/><path d="M3.5 20a5.5 5.5 0 0 1 11 0M16 6a3 3 0 0 1 0 6M20.5 20a5 5 0 0 0-4-4.9"/>',mail:'<rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3.5 7l8.5 6 8.5-6"/>',file:'<path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/>',pause:'<rect x="7" y="5" width="3.5" height="14" rx="1"/><rect x="13.5" y="5" width="3.5" height="14" rx="1"/>',flag:'<path d="M5 21V4M5 4h11l-2 4 2 4H5"/>',users2:'<circle cx="9" cy="8" r="3.2"/><path d="M3.5 20a5.5 5.5 0 0 1 11 0"/>'};
+ const ICO={wrench:'<path d="M14.7 6.3a4 4 0 0 0-5.4 5.4l-6 6 2 2 6-6a4 4 0 0 0 5.4-5.4l-2.3 2.3-1.7-.3-.3-1.7 2.3-2.3z"/>',users:'<circle cx="9" cy="8" r="3.2"/><path d="M3.5 20a5.5 5.5 0 0 1 11 0M16 6a3 3 0 0 1 0 6M20.5 20a5 5 0 0 0-4-4.9"/>',mail:'<rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3.5 7l8.5 6 8.5-6"/>',file:'<path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/>',pause:'<rect x="7" y="5" width="3.5" height="14" rx="1"/><rect x="13.5" y="5" width="3.5" height="14" rx="1"/>',flag:'<path d="M5 21V4M5 4h11l-2 4 2 4H5"/>',users2:'<circle cx="9" cy="8" r="3.2"/><path d="M3.5 20a5.5 5.5 0 0 1 11 0"/>',dollar:'<path d="M12 2v20"/><path d="M17 6.5c0-2-2.2-3-5-3s-5 1-5 3.2c0 4.6 10 2 10 6.3 0 2.2-2.2 3.2-5 3.2s-5-1.2-5-3.2"/>',job:'<rect x="3" y="7" width="18" height="13" rx="2"/><path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>',check:'<path d="M20 6L9 17l-5-5"/>',pulse:'<path d="M3 12h4l2 6 4-14 2 8h6"/>',star:'<path d="M12 3l2.7 5.5 6 .9-4.3 4.2 1 6L12 17l-5.4 2.6 1-6L3.3 9.4l6-.9z"/>'};
  const kpi=(bg,col,ic,val,label,badge)=>`<div class="kpi"><div class="kpi-top"><span class="kpi-ic" style="background:${bg}"><svg viewBox="0 0 24 24" stroke="${col}">${ICO[ic]}</svg></span>${badge||''}</div><b>${val}</b><div class="k">${label}</div></div>`;
  const trow=(bg,col,ic,label,n,page,nc)=>`<div class="trow" onclick="go('${page}')"><span class="tic" style="background:${bg}"><svg viewBox="0 0 24 24" stroke="${col}">${ICO[ic]}</svg></span><b>${label}</b><span class="tn"${nc?` style="color:${nc}"`:''}>${n}</span><span class="tar">›</span></div>`;
- $('main').innerHTML=`
-  <div class="dashhead"><div><div class="subt" style="margin:0 0 2px">TrustTrade Management</div><h2>Platform Overview</h2></div>
-   <div class="ha"><button class="btn w" onclick="exportCSV('tradies')">Export</button><button class="btn g" onclick="go('apps')">Review ${pending} app${pending===1?'':'s'}</button></div></div>
-  <div class="kpis">
-   ${kpi('var(--goldb)','var(--goldd)','wrench',live,'Live tradies',newTr7?`<span class="kpi-tr up">↑ ${newTr7}</span>`:'')}
-   ${kpi('var(--blueb)','var(--blue)','users',homeowners.toLocaleString(),'Homeowners','')}
-   ${kpi('var(--greenb)','var(--green)','mail',enq7,'Enquiries this week',t7>0?`<span class="kpi-tr up">↑ ${t7}%</span>`:'')}
-   ${kpi('var(--redb)','var(--red)','file',pending,'Applications waiting',pending?'<span class="kpi-tr act">Action</span>':'')}
-  </div>
-  <div class="d2">
-   <div class="card"><div class="ch">Unique sessions<span style="margin-left:auto;font-size:11px;color:var(--mut)">Last 14 days</span></div><div style="padding:14px 8px 10px">${lineChart(series,labels)}</div></div>
-   <div class="card"><div class="ch">Trust &amp; safety</div><div class="trust" style="padding:2px 18px 8px">
+ // Metric registry — every card the user can switch on via Customise. Rendered in
+ // this order, filtered by dashOn(). Keys must match DASH_KEYS below.
+ const METRICS={
+  tradies:['var(--goldb)','var(--goldd)','wrench',live,'Live tradies',newTr7?`<span class="kpi-tr up">↑ ${newTr7}</span>`:''],
+  homeowners:['var(--blueb)','var(--blue)','users',homeowners.toLocaleString(),'Homeowners',''],
+  enq7:['var(--greenb)','var(--green)','mail',enq7,'Enquiries · 7d',t7>0?`<span class="kpi-tr up">↑ ${t7}%</span>`:''],
+  pendapp:['var(--redb)','var(--red)','file',pending,'Applications waiting',pending?'<span class="kpi-tr act">Action</span>':''],
+  mrr:['var(--greenb)','var(--green)','dollar','$'+(activeSubs*subPrice()),'MRR',activeSubs?`<span class="kpi-tr up">${activeSubs} active</span>`:''],
+  bookings:['var(--blueb)','var(--blue)','job',bookingsTotal,'Bookings',''],
+  jobsdone:['var(--greenb)','var(--green)','check',jobsDone,'Jobs completed',''],
+  active:['var(--goldb)','var(--goldd)','pulse',activeToday,'Active today',`<span class="kpi-tr ${t7>=0?'up':'act'}">${t7>=0?'↑':'↓'} ${Math.abs(t7)}%</span>`],
+  rating:['var(--amberb)','var(--amber)','star',avgRating?avgRating.toFixed(2):'—','Avg rating',''],
+  waitlist:['var(--blueb)','var(--blue)','users2',waitlist,'Waitlist',''],
+  openrep:['var(--redb)','var(--red)','flag',openRep,'Open reports',openRep?'<span class="kpi-tr act">Action</span>':''],
+  newtr:['var(--goldb)','var(--goldd)','wrench',newTr7,'New tradies · 7d',''],
+  suspended:['var(--amberb)','var(--amber)','pause',suspended,'Suspended listings','']
+ };
+ const METRIC_ORDER=['tradies','homeowners','enq7','pendapp','mrr','bookings','jobsdone','active','rating','waitlist','openrep','newtr','suspended'];
+ const kpiCards=METRIC_ORDER.filter(k=>dashOn(k)).map(k=>kpi(...METRICS[k])).join('');
+ // Optional panels
+ const chartP=`<div class="card"><div class="ch">Unique sessions<span style="margin-left:auto;font-size:11px;color:var(--mut)">Last 14 days</span></div><div style="padding:14px 8px 10px">${lineChart(series,labels)}</div></div>`;
+ const trustP=`<div class="card"><div class="ch">Trust &amp; safety</div><div class="trust" style="padding:2px 18px 8px">
      ${trow('var(--redb)','var(--red)','flag','Open reports',openRep,'reports',openRep?'var(--red)':'')}
      ${trow('var(--amberb)','var(--amber)','pause','Suspended listings',suspended,'tradies','')}
      ${trow('var(--goldb)','var(--goldd)','file','Applications waiting',pending,'apps','')}
      ${trow('var(--blueb)','var(--blue)','users2','Waitlist signups',waitlist,'waitlist','')}
-   </div></div>
-  </div>
-  <div class="card"><div class="ch">Newest applications<a onclick="go('apps')" style="margin-left:auto;color:var(--goldd);cursor:pointer;font-size:12.5px;font-weight:700">View all ›</a></div>
+   </div></div>`;
+ const topP=`<div class="card"><div class="ch">Top trades</div><div style="padding:10px 18px">${top.length?top.map(([n,v])=>`<div class="barrow"><span class="bn">${esc(n)}</span><span class="bt"><i style="width:${Math.round(v/topMax*100)}%"></i></span><span class="bv">${v}</span></div>`).join(''):'<div class="empty">No listings.</div>'}</div></div>`;
+ const recentP=`<div class="card"><div class="ch">Recent activity</div><div class="feed" style="padding:6px 18px">${recent.length?recent.map(e=>`<div class="fr"><span class="fd"></span><span class="ft">${esc(e.event_type||'event')}${e.page?' · <span class="mut">'+esc(e.page)+'</span>':''}</span><span class="fm">${ago(e.created_at)}</span></div>`).join(''):'<div class="empty">No recent events.</div>'}</div></div>`;
+ const newestP=`<div class="card"><div class="ch">Newest applications<a onclick="go('apps')" style="margin-left:auto;color:var(--goldd);cursor:pointer;font-size:12.5px;font-weight:700">View all ›</a></div>
    <table><thead><tr><th>Business</th><th>Trade</th><th>Area</th><th>Submitted</th><th class="right">Action</th></tr></thead><tbody>
    ${newestApps.length?newestApps.map(a=>{const nm=a.business_name||a.full_name||'—';const ini=(nm.split(/\s+/).map(w=>w[0]||'').join('').slice(0,2)||'?').toUpperCase();return `<tr><td><div style="display:flex;align-items:center;gap:10px"><div class="appavatar" style="width:34px;height:34px;border-radius:9px;font-size:12px;background:${appTint(a.trade)}">${ini}</div><div><b>${esc(nm)}</b><br><span class="mut" style="font-size:12px">${esc(a.full_name||'')}</span></div></div></td><td>${esc(a.trade||'—')}</td><td class="mut">${esc(a.location||'—')}</td><td class="mut">${ago(a.created_at)}</td><td class="right"><button class="btn" onclick="openApplication('${a.id}')">Review</button></td></tr>`;}).join(''):'<tr><td colspan=5 class="empty">No new applications.</td></tr>'}
    </tbody></table></div>`;
+ // Pair panels into a 2-col row when two are on; otherwise full width.
+ const pair=(a,b)=>{const on=[a,b].filter(Boolean);return on.length===2?`<div class="d2">${a}${b}</div>`:on.join('');};
+ const row1=pair(dashOn('chart')?chartP:'',dashOn('trust')?trustP:'');
+ const row2=pair(dashOn('top')?topP:'',dashOn('recent')?recentP:'');
+ $('main').innerHTML=`
+  <div class="dashhead"><div><div class="subt" style="margin:0 0 2px">TrustTrade Management</div><h2>Platform Overview</h2></div>
+   <div class="ha"><button class="btn w" onclick="customiseDash()"><svg viewBox="0 0 24 24" style="width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;vertical-align:-2px;margin-right:5px"><path d="M4 6h10M18 6h2M4 12h2M10 12h10M4 18h7M15 18h5"/><circle cx="16" cy="6" r="2"/><circle cx="8" cy="12" r="2"/><circle cx="13" cy="18" r="2"/></svg>Customise</button><button class="btn w" onclick="exportCSV('tradies')">Export</button><button class="btn g" onclick="go('apps')">Review ${pending} app${pending===1?'':'s'}</button></div></div>
+  ${kpiCards?`<div class="kpis">${kpiCards}</div>`:'<div class="card"><div class="empty">No metric cards selected — click Customise to choose what you see.</div></div>'}
+  ${row1}
+  ${row2}
+  ${dashOn('newest')?newestP:''}`;
 }catch(e){$('main').innerHTML='<h2>Dashboard</h2>'+errBox(e);}}
 
 let TRD=[],TRDF={q:'',trade:'',area:'',rating:0};
@@ -1303,9 +1307,20 @@ async function drawMapView(){
 function mapFocus(id,lat,lng){if(!window.MAP)return;window.MAP.setView([lat,lng],14);const m=window.MAPMARKERS&&window.MAPMARKERS[id];if(m)m.openPopup();}
 async function renderCaps(){
  const body=$('ma_body');if(!body)return;
- try{const [caps,lst]=await Promise.all([sb.from('area_caps').select('*'),sb.from('listings').select('area_key,trade_key,status')]);if(caps.error)throw caps.error;
-  const filled={};(lst.data||[]).filter(l=>l.status==='approved').forEach(l=>{const k=(l.area_key||'')+'|'+(l.trade_key||'');filled[k]=(filled[k]||0)+1;});
-  body.innerHTML=`<div class="card"><table><thead><tr><th>Area</th><th>Trade</th><th>Filled</th><th>Status</th><th class="right">Action</th></tr></thead><tbody>${(caps.data||[]).map(c=>{const n=filled[(c.area||'')+'|'+(c.trade||'')]||0;const full=n>=c.max_tradies;return `<tr><td><b>${esc(c.area||'')}</b></td><td>${esc(c.trade||'')}</td><td class="mono">${n} / ${c.max_tradies}</td><td>${full?'<span class="pill r">Full</span>':'<span class="pill g">Open</span>'}</td><td class="right"><button class="btn w" onclick="editCap('${c.id}','${esc(c.area||'')}','${esc(c.trade||'')}',${c.max_tradies||0})">Edit cap</button></td></tr>`;}).join('')||'<tr><td colspan=5 class="empty">No caps set.</td></tr>'}</tbody></table></div>`;
+ try{const [caps,lst]=await Promise.all([sb.from('area_caps').select('*'),sb.from('listings').select('suburb,area_key,trade,status').is('deleted_at',null)]);if(caps.error)throw caps.error;
+  const defCap=parseInt(CFG.cap_default,10)||3;
+  // One row per suburb × trade that appears on the map (any live listing), so the
+  // caps list mirrors the map. "Filled" counts only APPROVED tradies (the ones
+  // actually occupying a slot). Manual caps with no tradies yet still show.
+  const groups={};
+  (lst.data||[]).forEach(l=>{const area=(l.suburb||'—').trim();const trade=(l.trade||'—').trim();const key=area.toLowerCase()+'|'+trade.toLowerCase();if(!groups[key])groups[key]={area,trade,n:0};if(l.status==='approved')groups[key].n++;});
+  const capByKey={};(caps.data||[]).forEach(c=>{capByKey[(c.area||'').trim().toLowerCase()+'|'+(c.trade||'').trim().toLowerCase()]=c;});
+  Object.values(capByKey).forEach(c=>{const key=(c.area||'').trim().toLowerCase()+'|'+(c.trade||'').trim().toLowerCase();if(!groups[key])groups[key]={area:c.area,trade:c.trade,n:0};});
+  const rows=Object.keys(groups).sort().map(key=>{const g=groups[key];const cap=capByKey[key];const max=cap?cap.max_tradies:defCap;const full=g.n>=max;
+    const capNote=cap?'':'<span class="mut" style="font-size:11px"> · default</span>';
+    const btn=cap?`<button class="btn w" onclick="editCap('${cap.id}','${esc(g.area)}','${esc(g.trade)}',${max})">Edit cap</button>`:`<button class="btn w" onclick="editCap('','${esc(g.area)}','${esc(g.trade)}',${defCap})">Set cap</button>`;
+    return `<tr><td><b>${esc(g.area)}</b></td><td>${esc(g.trade)}</td><td class="mono">${g.n} / ${max}${capNote}</td><td>${full?'<span class="pill r">Full</span>':'<span class="pill g">Open</span>'}</td><td class="right">${btn}</td></tr>`;}).join('')||'<tr><td colspan=5 class="empty">No tradies on the map yet.</td></tr>';
+  body.innerHTML=`<div class="subt" style="margin:0 0 12px">One row per suburb × trade on the map · caps default to ${defCap} (change in Settings) until you override an area.</div><div class="card"><table><thead><tr><th>Area</th><th>Trade</th><th>Filled</th><th>Status</th><th class="right">Action</th></tr></thead><tbody>${rows}</tbody></table></div>`;
  }catch(e){body.innerHTML=errBox(e);}
 }
 
@@ -1410,12 +1425,11 @@ function setTheme(mode){document.documentElement.setAttribute('data-theme',mode)
  const l=$('themeLbl');if(l)l.textContent=mode==='dark'?'Light mode':'Dark mode';
  const bl=$('thLight'),bd=$('thDark');if(bl&&bd){bl.classList.toggle('on',mode!=='dark');bd.classList.toggle('on',mode==='dark');}}
 const DASH_KEYS=[
- ['mrr','MRR','Metric cards'],['tradies','Live tradies','Metric cards'],['newtr','New tradies · 7d','Metric cards'],
- ['bookings','Bookings','Metric cards'],['jobsdone','Jobs completed','Metric cards'],['enq7','Enquiries · 7d','Metric cards'],
- ['rating','Avg rating','Metric cards'],['active','Active today','Metric cards'],['waitlist','Waitlist','Metric cards'],
- ['pendapp','Pending apps','Metric cards'],['openrep','Open reports','Metric cards'],
- ['today','Today action queue','Panels'],['chart','App activity chart','Panels'],['top','Top trades','Panels'],['recent','Recent activity','Panels'],['attention','Needs attention','Panels']];
-const DASH_DEFAULT_OFF=new Set(['newtr','jobsdone','enq7','rating','waitlist','pendapp','openrep']);
+ ['tradies','Live tradies','Metric cards'],['homeowners','Homeowners','Metric cards'],['enq7','Enquiries · 7d','Metric cards'],['pendapp','Applications waiting','Metric cards'],
+ ['mrr','MRR','Metric cards'],['bookings','Bookings','Metric cards'],['jobsdone','Jobs completed','Metric cards'],['active','Active today','Metric cards'],
+ ['rating','Avg rating','Metric cards'],['waitlist','Waitlist','Metric cards'],['openrep','Open reports','Metric cards'],['newtr','New tradies · 7d','Metric cards'],['suspended','Suspended listings','Metric cards'],
+ ['chart','Unique sessions chart','Panels'],['trust','Trust & safety','Panels'],['newest','Newest applications','Panels'],['top','Top trades','Panels'],['recent','Recent activity','Panels']];
+const DASH_DEFAULT_OFF=new Set(['mrr','bookings','jobsdone','active','rating','waitlist','openrep','newtr','suspended','top','recent']);
 let DASHCFG={};try{DASHCFG=JSON.parse(localStorage.getItem('tt_dash'))||{};}catch(e){}
 const dashOn=k=>DASHCFG[k]!==undefined?DASHCFG[k]!==false:!DASH_DEFAULT_OFF.has(k);
 function dashSet(on){DASH_KEYS.forEach(([k])=>{const cb=$('dc_'+k);if(cb)cb.checked=on;});}

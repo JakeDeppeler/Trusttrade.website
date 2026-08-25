@@ -115,7 +115,10 @@ export function PageHeader({ current }) {
     <header className={"header " + (scrolled ? "scrolled" : "")}>
       <div className="container">
         <PageLink href="Trust Trade Landing.html" className="brand">
-          <img className="brand-mascot" src="/assets/mascot-toolbox.webp" alt="" aria-hidden="true" />
+          <picture>
+            <source srcSet="/assets/mascot-toolbox-sm.avif" type="image/avif" />
+            <img className="brand-mascot" src="/assets/mascot-toolbox-sm.webp" alt="" aria-hidden="true" width={160} height={112} decoding="async" fetchPriority="high" />
+          </picture>
           Trust Trade<span className="reg">®</span>
         </PageLink>
         <nav className="nav-links">
@@ -292,7 +295,10 @@ export function PageFooter() {
         <div className="footer-top">
           <div className="footer-brand">
             <div className="brand">
-              <img className="brand-mascot" src="/assets/mascot-toolbox.webp" alt="" aria-hidden="true" loading="lazy" decoding="async" />
+              <picture>
+                <source srcSet="/assets/mascot-toolbox-sm.avif" type="image/avif" />
+                <img className="brand-mascot" src="/assets/mascot-toolbox-sm.webp" alt="" aria-hidden="true" width={160} height={112} loading="lazy" decoding="async" />
+              </picture>
               Trust Trade<span className="reg">®</span>
             </div>
             <p>

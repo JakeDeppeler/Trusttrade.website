@@ -439,7 +439,7 @@
 .appstore-btn:active { transform: translateY(0); }
 .appstore-btn .glyph { display: inline-flex; line-height: 0; }
 .appstore-btn .as-txt { display: flex; flex-direction: column; line-height: 1.05; text-align: left; }
-.appstore-btn .as-txt .small { font-size: 11px; opacity: 0.72; letter-spacing: 0.02em; }
+.appstore-btn .as-txt .small { font-size: 11px; opacity: 0.85; letter-spacing: 0.02em; }
 .appstore-btn .as-txt .big {
   font-family: var(--font-display); font-weight: 700; font-size: 19px; letter-spacing: -0.01em;
 }

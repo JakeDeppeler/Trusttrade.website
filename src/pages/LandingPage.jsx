@@ -1127,7 +1127,7 @@ function AskAiDemo() {
 }
 
 /* ===== Feature breakdown rows ===== */
-function FeatureRow({ eyebrow, title, body, points, img, flip, cards, glow, visual }) {
+function FeatureRow({ eyebrow, title, body, points, img, flip, cards, glow, visual, visualDecorative = true }) {
   return (
     <div className={"feature-row reveal " + (flip ? "flip" : "")}>
       <div className="fr-copy">
@@ -1145,7 +1145,7 @@ function FeatureRow({ eyebrow, title, body, points, img, flip, cards, glow, visu
           </div>
         )}
       </div>
-      <div className="fr-visual" aria-hidden="true">
+      <div className="fr-visual" aria-hidden={visualDecorative ? "true" : undefined}>
         {visual || (
           <>
             {glow !== false && <div className="glow" />}
@@ -1178,6 +1178,7 @@ function FeatureBreakdowns() {
 
         <FeatureRow
           visual={<AskAiDemo />}
+          visualDecorative={false}
           eyebrow="Ask AI"
           title="Describe it in plain English."
           body="Leaking tap, tripping fuse, planning a reno, say it how you'd say it to a mate. Our assistant works out which trade you actually need and points you at the verified pros nearby."

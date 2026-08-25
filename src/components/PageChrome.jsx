@@ -349,7 +349,7 @@ export function PageFooter() {
             {" · "}
             {/* Discreet tradie/admin entry — homeowners don't need it, so it sits
                 quietly in the footer at the same muted colour as the rest. */}
-            <a href="/dashboard" style={{ color: "inherit", opacity: 0.7, textDecoration: "none" }}>
+            <a href="/dashboard" style={{ color: "inherit", textDecoration: "underline", textUnderlineOffset: 2 }}>
               Tradie login
             </a>
           </div>

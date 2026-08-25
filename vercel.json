@@ -1,9 +1,10 @@
 {
-  "buildCommand": "node scripts/gen-tradie-pages.mjs && vite build",
+  "buildCommand": "node scripts/gen-tradie-pages.mjs && vite build && node scripts/prerender.mjs",
   "rewrites": [
     { "source": "/dashboard", "destination": "/dashboard.html" },
     { "source": "/admin", "destination": "/admin.html" },
     { "source": "/tradie/:slug", "destination": "/tradie/_dynamic.html" },
-    { "source": "/((?!api/).*)", "destination": "/index.html" }
+    { "source": "/", "destination": "/index.html" },
+    { "source": "/((?!api/).*)", "destination": "/_shell.html" }
   ]
 }

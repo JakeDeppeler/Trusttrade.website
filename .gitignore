@@ -11,3 +11,4 @@ dist/
 # generated tradie SEO pages (built fresh each deploy)
 public/tradie/
 public/sitemap-tradies.xml
+.ssr-build

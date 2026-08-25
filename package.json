@@ -5,9 +5,10 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "node scripts/gen-tradie-pages.mjs && vite build",
+    "build": "node scripts/gen-tradie-pages.mjs && vite build && node scripts/prerender.mjs",
     "preview": "vite preview",
-    "gen:tradies": "node scripts/gen-tradie-pages.mjs"
+    "gen:tradies": "node scripts/gen-tradie-pages.mjs",
+    "build:client": "vite build"
   },
   "dependencies": {
     "react": "^18.3.1",

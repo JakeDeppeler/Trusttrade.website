@@ -638,12 +638,15 @@ function MobileStickyCTA({ onJoin }) {
 // doesn't stop Chrome downloading display:none images, so we skip rendering them
 // entirely on mobile — that's ~120KB the mobile LCP window gets back.
 function useIsDesktop() {
-  const [desktop, setDesktop] = useState(
-    typeof window !== "undefined" ? window.matchMedia("(min-width: 721px)").matches : true
-  );
+  // Deterministic initial value so the server prerender and the client's first
+  // render match (no hydration mismatch). We can't know the viewport during SSR,
+  // so start false (mobile — the decorative side phones are desktop-only) and sync
+  // to the real viewport in the effect, which runs only on the client after mount.
+  const [desktop, setDesktop] = useState(false);
   useEffect(() => {
     const mq = window.matchMedia("(min-width: 721px)");
     const on = () => setDesktop(mq.matches);
+    on();
     mq.addEventListener("change", on);
     return () => mq.removeEventListener("change", on);
   }, []);

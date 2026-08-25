@@ -314,7 +314,7 @@ export function PageFooter() {
             </div>
           </div>
           <div className="footer-col">
-            <h5>Product</h5>
+            <h3>Product</h3>
             <ul>
               <li><PageLink href="How it works.html">How it works</PageLink></li>
               <li><PageLink href="For Homeowners.html">For homeowners</PageLink></li>
@@ -324,7 +324,7 @@ export function PageFooter() {
             </ul>
           </div>
           <div className="footer-col">
-            <h5>For Tradies</h5>
+            <h3>For Tradies</h3>
             <ul>
               <li><PageLink href="For Tradies.html">Why join</PageLink></li>
               <li><PageLink href="Trust Trade Landing.html#download">Apply</PageLink></li>
@@ -333,7 +333,7 @@ export function PageFooter() {
             </ul>
           </div>
           <div className="footer-col">
-            <h5>Company</h5>
+            <h3>Company</h3>
             <ul>
               <li><PageLink href="Our Story.html">Our story</PageLink></li>
               <li><a href="mailto:jake@trusttrade.au">Support</a></li>

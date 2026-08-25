@@ -142,7 +142,7 @@ body.theme-cream .page-hero-meta-strip-item:last-child { border-right: none; }
   margin-top: 22px; display: flex; align-items: center; justify-content: center; gap: 12px;
   font-size: 14px; color: var(--text-dim);
 }
-.bevel-hero .hero-rating .stars { color: var(--accent-lo); letter-spacing: 2px; font-size: 15px; }
+.bevel-hero .hero-rating .stars { color: var(--accent-ink); letter-spacing: 2px; font-size: 15px; }
 .bevel-hero .hero-trio {
   position: relative;
   margin-top: clamp(48px, 6vw, 80px);
@@ -251,7 +251,7 @@ body.theme-cream .header .header-cta-btn:hover { background: var(--accent-hi); }
 /* Readable footer text on the white footer */
 body.theme-cream .footer .brand,
 body.theme-cream .footer strong { color: var(--text); }
-body.theme-cream .footer h5 { color: var(--text-faint); }
+body.theme-cream .footer h3, body.theme-cream .footer h5 { color: var(--text-faint); }
 body.theme-cream .footer a { color: var(--text-dim); }
 body.theme-cream .footer a:hover { color: var(--text); }
 body.theme-cream .footer p,
@@ -302,7 +302,7 @@ body.theme-cream .page-hero-decor::after {
 /* Mobile nav overlay is dark — its links/brand/close must be light */
 body.theme-cream .nav-overlay-links a { color: #f5eedf; }
 body.theme-cream .nav-overlay-links a.current,
-body.theme-cream .nav-overlay-links a:hover { color: var(--accent); }
+body.theme-cream .nav-overlay-links a:hover { color: var(--accent-ink); }
 body.theme-cream .nav-overlay-head .brand,
 body.theme-cream .nav-overlay-head .nav-toggle { color: #f5eedf; }
 
@@ -337,7 +337,7 @@ body.theme-cream .nav-overlay-head .nav-toggle { color: #f5eedf; }
 }
 .tool-badge.live { background: rgba(47, 143, 91, 0.14); color: #2f8f5b; }
 .tool-badge.soon { background: rgba(41, 33, 26, 0.08); color: var(--text-dim); }
-.tool-badge.idea { background: rgba(242, 169, 0, 0.16); color: var(--accent-lo); }
+.tool-badge.idea { background: rgba(242, 169, 0, 0.16); color: var(--accent-ink); }
 .tool-card h3 {
   font-family: var(--font-display);
   font-weight: 800; font-size: 22px; letter-spacing: -0.02em;
@@ -346,3 +346,7 @@ body.theme-cream .nav-overlay-head .nav-toggle { color: #f5eedf; }
 .tool-card p { margin: 0; font-size: 15px; line-height: 1.6; color: var(--text-dim); }
 .tool-cta { margin-top: auto; align-self: flex-start; }
 .tool-cta.is-soon { opacity: 0.55; cursor: default; pointer-events: none; }
+
+/* A11y: footer links get a persistent underline so they're distinguishable
+   without relying on colour alone (WCAG "use of color" / link-in-text-block). */
+body.theme-cream .footer a { text-decoration: underline; text-underline-offset: 2px; text-decoration-thickness: 1px; }

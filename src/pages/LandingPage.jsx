@@ -44,7 +44,7 @@ function Hero({ onJoin }) {
             <div className="hero-trust-dot" aria-hidden="true"></div>
             <div>Founding 50 spots open · No spam, ever</div>
           </div>
-          <div className="hero-devices">
+          <div className="hero-devices" aria-hidden="true">
             <div className="hero-phone-container">
               <div className="hero-float-card float-tl">
                 <div className="float-icon" aria-hidden="true">✓</div>
@@ -312,7 +312,7 @@ function ForTradiesSection({ onJoin }) {
               </a>
             </div>
           </div>
-          <div className="tradies-visual">
+          <div className="tradies-visual" aria-hidden="true">
             <div className="floater top-right">
               <div className="label">New enquiry</div>
               <strong>Hot water system isn't working</strong>
@@ -949,7 +949,7 @@ function ForTradiesSplit() {
               </PageLink>
             </div>
           </div>
-          <div className="tradies-visual">
+          <div className="tradies-visual" aria-hidden="true">
             <div className="floater top-right">
               <div className="label">New enquiry</div>
               <strong>Hot water system isn't working</strong>
@@ -1141,7 +1141,7 @@ function FeatureRow({ eyebrow, title, body, points, img, flip, cards, glow, visu
           </div>
         )}
       </div>
-      <div className="fr-visual">
+      <div className="fr-visual" aria-hidden="true">
         {visual || (
           <>
             {glow !== false && <div className="glow" />}
@@ -1280,7 +1280,7 @@ function ForTradiesBand() {
                 <div className="ti" key={n}>
                   <div className="n">{n}</div>
                   <div>
-                    <h4>{h}</h4>
+                    <h3>{h}</h3>
                     <p>{p}</p>
                   </div>
                 </div>
@@ -1292,7 +1292,7 @@ function ForTradiesBand() {
               </button>
             </div>
           </div>
-          <div className="tradies-visual reveal">
+          <div className="tradies-visual reveal" aria-hidden="true">
             <div className="glow" />
             <div className="phone">
               <div className="phone-screen">
@@ -1342,7 +1342,7 @@ function FeatureGrid() {
           {GRID.map(([ic, h, p], i) => (
             <div className="fg-card reveal" key={i} style={{ transitionDelay: (i % 3) * 60 + "ms" }}>
               <div className="fg-icon">{ic}</div>
-              <h4>{h}</h4>
+              <h3>{h}</h3>
               <p>{p}</p>
             </div>
           ))}
@@ -1368,7 +1368,7 @@ function RevCard({ rv }) {
   return (
     <div className="rev-card">
       <div className="stars">{"★".repeat(rv.s)}</div>
-      <h5>{rv.t}</h5>
+      <h3>{rv.t}</h3>
       <p>"{rv.r}"</p>
       <div className="rev-meta">
         <div className="av">{rv.av}</div>
@@ -1416,7 +1416,7 @@ export default function LandingPage() {
   return (
     <>
       <PageHeader current="Trust Trade Landing.html" />
-      <div className="tt-home">
+      <main className="tt-home">
         <BevelHero />
         <Showcase />
         <WorksWith />
@@ -1424,8 +1424,8 @@ export default function LandingPage() {
         <ForTradiesBand />
         <FeatureGrid />
         <Reviews />
-      </div>
-      <PageDownloadCTA />
+        <PageDownloadCTA />
+      </main>
       <PageFooter />
       <MobileStickyCTA onJoin={scrollToWaitlist} />
     </>

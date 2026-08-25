@@ -61,7 +61,7 @@
   color: var(--text);
   white-space: nowrap;
 }
-.marquee-item .it { font-style: italic; color: var(--accent); }
+.marquee-item .it { font-style: italic; color: var(--accent-ink); }
 .marquee-item .dot {
   width: 7px; height: 7px; border-radius: 50%;
   background: var(--accent);
@@ -94,7 +94,7 @@
   font-size: 12px;
   letter-spacing: 0.14em;
   text-transform: uppercase;
-  color: var(--accent);
+  color: var(--accent-ink);
   margin-bottom: 18px;
 }
 .dev-copy .dev-kicker .idx {
@@ -102,7 +102,7 @@
   font-family: var(--font-display);
   font-weight: 900;
   font-size: 22px;
-  color: var(--accent);
+  color: var(--accent-ink);
   letter-spacing: -0.04em;
 }
 .dev-copy h3 {
@@ -116,7 +116,7 @@
   text-wrap: balance;
   color: var(--text);
 }
-.dev-copy h3 .it { font-style: italic; color: var(--accent); }
+.dev-copy h3 .it { font-style: italic; color: var(--accent-ink); }
 .dev-copy > p {
   color: var(--text-dim);
   font-size: 17px;
@@ -176,7 +176,7 @@
   font-size: 10px;
   letter-spacing: 0.14em;
   text-transform: uppercase;
-  color: var(--accent);
+  color: var(--accent-ink);
   margin-bottom: 5px;
   display: flex; align-items: center; gap: 6px;
 }
@@ -233,7 +233,7 @@
   border-radius: 50%;
   display: grid; place-items: center;
   background: rgba(242,169,0,0.16);
-  color: var(--accent);
+  color: var(--accent-ink);
   font-weight: 800;
   font-size: 16px;
   flex-shrink: 0;
@@ -285,7 +285,7 @@
   text-transform: uppercase; color: var(--text-dim);
 }
 .ftr-hero-ticks span { white-space: nowrap; }
-.ftr-hero-ticks .tk { color: var(--accent); margin-right: 4px; font-weight: 800; }
+.ftr-hero-ticks .tk { color: var(--accent-ink); margin-right: 4px; font-weight: 800; }
 
 /* Pull statement — big editorial problem line */
 .pull-statement {
@@ -298,7 +298,7 @@
   text-wrap: balance;
   color: var(--text);
 }
-.pull-statement .it { font-style: italic; color: var(--accent); }
+.pull-statement .it { font-style: italic; color: var(--accent-ink); }
 .pull-statement .dim { color: var(--text-faint); }
 .pull-sub {
   margin-top: 28px;
@@ -328,8 +328,8 @@
   line-height: 0.9;
   color: var(--text);
 }
-.stat-cell .n .it { font-style: italic; color: var(--accent); }
-.stat-cell .n .sm { font-size: 0.42em; vertical-align: super; color: var(--accent); font-style: italic; margin-left: 2px; }
+.stat-cell .n .it { font-style: italic; color: var(--accent-ink); }
+.stat-cell .n .sm { font-size: 0.42em; vertical-align: super; color: var(--accent-ink); font-style: italic; margin-left: 2px; }
 .stat-cell .k { margin-top: 12px; font-size: 13.5px; color: var(--text-dim); line-height: 1.45; max-width: 26ch; }
 
 /* VS split — the old lead-gen way vs Trust Trade */
@@ -343,7 +343,7 @@
   box-shadow: 0 30px 70px -40px rgba(242,169,0,0.5);
 }
 .vs-col .vs-tag { font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--text-faint); margin-bottom: 4px; }
-.vs-col.us .vs-tag { color: var(--accent-lo); }
+.vs-col.us .vs-tag { color: var(--accent-ink); }
 .vs-col h3 { font-family: var(--font-display); font-weight: 900; font-size: clamp(24px, 3vw, 34px); letter-spacing: -0.03em; margin: 0 0 22px; line-height: 0.98; color: var(--text); }
 .vs-col.them h3 { color: var(--text-dim); }
 .vs-list { display: flex; flex-direction: column; gap: 2px; }
@@ -361,7 +361,7 @@
   background: var(--bg-2); border: 1px solid var(--line-strong);
   place-items: center;
   font-family: var(--font-display); font-style: italic; font-weight: 900; font-size: 18px;
-  color: var(--accent-lo); z-index: 3;
+  color: var(--accent-ink); z-index: 3;
   box-shadow: 0 14px 30px -12px rgba(23,17,10,0.22);
 }
 @media (min-width: 900px) { .vs-badge { display: grid; } }
@@ -375,7 +375,7 @@
 }
 .meter-top { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 20px; }
 .meter-big { font-family: var(--font-display); font-weight: 900; font-size: clamp(48px, 7vw, 88px); letter-spacing: -0.05em; line-height: 0.9; color: var(--text); }
-.meter-big .it { font-style: italic; color: var(--accent); }
+.meter-big .it { font-style: italic; color: var(--accent-ink); }
 .meter-big .of { color: var(--text-faint); font-size: 0.42em; font-style: normal; letter-spacing: -0.02em; }
 .meter-note { font-family: var(--font-mono); font-size: 12px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-dim); }
 .meter-bar { height: 14px; border-radius: 999px; background: var(--bg-3); overflow: hidden; border: 1px solid var(--line); }
@@ -421,10 +421,10 @@
     linear-gradient(90deg, #17110A 0%, rgba(23, 17, 10, 0.6) 55%, transparent 100%);
 }
 .final-inner { position: relative; z-index: 2; max-width: 640px; }
-.final-inner .eyebrow { color: var(--accent); margin-bottom: 20px; }
+.final-inner .eyebrow { color: var(--accent-ink); margin-bottom: 20px; }
 .final-inner .eyebrow.dot::before { background: var(--accent); }
 .final-inner .h-1 { color: #F3ECDD; }
-.final-inner .h-1 .it { color: var(--accent); font-style: italic; }
+.final-inner .h-1 .it { color: var(--accent-ink); font-style: italic; }
 .final-inner .lede { color: rgba(243, 236, 221, 0.75); margin: 22px 0 34px; max-width: 46ch; }
 .final-actions { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
 .appstore-btn {

@@ -17,6 +17,10 @@
   --accent: #f2a900;
   --accent-hi: #f0b946;
   --accent-lo: #c68800;
+  /* Gold used as TEXT. Default (dark backgrounds) = bright gold, which has plenty of
+     contrast on dark. The cream theme overrides this to a deeper gold that meets WCAG
+     AA on light backgrounds; dark sections inside the cream theme reset it to --accent. */
+  --accent-ink: #f2a900;
   --on-accent: #29211a;
   --success: #5fb87a;
   --emergency: #e07a5f;
@@ -109,7 +113,7 @@ button {
   color: var(--text-dim);
 }
 .eyebrow.accent {
-  color: var(--accent);
+  color: var(--accent-ink);
 }
 .eyebrow.dot:before {
   content: "";
@@ -133,7 +137,7 @@ button {
 }
 .h-display .it {
   font-style: italic;
-  color: var(--accent);
+  color: var(--accent-ink);
   font-weight: 900;
 }
 .h-1 {
@@ -147,7 +151,7 @@ button {
 }
 .h-1 .it {
   font-style: italic;
-  color: var(--accent);
+  color: var(--accent-ink);
 }
 .h-2 {
   font-family: var(--font-display);
@@ -381,7 +385,7 @@ button {
   background: #f2a9001a;
   border: 1px solid rgba(242, 169, 0, 0.3);
   border-radius: 999px;
-  color: var(--accent);
+  color: var(--accent-ink);
   font-family: var(--font-mono);
   font-size: 12px;
   letter-spacing: 0.12em;
@@ -486,7 +490,7 @@ button {
 }
 .hero-trust-row .avatars span:nth-child(2) {
   background: #2a1e10;
-  color: var(--accent);
+  color: var(--accent-ink);
 }
 .hero-trust-row .avatars span:nth-child(3) {
   background: var(--cream);
@@ -647,7 +651,7 @@ button {
   background: #f2a9000a;
 }
 .trust-item:hover .num {
-  color: var(--accent);
+  color: var(--accent-ink);
 }
 .trust-item .num {
   transition: color 0.2s ease;
@@ -676,13 +680,13 @@ button {
 }
 .trust-item .num .it {
   font-style: italic;
-  color: var(--accent);
+  color: var(--accent-ink);
 }
 .trust-item .num .sm {
   font-size: 0.45em;
   vertical-align: super;
   margin-left: 2px;
-  color: var(--accent);
+  color: var(--accent-ink);
   font-style: italic;
 }
 .trust-item .lbl {
@@ -739,7 +743,7 @@ section.block {
   font-size: 76px;
   letter-spacing: -0.05em;
   line-height: 1;
-  color: var(--accent);
+  color: var(--accent-ink);
   margin-bottom: 24px;
 }
 .step .h-3 {
@@ -821,7 +825,7 @@ section.block {
   font-size: 11px;
   letter-spacing: 0.14em;
   text-transform: uppercase;
-  color: var(--accent);
+  color: var(--accent-ink);
   margin-bottom: 16px;
 }
 .feat h3 {
@@ -968,7 +972,7 @@ section.block {
   font-size: 11px;
   letter-spacing: 0.12em;
   text-transform: uppercase;
-  color: var(--accent);
+  color: var(--accent-ink);
 }
 .feat-price .price-card .amount {
   font-family: var(--font-display);
@@ -1064,7 +1068,7 @@ section.block {
   color: #29211a80;
 }
 .tradies-section .h-1 .it {
-  color: var(--accent-lo);
+  color: var(--accent-ink);
 }
 .tradies-section .lede {
   color: #29211aa6;
@@ -1096,7 +1100,7 @@ section.block {
 .tradies-list .item .n {
   font-family: var(--font-mono);
   font-size: 13px;
-  color: var(--accent-lo);
+  color: var(--accent-ink);
   font-weight: 500;
   letter-spacing: 0.08em;
   padding-top: 4px;
@@ -1160,7 +1164,7 @@ section.block {
   font-size: 11px;
   letter-spacing: 0.12em;
   text-transform: uppercase;
-  color: var(--accent);
+  color: var(--accent-ink);
   margin-bottom: 6px;
 }
 .tradies-visual .floater strong {
@@ -1349,7 +1353,7 @@ section.block {
   outline: none;
 }
 .waitlist-card input:focus {
-  border-color: var(--accent);
+  border-color: var(--accent-ink);
 }
 .waitlist-card .btn {
   width: 100%;
@@ -1381,7 +1385,7 @@ section.block {
   height: 18px;
   border-radius: 50%;
   background: var(--on-accent);
-  color: var(--accent);
+  color: var(--accent-ink);
   display: grid;
   place-items: center;
   font-size: 11px;
@@ -1421,7 +1425,7 @@ section.block {
 .waitlist-success .position {
   font-family: var(--font-mono);
   font-size: 14px;
-  color: var(--accent);
+  color: var(--accent-ink);
   letter-spacing: 0.08em;
 }
 .faq-grid {
@@ -1454,7 +1458,7 @@ section.block {
   text-wrap: balance;
 }
 .faq-q:hover {
-  color: var(--accent);
+  color: var(--accent-ink);
 }
 .faq-q .plus {
   display: grid;
@@ -1475,7 +1479,7 @@ section.block {
   transform: rotate(45deg);
   background: var(--accent);
   color: var(--on-accent);
-  border-color: var(--accent);
+  border-color: var(--accent-ink);
 }
 .faq-a {
   display: grid;
@@ -1562,7 +1566,7 @@ section.block {
   letter-spacing: 0.08em;
   margin-left: 4px;
 }
-.footer-col h5 {
+.footer-col h3, .footer-col h5 {
   font-family: var(--font-mono);
   font-size: 11px;
   letter-spacing: 0.14em;
@@ -1584,7 +1588,7 @@ section.block {
   font-size: 15px;
 }
 .footer-col a:hover {
-  color: var(--accent);
+  color: var(--accent-ink);
 }
 .footer-bottom {
   padding-top: 24px;
@@ -1649,7 +1653,7 @@ section.block {
   font-size: 11px;
   letter-spacing: 0.14em;
   text-transform: uppercase;
-  color: var(--accent);
+  color: var(--accent-ink);
 }
 .hook-title {
   font-family: var(--font-display);
@@ -1718,7 +1722,7 @@ section.block {
   text-align: left;
 }
 .light-breaker .eyebrow.accent {
-  color: var(--accent-lo);
+  color: var(--accent-ink);
   display: block;
   text-align: left;
 }
@@ -1736,7 +1740,7 @@ section.block {
   max-width: 32ch;
 }
 .light-breaker-quote .it {
-  color: var(--accent-lo);
+  color: var(--accent-ink);
   font-style: italic;
   font-weight: 600;
 }
@@ -1874,7 +1878,7 @@ section.block {
 }
 .nav-overlay-links a.current,
 .nav-overlay-links a:hover {
-  color: var(--accent);
+  color: var(--accent-ink);
 }
 .nav-overlay-cta {
   margin-top: auto;
@@ -2125,7 +2129,7 @@ section.block {
     margin-top: 18px;
     gap: 6px;
   }
-  .footer-col h5 {
+  .footer-col h3, .footer-col h5 {
     margin: 0 0 12px;
     font-size: 10px;
   }
@@ -2159,7 +2163,7 @@ section.block {
   }
 }
 .nav-links a.current {
-  color: var(--accent);
+  color: var(--accent-ink);
 }
 .nav-links a.current:after {
   content: "";
@@ -2275,7 +2279,7 @@ section.block {
 .page-section.cream .eyebrow.accent,
 .page-section.cream .h-1 .it,
 .page-section.cream .h-2 .it {
-  color: var(--accent-lo);
+  color: var(--accent-ink);
 }
 .page-section.cream .lede {
   color: #29211aa6;
@@ -2423,7 +2427,7 @@ section.block {
   font-size: clamp(48px, 6.4vw, 82px);
   letter-spacing: -0.05em;
   line-height: 0.9;
-  color: var(--accent);
+  color: var(--accent-ink);
   white-space: nowrap;
 }
 .flow-step .flow-num.flow-time {
@@ -2516,7 +2520,7 @@ section.block {
   font-size: 11px;
   letter-spacing: 0.14em;
   text-transform: uppercase;
-  color: var(--accent);
+  color: var(--accent-ink);
 }
 .proof-card h4 {
   font-family: var(--font-display);
@@ -2549,7 +2553,7 @@ section.block {
 }
 .proof-card .stamp:before {
   content: "✓";
-  color: var(--accent);
+  color: var(--accent-ink);
   font-weight: 800;
 }
 .verify-row {
@@ -2657,7 +2661,7 @@ section.block {
   font-weight: 500;
 }
 .compare-table thead th.us {
-  color: var(--accent);
+  color: var(--accent-ink);
 }
 .compare-table tbody td:first-child {
   font-family: var(--font-mono);
@@ -2714,7 +2718,7 @@ section.block {
   font-weight: 900;
   font-size: 36px;
   letter-spacing: -0.04em;
-  color: var(--accent-lo);
+  color: var(--accent-ink);
   line-height: 1;
 }
 .tradie-perk h4 {
@@ -2745,7 +2749,7 @@ section.block {
   text-wrap: balance;
 }
 .quote-block blockquote .accent {
-  color: var(--accent);
+  color: var(--accent-ink);
   font-style: italic;
 }
 .quote-block .quote-attr {
@@ -2895,7 +2899,7 @@ section.block {
 }
 .faq-side button.active {
   background: var(--bg-1);
-  color: var(--accent);
+  color: var(--accent-ink);
 }
 .faq-search {
   display: flex;
@@ -2937,7 +2941,7 @@ section.block {
   font-size: 12px;
   letter-spacing: 0.14em;
   text-transform: uppercase;
-  color: var(--accent);
+  color: var(--accent-ink);
   margin: 48px 0 14px;
   padding-top: 24px;
   border-top: 1px solid var(--line);
@@ -3032,7 +3036,7 @@ section.block {
   font-size: 11px;
   letter-spacing: 0.12em;
   text-transform: uppercase;
-  color: var(--accent);
+  color: var(--accent-ink);
   margin: 4px 0 12px;
 }
 .team-card p {
@@ -3064,7 +3068,7 @@ section.block {
   font-family: var(--font-mono);
   font-size: 13px;
   letter-spacing: 0.08em;
-  color: var(--accent);
+  color: var(--accent-ink);
   padding-top: 4px;
 }
 .timeline-row h4 {
@@ -3152,7 +3156,7 @@ section.block {
   font-weight: 900;
   font-style: italic;
   font-size: 28px;
-  color: var(--accent);
+  color: var(--accent-ink);
   line-height: 1;
 }
 .callout h5 {
@@ -3187,7 +3191,7 @@ section.block {
   transition: color 0.2s ease;
 }
 .page-nav-prevnext a:hover {
-  color: var(--accent);
+  color: var(--accent-ink);
 }
 .page-nav-prevnext a strong {
   font-family: var(--font-display);
@@ -3198,7 +3202,7 @@ section.block {
   text-transform: none;
 }
 .page-nav-prevnext a:hover strong {
-  color: var(--accent);
+  color: var(--accent-ink);
 }
 .page-nav-prevnext .next {
   text-align: right;
@@ -3624,7 +3628,7 @@ section.block {
 input:focus-visible,
 textarea:focus-visible {
   outline: none;
-  border-color: var(--accent);
+  border-color: var(--accent-ink);
   box-shadow: 0 0 0 3px rgba(242, 169, 0, 0.18);
 }
 
@@ -3674,7 +3678,7 @@ textarea:focus-visible {
 }
 .nav-links a:hover,
 .nav-links a.current {
-  color: var(--accent);
+  color: var(--accent-ink);
 }
 
 /* Hooks — already had a hover; tighten the curve to match feat. */
@@ -3809,7 +3813,7 @@ textarea:focus-visible {
   word-wrap: break-word;
 }
 .receipt-row .v.accent {
-  color: var(--accent);
+  color: var(--accent-ink);
   font-weight: 600;
 }
 .receipt-stamp {
@@ -3898,7 +3902,7 @@ textarea:focus-visible {
     background-color var(--dur) var(--ease);
 }
 .integration-pill:hover {
-  border-color: var(--accent);
+  border-color: var(--accent-ink);
   background: rgba(242, 169, 0, 0.04);
 }
 .integration-short {
@@ -3983,7 +3987,7 @@ textarea:focus-visible {
   font-size: 11px;
   letter-spacing: 0.14em;
   text-transform: uppercase;
-  color: var(--accent);
+  color: var(--accent-ink);
   margin-bottom: -8px;
 }
 .story-eyebrow {
@@ -4004,7 +4008,7 @@ textarea:focus-visible {
 }
 .story-title .it {
   font-style: italic;
-  color: var(--accent);
+  color: var(--accent-ink);
   font-weight: 800;
 }
 .story-lede {
@@ -4114,7 +4118,10 @@ body.theme-cream {
   --bg-3: #e5daba;
   --text: #29211a;
   --text-dim: #6a5b49;
-  --text-faint: #a89a82;
+  --text-faint: #736451;
+  /* Deep gold for text on the light cream backgrounds — meets WCAG AA (>=4.5 normal,
+     >=3 large). Bright gold stays for icons/buttons/backgrounds (--accent). */
+  --accent-ink: #8a6200;
   --line: rgba(41, 33, 26, 0.08);
   --line-strong: rgba(41, 33, 26, 0.16);
   --shadow-card:
@@ -4191,7 +4198,7 @@ body.theme-cream .hero .lede {
   font-size: clamp(17px, 1.4vw, 20px);
 }
 body.theme-cream .glow-wrap .it {
-  color: var(--accent);
+  color: var(--accent-ink);
 }
 body.theme-cream .glow-wrap::after {
   background: radial-gradient(
@@ -4257,7 +4264,7 @@ body.theme-cream .integration-pill {
   box-shadow: var(--shadow-card);
 }
 body.theme-cream .integration-pill:hover {
-  border-color: var(--accent);
+  border-color: var(--accent-ink);
   background: #fffdf5;
   box-shadow: var(--shadow-card-hover);
 }
@@ -4283,7 +4290,7 @@ body.theme-cream .trust-item .lbl {
   color: var(--text-dim);
 }
 body.theme-cream .trust-item:hover .num {
-  color: var(--accent);
+  color: var(--accent-ink);
 }
 
 /* Hooks — cards get pure white background + soft shadow (very bevel) */
@@ -4302,7 +4309,7 @@ body.theme-cream .hook:hover {
   box-shadow: var(--shadow-card-hover);
 }
 body.theme-cream .hook-ticker {
-  color: var(--accent);
+  color: var(--accent-ink);
 }
 body.theme-cream .hook-title {
   color: var(--text);
@@ -4324,7 +4331,7 @@ body.theme-cream .mid-head .h-1 {
 body.theme-cream .h-1 .it,
 body.theme-cream .h-display .it,
 body.theme-cream .story-title .it {
-  color: var(--accent);
+  color: var(--accent-ink);
 }
 body.theme-cream .lede {
   color: var(--text-dim);
@@ -4336,7 +4343,7 @@ body.theme-cream .eyebrow {
   color: var(--text-faint);
 }
 body.theme-cream .eyebrow.accent {
-  color: var(--accent);
+  color: var(--accent-ink);
 }
 
 /* Steps (HowItWorks) — white step cards with subtle shadow */
@@ -4352,7 +4359,7 @@ body.theme-cream .step p {
   color: var(--text-dim);
 }
 body.theme-cream .step-num {
-  color: var(--accent);
+  color: var(--accent-ink);
 }
 body.theme-cream .step .step-visual {
   background:
@@ -4398,7 +4405,7 @@ body.theme-cream .light-breaker-quote {
   z-index: 1;
 }
 body.theme-cream .light-breaker-quote .it {
-  color: var(--accent);
+  color: var(--accent-ink);
 }
 body.theme-cream .light-breaker-attr {
   position: relative;
@@ -4418,13 +4425,13 @@ body.theme-cream .light-breaker .eyebrow {
   color: rgba(245, 238, 223, 0.6);
 }
 body.theme-cream .light-breaker .eyebrow.accent {
-  color: var(--accent);
+  color: var(--accent-ink);
 }
 
 /* Feature stories — cream. The story-audience mono ticker becomes the
  * dark brand accent; bullets stay yellow-dash. Story visual glow tightens. */
 body.theme-cream .story-audience {
-  color: var(--accent);
+  color: var(--accent-ink);
 }
 body.theme-cream .story-eyebrow {
   color: var(--text-faint);
@@ -4474,13 +4481,13 @@ body.theme-cream .tradies-section .container {
   z-index: 1;
 }
 body.theme-cream .tradies-section .eyebrow {
-  color: var(--accent);
+  color: var(--accent-ink);
 }
 body.theme-cream .tradies-section .h-1 {
   color: #f5eedf;
 }
 body.theme-cream .tradies-section .h-1 .it {
-  color: var(--accent);
+  color: var(--accent-ink);
 }
 body.theme-cream .tradies-section .lede {
   color: rgba(245, 238, 223, 0.75);
@@ -4492,7 +4499,7 @@ body.theme-cream .tradies-section .tradies-list .item p {
   color: rgba(245, 238, 223, 0.65);
 }
 body.theme-cream .tradies-section .tradies-list .item .n {
-  color: var(--accent);
+  color: var(--accent-ink);
 }
 body.theme-cream .tradies-section .btn-dark {
   background: var(--accent);
@@ -4580,7 +4587,7 @@ body.theme-cream .faq-q {
   color: var(--text);
 }
 body.theme-cream .faq-q:hover {
-  color: var(--accent);
+  color: var(--accent-ink);
 }
 body.theme-cream .faq-q .plus {
   color: var(--text-faint);
@@ -4589,7 +4596,7 @@ body.theme-cream .faq-q .plus {
 body.theme-cream .faq-item.open .faq-q .plus {
   background: var(--accent);
   color: var(--on-accent);
-  border-color: var(--accent);
+  border-color: var(--accent-ink);
 }
 body.theme-cream .faq-a {
   color: var(--text-dim);
@@ -4603,6 +4610,7 @@ body.theme-cream .footer {
   border-top-color: transparent;
 }
 body.theme-cream .footer .brand,
+body.theme-cream .footer h3,
 body.theme-cream .footer h5,
 body.theme-cream .footer a,
 body.theme-cream .footer strong {
@@ -4707,7 +4715,7 @@ body.theme-cream .behind-scenes {
   font-size: 11px;
   letter-spacing: 0.14em;
   text-transform: uppercase;
-  color: var(--accent);
+  color: var(--accent-ink);
   font-weight: 600;
 }
 .behind-title {
@@ -4942,7 +4950,7 @@ body.theme-cream .behind-scenes {
   font-size: 11px;
   letter-spacing: 0.14em;
   text-transform: uppercase;
-  color: var(--accent);
+  color: var(--accent-ink);
   font-weight: 600;
 }
 .voice-card blockquote {
@@ -5085,7 +5093,7 @@ body.theme-cream .hero-title-xl .glow-wrap::after {
   filter: blur(20px);
 }
 body.theme-cream .hero-title-xl .it {
-  color: var(--accent);
+  color: var(--accent-ink);
   font-style: italic;
   font-weight: 800;
 }
@@ -5301,7 +5309,7 @@ body.theme-cream .page-hero-title-xl {
   text-wrap: balance;
 }
 body.theme-cream .page-hero-title-xl .it {
-  color: var(--accent);
+  color: var(--accent-ink);
   font-style: italic;
   font-weight: 800;
 }
@@ -5479,7 +5487,7 @@ body.theme-cream .compare-table td.us {
   background: rgba(242, 169, 0, 0.04);
 }
 body.theme-cream .compare-table .check {
-  color: var(--accent);
+  color: var(--accent-ink);
 }
 body.theme-cream .compare-table .cross {
   color: var(--text-faint);
@@ -5533,7 +5541,7 @@ body.theme-cream .compare-table .cross {
   gap: 20px;
 }
 .founding-copy .eyebrow.accent {
-  color: var(--accent);
+  color: var(--accent-ink);
 }
 .founding-copy .h-1 {
   color: #f5eedf;
@@ -5542,7 +5550,7 @@ body.theme-cream .compare-table .cross {
   letter-spacing: -0.03em;
 }
 .founding-copy .h-1 .it {
-  color: var(--accent);
+  color: var(--accent-ink);
 }
 .founding-copy .lede {
   color: rgba(245, 238, 223, 0.72);
@@ -5588,7 +5596,7 @@ body.theme-cream .compare-table .cross {
 .founding-cta .btn-primary {
   background: var(--accent);
   color: var(--on-accent);
-  border-color: var(--accent);
+  border-color: var(--accent-ink);
 }
 .founding-cta .btn-primary:hover {
   background: #ffb929;
@@ -5630,7 +5638,7 @@ body.theme-cream .page-cta-actions {
 }
 body.theme-cream .page-cta-block .btn-primary {
   background: var(--on-accent);
-  color: var(--accent);
+  color: var(--accent-ink);
   border-color: var(--on-accent);
 }
 body.theme-cream .page-cta-block .btn-primary:hover {
@@ -5676,10 +5684,13 @@ body.theme-cream {
   --bg-brown-deep: #1f1813;
 
   /* Text — near-black with warm undertone, dimmed variants keep the
-   * warm-brown character instead of pure grey. */
+   * warm-brown character instead of pure grey. Both dim + faint meet WCAG AA
+   * (>=4.5:1) on the white/cream backgrounds. */
   --text: #15110d;
   --text-dim: #5d503e;
-  --text-faint: #a89a82;
+  --text-faint: #6f6051;
+  /* Deep gold for gold TEXT on light (AA). Icons/buttons keep bright --accent. */
+  --accent-ink: #8a6200;
 
   /* Hairlines and shadows tuned for a white surface. */
   --line: rgba(21, 17, 13, 0.06);
@@ -5785,7 +5796,7 @@ body.theme-cream .integration-pill {
   box-shadow: var(--shadow-card);
 }
 body.theme-cream .integration-pill:hover {
-  border-color: var(--accent);
+  border-color: var(--accent-ink);
   box-shadow: var(--shadow-card-hover);
 }
 body.theme-cream .integration-full {
@@ -5870,7 +5881,7 @@ body.theme-cream .behind-item:hover {
   border-color: #15110d;
 }
 body.theme-cream .behind-eyebrow {
-  color: var(--accent);
+  color: var(--accent-ink);
 }
 body.theme-cream .behind-title {
   color: #f5eedf;
@@ -5908,13 +5919,13 @@ body.theme-cream .privacy-decor {
   filter: blur(24px);
 }
 body.theme-cream .privacy-inner .eyebrow.accent {
-  color: var(--accent);
+  color: var(--accent-ink);
 }
 body.theme-cream .privacy-inner .h-1 {
   color: #f5eedf;
 }
 body.theme-cream .privacy-inner .h-1 .it {
-  color: var(--accent);
+  color: var(--accent-ink);
 }
 body.theme-cream .privacy-inner .lede {
   color: rgba(245, 238, 223, 0.75);
@@ -5945,7 +5956,7 @@ body.theme-cream .voice-card:hover {
   border-color: var(--line-strong);
 }
 body.theme-cream .voice-eyebrow {
-  color: var(--accent);
+  color: var(--accent-ink);
 }
 body.theme-cream .voice-card blockquote {
   color: var(--text);
@@ -5975,7 +5986,7 @@ body.theme-cream .trust-item .lbl {
   color: var(--text-dim);
 }
 body.theme-cream .trust-item:hover .num {
-  color: var(--accent);
+  color: var(--accent-ink);
 }
 body.theme-cream .hook {
   background: #ffffff;
@@ -5987,7 +5998,7 @@ body.theme-cream .hook:hover {
   border-color: var(--line-strong);
 }
 body.theme-cream .hook-ticker {
-  color: var(--accent);
+  color: var(--accent-ink);
 }
 body.theme-cream .hook-title {
   color: var(--text);
@@ -6007,7 +6018,7 @@ body.theme-cream .step p {
   color: var(--text-dim);
 }
 body.theme-cream .step-num {
-  color: var(--accent);
+  color: var(--accent-ink);
 }
 
 /* ===== Sub-page PageHero on white ===== */
@@ -6056,13 +6067,13 @@ body.theme-cream .lede {
 body.theme-cream .h-1 .it,
 body.theme-cream .h-display .it,
 body.theme-cream .story-title .it {
-  color: var(--accent);
+  color: var(--accent-ink);
 }
 body.theme-cream .eyebrow {
   color: var(--text-faint);
 }
 body.theme-cream .eyebrow.accent {
-  color: var(--accent);
+  color: var(--accent-ink);
 }
 
 /* ===== Comparison table on white ===== */

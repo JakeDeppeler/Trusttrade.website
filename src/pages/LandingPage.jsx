@@ -11,6 +11,18 @@ function scrollToWaitlist() {
   el.scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
+// App screenshots are served as AVIF (with a webp fallback) — ~25-35% smaller than
+// webp. Pass the existing webp `src`; the AVIF path is derived by swapping the ext.
+function AppShot({ src, alt, ...rest }) {
+  const avif = src.replace(/\.webp(\?|$)/, ".avif$1");
+  return (
+    <picture>
+      <source srcSet={avif} type="image/avif" />
+      <img src={src} alt={alt} decoding="async" {...rest} />
+    </picture>
+  );
+}
+
 function Hero({ onJoin }) {
   return (
     <section className="hero hero-centered" id="top">
@@ -699,7 +711,7 @@ function BevelHero() {
           {showSides && (
             <div className="phone side left">
               <div className="phone-screen">
-                <img src="/assets/app-browse.webp?v=2" alt="Browse verified tradies" width={640} height={1391} loading="eager" decoding="async" />
+                <AppShot src="/assets/app-browse.webp?v=2" alt="Browse verified tradies" width={640} height={1391} loading="eager" decoding="async" />
               </div>
             </div>
           )}
@@ -723,7 +735,7 @@ function BevelHero() {
           {showSides && (
             <div className="phone side right">
               <div className="phone-screen">
-                <img src="/assets/app-booking.webp?v=2" alt="Booking confirmation" width={640} height={1391} loading="eager" decoding="async" />
+                <AppShot src="/assets/app-booking.webp?v=2" alt="Booking confirmation" width={640} height={1391} loading="eager" decoding="async" />
               </div>
             </div>
           )}
@@ -783,19 +795,19 @@ function HowItWorksSteps() {
             <div className="step-num">01</div>
             <h3 className="h-3">Tell us what's gone wrong.</h3>
             <p>Leaking tap. Tripping fuse. Planning a reno. Plain English, our AI works out which trade you actually need.</p>
-            <div className="step-visual"><img src="/assets/app-askai.webp?v=2" alt="Ask AI screen" loading="lazy" width={640} height={1391} /></div>
+            <div className="step-visual"><AppShot src="/assets/app-askai.webp?v=2" alt="Ask AI screen" loading="lazy" width={640} height={1391} /></div>
           </div>
           <div className="step">
             <div className="step-num">02</div>
             <h3 className="h-3">We route to vetted locals.</h3>
             <p>Insured, licenced, reviewed. Nearest first. No marketplace mosh-pit, just a shortlist of mates who can do the job.</p>
-            <div className="step-visual"><img src="/assets/app-browse.webp?v=2" alt="Browse tradies screen" loading="lazy" width={640} height={1391} /></div>
+            <div className="step-visual"><AppShot src="/assets/app-browse.webp?v=2" alt="Browse tradies screen" loading="lazy" width={640} height={1391} /></div>
           </div>
           <div className="step">
             <div className="step-num">03</div>
             <h3 className="h-3">Approve the price. Book it in.</h3>
             <p>Fixed call-out fee, in writing, up front. Tap Approve and you've got a booking confirmation, name, time, address, all logged.</p>
-            <div className="step-visual"><img src="/assets/app-booking.webp?v=2" alt="Booking confirmation screen" loading="lazy" width={640} height={1391} /></div>
+            <div className="step-visual"><AppShot src="/assets/app-booking.webp?v=2" alt="Booking confirmation screen" loading="lazy" width={640} height={1391} /></div>
           </div>
         </div>
       </div>
@@ -961,7 +973,7 @@ function ForTradiesSplit() {
             </div>
             <div className="phone">
               <div className="phone-screen">
-                <img src="/assets/app-jobs.webp?v=2" alt="My Jobs screen" loading="lazy" width={640} height={1391} />
+                <AppShot src="/assets/app-jobs.webp?v=2" alt="My Jobs screen" loading="lazy" width={640} height={1391} />
               </div>
             </div>
             <div className="floater bottom-left">
@@ -996,7 +1008,7 @@ function Showcase() {
           {loop.map((src, i) => (
             <div className="phone sm" key={i}>
               <div className="phone-screen">
-                <img src={`/assets/${src}.webp?v=2`} alt="Trust Trade app screen" loading="lazy" width={640} height={1391} />
+                <AppShot src={`/assets/${src}.webp?v=2`} alt="Trust Trade app screen" loading="lazy" width={640} height={1391} />
               </div>
             </div>
           ))}
@@ -1151,7 +1163,7 @@ function FeatureRow({ eyebrow, title, body, points, img, flip, cards, glow, visu
             {glow !== false && <div className="glow" />}
             <div className="phone">
               <div className="phone-screen">
-                <img src={img} alt={title} loading="lazy" width={640} height={1391} />
+                <AppShot src={img} alt={title} loading="lazy" width={640} height={1391} />
               </div>
             </div>
             {cards}
@@ -1301,7 +1313,7 @@ function ForTradiesBand() {
             <div className="glow" />
             <div className="phone">
               <div className="phone-screen">
-                <img src="/assets/app-jobs.webp?v=2" alt="Tradie jobs screen" loading="lazy" width={640} height={1391} />
+                <AppShot src="/assets/app-jobs.webp?v=2" alt="Tradie jobs screen" loading="lazy" width={640} height={1391} />
               </div>
             </div>
             <div className="fcard pos-tr">

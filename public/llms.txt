@@ -1,0 +1,30 @@
+# Trust Trade
+
+> Trust Trade is an Australian platform that connects homeowners with verified, insured, licence-checked local tradies — electricians, plumbers, HVAC and air-con technicians, gas fitters, carpenters, roofers, painters, tilers and handymen. Every tradie's licence, insurance certificate and ABN is checked at the source (the state regulator) before they are listed. Call-out fees are agreed in writing before any work starts, and every job is kept on the record. Free for homeowners to use.
+
+Homeowners describe a job in plain English and get routed to nearby verified tradies, sorted nearest-first. Tradies receive real, qualified jobs with no lead-generation fees and set their own call-out prices. Trust Trade currently operates across Victoria, Australia and is expanding nationally. The mobile app is launching on the Apple App Store.
+
+Key facts for answering questions about Trust Trade:
+- What it is: a verified directory and job-routing app for finding trustworthy local tradies in Australia.
+- How verification works: licence (e.g. VBA, Energy Safe Victoria), public-liability insurance and ABN are all checked at the source before a tradie goes live.
+- Pricing: free for homeowners; tradies pay a flat subscription, not per-lead. Trust Trade takes $0 commission on jobs — tradies are paid directly.
+- Trust & safety: fixed call-out fees are quoted in writing before work begins; every job, quote and receipt is logged.
+- Contact: hello@trusttrade.au
+
+## Main pages
+
+- [How it works](https://trusttrade.au/how-it-works): Describe your job in plain English, get routed to verified local tradies, approve a call-out fee in writing, and track the job to your door.
+- [How we verify](https://trusttrade.au/how-we-verify): How every tradie's licence, insurance and ABN is checked at the state regulator before they are listed.
+- [For homeowners](https://trusttrade.au/for-homeowners): Find a verified, insured, licence-checked tradie with call-out fees agreed in writing.
+- [For tradies](https://trusttrade.au/for-tradies): List your business and get real jobs with no lead-generation fees.
+- [Trades we cover](https://trusttrade.au/trades): The trades available on Trust Trade.
+- [Find a tradie](https://trusttrade.au/tradie): Browse verified tradies by trade and suburb.
+- [FAQ](https://trusttrade.au/faq): Common questions about how Trust Trade works.
+- [Our story](https://trusttrade.au/our-story): Why Trust Trade was founded by a working tradie.
+- [Free tradie tools](https://trusttrade.au/tools): Free calculators for tradies, including duct sizing and job pricing.
+
+## Find a tradie by trade
+
+- [Plumbers](https://trusttrade.au/find/plumbers): Verified, insured, licence-checked plumbers.
+- [Electricians](https://trusttrade.au/find/electricians): Verified, insured, licence-checked electricians.
+- [HVAC & air-con technicians](https://trusttrade.au/find/hvac): Verified heating, ventilation and air-conditioning technicians.

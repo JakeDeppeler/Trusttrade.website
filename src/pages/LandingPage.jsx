@@ -23,6 +23,21 @@ function AppShot({ src, alt, ...rest }) {
   );
 }
 
+// Decorative hero side phones — always in the DOM (so they never pop in and shift the
+// layout → keeps CLS 0 on desktop), but the real image sources are media-scoped to
+// >=721px. Below that the phones are display:none (CSS) AND no source matches, so the
+// browser loads only the 1px placeholder — mobile never downloads these ~88KB.
+const PX = "data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==";
+function SidePhone({ name, alt }) {
+  return (
+    <picture>
+      <source media="(min-width: 721px)" srcSet={`/assets/${name}.avif?v=2`} type="image/avif" />
+      <source media="(min-width: 721px)" srcSet={`/assets/${name}.webp?v=2`} type="image/webp" />
+      <img src={PX} alt={alt} width={640} height={1391} decoding="async" />
+    </picture>
+  );
+}
+
 function Hero({ onJoin }) {
   return (
     <section className="hero hero-centered" id="top">
@@ -645,27 +660,12 @@ function MobileStickyCTA({ onJoin }) {
 }
 
 // ===== Hero — centered "Done proper." design hero =====
-// The two side phones are decorative and hidden under 720px. `loading="lazy"`
-// doesn't stop Chrome downloading display:none images, so we skip rendering them
-// entirely on mobile — that's ~120KB the mobile LCP window gets back.
-function useIsDesktop() {
-  // Deterministic initial value so the server prerender and the client's first
-  // render match (no hydration mismatch). We can't know the viewport during SSR,
-  // so start false (mobile — the decorative side phones are desktop-only) and sync
-  // to the real viewport in the effect, which runs only on the client after mount.
-  const [desktop, setDesktop] = useState(false);
-  useEffect(() => {
-    const mq = window.matchMedia("(min-width: 721px)");
-    const on = () => setDesktop(mq.matches);
-    on();
-    mq.addEventListener("change", on);
-    return () => mq.removeEventListener("change", on);
-  }, []);
-  return desktop;
-}
-
+// The two side phones are decorative and hidden under 721px. They're rendered
+// unconditionally (see SidePhone) so they never appear via JS after hydration —
+// that was causing desktop CLS. Their image sources are media-scoped to >=721px so
+// mobile still never downloads them (Chrome DOES fetch display:none lazy images, so
+// media-scoped <source> is the reliable way to skip them).
 function BevelHero() {
-  const showSides = useIsDesktop();
   return (
     <section className="hero bevel-hero" id="top">
       <div className="hero-sky" aria-hidden="true" />
@@ -707,14 +707,16 @@ function BevelHero() {
           <span>1,247 mates already in line</span>
         </div>
 
+        {/* Side phones are ALWAYS in the DOM (not JS-gated) so they never pop in after
+            hydration — that pop-in was causing desktop CLS. CSS hides them <=720px, so
+            on mobile they're display:none and (being loading="lazy") never download. On
+            desktop they're above the fold and visible, so lazy loads them right away. */}
         <div className="hero-trio">
-          {showSides && (
-            <div className="phone side left">
-              <div className="phone-screen">
-                <AppShot src="/assets/app-browse.webp?v=2" alt="Browse verified tradies" width={640} height={1391} loading="eager" decoding="async" />
-              </div>
+          <div className="phone side left">
+            <div className="phone-screen">
+              <SidePhone name="app-browse" alt="Browse verified tradies" />
             </div>
-          )}
+          </div>
           <div className="phone center">
             <div className="phone-screen">
               {/* the LCP element on mobile — AVIF (preloaded in index.html) with a
@@ -732,13 +734,11 @@ function BevelHero() {
               </picture>
             </div>
           </div>
-          {showSides && (
-            <div className="phone side right">
-              <div className="phone-screen">
-                <AppShot src="/assets/app-booking.webp?v=2" alt="Booking confirmation" width={640} height={1391} loading="eager" decoding="async" />
-              </div>
+          <div className="phone side right">
+            <div className="phone-screen">
+              <SidePhone name="app-booking" alt="Booking confirmation" />
             </div>
-          )}
+          </div>
         </div>
       </div>
     </section>

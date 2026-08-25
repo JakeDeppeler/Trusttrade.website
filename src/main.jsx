@@ -2,6 +2,7 @@ import React from "react";
 import ReactDOM from "react-dom/client";
 import { BrowserRouter } from "react-router-dom";
 import AppRoutes from "./AppRoutes.jsx";
+import "./styles/fonts.css";
 import "./styles/landing.css";
 import "./styles/pages.css";
 import "./styles/chrome.css";

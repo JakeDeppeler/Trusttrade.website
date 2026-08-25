@@ -44,27 +44,13 @@
     <meta name="twitter:description" content="Find a tradie, done proper. Verified, insured, licence-checked local tradies across Australia." />
     <meta name="twitter:image" content="https://trusttrade.au/og-image.png" />
 
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <!-- Load fonts off the critical path so they don't block first paint.
-         display=swap shows a system fallback instantly, then swaps to Archivo. -->
-    <link
-      rel="preload"
-      as="style"
-      href="https://fonts.googleapis.com/css2?family=Archivo:ital,wght@0,400;0,500;0,600;0,700;0,800;0,900;1,400;1,500;1,700;1,800;1,900&family=JetBrains+Mono:wght@400;500;600&display=swap"
-    />
-    <link
-      href="https://fonts.googleapis.com/css2?family=Archivo:ital,wght@0,400;0,500;0,600;0,700;0,800;0,900;1,400;1,500;1,700;1,800;1,900&family=JetBrains+Mono:wght@400;500;600&display=swap"
-      rel="stylesheet"
-      media="print"
-      onload="this.media='all'"
-    />
-    <noscript>
-      <link
-        href="https://fonts.googleapis.com/css2?family=Archivo:ital,wght@0,400;0,500;0,600;0,700;0,800;0,900;1,400;1,500;1,700;1,800;1,900&family=JetBrains+Mono:wght@400;500;600&display=swap"
-        rel="stylesheet"
-      />
-    </noscript>
+    <!-- Fonts are self-hosted (public/fonts/*.woff2, @font-face in src/styles/fonts.css)
+         so there's no Google round-trip / third-party connection. Archivo & the italic
+         are variable fonts (one file each covers 100–900). Preload the two the hero
+         headline needs so they arrive with the first paint; crossorigin is required even
+         same-origin because fonts are always fetched anonymously (else double-download). -->
+    <link rel="preload" href="/fonts/archivo.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="preload" href="/fonts/archivo-italic.woff2" as="font" type="font/woff2" crossorigin />
 
     <!-- Structured data: Organization + the mobile app + site search -->
     <script type="application/ld+json">

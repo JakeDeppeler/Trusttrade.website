@@ -7,6 +7,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
 import { build } from "vite";
+import Beasties from "beasties";
 
 const root = process.cwd();
 const dist = path.join(root, "dist");
@@ -39,6 +40,19 @@ if (!template.includes(MARKER)) {
 // hydrate homepage HTML and mismatch. vercel.json rewrites the catch-all to /_shell.html.
 fs.writeFileSync(path.join(dist, "_shell.html"), template);
 console.log("wrote dist/_shell.html (empty-root SPA fallback)");
+// Inline the CSS actually used by the prerendered HTML into <style> in the <head>,
+// and switch the external stylesheet to a non-blocking async load. This removes the
+// render-blocking CSS round-trip that was gating mobile FCP — first paint now happens
+// as soon as the HTML arrives. Only run on the prerendered homepage (it needs real DOM
+// to know which rules are critical); the SPA _shell keeps its normal blocking link.
+const beasties = new Beasties({
+  path: dist,
+  publicPath: "/",
+  preload: "swap", // non-critical CSS: <link rel=preload ... onload="this.rel='stylesheet'">
+  pruneSource: false, // keep the full stylesheet intact for the async load
+  logLevel: "warn",
+});
+
 for (const url of ROUTES) {
   const appHtml = render(url);
   if (!appHtml || appHtml.length < 500) {
@@ -46,10 +60,18 @@ for (const url of ROUTES) {
     process.exit(1);
   }
   const out = template.replace(MARKER, `<div id="root">${appHtml}</div>`);
+  let finalHtml;
+  try {
+    finalHtml = await beasties.process(out);
+    if (!/<style/.test(finalHtml)) throw new Error("no inline <style> produced");
+  } catch (e) {
+    console.error(`prerender: critical-CSS inline failed for ${url} (${e.message}) — using non-inlined HTML.`);
+    finalHtml = out;
+  }
   const file = url === "/" ? path.join(dist, "index.html") : path.join(dist, url.replace(/^\//, ""), "index.html");
   fs.mkdirSync(path.dirname(file), { recursive: true });
-  fs.writeFileSync(file, out);
-  console.log(`prerendered ${url} → ${path.relative(root, file)} (${appHtml.length} bytes of hero HTML)`);
+  fs.writeFileSync(file, finalHtml);
+  console.log(`prerendered ${url} → ${path.relative(root, file)} (${appHtml.length} bytes hero HTML, ${Math.round(finalHtml.length / 1024)}KB total)`);
 }
 
 // 3. Clean up the throwaway server bundle.

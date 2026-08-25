@@ -69,16 +69,15 @@ function Hero({ onJoin }) {
               </div>
               <div className="phone">
                 <div className="phone-screen">
-                  {/* No fetchPriority here: on desktop the media-scoped preload in
-                      index.html already prioritises this (it's the above-fold LCP);
-                      on mobile the phone is below the fold, so forcing high priority
-                      would only steal bandwidth from the app JS that paints the
-                      headline (the real mobile LCP). */}
+                  {/* This phone is the LCP element on both mobile and desktop, and it's
+                      preloaded in index.html — mark it high priority so the browser
+                      fetches it ahead of below-the-fold assets. */}
                   <img
                     src="/assets/app-home.webp?v=2"
                     alt="Trust Trade app home screen"
                     width={1284}
                     height={2778}
+                    fetchPriority="high"
                     decoding="async"
                   />
                 </div>
@@ -780,19 +779,19 @@ function HowItWorksSteps() {
             <div className="step-num">01</div>
             <h3 className="h-3">Tell us what's gone wrong.</h3>
             <p>Leaking tap. Tripping fuse. Planning a reno. Plain English, our AI works out which trade you actually need.</p>
-            <div className="step-visual"><img src="/assets/app-askai.webp?v=2" alt="Ask AI screen" /></div>
+            <div className="step-visual"><img src="/assets/app-askai.webp?v=2" alt="Ask AI screen" loading="lazy" width={640} height={1391} /></div>
           </div>
           <div className="step">
             <div className="step-num">02</div>
             <h3 className="h-3">We route to vetted locals.</h3>
             <p>Insured, licenced, reviewed. Nearest first. No marketplace mosh-pit, just a shortlist of mates who can do the job.</p>
-            <div className="step-visual"><img src="/assets/app-browse.webp?v=2" alt="Browse tradies screen" /></div>
+            <div className="step-visual"><img src="/assets/app-browse.webp?v=2" alt="Browse tradies screen" loading="lazy" width={640} height={1391} /></div>
           </div>
           <div className="step">
             <div className="step-num">03</div>
             <h3 className="h-3">Approve the price. Book it in.</h3>
             <p>Fixed call-out fee, in writing, up front. Tap Approve and you've got a booking confirmation, name, time, address, all logged.</p>
-            <div className="step-visual"><img src="/assets/app-booking.webp?v=2" alt="Booking confirmation screen" /></div>
+            <div className="step-visual"><img src="/assets/app-booking.webp?v=2" alt="Booking confirmation screen" loading="lazy" width={640} height={1391} /></div>
           </div>
         </div>
       </div>
@@ -958,7 +957,7 @@ function ForTradiesSplit() {
             </div>
             <div className="phone">
               <div className="phone-screen">
-                <img src="/assets/app-jobs.webp?v=2" alt="My Jobs screen" />
+                <img src="/assets/app-jobs.webp?v=2" alt="My Jobs screen" loading="lazy" width={640} height={1391} />
               </div>
             </div>
             <div className="floater bottom-left">
@@ -993,7 +992,7 @@ function Showcase() {
           {loop.map((src, i) => (
             <div className="phone sm" key={i}>
               <div className="phone-screen">
-                <img src={`/assets/${src}.webp?v=2`} alt="Trust Trade app screen" loading="lazy" />
+                <img src={`/assets/${src}.webp?v=2`} alt="Trust Trade app screen" loading="lazy" width={640} height={1391} />
               </div>
             </div>
           ))}
@@ -1148,7 +1147,7 @@ function FeatureRow({ eyebrow, title, body, points, img, flip, cards, glow, visu
             {glow !== false && <div className="glow" />}
             <div className="phone">
               <div className="phone-screen">
-                <img src={img} alt={title} loading="lazy" />
+                <img src={img} alt={title} loading="lazy" width={640} height={1391} />
               </div>
             </div>
             {cards}
@@ -1297,7 +1296,7 @@ function ForTradiesBand() {
             <div className="glow" />
             <div className="phone">
               <div className="phone-screen">
-                <img src="/assets/app-jobs.webp?v=2" alt="Tradie jobs screen" loading="lazy" />
+                <img src="/assets/app-jobs.webp?v=2" alt="Tradie jobs screen" loading="lazy" width={640} height={1391} />
               </div>
             </div>
             <div className="fcard pos-tr">

@@ -19,7 +19,7 @@
          browser downloads it twice. Now that the landing page is prerendered, the JS no
          longer gates the paint — measurement showed the phone image is the mobile LCP
          (LCP lands ~0.7s after FCP), so preload it on ALL viewports at high priority. -->
-    <link rel="preload" as="image" href="/assets/app-home.webp?v=2" fetchpriority="high" />
+    <link rel="preload" as="image" href="/assets/app-home.avif?v=2" type="image/avif" fetchpriority="high" />
 
     <!-- Icons -->
     <link rel="icon" href="/favicon.ico" sizes="any" />

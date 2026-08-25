@@ -705,15 +705,19 @@ function BevelHero() {
           )}
           <div className="phone center">
             <div className="phone-screen">
-              {/* the LCP element on mobile — load it first */}
-              <img
-                src="/assets/app-home.webp?v=2"
-                alt="Trust Trade app home screen"
-                width={1284}
-                height={2778}
-                fetchPriority="high"
-                decoding="async"
-              />
+              {/* the LCP element on mobile — AVIF (preloaded in index.html) with a
+                  webp fallback for the rare browser without AVIF; load it first */}
+              <picture>
+                <source srcSet="/assets/app-home.avif?v=2" type="image/avif" />
+                <img
+                  src="/assets/app-home.webp?v=2"
+                  alt="Trust Trade app home screen"
+                  width={1284}
+                  height={2778}
+                  fetchPriority="high"
+                  decoding="async"
+                />
+              </picture>
             </div>
           </div>
           {showSides && (

@@ -52,21 +52,33 @@ h1,h2{margin:0;letter-spacing:-.02em}
 .opt-btn.on{border-color:var(--gold);background:var(--gold-soft);box-shadow:inset 0 0 0 1px var(--gold)}
 .opt-btn .tick{margin-left:auto;color:var(--gold-ink);font-weight:800;opacity:0;transition:opacity .12s}
 .opt-btn.on .tick{opacity:1}
+.opt-btn .num{margin-left:auto;font-size:12px;font-weight:800;color:var(--gold-ink);background:var(--gold-soft);border:1px solid #f2ddab;width:22px;height:22px;border-radius:50%;display:none;align-items:center;justify-content:center}
+.opt-btn.on .num{display:flex}
+.opt-btn.on .num+.tick{display:none}
 .opt-btn.center{justify-content:center;text-align:center}
+.pick-hint{font-size:13.5px;color:var(--gold-ink);font-weight:650;margin-top:14px;min-height:1px}
 /* fields */
 .fld{margin-bottom:18px}
 .fld>.l{display:block;font-size:14px;font-weight:700;margin-bottom:7px}
 .fld>.l .opt{color:var(--mut);font-weight:500}
 .fld .hint{font-size:13px;color:var(--mut);margin-top:6px}
-input[type=text],input[type=email],input[type=tel],input[type=number],input[type=date],input[type=url],textarea{
+.fld .hint.small{font-size:12.5px}
+input[type=text],input[type=email],input[type=tel],input[type=number],input[type=date],input[type=url],input[type=time],textarea{
   width:100%;padding:14px 15px;border:1.5px solid var(--line);border-radius:var(--r-sm);font-family:inherit;font-size:16.5px;background:#fff;color:var(--ink);transition:border-color .12s,box-shadow .12s}
 input:focus,textarea:focus{outline:none;border-color:var(--gold);box-shadow:0 0 0 3px rgba(242,169,0,.16)}
 input.bad,textarea.bad{border-color:var(--red);box-shadow:0 0 0 3px rgba(214,69,69,.12)}
+input.good{border-color:var(--green);box-shadow:0 0 0 3px rgba(31,157,87,.12)}
 textarea{resize:vertical;min-height:120px;line-height:1.55}
 .two{display:grid;grid-template-columns:1fr 1fr;gap:14px}
 @media(max-width:520px){.two{grid-template-columns:1fr}}
 .err{color:var(--red);font-size:13px;margin-top:7px;display:none}
 .err.on{display:block}
+/* inline field status (checking / valid / taken) */
+.stat{font-size:13px;margin-top:7px;font-weight:600;display:none}
+.stat.on{display:block}
+.stat.ok{color:var(--green)}
+.stat.bad{color:var(--red)}
+.stat.pend{color:var(--mut)}
 /* address autocomplete */
 .ac{position:relative}
 .ac-list{position:absolute;left:0;right:0;top:calc(100% + 4px);background:#fff;border:1px solid var(--line);border-radius:var(--r-sm);box-shadow:var(--sh);z-index:15;overflow:hidden;display:none}
@@ -90,17 +102,20 @@ textarea{resize:vertical;min-height:120px;line-height:1.55}
 .box .bs{font-size:14px;color:var(--ink2);line-height:1.5}
 hr.sep{border:0;border-top:1px solid var(--line2);margin:24px 0}
 .subh{font-size:15px;font-weight:800;margin:0 0 12px}
-.mini{font-size:13.5px;font-weight:650;color:var(--gold-ink);background:none;border:0;cursor:pointer;font-family:inherit;padding:6px 0}
+.mini{font-size:13.5px;font-weight:650;color:var(--gold-ink);background:none;border:0;cursor:pointer;font-family:inherit;padding:6px 0;display:inline-flex;align-items:center;gap:5px}
+.mini:hover{text-decoration:underline}
 /* hours */
 .hrs{display:flex;flex-direction:column;gap:8px}
 .hrow{display:grid;grid-template-columns:52px 1fr auto;gap:10px;align-items:center}
 .hrow .dn{font-weight:700;font-size:14.5px}
 .hrow .times{display:flex;align-items:center;gap:7px}
-.hrow .times input{width:110px;padding:9px 10px;font-size:15px}
+.hrow .times input{width:112px;padding:9px 10px;font-size:15px}
 .hrow.closed .times{opacity:.35;pointer-events:none}
 .pill{font-size:12.5px;font-weight:650;padding:7px 11px;border-radius:99px;border:1.5px solid var(--line);background:#fff;cursor:pointer;color:var(--ink2)}
 .pill.on{background:var(--gold);border-color:var(--gold);color:#231700}
 .hpills{display:flex;gap:6px}
+.rowcopy{background:none;border:0;cursor:pointer;color:var(--mut);font-size:16px;padding:6px;border-radius:8px}
+.rowcopy:hover{color:var(--gold-ink);background:var(--gold-soft)}
 /* services */
 .svc{display:grid;grid-template-columns:1fr 130px 40px;gap:9px;align-items:start;margin-bottom:9px}
 .svc textarea{min-height:0;height:48px}
@@ -118,6 +133,14 @@ hr.sep{border:0;border-top:1px solid var(--line2);margin:24px 0}
 .gal .g .x{position:absolute;top:5px;right:5px;width:24px;height:24px;border-radius:50%;background:rgba(0,0,0,.6);color:#fff;border:0;cursor:pointer;font-size:13px}
 .gal .add{aspect-ratio:1;border:1.5px dashed var(--line);border-radius:11px;background:#fff;cursor:pointer;display:grid;place-items:center;font-size:26px;color:var(--mut)}
 .gal .add:hover{border-color:var(--gold);color:var(--gold-ink)}
+/* contract */
+.contract{max-height:240px;overflow:auto;border:1px solid var(--line);border-radius:var(--r);background:#fff;padding:16px 18px;font-size:13.5px;line-height:1.6;color:var(--ink2);margin:0 0 16px;-webkit-overflow-scrolling:touch}
+.contract h4{margin:14px 0 7px;font-size:14px;color:var(--ink);font-weight:800}
+.contract h4:first-child{margin-top:0}
+.contract p{margin:0 0 9px}
+.contract ul{margin:0 0 9px;padding-left:18px}
+.contract li{margin:3px 0}
+.contract .fine{font-size:12.5px;color:var(--mut)}
 /* nav */
 .nav{position:fixed;left:0;right:0;bottom:0;background:rgba(250,247,239,.94);backdrop-filter:blur(10px);border-top:1px solid var(--line2);z-index:20}
 .navin{max-width:600px;margin:0 auto;padding:14px 20px;display:flex;align-items:center;gap:12px}
@@ -148,94 +171,74 @@ hr.sep{border:0;border-top:1px solid var(--line2);margin:24px 0}
 <div id="app">
 <div class="stage">
 
-  <!-- 0 · Main trade -->
+  <!-- 0 · Main trade (multi-select) -->
   <section class="step-view on" data-step="0">
     <div class="count" data-count></div>
     <h1 class="q">What's your main trade?</h1>
-    <p class="sub">Pick the one you're best known for. You can add a second trade below if you do two.</p>
+    <p class="sub">Tap every trade you do — the first one you tap is your main trade. Most tradies pick one or two.</p>
     <div class="body">
       <div class="opts g2" id="tradeOpts"></div>
-      <div class="err" data-for="trade">Choose your main trade</div>
-      <hr class="sep" />
-      <label class="tog" id="secondSw" onclick="toggleSecond()"><span class="tk"></span><span><span class="tt">I also work a second trade</span><span class="ts">e.g. a plumber who's also a gas fitter</span></span></label>
-      <div id="secondWrap" class="hide">
-        <div class="subh">Your second trade</div>
-        <div class="opts g2" id="trade2Opts"></div>
-      </div>
+      <div class="pick-hint" id="tradeHint"></div>
+      <div class="err" data-for="trade">Pick at least one trade</div>
     </div>
   </section>
 
-  <!-- 1 · Business name -->
+  <!-- 1 · Personal details -->
   <section class="step-view" data-step="1">
     <div class="count" data-count></div>
-    <h1 class="q">What's your business called?</h1>
-    <div class="body">
-      <div class="fld"><span class="l">Business name</span><input id="bizName" type="text" placeholder="e.g. Advanced Gas &amp; Aircon" /><div class="err" data-for="bizName">Enter your business name</div></div>
-      <div class="fld"><span class="l">Your name <span class="opt">(the main contact)</span></span><input id="fullName" type="text" placeholder="e.g. Jake Deppeler" /><div class="err" data-for="fullName">Enter your name</div></div>
-    </div>
-  </section>
-
-  <!-- 2 · Contact -->
-  <section class="step-view" data-step="2">
-    <div class="count" data-count></div>
-    <h1 class="q">How do we reach you?</h1>
+    <h1 class="q">First, a bit about you</h1>
     <p class="sub">We'll email you at every step. Your phone stays private until you accept a job.</p>
     <div class="body">
-      <div class="fld"><span class="l">Email</span><input id="email" type="email" placeholder="you@business.com.au" /><div class="err" data-for="email">Enter a valid email</div></div>
-      <div class="fld"><span class="l">Phone</span><input id="phone" type="tel" placeholder="04xx xxx xxx" /><div class="err" data-for="phone">Enter your phone</div></div>
+      <div class="fld"><span class="l">Your full name <span class="opt">(the main contact)</span></span><input id="fullName" type="text" autocomplete="name" placeholder="e.g. Jake Deppeler" /><div class="err" data-for="fullName">Enter your name</div></div>
+      <div class="fld"><span class="l">Email</span><input id="email" type="email" autocomplete="email" placeholder="you@business.com.au" /><div class="stat" id="emailStat"></div><div class="err" data-for="email">Enter a valid email</div></div>
+      <div class="fld"><span class="l">Mobile</span><input id="phone" type="tel" autocomplete="tel" placeholder="04xx xxx xxx" /><div class="stat" id="phoneStat"></div><div class="err" data-for="phone">Enter your phone</div></div>
     </div>
   </section>
 
-  <!-- 3 · Location -->
-  <section class="step-view" data-step="3">
+  <!-- 2 · Business details -->
+  <section class="step-view" data-step="2">
     <div class="count" data-count></div>
-    <h1 class="q">Where are you based?</h1>
+    <h1 class="q">Now your business</h1>
+    <p class="sub">We check your ABN against the national register the moment you continue.</p>
     <div class="body">
+      <div class="fld"><span class="l">Business name</span><input id="bizName" type="text" placeholder="e.g. Advanced Gas &amp; Aircon" /><div class="err" data-for="bizName">Enter your business name</div></div>
+      <div class="fld"><span class="l">ABN</span><input id="abn" type="text" inputmode="numeric" placeholder="11 digit ABN" maxlength="14" /><div class="stat" id="abnStat"></div><div class="err" data-for="abn">Enter your ABN</div></div>
+      <div class="fld"><span class="l">ABN registered <span class="opt">(optional)</span></span><input id="abnDate" type="date" /></div>
+      <hr class="sep" />
       <div class="fld"><span class="l">Suburb / main service area</span><input id="suburb" type="text" placeholder="e.g. Pakenham VIC 3810" /><div class="err" data-for="suburb">Where are you based?</div></div>
       <div class="fld"><span class="l">Business address <span class="opt">(optional — start typing, we'll find it)</span></span>
         <div class="ac"><input id="bizAddr" type="text" placeholder="Start typing your address…" autocomplete="off" /><div class="ac-list" id="addrList"></div></div>
-        <div class="hint">Not shown publicly — used for verification only.</div></div>
+        <div class="hint small">Not shown publicly — used for verification only.</div></div>
     </div>
   </section>
 
-  <!-- 4 · Travel distance -->
-  <section class="step-view" data-step="4">
+  <!-- 3 · Travel distance -->
+  <section class="step-view" data-step="3">
     <div class="count" data-count></div>
     <h1 class="q">How far will you travel for a job?</h1>
     <div class="body"><div class="opts g3" id="travelOpts"></div></div>
   </section>
 
-  <!-- 5 · Premises -->
-  <section class="step-view" data-step="5">
+  <!-- 4 · Premises -->
+  <section class="step-view" data-step="4">
     <div class="count" data-count></div>
     <h1 class="q">Where do you work from?</h1>
     <div class="body"><div class="opts" id="premisesOpts"></div></div>
   </section>
 
-  <!-- 6 · Experience -->
-  <section class="step-view" data-step="6">
+  <!-- 5 · Experience -->
+  <section class="step-view" data-step="5">
     <div class="count" data-count></div>
     <h1 class="q">A bit about the business</h1>
     <div class="body">
-      <div class="subh">How long in business?</div><div class="opts g3" id="yrsBizOpts"></div>
-      <div class="subh" style="margin-top:24px">How long in the trade?</div><div class="opts g3" id="yrsTradeOpts"></div>
+      <div class="subh">How long have you been in business?</div><div class="opts g3" id="yrsBizOpts"></div>
+      <div class="subh" style="margin-top:24px">How long have you been in the trade?</div><div class="opts g3" id="yrsTradeOpts"></div>
       <div class="subh" style="margin-top:24px">Team size</div><div class="opts g3" id="teamOpts"></div>
     </div>
   </section>
 
-  <!-- 7 · ABN -->
-  <section class="step-view" data-step="7">
-    <div class="count" data-count></div>
-    <h1 class="q">Your ABN</h1>
-    <p class="sub">We check this against the ABN register.</p>
-    <div class="body">
-      <div class="fld"><span class="l">ABN</span><input id="abn" type="text" inputmode="numeric" placeholder="11 digit ABN" /><div class="err" data-for="abn">Enter your ABN</div></div>
-      <div class="fld"><span class="l">ABN registered <span class="opt">(optional)</span></span><input id="abnDate" type="date" /></div>
-    </div>
-  </section>
-
-  <!-- 8 · Licence -->
-  <section class="step-view" data-step="8">
+  <!-- 6 · Licence -->
+  <section class="step-view" data-step="6">
     <div class="count" data-count></div>
     <h1 class="q">Your trade licence</h1>
     <p class="sub">We verify this at the state regulator (VBA, ESV, etc.).</p>
@@ -247,8 +250,8 @@ hr.sep{border:0;border-top:1px solid var(--line2);margin:24px 0}
     </div>
   </section>
 
-  <!-- 9 · Insurance -->
-  <section class="step-view" data-step="9">
+  <!-- 7 · Insurance -->
+  <section class="step-view" data-step="7">
     <div class="count" data-count></div>
     <h1 class="q">Public liability insurance</h1>
     <div class="body">
@@ -262,8 +265,8 @@ hr.sep{border:0;border-top:1px solid var(--line2);margin:24px 0}
     </div>
   </section>
 
-  <!-- 10 · Extra checks -->
-  <section class="step-view" data-step="10">
+  <!-- 8 · Extra checks -->
+  <section class="step-view" data-step="8">
     <div class="count" data-count></div>
     <h1 class="q">Any extra checks?</h1>
     <p class="sub">All optional — but they help you stand out and win more work.</p>
@@ -276,8 +279,8 @@ hr.sep{border:0;border-top:1px solid var(--line2);margin:24px 0}
     </div>
   </section>
 
-  <!-- 11 · Bio -->
-  <section class="step-view" data-step="11">
+  <!-- 9 · Bio -->
+  <section class="step-view" data-step="9">
     <div class="count" data-count></div>
     <h1 class="q">Tell homeowners about your business</h1>
     <p class="sub">A few honest lines — who you are, what you specialise in, why people trust you.</p>
@@ -287,20 +290,25 @@ hr.sep{border:0;border-top:1px solid var(--line2);margin:24px 0}
     </div>
   </section>
 
-  <!-- 12 · Hours -->
-  <section class="step-view" data-step="12">
+  <!-- 10 · Hours -->
+  <section class="step-view" data-step="10">
     <div class="count" data-count></div>
     <h1 class="q">When are you open?</h1>
     <div class="body">
-      <button class="mini" type="button" onclick="fillWeekdays()" style="margin-bottom:12px">↺ Mon–Fri 7am–5pm, weekends closed</button>
+      <label class="tog" id="open247Sw" onclick="toggle247()"><span class="tk"></span><span><span class="tt">Open 24/7</span><span class="ts">Around the clock, every day.</span></span></label>
       <div class="hrs" id="hours"></div>
+      <div style="display:flex;gap:16px;flex-wrap:wrap;margin-top:12px">
+        <button class="mini" type="button" onclick="fillWeekdays()">↺ Mon–Fri 7am–5pm, weekends closed</button>
+        <button class="mini" type="button" onclick="copyMonToAll()">⧉ Copy Monday to every day</button>
+      </div>
       <hr class="sep" />
       <label class="tog" id="emergSw" onclick="toggleSw('emergSw','emerg')"><span class="tk"></span><span><span class="tt">Available for emergency call-outs</span><span class="ts">Shows an emergency badge on your profile.</span></span></label>
+      <div id="afterHoursWrap" class="fld hide" style="margin-top:6px"><span class="l">After-hours contact line <span class="opt">(the number to call outside normal hours)</span></span><input id="afterHours" type="tel" placeholder="e.g. 0400 000 000 or main line" /><div class="hint small">Shown to customers as your emergency / after-hours number.</div></div>
     </div>
   </section>
 
-  <!-- 13 · Services -->
-  <section class="step-view" data-step="13">
+  <!-- 11 · Services -->
+  <section class="step-view" data-step="11">
     <div class="count" data-count></div>
     <h1 class="q">Your services &amp; pricing</h1>
     <p class="sub">All prices shown to customers are <strong>+GST</strong>.</p>
@@ -315,8 +323,8 @@ hr.sep{border:0;border-top:1px solid var(--line2);margin:24px 0}
     </div>
   </section>
 
-  <!-- 14 · Sample job -->
-  <section class="step-view" data-step="14">
+  <!-- 12 · Sample job -->
+  <section class="step-view" data-step="12">
     <div class="count" data-count></div>
     <h1 class="q">One sample job</h1>
     <p class="sub">So we can sanity-check your pricing is fair — this isn't shown publicly.</p>
@@ -327,8 +335,8 @@ hr.sep{border:0;border-top:1px solid var(--line2);margin:24px 0}
     </div>
   </section>
 
-  <!-- 15 · Photos -->
-  <section class="step-view" data-step="15">
+  <!-- 13 · Photos -->
+  <section class="step-view" data-step="13">
     <div class="count" data-count></div>
     <h1 class="q">Add your photos</h1>
     <p class="sub">Real photos win trust fast. You can add these later, but 6+ work photos are needed to go live.</p>
@@ -342,23 +350,44 @@ hr.sep{border:0;border-top:1px solid var(--line2);margin:24px 0}
           <div class="logo-prev" id="logoPrev"></div><input id="logoFile" type="file" accept="image/*" class="hide" /></div>
       </div>
       <hr class="sep" />
-      <div class="subh">Work photos <span style="font-weight:500;color:var(--mut);font-size:13px">(6–20)</span></div>
+      <div class="subh">Work photos <span style="font-weight:500;color:var(--mut);font-size:13px">(6–40)</span></div>
       <div class="gal" id="gallery"><button type="button" class="add" onclick="document.getElementById('workFiles').click()">+</button></div>
       <input id="workFiles" type="file" accept="image/*" multiple class="hide" />
       <div class="hint" id="galCount" style="margin-top:10px">0 uploaded · at least 6 to go live</div>
     </div>
   </section>
 
-  <!-- 16 · Review -->
-  <section class="step-view" data-step="16">
+  <!-- 14 · Review + contract -->
+  <section class="step-view" data-step="14">
     <div class="count" data-count></div>
     <h1 class="q">Last step — sign &amp; submit</h1>
     <div class="body">
       <div class="box"><div class="bt">What happens next</div><div class="bs">We verify your ABN, licence and insurance at the source, then create your account and take your profile live. We'll email you the whole way.</div></div>
+      <div class="subh">Trust Trade tradie agreement</div>
+      <div class="contract" id="contract" tabindex="0">
+        <h4>1. Who you are</h4>
+        <p>You confirm you're an authorised representative of the business named in this application, and that the ABN, licence, insurance and other details you've given are true, current and your own.</p>
+        <h4>2. Verification</h4>
+        <p>Trust Trade verifies your ABN, trade licence and public liability insurance against the issuing bodies before you go live, and re-checks them from time to time. You'll keep these current and tell us if anything changes, lapses or is cancelled.</p>
+        <h4>3. How you'll work</h4>
+        <ul>
+          <li>Do the work you're licensed and competent to do, to the standards of your trade and the law.</li>
+          <li>Honour the prices and quotes you give customers. All prices on your profile are shown <strong>plus GST</strong>.</li>
+          <li>Turn up when you say you will, communicate honestly, and treat customers and their homes with respect.</li>
+          <li>Handle your own tax, super and insurance — Trust Trade is a listing and introduction platform, not your employer.</li>
+        </ul>
+        <h4>4. Reviews &amp; profile</h4>
+        <p>Customer reviews are theirs, not yours — you won't write, buy, or pressure for fake reviews. You grant Trust Trade permission to display your business details and the photos you upload on your public profile.</p>
+        <h4>5. Fees</h4>
+        <p>Any subscription or lead fees will be set out clearly before you're charged. You can cancel in line with the plan you choose.</p>
+        <h4>6. Removal</h4>
+        <p>False licence, insurance or identity details, or conduct that puts customers at risk, means immediate removal from the platform. We may also suspend or remove listings that breach this agreement or the law.</p>
+        <p class="fine">This summary sits alongside Trust Trade's full Terms of Service and Privacy Policy, which we'll send with your welcome email. Signing below means you agree to all of the above.</p>
+      </div>
       <div class="fld"><span class="l">How did you hear about Trust Trade? <span class="opt">(optional)</span></span><input id="heardAbout" type="text" placeholder="e.g. a mate, Instagram" /></div>
       <div class="fld"><span class="l">Type your full name to sign</span><input id="sigName" type="text" placeholder="Your full legal name" /><div class="err" data-for="sigName">Sign with your name</div></div>
-      <label class="tog" id="termsSw" onclick="toggleSw('termsSw','terms')"><span class="tk"></span><span><span class="tt">I confirm my details are true &amp; I agree to the terms</span><span class="ts">False licence or insurance details remove you from the platform.</span></span></label>
-      <div class="err" data-for="terms">Please confirm &amp; agree</div>
+      <label class="tog" id="termsSw" onclick="toggleSw('termsSw','terms')"><span class="tk"></span><span><span class="tt">I've read the agreement, my details are true &amp; I agree</span><span class="ts">False licence or insurance details remove you from the platform.</span></span></label>
+      <div class="err" data-for="terms">Please read &amp; agree to the tradie agreement</div>
     </div>
   </section>
 
@@ -389,11 +418,11 @@ const TRADES=["Plumber","Gas fitter","Electrician","HVAC","Carpenter","Roofer","
 const PREMISES=["Factory / workshop","Factory + display room","Office / depot","Work from home","Mobile only"];
 const TRAVELS=["10 km","25 km","40 km","50 km","75 km","100 km+"];
 const YRS=["Under 2","2–5","6–10","10–20","20+"];
-const YRST=["Under 5","5–10","10–20","20+"];
-const TEAM=["Just me","2–3","4–6","7–15","15+"];
+const YRST=["Under 5","5–10","10–15","15–20","20–25","25–30","30–35","35–40","40+"];
+const TEAM=["Just me","2–3","4–6","7–15","15–20","20+"];
 const DAYS=[["mon","Mon"],["tue","Tue"],["wed","Wed"],["thu","Thu"],["fri","Fri"],["sat","Sat"],["sun","Sun"]];
-const GAL_MAX=20, GAL_MIN=6, LAST=16;
-const SECTIONS=[[0,6,"About you"],[7,10,"Licence & insurance"],[11,12,"Your business"],[13,14,"Services & pricing"],[15,15,"Photos"],[16,16,"Finish"]];
+const GAL_MAX=40, GAL_MIN=6, LAST=14;
+const SECTIONS=[[0,5,"About you"],[6,8,"Licence & insurance"],[9,10,"Your business"],[11,12,"Services & pricing"],[13,13,"Photos"],[14,14,"Finish"]];
 const TRADE_SCENARIO={
  'Plumber':"Swap a failed hot water system like-for-like — same size, same spot, unit supplied. Labour only. What's your price?",
  'Gas fitter':"Run a new gas point for a cooktop ~4 m from the meter and connect a customer-supplied cooktop. Labour only. What's your price?",
@@ -406,9 +435,10 @@ const TRADE_SCENARIO={
  'Handyman':"Mount a large TV on a plaster wall and assemble a flat-pack wardrobe, both supplied. What's your price?",
  'Fencer':"Replace a 10 m section of leaning timber paling fence, materials supplied. Labour only. What's your price?"
 };
-const P={trade:"",trade2:"",secondOn:false,travel:"",premises:"",yrsBiz:"",yrsTrade:"",team:"",
-  wwcc:false,police:false,emerg:false,showCall:true,terms:false,certLater:false,
-  cover:null,logo:null,photos:[],hours:{},applyId:null,insuranceDoc:null,submitting:false};
+const P={trades:[],travel:"",premises:"",yrsBiz:"",yrsTrade:"",team:"",
+  wwcc:false,police:false,emerg:false,is247:false,showCall:true,terms:false,certLater:false,
+  cover:null,logo:null,photos:[],hours:{},applyId:null,insuranceDoc:null,submitting:false,
+  check:{email:null,phone:null,abn:null}};
 let step=0;
 const $=id=>document.getElementById(id);
 function toast(m){const t=$('toast');t.textContent=m;t.classList.add('on');clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove('on'),2600);}
@@ -418,8 +448,23 @@ function num(v){const n=parseFloat(String(v==null?'':v).replace(/[^0-9.]/g,''));
 function dateOrNull(v){return v&&/^\d{4}-\d{2}-\d{2}$/.test(v)?v:null;}
 function val(id){const e=$(id);return e?e.value.trim():'';}
 
-// ---- option-button groups ----
-function chipGroup(elId,opts,field,{cols,onPick}={}){
+// ---- main trade (multi-select, first tap = main) ----
+function renderTrades(){
+  const el=$('tradeOpts');
+  el.innerHTML=TRADES.map(o=>`<button type="button" class="opt-btn" data-v="${o}">${o}<span class="num"></span><span class="tick">✓</span></button>`).join('');
+  el.querySelectorAll('.opt-btn').forEach(b=>b.onclick=()=>{
+    const v=b.dataset.v,i=P.trades.indexOf(v);
+    if(i>=0)P.trades.splice(i,1); else P.trades.push(v);
+    b.classList.toggle('on',P.trades.includes(v));
+    updateTradeNums();updateTradeHint();
+    document.querySelector('.err[data-for="trade"]').classList.remove('on');
+  });
+}
+function updateTradeNums(){$('tradeOpts').querySelectorAll('.opt-btn').forEach(b=>{const i=P.trades.indexOf(b.dataset.v);b.querySelector('.num').textContent=i>=0?(i+1):'';});}
+function updateTradeHint(){const h=$('tradeHint');if(!P.trades.length){h.textContent='';return;}h.textContent=P.trades.length===1?P.trades[0]+' — your main trade':P.trades[0]+' (main) + '+P.trades.slice(1).join(', ');}
+
+// ---- generic single-select chip group ----
+function chipGroup(elId,opts,field,{onPick}={}){
   const el=$(elId);
   el.innerHTML=opts.map(o=>`<button type="button" class="opt-btn" data-v="${o}">${o}<span class="tick">✓</span></button>`).join('');
   el.querySelectorAll('.opt-btn').forEach(b=>b.onclick=()=>{
@@ -427,11 +472,35 @@ function chipGroup(elId,opts,field,{cols,onPick}={}){
     P[field]=b.dataset.v; if(onPick)onPick(b.dataset.v);
   });
 }
-function toggleSecond(){P.secondOn=!P.secondOn;$('secondSw').classList.toggle('on',P.secondOn);$('secondWrap').classList.toggle('hide',!P.secondOn);if(!P.secondOn){P.trade2="";$('trade2Opts').querySelectorAll('.opt-btn').forEach(x=>x.classList.remove('on'));}}
 
 // ---- toggles ----
-function toggleSw(elId,key){const el=$(elId);P[key]=!P[key];el.classList.toggle('on',P[key]);if(key==='wwcc')$('wwccFields').style.display=P.wwcc?'grid':'none';}
+function toggleSw(elId,key){const el=$(elId);P[key]=!P[key];el.classList.toggle('on',P[key]);if(key==='wwcc')$('wwccFields').style.display=P.wwcc?'grid':'none';if(key==='emerg')updateAfterHours();}
 function toggleCertLater(){P.certLater=!P.certLater;$('certLater').classList.toggle('on',P.certLater);if(P.certLater){P.insuranceDoc=null;$('certLbl').textContent='Certificate of currency';$('certSub').textContent="You'll add this later";}}
+
+// ---- validation helpers (ABN checksum, email, phone) ----
+function abnValid(raw){const d=(raw||'').replace(/\D/g,'');if(d.length!==11)return false;const w=[10,1,3,5,7,9,11,13,15,17,19];let s=0;for(let i=0;i<11;i++){let n=+d[i];if(i===0)n-=1;s+=n*w[i];}return s%89===0;}
+const DISPOSABLE=['mailinator.com','guerrillamail.com','10minutemail.com','tempmail.com','trashmail.com','yopmail.com','sharklasers.com','getnada.com','temp-mail.org','maildrop.cc','throwawaymail.com','fakeinbox.com','discard.email','emailondeck.com'];
+const TYPOS={'gmial.com':'gmail.com','gmal.com':'gmail.com','gamil.com':'gmail.com','gmai.com':'gmail.com','gmail.co':'gmail.com','gnail.com':'gmail.com','hotmial.com':'hotmail.com','hotmai.com':'hotmail.com','hotmil.com':'hotmail.com','outlok.com':'outlook.com','outllok.com':'outlook.com','yaho.com':'yahoo.com','yahooo.com':'yahoo.com','bigpon.com.au':'bigpond.com.au','bigpond.co':'bigpond.com.au','icloud.co':'icloud.com'};
+function emailIssue(e){e=(e||'').trim().toLowerCase();if(!/^[^@\s]+@[^@\s]+\.[^@\s]{2,}$/.test(e))return 'Enter a valid email';const dom=e.split('@')[1];if(TYPOS[dom])return 'Did you mean @'+TYPOS[dom]+'?';if(DISPOSABLE.includes(dom))return 'Use a real business or personal email';return '';}
+function phoneDigits(p){return (p||'').replace(/\D/g,'').replace(/^61/,'0');}
+function phoneIssue(p){const n=phoneDigits(p);if(n.length<8)return 'Enter your phone number';if(!/^0[2-478]/.test(n)||n.length>10)return 'Enter a valid Australian number';return '';}
+
+// ---- inline field status ----
+function stat(id,kind,msg){const e=$(id);if(!e)return;e.className='stat on '+kind;e.textContent=msg||'';if(!msg)e.classList.remove('on');}
+function clearStat(id){const e=$(id);if(e){e.className='stat';e.textContent='';}}
+function setErrMsg(id,msg){const f=document.querySelector('.err[data-for="'+id+'"]');if(f&&msg)f.textContent=msg;}
+
+// ---- duplicate / existing-account check (server, returns booleans only) ----
+async function contactCheck(payload){
+  try{
+    const r=await fetch(SB+'/rest/v1/rpc/apply_contact_check',{method:'POST',headers:{apikey:KEY,Authorization:'Bearer '+KEY,'Content-Type':'application/json'},body:JSON.stringify(payload)});
+    if(!r.ok)return null;const d=await r.json();return Array.isArray(d)?d[0]:d;
+  }catch(e){return null;}
+}
+let emailSeq=0,phoneSeq=0,abnSeq=0;
+async function onEmailBlur(){const e=val('email');if(!e){clearStat('emailStat');return;}const iss=emailIssue(e);if(iss){stat('emailStat','bad',iss);P.check.email=null;return;}stat('emailStat','pend','Checking…');const seq=++emailSeq;const res=await contactCheck({p_email:e});if(seq!==emailSeq)return;if(res&&res.email_taken){P.check.email=true;stat('emailStat','bad','Already registered — try logging in instead');}else{P.check.email=false;stat('emailStat','ok','Looks good ✓');}}
+async function onPhoneBlur(){const p=val('phone');if(!p){clearStat('phoneStat');return;}const iss=phoneIssue(p);if(iss){stat('phoneStat','bad',iss);P.check.phone=null;return;}stat('phoneStat','pend','Checking…');const seq=++phoneSeq;const res=await contactCheck({p_phone:p});if(seq!==phoneSeq)return;if(res&&res.phone_taken){P.check.phone=true;stat('phoneStat','bad','Already registered — try logging in instead');}else{P.check.phone=false;stat('phoneStat','ok','Looks good ✓');}}
+async function onAbnInput(){const a=val('abn');if(!a){clearStat('abnStat');P.check.abn=null;return;}if(!abnValid(a)){const d=a.replace(/\D/g,'');stat('abnStat','pend',d.length<11?d.length+'/11 digits':'That ABN isn\'t valid — check the digits');P.check.abn=null;return;}stat('abnStat','pend','Checking the register…');const seq=++abnSeq;const res=await contactCheck({p_abn:a});if(seq!==abnSeq)return;if(res&&res.abn_taken){P.check.abn=true;stat('abnStat','bad','This ABN is already registered with us');}else{P.check.abn=false;stat('abnStat','ok','Valid ABN ✓');}}
 
 // ---- address autocomplete (Nominatim, AU) ----
 let acTimer=null;
@@ -451,7 +520,7 @@ async function fetchAddr(q,list,inp){
       inp.value=data[i].display_name; list.classList.remove('on');
       const a=data[i].address||{}; const sub=a.suburb||a.town||a.city||a.village||a.municipality;
       const pc=a.postcode; const st=a.state_code||(a.state==='Victoria'?'VIC':'');
-      if(sub&&!$('suburb').value.trim())$('suburb').value=[sub,st,pc].filter(Boolean).join(' ');
+      if(sub&&!$('suburb').value.trim()){$('suburb').value=[sub,st,pc].filter(Boolean).join(' ');setErr('suburb',false);}
     });
   }catch(e){list.classList.remove('on');}
 }
@@ -461,15 +530,20 @@ function initHours(){
   $('hours').innerHTML=DAYS.map(([k,l])=>`<div class="hrow" data-d="${k}">
     <span class="dn">${l}</span>
     <span class="times"><input type="time" data-o="${k}" value="07:00"> <span style="color:var(--mut)">–</span> <input type="time" data-c="${k}" value="17:00"></span>
-    <span class="hpills"><span class="pill" onclick="toggleDay('${k}')">Closed</span><span class="pill" onclick="toggleEm('${k}')">24h</span></span>
+    <span class="hpills"><span class="pill" onclick="toggleDay('${k}')">Closed</span><span class="pill em" onclick="toggleEm('${k}')">24h</span><button type="button" class="rowcopy" title="Copy this day to every day" onclick="copyDayToAll('${k}')">⧉</button></span>
   </div>`).join('');
   DAYS.forEach(([k])=>{P.hours[k]={open:'07:00',close:'17:00',closed:(k==='sat'||k==='sun'),em:false};});
   DAYS.forEach(([k])=>{if(P.hours[k].closed){const r=document.querySelector(`.hrow[data-d="${k}"]`);r.classList.add('closed');r.querySelectorAll('.pill')[0].classList.add('on');}});
   $('hours').addEventListener('input',e=>{const o=e.target.dataset.o,c=e.target.dataset.c;if(o)P.hours[o].open=e.target.value;if(c)P.hours[c].close=e.target.value;});
 }
 function toggleDay(k){const r=document.querySelector(`.hrow[data-d="${k}"]`);P.hours[k].closed=!P.hours[k].closed;r.classList.toggle('closed',P.hours[k].closed);r.querySelectorAll('.pill')[0].classList.toggle('on',P.hours[k].closed);}
-function toggleEm(k){P.hours[k].em=!P.hours[k].em;document.querySelector(`.hrow[data-d="${k}"] .pill:last-child`).classList.toggle('on',P.hours[k].em);}
-function fillWeekdays(){DAYS.forEach(([k])=>{const wd=!(k==='sat'||k==='sun');P.hours[k]={open:'07:00',close:'17:00',closed:!wd,em:P.hours[k].em};const r=document.querySelector(`.hrow[data-d="${k}"]`);r.querySelector('[data-o]').value='07:00';r.querySelector('[data-c]').value='17:00';r.classList.toggle('closed',!wd);r.querySelectorAll('.pill')[0].classList.toggle('on',!wd);});toast('Weekday hours applied');}
+function toggleEm(k){P.hours[k].em=!P.hours[k].em;document.querySelector(`.hrow[data-d="${k}"] .pill.em`).classList.toggle('on',P.hours[k].em);}
+function applyRow(k){const h=P.hours[k];const r=document.querySelector(`.hrow[data-d="${k}"]`);r.querySelector('[data-o]').value=h.open;r.querySelector('[data-c]').value=h.close;r.classList.toggle('closed',h.closed);r.querySelectorAll('.pill')[0].classList.toggle('on',h.closed);r.querySelector('.pill.em').classList.toggle('on',h.em);}
+function fillWeekdays(){P.is247=false;$('open247Sw').classList.remove('on');DAYS.forEach(([k])=>{const wd=!(k==='sat'||k==='sun');P.hours[k]={open:'07:00',close:'17:00',closed:!wd,em:false};applyRow(k);});updateAfterHours();toast('Weekday hours applied');}
+function copyDayToAll(src){const s=P.hours[src];DAYS.forEach(([k])=>{if(k===src)return;P.hours[k]={open:s.open,close:s.close,closed:s.closed,em:s.em};applyRow(k);});toast('Copied '+src.charAt(0).toUpperCase()+src.slice(1)+' to every day');}
+function copyMonToAll(){copyDayToAll('mon');}
+function toggle247(){P.is247=!P.is247;$('open247Sw').classList.toggle('on',P.is247);if(P.is247){DAYS.forEach(([k])=>{P.hours[k]={open:'00:00',close:'23:59',closed:false,em:true};applyRow(k);});}updateAfterHours();}
+function updateAfterHours(){$('afterHoursWrap').classList.toggle('hide',!(P.is247||P.emerg));}
 
 // ---- services ----
 function svcRow(){return `<div class="svc"><input type="text" placeholder="Service (e.g. Hot water repair)" data-svc="name"><input type="text" inputmode="numeric" placeholder="$ +GST" data-svc="price"><button type="button" class="del" onclick="this.closest('.svc').remove()">×</button></div>`;}
@@ -477,7 +551,7 @@ function addService(){$('services').insertAdjacentHTML('beforeend',svcRow());}
 function collectServices(){return [...document.querySelectorAll('#services .svc')].map(r=>({name:r.querySelector('[data-svc=name]').value.trim(),detail:'',price:num(r.querySelector('[data-svc=price]').value)})).filter(s=>s.name);}
 
 // ---- scenario ----
-function refreshScenario(){$('scenarioText').textContent=TRADE_SCENARIO[P.trade]||"Pick your trade first to see a sample job.";}
+function refreshScenario(){$('scenarioText').textContent=TRADE_SCENARIO[P.trades[0]]||"Pick your trade first to see a sample job.";}
 
 // ---- uploads ----
 async function anonUpload(bucket,path,body,ct){try{const res=await fetch(SB+'/storage/v1/object/'+bucket+'/'+encodeURI(path),{method:'POST',headers:{apikey:KEY,Authorization:'Bearer '+KEY,'Content-Type':ct||'application/octet-stream','x-upsert':'false','cache-control':'3600'},body});if(!res.ok){let m='';try{m=(await res.json()).message;}catch(e){}return {error:{message:m||('HTTP '+res.status)}};}return {publicUrl:SB+'/storage/v1/object/public/'+bucket+'/'+encodeURI(path)};}catch(e){return {error:{message:(e&&e.message)||'network error'}};}}
@@ -495,20 +569,36 @@ function rmPhoto(i){P.photos.splice(i,1);renderGallery();}
 // ---- validation ----
 function setErr(id,on){const f=document.querySelector(`.err[data-for="${id}"]`);if(f)f.classList.toggle('on',on);const inp=$(id);if(inp)inp.classList.toggle('bad',on);}
 function validateStep(){let ok=true;const bad=id=>{setErr(id,true);ok=false;};
-  if(step===0){if(!P.trade){document.querySelector('.err[data-for="trade"]').classList.add('on');ok=false;}}
-  else if(step===1){if(!val('bizName'))bad('bizName');if(!val('fullName'))bad('fullName');}
-  else if(step===2){if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(val('email')))bad('email');if(!val('phone'))bad('phone');}
-  else if(step===3){if(!val('suburb'))bad('suburb');}
-  else if(step===7){if(!val('abn'))bad('abn');}
+  if(step===0){if(!P.trades.length){document.querySelector('.err[data-for="trade"]').classList.add('on');ok=false;}}
+  else if(step===1){if(!val('fullName'))bad('fullName');const ei=emailIssue(val('email'));if(ei){setErrMsg('email',ei);bad('email');}const pi=phoneIssue(val('phone'));if(pi){setErrMsg('phone',pi);bad('phone');}}
+  else if(step===2){if(!val('bizName'))bad('bizName');if(!abnValid(val('abn'))){setErrMsg('abn',val('abn')?"That ABN isn't valid — check the 11 digits":'Enter your ABN');bad('abn');}if(!val('suburb'))bad('suburb');}
   else if(step===LAST){if(!val('sigName'))bad('sigName');if(!P.terms){document.querySelector('.err[data-for="terms"]').classList.add('on');ok=false;}}
   return ok;}
 document.addEventListener('input',e=>{if(e.target.id)setErr(e.target.id,false);});
+
+// ---- async per-step checks (duplicates / existing account) ----
+async function runStepChecks(){
+  if(step===1){
+    const res=await contactCheck({p_email:val('email'),p_phone:val('phone')});
+    if(res){
+      if(res.email_taken){setErrMsg('email','This email is already registered — log in instead');setErr('email',true);stat('emailStat','bad','Already registered');}
+      if(res.phone_taken){setErrMsg('phone','This phone is already registered — log in instead');setErr('phone',true);stat('phoneStat','bad','Already registered');}
+      if(res.email_taken||res.phone_taken){toast('Looks like you already have an account');return false;}
+    }
+    return true;
+  }
+  if(step===2){
+    const res=await contactCheck({p_abn:val('abn')});
+    if(res&&res.abn_taken){setErrMsg('abn','This ABN is already registered with us');setErr('abn',true);stat('abnStat','bad','Already registered');toast('That ABN is already on Trust Trade');return false;}
+    return true;
+  }
+  return true;
+}
 
 // ---- nav ----
 function sectionFor(s){for(const [a,b,name] of SECTIONS)if(s>=a&&s<=b)return name;return "";}
 function updateNav(){
   document.querySelectorAll('.step-view').forEach(v=>v.classList.toggle('on',+v.dataset.step===step));
-  document.querySelectorAll('[data-count]').forEach(c=>{});
   const cur=document.querySelector(`.step-view[data-step="${step}"] [data-count]`); if(cur)cur.textContent='Step '+(step+1)+' of '+(LAST+1);
   $('pbar').style.width=Math.round((step+1)/(LAST+1)*100)+'%';
   $('sectionTag').textContent=sectionFor(step);
@@ -517,17 +607,31 @@ function updateNav(){
   $('submitBtn').classList.toggle('hide',step!==LAST);
   window.scrollTo({top:0,behavior:'smooth'});
 }
-function go(dir){if(dir>0&&!validateStep()){toast('Please fill the highlighted fields');return;}step=Math.max(0,Math.min(LAST,step+dir));if(step===14)refreshScenario();updateNav();}
+async function go(dir){
+  if(dir>0){
+    if(!validateStep()){toast('Please fix the highlighted fields');return;}
+    const btn=$('nextBtn');const old=btn.textContent;btn.disabled=true;btn.textContent='Checking…';
+    let ok=true;try{ok=await runStepChecks();}catch(e){ok=true;}
+    btn.disabled=false;btn.textContent=old;
+    if(!ok)return;
+  }
+  step=Math.max(0,Math.min(LAST,step+dir));
+  if(step===12)refreshScenario();
+  updateNav();
+}
 
 // ---- submit ----
 async function submitApp(){
   if(!validateStep()){toast('Please complete the highlighted fields');return;}
   if(P.submitting)return;P.submitting=true;const btn=$('submitBtn');btn.disabled=true;btn.textContent='Submitting…';
   const hoursOut={};DAYS.forEach(([k])=>{const h=P.hours[k];hoursOut[k]=h.closed?{closed:true}:{open:h.open,close:h.close,em:h.em};});
+  if(P.is247)hoursOut._open_247=true;
+  if(val('afterHours'))hoursOut._after_hours=val('afterHours');
   const cover=num($('coverAmount').value);
   const row={
     full_name:val('fullName'),business_name:val('bizName'),phone:val('phone'),email:val('email').toLowerCase(),
-    location:val('suburb'),business_address:val('bizAddr')||null,trade:P.trade,secondary_trade:P.secondOn&&P.trade2?P.trade2:null,
+    location:val('suburb'),business_address:val('bizAddr')||null,
+    trade:P.trades[0]||'',secondary_trade:P.trades.length>1?P.trades.slice(1).join(' / '):null,
     abn:val('abn'),abn_registered_date:dateOrNull(val('abnDate')),
     years_in_business:P.yrsBiz||null,years_experience:P.yrsTrade||null,team_size:P.team||null,
     premises_type:P.premises||null,service_radius:P.travel?P.travel.replace(/[^0-9]/g,'')||P.travel:null,
@@ -539,10 +643,10 @@ async function submitApp(){
     wwcc_held:!!P.wwcc,wwcc_number:val('wwccNo')||null,wwcc_expiry:dateOrNull(val('wwccExpiry')),
     police_check_held:!!P.police,additional_certifications:val('certs')||null,languages_spoken:val('languages')||null,
     short_bio:(val('bio')||'').slice(0,160)||null,long_bio:val('bio')||null,business_hours:hoursOut,
-    emergency_available:P.emerg?'yes':'no',
+    emergency_available:(P.emerg||P.is247)?'yes':'no',
     priced_services:collectServices().length?collectServices():null,
     labour_rate:num($('callout').value),emergency_callout_fee:num($('emergFee').value),show_call_out:P.showCall!==false,
-    scenario:TRADE_SCENARIO[P.trade]||null,scenario_price:val('scenarioPrice')||null,scenario_notes:val('scenarioNotes')||null,
+    scenario:TRADE_SCENARIO[P.trades[0]]||null,scenario_price:val('scenarioPrice')||null,scenario_notes:val('scenarioNotes')||null,
     cover_photo_url:P.cover||null,profile_photo_url:P.logo||null,work_photo_urls:P.photos.length?P.photos:null,
     heard_about:val('heardAbout')||null,
     signature_name:val('sigName'),signed_at:new Date().toISOString(),terms_agreed:true,status:'submitted'
@@ -555,14 +659,16 @@ async function submitApp(){
 }
 
 // ---- init ----
-chipGroup('tradeOpts',TRADES,'trade',{onPick:v=>{const t2=$('trade2Opts');t2.querySelectorAll('.opt-btn').forEach(x=>{x.style.display=x.dataset.v===v?'none':'flex';if(x.dataset.v===v){x.classList.remove('on');if(P.trade2===v)P.trade2='';}});}});
-chipGroup('trade2Opts',TRADES,'trade2');
-chipGroup('travelOpts',TRAVELS,'travel',{onPick:()=>setTimeout(()=>{if(step===4)go(1);},220)});
-chipGroup('premisesOpts',PREMISES,'premises',{onPick:()=>setTimeout(()=>{if(step===5)go(1);},220)});
+renderTrades();
+chipGroup('travelOpts',TRAVELS,'travel',{onPick:()=>setTimeout(()=>{if(step===3)go(1);},220)});
+chipGroup('premisesOpts',PREMISES,'premises',{onPick:()=>setTimeout(()=>{if(step===4)go(1);},220)});
 chipGroup('yrsBizOpts',YRS,'yrsBiz');
 chipGroup('yrsTradeOpts',YRST,'yrsTrade');
 chipGroup('teamOpts',TEAM,'team');
 initHours();initAddr();wireUploads();addService();
+$('email').addEventListener('blur',onEmailBlur);
+$('phone').addEventListener('blur',onPhoneBlur);
+$('abn').addEventListener('input',()=>{clearTimeout($('abn')._t);$('abn')._t=setTimeout(onAbnInput,300);});
 $('coverAmount').addEventListener('blur',e=>{const n=num(e.target.value);if(n)e.target.value=n.toLocaleString('en-AU');});
 $('bio').addEventListener('input',e=>{$('bioCount').textContent=e.target.value.length;});
 updateNav();

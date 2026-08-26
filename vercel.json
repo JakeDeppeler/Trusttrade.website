@@ -3,6 +3,7 @@
   "rewrites": [
     { "source": "/dashboard", "destination": "/dashboard.html" },
     { "source": "/admin", "destination": "/admin.html" },
+    { "source": "/apply", "destination": "/apply.html" },
     { "source": "/tradie/:slug", "destination": "/tradie/_dynamic.html" },
     { "source": "/", "destination": "/index.html" },
     { "source": "/((?!api/).*)", "destination": "/_shell.html" }

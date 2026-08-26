@@ -80,9 +80,9 @@ export default function ForTradiesPage() {
               the lead-gen rort and the race-to-the-bottom bidding.
             </p>
             <div className="page-hero-cta-row">
-              <PageLink href="Trust Trade Landing.html#download" className="btn btn-primary btn-lg">
+              <a href="/apply" className="btn btn-primary btn-lg">
                 Apply to join →
-              </PageLink>
+              </a>
               <a href="#tradie-faq" className="btn btn-ghost btn-lg">
                 Read the tradie FAQ
               </a>
@@ -347,9 +347,9 @@ export default function ForTradiesPage() {
             </div>
 
             <div style={{ marginTop: 36, display: "flex", flexWrap: "wrap", gap: 12, alignItems: "center" }}>
-              <PageLink href="Trust Trade Landing.html#download" className="btn btn-primary btn-lg">
+              <a href="/apply" className="btn btn-primary btn-lg">
                 Claim a founding spot →
-              </PageLink>
+              </a>
               <span style={{ fontFamily: "var(--font-mono)", fontSize: 12, color: "var(--text-faint)", letterSpacing: "0.1em", textTransform: "uppercase" }}>
                 Applications reviewed in 48–72h
               </span>

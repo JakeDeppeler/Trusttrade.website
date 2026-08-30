@@ -45,6 +45,7 @@ html[data-theme="dark"] .dinp{background:#1D1E24;color:var(--ink)}
 html[data-theme="dark"] .dinp::-webkit-calendar-picker-indicator{filter:invert(1) opacity(.7)}
 .nv:hover{background:#f2f3f5}.nv.on{background:var(--goldb);color:var(--goldd);font-weight:650}
 .nv .ct{margin-left:auto;font-size:11px;font-weight:700;padding:1px 7px;border-radius:99px;background:var(--line);color:var(--ink2)}
+.nv .rt{margin-left:auto;display:flex;align-items:center;gap:6px}.nv .rt .ct{margin-left:0}
 .me{margin-top:auto;font-size:11.5px;color:var(--mut);padding:10px 8px;border-top:1px solid var(--line2)}
 .me b{color:var(--ink);display:block;font-size:12.5px}
 .me a{color:var(--red);cursor:pointer;font-weight:600;text-decoration:none;font-size:12px}
@@ -322,8 +323,9 @@ html[data-theme="dark"] .kpi:hover{box-shadow:0 2px 6px rgba(0,0,0,.5),0 22px 46
   <div class="nv nsearch" onclick="gsearch()"><svg class="ni" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>Search<span class="ct kbd">⌘K</span></div>
   <div class="nv on" data-p="dash" onclick="go('dash')"><svg class="ni" viewBox="0 0 24 24"><path d="M3 11l9-7 9 7"/><path d="M5 10v10h5v-6h4v6h5V10"/></svg>Dashboard</div>
   <div class="nv" data-p="apps" onclick="go('apps')"><svg class="ni" viewBox="0 0 24 24"><path d="M3 12h5l2 3h4l2-3h5"/><path d="M5 5h14a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2z"/></svg>Applications<span class="ct" id="c-ap"></span></div>
+  <div class="nv" data-p="tradies" onclick="go('tradies')"><svg class="ni" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.2"/><path d="M3.5 20a5.5 5.5 0 0 1 11 0"/><path d="M16 6a3 3 0 0 1 0 6M20.5 20a5 5 0 0 0-4-4.9"/></svg>Tradies<span class="rt"><span class="live" id="on-trad" style="display:none"><b>0</b></span><span class="ct" id="c-trad"></span></span></div>
+  <div class="nv" data-p="cust" onclick="go('cust')"><svg class="ni" viewBox="0 0 24 24"><circle cx="12" cy="8" r="3.6"/><path d="M5 20a7 7 0 0 1 14 0"/></svg>Customers<span class="rt"><span class="live" id="on-cust" style="display:none"><b>0</b></span><span class="ct" id="c-cust"></span></span></div>
   <div class="nv" data-p="trust" onclick="go('reports')"><svg class="ni" viewBox="0 0 24 24"><path d="M12 3l7 3v5c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6z"/><path d="M9 12l2 2 4-4"/></svg>Trust &amp; safety<span class="ct" id="c-trust"></span></div>
-  <div class="nv" data-p="people" onclick="go('tradies')"><svg class="ni" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.2"/><path d="M3.5 20a5.5 5.5 0 0 1 11 0"/><path d="M16 6a3 3 0 0 1 0 6M20.5 20a5 5 0 0 0-4-4.9"/></svg>People<span class="live" id="pv-live" style="display:none;margin-left:auto;font-size:11px" title="People active on the site in the last 5 minutes"><b id="pv-live-n">0</b></span></div>
   <div class="nv" data-p="activity" onclick="go('enq')"><svg class="ni" viewBox="0 0 24 24"><path d="M3 12h4l2.5-7 4 14 2.5-7H21"/></svg>Activity</div>
   <div class="nv" data-p="control" onclick="go('money')"><svg class="ni" viewBox="0 0 24 24"><circle cx="7" cy="7" r="2.3"/><path d="M11 7h9M4 7h1"/><circle cx="15" cy="14" r="2.3"/><path d="M4 14h9M19 14h1"/></svg>Control</div>
   <div class="nv" data-p="system" onclick="go('system')" style="margin-top:6px"><svg class="ni" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>System</div>
@@ -411,7 +413,7 @@ async function signout(){await sb.auth.signOut();location.reload();}
 function enter(){show('g-pw');$('g-pw').style.display='none';$('app').classList.add('on');
  restoreNav();loadConfig();loadCounts();go('dash');
  updateLive();if(!window.LIVE_TIMER)window.LIVE_TIMER=setInterval(updateLive,45000);
- sb.channel('rt').on('postgres_changes',{event:'*',schema:'public',table:'listings'},()=>{if(PAGE==='tradies')go('tradies');loadCounts();}).subscribe();
+ sb.channel('rt').on('postgres_changes',{event:'*',schema:'public',table:'listings'},()=>{if(PAGE==='tradies')go('tradies');TRADIE_UIDS=null;loadCounts();}).on('postgres_changes',{event:'*',schema:'public',table:'profiles'},()=>loadCounts()).subscribe();
 }
 
 /* ===== audit + write helpers ===== */
@@ -510,7 +512,6 @@ const SYS_SUBPAGES=['settings','security','health','audit'];
 // main sidebar headers open a page whose siblings show as sub-tabs up top
 const SECTIONS={
  trust:[['reports','Reports'],['flags','Flags'],['moderation','Moderation']],
- people:[['tradies','Tradies'],['cust','Customers']],
  activity:[['enq','Enquiries'],['jobs','Jobs'],['reviews','Reviews']],
  control:[['money','Money'],['waitlist','Waitlist'],['notifs','Notifications'],['map','Map & areas'],['policies','Policies']]
 };
@@ -543,29 +544,36 @@ async function saveCap(id,area,trade){const v=parseInt(val('capv'),10);if(isNaN(
  else{({error}=await sb.from('area_caps').insert({area,trade,max_tradies:v}));}
  if(error){toast(error.message);return;}await audit(id?'area_cap_updated':'area_cap_created','area_cap',id||(area+'/'+trade),'max_tradies='+v);closeM();toast('Cap saved');MAPTAB='caps';pMap();}
 
-// live "online now" — unique sessions with any event in the last 5 minutes
+// live "online now" — unique sessions active in the last 5 min, split into
+// tradies (session's user owns a listing) vs customers/visitors (everyone else)
+let TRADIE_UIDS=null;
+async function loadTradieUids(){try{const {data}=await sb.from('listings').select('auth_user_id').not('auth_user_id','is',null);TRADIE_UIDS=new Set((data||[]).map(x=>x.auth_user_id).filter(Boolean));}catch(e){TRADIE_UIDS=new Set();}}
 async function updateLive(){
  try{
+  if(!TRADIE_UIDS)await loadTradieUids();
   const since=new Date(Date.now()-5*60000).toISOString();
-  const {data}=await sb.from('app_events').select('session_id').gt('created_at',since).limit(3000);
-  const n=new Set((data||[]).map(x=>x.session_id).filter(Boolean)).size;
-  const el=$('pv-live'),nn=$('pv-live-n');
-  if(el&&nn){nn.textContent=n;el.style.display='flex';}
+  const {data}=await sb.from('app_events').select('session_id,user_id').gt('created_at',since).limit(3000);
+  const t=new Set(),c=new Set();
+  (data||[]).forEach(e=>{if(!e.session_id)return;if(e.user_id&&TRADIE_UIDS.has(e.user_id))t.add(e.session_id);else c.add(e.session_id);});
+  setLive('on-trad',t.size);setLive('on-cust',c.size);
  }catch(e){}
 }
+function setLive(id,n){const el=$(id);if(!el)return;el.style.display=n>0?'inline-flex':'none';const b=el.querySelector('b');if(b)b.textContent=n;}
 async function loadCounts(){
  const cutoff=new Date(Date.now()+45*864e5).toISOString().slice(0,10);
- const [tr,ap,en,cu,rp,fl]=await Promise.all([
-  sb.from('listings').select('*',{count:'exact',head:true}).is('deleted_at',null),
+ const [liveTr,ap,cust,rp,fl]=await Promise.all([
+  sb.from('listings').select('*',{count:'exact',head:true}).eq('status','approved').is('deleted_at',null),
   sb.from('applications').select('*',{count:'exact',head:true}).eq('status','submitted'),
-  sb.from('enquiries').select('*',{count:'exact',head:true}),
-  sb.from('profiles').select('*',{count:'exact',head:true}).eq('role','customer'),
+  sb.from('profiles').select('*',{count:'exact',head:true}).in('role',['user','customer']),
   sb.from('content_reports').select('*',{count:'exact',head:true}).eq('status','open'),
   sb.from('listings').select('*',{count:'exact',head:true}).is('deleted_at',null).lt('insurance_expiry_date',cutoff)]);
+ // running totals next to the sidebar tabs
+ setCount('c-trad',liveTr.count); setCount('c-cust',cust.count);
  // badges that mean "needs you" turn red when > 0
  setBadge('c-ap',ap.count);
  setBadge('c-trust',(rp.count||0)+(fl.count||0));
 }
+function setCount(id,n){const el=$(id);if(el)el.textContent=(n==null)?'':n;}
 function setBadge(id,n){const el=$(id);if(!el)return;const hot=(n||0)>0;el.textContent=hot?n:'';el.style.background=hot?'rgba(224,74,58,.14)':'';el.style.color=hot?'#E04A3A':'';el.style.fontWeight=hot?'800':'';}
 
 function spark(vals,color){if(!vals||!vals.length)return '';const mn=Math.min(...vals),mx=Math.max(...vals),rng=(mx-mn)||1,n=vals.length;const pts=vals.map((v,i)=>`${(i/(n-1||1)*100).toFixed(1)},${(29-((v-mn)/rng)*26-1).toFixed(1)}`).join(' ');return `<svg class="spark" viewBox="0 0 100 30" preserveAspectRatio="none"><polyline points="${pts}" fill="none" stroke="${color}" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>`;}

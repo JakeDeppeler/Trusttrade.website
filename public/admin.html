@@ -10,21 +10,21 @@
 <style>
 @font-face{font-family:"Archivo";font-style:normal;font-weight:100 900;font-display:swap;src:url(/fonts/archivo.woff2) format("woff2")}
 @font-face{font-family:"Archivo";font-style:italic;font-weight:100 900;font-display:swap;src:url(/fonts/archivo-italic.woff2) format("woff2")}
-:root{--bg:#faf7ef;--panel:#ffffff;--cream:#f5eedf;--line:#e7ded0;--line2:#f0e9dc;--ink:#1f1813;--ink2:#5d503e;--mut:#8a7c66;
- --gold:#f2a900;--goldd:#8a6200;--goldb:#fff8e9;--green:#1f9d57;--greenb:#e9f7ef;--red:#d64545;--redb:#fbeaea;--amber:#b4740e;--amberb:#fbf1da;--blue:#3A6FF0;--blueb:#EAF0FE;
- --sh:0 1px 2px rgba(31,24,19,.04),0 12px 34px -16px rgba(31,24,19,.16);--f:"Archivo",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+:root{--bg:#f7f8fa;--panel:#ffffff;--cream:#f2f3f5;--line:#e6e8eb;--line2:#eef0f2;--ink:#1b1d21;--ink2:#4a4e57;--mut:#868b95;
+ --gold:#1b1d21;--goldd:#1b1d21;--goldb:#eef0f2;--star:#e6a400;--green:#1f9d57;--greenb:#e9f7ef;--red:#d64545;--redb:#fbeaea;--amber:#b4740e;--amberb:#fbf1da;--blue:#3A6FF0;--blueb:#EAF0FE;
+ --sh:0 1px 2px rgba(20,22,26,.04),0 12px 34px -16px rgba(20,22,26,.13);--f:"Archivo",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:var(--f);background:var(--bg);color:var(--ink);-webkit-font-smoothing:antialiased;font-size:14px}
 .gate{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;
  background:radial-gradient(120% 90% at 20% 0%,#2b2e36,rgba(43,46,54,0) 55%),linear-gradient(160deg,#191b20,#0e0f13)}
 .lcard{background:#fff;border-radius:18px;box-shadow:0 30px 80px rgba(0,0,0,.4);width:100%;max-width:400px;padding:30px 28px}
-.lcard .lg{width:44px;height:44px;border-radius:12px;background:linear-gradient(135deg,#FFCB63,#F2A222);display:grid;place-items:center;color:#231700;margin-bottom:18px}
+.lcard .lg{width:44px;height:44px;border-radius:12px;background:linear-gradient(135deg,#33363c,#1b1d21);display:grid;place-items:center;color:#231700;margin-bottom:18px}
 .lcard h1{font-size:20px;font-weight:750;letter-spacing:-.02em}
 .lcard p{color:var(--mut);font-size:13px;margin-top:6px;line-height:1.5}
 .lcard label{display:block;font-size:12px;font-weight:600;color:var(--ink2);margin:16px 0 6px}
-.lcard input{width:100%;padding:11px 13px;border:1px solid var(--line);border-radius:10px;font-family:inherit;font-size:14px;background:#fbf9f3}
+.lcard input{width:100%;padding:11px 13px;border:1px solid var(--line);border-radius:10px;font-family:inherit;font-size:14px;background:#f2f3f5}
 .lcard input.code{letter-spacing:.4em;text-align:center;font-size:22px;font-weight:700}
-.lcard button{width:100%;margin-top:20px;padding:13px;border:0;border-radius:11px;background:var(--gold);color:#231700;font-weight:700;font-size:14px;cursor:pointer;font-family:inherit}
+.lcard button{width:100%;margin-top:20px;padding:13px;border:0;border-radius:11px;background:var(--ink);color:#fff;font-weight:700;font-size:14px;cursor:pointer;font-family:inherit}
 .lcard button.ghost{background:transparent;color:var(--mut);font-weight:600;margin-top:8px;padding:8px}
 .lerr{color:var(--red);font-size:12.5px;margin-top:12px;min-height:16px}
 .qr{background:#fff;border:1px solid var(--line);border-radius:12px;padding:14px;display:grid;place-items:center;margin:16px 0}
@@ -34,7 +34,7 @@ body{font-family:var(--f);background:var(--bg);color:var(--ink);-webkit-font-smo
 .app{display:none;min-height:100vh}.app.on{display:flex}
 .side{width:212px;flex-shrink:0;background:var(--panel);border-right:1px solid var(--line);padding:14px 10px;display:flex;flex-direction:column;position:sticky;top:0;height:100vh;overflow-y:auto}
 .brand{display:flex;align-items:center;gap:10px;padding:4px 8px 14px}
-.brand .lg{width:30px;height:30px;border-radius:8px;background:linear-gradient(135deg,#FFCB63,#F2A222);display:grid;place-items:center;color:#231700}
+.brand .lg{width:30px;height:30px;border-radius:8px;background:linear-gradient(135deg,#33363c,#1b1d21);display:grid;place-items:center;color:#231700}
 .brand b{font-size:14px;font-weight:700;display:block;line-height:1}
 .live{font-size:9px;font-weight:800;letter-spacing:.06em;color:var(--green);display:flex;align-items:center;gap:4px}
 .live:before{content:"";width:6px;height:6px;border-radius:50%;background:var(--green);box-shadow:0 0 0 3px rgba(31,164,99,.2)}
@@ -43,7 +43,7 @@ body{font-family:var(--f);background:var(--bg);color:var(--ink);-webkit-font-smo
 .dinp{padding:8px 10px;border:1px solid var(--line);border-radius:9px;background:#fff;color:var(--ink);font-family:inherit;font-size:13px}
 html[data-theme="dark"] .dinp{background:#1D1E24;color:var(--ink)}
 html[data-theme="dark"] .dinp::-webkit-calendar-picker-indicator{filter:invert(1) opacity(.7)}
-.nv:hover{background:#fbf9f3}.nv.on{background:var(--goldb);color:var(--goldd);font-weight:650}
+.nv:hover{background:#f2f3f5}.nv.on{background:var(--goldb);color:var(--goldd);font-weight:650}
 .nv .ct{margin-left:auto;font-size:11px;font-weight:700;padding:1px 7px;border-radius:99px;background:var(--line);color:var(--ink2)}
 .me{margin-top:auto;font-size:11.5px;color:var(--mut);padding:10px 8px;border-top:1px solid var(--line2)}
 .me b{color:var(--ink);display:block;font-size:12.5px}
@@ -126,7 +126,7 @@ tr:last-child td{border-bottom:0}
 .feed .fr .ft{font-size:13px;font-weight:500}.feed .fr .fm{margin-left:auto;font-size:11.5px;color:var(--mut)}
 .themebtn{cursor:pointer;color:var(--goldd);font-weight:600;font-size:12px}
 /* dark mode */
-html[data-theme="dark"]{--bg:#15171c;--panel:#1c1e24;--panel2:#23262d;--cream:#23262d;--line:#2c2f38;--line2:#232630;--ink:#eceef2;--ink2:#aeb3bd;--mut:#7c818c;--goldd:#f5be68;--goldb:#2a2412;--greenb:#12231a;--redb:#2c1615;--amberb:#251c0d;--blueb:#141c2e;--sh:0 1px 2px rgba(0,0,0,.5),0 10px 30px -12px rgba(0,0,0,.6)}
+html[data-theme="dark"]{--bg:#15171c;--panel:#1c1e24;--panel2:#23262d;--cream:#23262d;--line:#2c2f38;--line2:#232630;--ink:#eceef2;--ink2:#aeb3bd;--mut:#7c818c;--gold:#eceef2;--goldd:#eceef2;--goldb:#262a31;--star:#f5be68;--greenb:#12231a;--redb:#2c1615;--amberb:#251c0d;--blueb:#141c2e;--sh:0 1px 2px rgba(0,0,0,.5),0 10px 30px -12px rgba(0,0,0,.6)}
 html[data-theme="dark"] .btn{background:#2E3038;color:#EDEEF2}
 html[data-theme="dark"] .btn.g{background:var(--green);color:#fff}
 html[data-theme="dark"] .btn.r{background:var(--redb);color:#FF9B93;border-color:rgba(229,72,77,.3)}
@@ -150,13 +150,13 @@ html[data-theme="dark"] .tabs div.on{color:var(--ink)}
    Replaces the old stacked v1–v4 refresh layers (which redefined the same
    values 3–4× and drifted). Single source of truth for spacing/type/radius. */
 :root{
-  --line:#e7ded0;--line2:#f0e9dc;
+  --line:#e6e8eb;--line2:#eef0f2;
   --r-sm:11px;--r:14px;--r-lg:18px;
-  --sh:0 1px 2px rgba(31,24,19,.04),0 12px 34px -16px rgba(31,24,19,.16);
+  --sh:0 1px 2px rgba(20,22,26,.04),0 12px 34px -16px rgba(20,22,26,.13);
   --f:"Archivo",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
 }
 body{font-size:14.5px;letter-spacing:-.008em}
-main{padding:28px 34px 72px;background:radial-gradient(150% 90% at 100% -10%,rgba(242,169,0,.05),transparent 45%)}
+main{padding:28px 34px 72px;background:none}
 h2{font-size:23px;font-weight:800;letter-spacing:-.03em}
 .subt{font-size:13.5px;margin:6px 0 22px}
 
@@ -164,7 +164,7 @@ h2{font-size:23px;font-weight:800;letter-spacing:-.03em}
 .side{padding:16px 12px}
 .side .brand{padding:4px 6px 14px;margin-bottom:8px;border-bottom:1px solid var(--line2)}
 .side .brand b{font-size:15px}
-.side .brand .lg{width:34px;height:34px;border-radius:10px;overflow:hidden;flex-shrink:0;box-shadow:0 1px 3px rgba(20,22,30,.14);background:#fff8e9}
+.side .brand .lg{width:34px;height:34px;border-radius:10px;overflow:hidden;flex-shrink:0;box-shadow:0 1px 3px rgba(20,22,30,.14);background:#eef0f2}
 .side .brand .lg img{width:100%;height:100%;object-fit:cover;display:block}
 .nv{border-radius:9px;font-size:13.5px;padding:8px 11px;position:relative;margin-bottom:1px;gap:11px;line-height:1}
 .nv .ni{width:17px;height:17px;flex-shrink:0;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;opacity:.6;transition:opacity .12s}
@@ -210,7 +210,7 @@ tbody tr:hover td{background:var(--line2)}
 .card,.kpi{border:1px solid var(--line)}
 html[data-theme="dark"] .card,html[data-theme="dark"] .kpi,html[data-theme="dark"] .bulkbar{background:#1B1C23;border-color:#2C2E37}
 html[data-theme="dark"] .side{background:#131419}
-html[data-theme="dark"] main{background:radial-gradient(150% 90% at 100% -10%,rgba(242,162,34,.06),transparent 45%)}
+html[data-theme="dark"] main{background:none}
 html[data-theme="dark"] .kpi:hover{box-shadow:0 2px 6px rgba(0,0,0,.5),0 22px 46px -18px rgba(0,0,0,.55)}
 
 /* Applications — card review layout (matches the app) */
@@ -236,7 +236,7 @@ html[data-theme="dark"] .kpi:hover{box-shadow:0 2px 6px rgba(0,0,0,.5),0 22px 46
 /* sidebar brand subtitle + user card */
 .brand .sub{font-size:11px;color:var(--mut);font-weight:600;margin-top:1px;display:block}
 .usercard{margin-top:auto;display:flex;align-items:center;gap:10px;padding:10px;border-top:1px solid var(--line2);border-radius:0}
-.usercard .av{width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,#ffcf6b,#f2a900);color:#231700;display:grid;place-items:center;font-weight:800;font-size:12.5px;flex-shrink:0}
+.usercard .av{width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,#3a3d44,#1b1d21);color:#fff;display:grid;place-items:center;font-weight:800;font-size:12.5px;flex-shrink:0}
 .usercard .un{font-size:13px;font-weight:750;line-height:1.2}.usercard .ur{font-size:11.5px;color:var(--mut)}
 /* collapsible sidebar sections */
 .slbl{cursor:pointer;display:flex;align-items:center;gap:6px;user-select:none;border-radius:8px;margin-top:14px}
@@ -280,7 +280,7 @@ html[data-theme="dark"] .kpi:hover{box-shadow:0 2px 6px rgba(0,0,0,.5),0 22px 46
 <!-- STEP 1: PASSWORD -->
 <div class="gate" id="g-pw">
  <div class="lcard">
-  <div class="lg"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#231700" stroke-width="1.7"><path d="M12 2l8 3v6c0 5-3.4 9.4-8 11-4.6-1.6-8-6-8-11V5l8-3z"/><path d="M9 12l2 2 4-4"/></svg></div>
+  <div class="lg"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#e9eaee" stroke-width="1.7"><path d="M12 2l8 3v6c0 5-3.4 9.4-8 11-4.6-1.6-8-6-8-11V5l8-3z"/><path d="M9 12l2 2 4-4"/></svg></div>
   <h1>TrustTrade Admin</h1><p>Live console. Admin sign-in with two-factor required.</p>
   <label>Email</label><input id="em" type="email" placeholder="deppfs@gmail.com" autocomplete="username">
   <label>Password</label><input id="pw" type="password" placeholder="••••••••" autocomplete="current-password">
@@ -292,7 +292,7 @@ html[data-theme="dark"] .kpi:hover{box-shadow:0 2px 6px rgba(0,0,0,.5),0 22px 46
 <!-- STEP 2A: ENROLL 2FA -->
 <div class="gate" id="g-enroll" style="display:none">
  <div class="lcard">
-  <div class="lg"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#231700" stroke-width="1.7"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></div>
+  <div class="lg"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#e9eaee" stroke-width="1.7"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></div>
   <h1>Set up two-factor</h1><p>This is the control panel, so 2FA is required. Scan this with Google Authenticator, Authy or 1Password, then enter the 6-digit code.</p>
   <div class="qr" id="qr"></div>
   <div class="secret" id="secret"></div>
@@ -305,7 +305,7 @@ html[data-theme="dark"] .kpi:hover{box-shadow:0 2px 6px rgba(0,0,0,.5),0 22px 46
 <!-- STEP 2B: CHALLENGE 2FA -->
 <div class="gate" id="g-mfa" style="display:none">
  <div class="lcard">
-  <div class="lg"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#231700" stroke-width="1.7"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></div>
+  <div class="lg"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#e9eaee" stroke-width="1.7"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></div>
   <h1>Two-factor</h1><p>Enter the 6-digit code from your authenticator app.</p>
   <input id="mfacode" class="code" inputmode="numeric" maxlength="6" placeholder="000000" style="margin-top:16px">
   <button id="mfaverify">Verify</button>
@@ -828,8 +828,8 @@ function revShell(){
  let body='';
  if(REVTAB==='peer'){
    const P=REVPEER||{tr:[],cr:[]};
-   const trRows=P.tr.map(r=>`<tr><td><b>${esc(r.from_tradie_name||'Tradie')}</b></td><td>${esc(r.to_user_name||'Customer')}</td><td style="color:var(--gold)">${stars(r.rating)}</td><td class="mut" style="max-width:340px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(r.review_text||'')}</td><td class="mut">${ago(r.created_at)}</td></tr>`).join('')||'<tr><td colspan=5 class="empty">No tradie→customer reviews yet.</td></tr>';
-   const crRows=P.cr.map(r=>`<tr><td style="color:var(--gold)">${stars(r.rating)}</td><td class="mut" style="max-width:420px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(r.review_text||'')}</td><td class="mut">${ago(r.created_at)}</td></tr>`).join('')||'<tr><td colspan=3 class="empty">No customer reviews yet.</td></tr>';
+   const trRows=P.tr.map(r=>`<tr><td><b>${esc(r.from_tradie_name||'Tradie')}</b></td><td>${esc(r.to_user_name||'Customer')}</td><td style="color:var(--star)">${stars(r.rating)}</td><td class="mut" style="max-width:340px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(r.review_text||'')}</td><td class="mut">${ago(r.created_at)}</td></tr>`).join('')||'<tr><td colspan=5 class="empty">No tradie→customer reviews yet.</td></tr>';
+   const crRows=P.cr.map(r=>`<tr><td style="color:var(--star)">${stars(r.rating)}</td><td class="mut" style="max-width:420px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(r.review_text||'')}</td><td class="mut">${ago(r.created_at)}</td></tr>`).join('')||'<tr><td colspan=3 class="empty">No customer reviews yet.</td></tr>';
    body=`<div class="card"><div class="ch">Tradie → customer</div><table><thead><tr><th>From (tradie)</th><th>Customer</th><th>Rating</th><th>Review</th><th>When</th></tr></thead><tbody>${trRows}</tbody></table></div><div class="card"><div class="ch">Customer reviews</div><table><thead><tr><th>Rating</th><th>Review</th><th>When</th></tr></thead><tbody>${crRows}</tbody></table></div>`;
  } else {
    const sb2=(n,l)=>`<button class="${REVF.star===n?'on':''}" onclick="REVF.star=${n};revShell()">${l}</button>`;
@@ -849,7 +849,7 @@ function revRows(){
  const q=(REVF.q||'').toLowerCase(),now=Date.now();let lo=null;
  if(REVF.range==='today')lo=new Date().setHours(0,0,0,0);else if(REVF.range==='7d')lo=now-7*864e5;else if(REVF.range==='30d')lo=now-30*864e5;else if(REVF.range==='365d')lo=now-365*864e5;
  const rows=REV.filter(r=>{if(REVF.star&&(r.rating||0)!==REVF.star)return false;if(lo&&new Date(r.created_at).getTime()<lo)return false;if(q){const hay=((r.from_name||'')+' '+(r.review_text||'')).toLowerCase();if(!hay.includes(q))return false;}return true;});
- const tb=$('rev_rows');if(tb)tb.innerHTML=rows.map(r=>`<tr><td><b>${esc(r.from_name||'—')}</b></td><td style="color:var(--gold)">${'★'.repeat(r.rating||0)}${'☆'.repeat(5-(r.rating||0))}</td><td><span class="pill ${r.source==='google'?'n':'g'}">${esc(r.source||'trusttrade')}</span></td><td class="mut" style="max-width:280px">${esc(r.review_text||'')}</td><td>${r.hidden?'<span class="pill r">Hidden</span>':'<span class="pill g">Visible</span>'}</td><td class="right">${r.hidden?'<span class="mut">hidden</span>':`<button class="btn r" onclick="hideReview('${r.id}')">Hide</button>`}</td></tr>`).join('')||'<tr><td colspan=6 class="empty">No reviews match these filters.</td></tr>';
+ const tb=$('rev_rows');if(tb)tb.innerHTML=rows.map(r=>`<tr><td><b>${esc(r.from_name||'—')}</b></td><td style="color:var(--star)">${'★'.repeat(r.rating||0)}${'☆'.repeat(5-(r.rating||0))}</td><td><span class="pill ${r.source==='google'?'n':'g'}">${esc(r.source||'trusttrade')}</span></td><td class="mut" style="max-width:280px">${esc(r.review_text||'')}</td><td>${r.hidden?'<span class="pill r">Hidden</span>':'<span class="pill g">Visible</span>'}</td><td class="right">${r.hidden?'<span class="mut">hidden</span>':`<button class="btn r" onclick="hideReview('${r.id}')">Hide</button>`}</td></tr>`).join('')||'<tr><td colspan=6 class="empty">No reviews match these filters.</td></tr>';
  const c=$('rev_count');if(c)c.textContent=rows.length+' of '+REV.length+' reviews';
 }
 
@@ -1261,7 +1261,7 @@ function renderTP(){const t=TP.t,bk=TP.bk,rev=TP.rev;
   svc.length?`<div class="card"><div class="ch">Services &amp; pricing</div><div style="padding:6px 18px">${svc.map(s=>`<div style="display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--line2)"><span>${esc(s.name||s.title||s.label||'Service')}${s.detail?' <span class="mut" style="font-size:12px">'+esc(s.detail)+'</span>':''}</span><b>${s.price!=null?'$'+esc(s.price):esc(s.priceText||s.amount||'')}</b></div>`).join('')}</div></div>`:'<div class="card"><div class="empty">No services listed.</div></div>',
   photos.length?`<div class="card"><div class="ch">Gallery (${photos.length})</div><div style="padding:14px 18px;display:grid;grid-template-columns:repeat(4,1fr);gap:8px">${photos.slice(0,12).map(u=>`<img class="zoomable" src="${esc(u)}" style="width:100%;aspect-ratio:1;object-fit:cover;border-radius:10px">`).join('')}</div></div>`:'<div class="card"><div class="empty">No photos yet.</div></div>',
   `<div class="card"><div class="ch">Availability &amp; area</div><div style="padding:6px 18px">${hoursRows||kv('Business hours','—')}${kv('Service radius',t.service_radius_km?t.service_radius_km+' km':'—')}${kv('Suburb · postcode',(t.suburb||'')+' '+(t.postcode||''))}${kv('Cap slot',t.cap_slot||'—')}</div></div>`,
-  `<div class="card"><div class="ch">Reviews (${rev.length})</div><div style="padding:6px 18px">${rev.length?rev.map(r=>`<div style="padding:13px 0;border-bottom:1px solid var(--line2)"><div style="display:flex;align-items:center;gap:8px"><b>${esc(r.from_name||'—')}</b><span style="color:var(--gold)">${stars(r.rating)}</span><span class="pill ${r.source==='google'?'n':'g'}" style="margin-left:auto">${esc(r.source||'trusttrade')}</span>${r.hidden?'<span class="pill r">Hidden</span>':''}</div><div style="font-size:13px;color:var(--ink2);margin-top:6px">${esc(r.review_text||'')}</div>${r.reply_text?`<div style="margin-top:8px;padding:9px 11px;background:#fbf9f3;border:1px solid var(--line2);border-radius:8px;font-size:12.5px"><b>Reply</b> ${esc(r.reply_text)}</div>`:''}</div>`).join(''):'<div class="empty" style="padding:14px 0">No reviews yet.</div>'}</div></div>`,
+  `<div class="card"><div class="ch">Reviews (${rev.length})</div><div style="padding:6px 18px">${rev.length?rev.map(r=>`<div style="padding:13px 0;border-bottom:1px solid var(--line2)"><div style="display:flex;align-items:center;gap:8px"><b>${esc(r.from_name||'—')}</b><span style="color:var(--star)">${stars(r.rating)}</span><span class="pill ${r.source==='google'?'n':'g'}" style="margin-left:auto">${esc(r.source||'trusttrade')}</span>${r.hidden?'<span class="pill r">Hidden</span>':''}</div><div style="font-size:13px;color:var(--ink2);margin-top:6px">${esc(r.review_text||'')}</div>${r.reply_text?`<div style="margin-top:8px;padding:9px 11px;background:#f2f3f5;border:1px solid var(--line2);border-radius:8px;font-size:12.5px"><b>Reply</b> ${esc(r.reply_text)}</div>`:''}</div>`).join(''):'<div class="empty" style="padding:14px 0">No reviews yet.</div>'}</div></div>`,
   `<div class="card"><div class="ch">Bookings (${bk.length})</div>${bk.length?`<table><tbody>${bk.map(b=>`<tr><td><b>${esc(b.job_title||'Job')}</b></td><td>${esc(b.status||'')}</td><td class="mut">${fmtDate(b.slot_start)}</td></tr>`).join('')}</tbody></table>`:'<div class="empty">No bookings yet.</div>'}</div>`,
   `<div class="card"><div class="ch">Conversations (${(TP.enq||[]).length})</div>${(TP.enq&&TP.enq.length)?`<table><thead><tr><th>Customer</th><th>Msgs</th><th>Stage</th><th>When</th><th class="right">Action</th></tr></thead><tbody>${TP.enq.map(e=>`<tr><td><b>${esc(e.from_name||'—')}</b></td><td class="mono">${Array.isArray(e.messages)?e.messages.length:0}</td><td>${esc(e.stage||e.status||'—')}</td><td class="mut">${ago(e.created_at)}</td><td class="right">${Array.isArray(e.messages)&&e.messages.length?`<button class="btn w" onclick="viewThread('${e.id}')">View thread</button>`:'<span class="mut">—</span>'}</td></tr>`).join('')}</tbody></table>`:'<div class="empty">No conversations for this tradie yet.</div>'}</div>`,
   `<div class="kpis" style="margin:0"><div class="kpi"><div class="k">Profile views</div><b>${t.stat_views||0}</b></div><div class="kpi"><div class="k">Enquiries</div><b>${t.stat_enquiries||0}</b></div><div class="kpi"><div class="k">Calls</div><b>${t.stat_calls||0}</b></div><div class="kpi"><div class="k">Emails</div><b>${t.stat_emails||0}</b></div><div class="kpi"><div class="k">Jobs done</div><b>${t.stat_jobs_complete||0}</b></div><div class="kpi"><div class="k">Reply time</div><b>${respAvg!=null?respAvg+'m':'—'}</b></div></div>`
@@ -1372,7 +1372,7 @@ async function pFlags(){loading('Flags');try{
  const lowRev=(rev.data||[]).filter(r=>!r.hidden&&(r.rating||0)>0&&(r.rating||0)<=2);
  const flagged=(rev.data||[]).filter(r=>!r.hidden&&r.review_text&&words.some(w=>r.review_text.toLowerCase().includes(w)));
  const expRows=expiring.map(t=>{const st=t.dd<0?['r','Lapsed']:['a','Soon'];return `<tr><td><b style="cursor:pointer;color:var(--goldd)" onclick="openTradie('${t.id}')">${esc(t.name)}</b><br><span class="mut" style="font-size:12px">${esc(t.suburb||'')}</span></td><td>${fmtDate(t.insurance_expiry_date)}</td><td class="mono">${t.dd}d</td><td><span class="pill ${st[0]}">${st[1]}</span></td></tr>`;}).join('')||'<tr><td colspan=4 class="empty">No insurance expiring in 45 days.</td></tr>';
- const revRow=r=>`<tr><td><b>${esc(r.from_name||'—')}</b><br><span class="mut" style="font-size:12px">${esc(names[r.listing_id]||'')}</span></td><td style="color:var(--gold)">${stars(r.rating)}</td><td class="mut" style="max-width:340px">${esc(r.review_text||'')}</td><td class="mut">${ago(r.created_at)}</td><td class="right"><button class="btn r" onclick="hideReview('${r.id}')">Hide</button></td></tr>`;
+ const revRow=r=>`<tr><td><b>${esc(r.from_name||'—')}</b><br><span class="mut" style="font-size:12px">${esc(names[r.listing_id]||'')}</span></td><td style="color:var(--star)">${stars(r.rating)}</td><td class="mut" style="max-width:340px">${esc(r.review_text||'')}</td><td class="mut">${ago(r.created_at)}</td><td class="right"><button class="btn r" onclick="hideReview('${r.id}')">Hide</button></td></tr>`;
  const lowRows=lowRev.map(revRow).join('')||'<tr><td colspan=5 class="empty">No low-rated reviews.</td></tr>';
  const flagRows=flagged.map(revRow).join('')||'<tr><td colspan=5 class="empty">No reviews contain banned words.</td></tr>';
  $('main').innerHTML=`<h2>Flags</h2><div class="subt">Things that need a look — insurance about to lapse and reviews that tripped a rule</div>
@@ -1503,12 +1503,12 @@ function epreview(){const el=$('eprev');if(!el)return;const t=TP.t||{};
  const initials=(name.trim().split(/\s+/).slice(0,2).map(w=>w[0]||'').join('')||'T').toUpperCase();
  const rating=t.rating||0,rc=t.review_count||0,starN=Math.round(rating);
  el.innerHTML=`<div style="border:1px solid var(--line);border-radius:22px;overflow:hidden;background:var(--panel);box-shadow:0 12px 30px rgba(0,0,0,.14);font-family:var(--f)">
-  <div style="height:78px;background:linear-gradient(135deg,#FFCB63,#F2A222)"></div>
+  <div style="height:78px;background:linear-gradient(135deg,#33363c,#1b1d21)"></div>
   <div style="padding:0 15px 16px;margin-top:-30px">
-   <div style="width:62px;height:62px;border-radius:19px;border:3px solid var(--panel);box-shadow:0 3px 10px rgba(0,0,0,.22);overflow:hidden">${t.profile_photo_url?`<img class="zoomable" src="${esc(t.profile_photo_url)}" style="width:100%;height:100%;object-fit:cover">`:`<div style="width:100%;height:100%;background:linear-gradient(135deg,#FFCB63,#F2A222);display:grid;place-items:center;color:#231700;font-weight:800;font-size:21px">${esc(initials)}</div>`}</div>
+   <div style="width:62px;height:62px;border-radius:19px;border:3px solid var(--panel);box-shadow:0 3px 10px rgba(0,0,0,.22);overflow:hidden">${t.profile_photo_url?`<img class="zoomable" src="${esc(t.profile_photo_url)}" style="width:100%;height:100%;object-fit:cover">`:`<div style="width:100%;height:100%;background:linear-gradient(135deg,#33363c,#1b1d21);display:grid;place-items:center;color:#231700;font-weight:800;font-size:21px">${esc(initials)}</div>`}</div>
    <div style="font-size:17px;font-weight:800;letter-spacing:-.02em;margin-top:9px">${esc(name)}</div>
    <div class="mut" style="font-size:12.5px;margin-top:2px">${esc(trade)}${sub?' · '+esc(sub):''}</div>
-   <div style="display:flex;align-items:center;gap:7px;margin-top:9px;flex-wrap:wrap">${rating?`<span style="color:var(--gold);font-size:13px;letter-spacing:1px">${'★'.repeat(starN)}${'☆'.repeat(5-starN)}</span><span class="mut" style="font-size:12px">${rating} · ${rc} reviews</span>`:'<span class="mut" style="font-size:12px">No reviews yet</span>'}</div>
+   <div style="display:flex;align-items:center;gap:7px;margin-top:9px;flex-wrap:wrap">${rating?`<span style="color:var(--star);font-size:13px;letter-spacing:1px">${'★'.repeat(starN)}${'☆'.repeat(5-starN)}</span><span class="mut" style="font-size:12px">${rating} · ${rc} reviews</span>`:'<span class="mut" style="font-size:12px">No reviews yet</span>'}</div>
    <div style="display:flex;gap:6px;margin-top:9px;flex-wrap:wrap">${t.insured?'<span class="pill g">Insured</span>':''}${t.qualified?'<span class="pill b">Licensed</span>':''}<span class="pill n">Verified by TrustTrade</span></div>
    <div style="display:flex;margin:14px 0;border-radius:14px;background:var(--bg,var(--line2));overflow:hidden">
      <div style="flex:1;padding:12px 14px"><div class="fl">Hourly</div><div style="font-weight:800;font-size:16px;margin-top:3px">${rate?'$'+esc(rate):'—'}</div></div>

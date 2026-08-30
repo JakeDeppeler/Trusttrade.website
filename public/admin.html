@@ -48,7 +48,12 @@ html[data-theme="dark"] .dinp::-webkit-calendar-picker-indicator{filter:invert(1
 .me{margin-top:auto;font-size:11.5px;color:var(--mut);padding:10px 8px;border-top:1px solid var(--line2)}
 .me b{color:var(--ink);display:block;font-size:12.5px}
 .me a{color:var(--red);cursor:pointer;font-weight:600;text-decoration:none;font-size:12px}
-main{flex:1;padding:26px 30px 60px;max-width:1200px}
+main{padding:26px 30px 60px;max-width:1200px;width:100%}
+.content{flex:1;min-width:0;display:flex;flex-direction:column}
+.subnav{width:100%;max-width:1200px;padding:18px 34px 0}
+.subnav:empty{display:none}
+.subnav .tabs{margin:0;gap:4px}
+.subnav .tabs div{padding:11px 15px;font-size:14px;font-weight:650}
 h2{font-size:23px;font-weight:750;letter-spacing:-.03em}
 .subt{color:var(--mut);font-size:13px;margin:5px 0 18px}
 .sfield{position:relative;display:flex;align-items:center}
@@ -317,27 +322,10 @@ html[data-theme="dark"] .kpi:hover{box-shadow:0 2px 6px rgba(0,0,0,.5),0 22px 46
   <div class="nv nsearch" onclick="gsearch()"><svg class="ni" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>Search<span class="ct kbd">⌘K</span></div>
   <div class="nv on" data-p="dash" onclick="go('dash')"><svg class="ni" viewBox="0 0 24 24"><path d="M3 11l9-7 9 7"/><path d="M5 10v10h5v-6h4v6h5V10"/></svg>Dashboard</div>
   <div class="nv" data-p="apps" onclick="go('apps')"><svg class="ni" viewBox="0 0 24 24"><path d="M3 12h5l2 3h4l2-3h5"/><path d="M5 5h14a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2z"/></svg>Applications<span class="ct" id="c-ap"></span></div>
-  <div class="navsec" data-sec="trust"><div class="slbl" onclick="toggleSec(this)">Trust &amp; safety<svg class="chev" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg></div><div class="navgroup">
-   <div class="nv" data-p="reports" onclick="go('reports')"><svg class="ni" viewBox="0 0 24 24"><path d="M12 4l9 16H3z"/><path d="M12 10v4M12 17h.01"/></svg>Reports<span class="ct" id="c-rp"></span></div>
-   <div class="nv" data-p="flags" onclick="go('flags')"><svg class="ni" viewBox="0 0 24 24"><path d="M5 21V4M5 4h11l-2 4 2 4H5"/></svg>Flags<span class="ct" id="c-fl"></span></div>
-   <div class="nv" data-p="moderation" onclick="go('moderation')"><svg class="ni" viewBox="0 0 24 24"><path d="M12 3l7 3v5c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6z"/><path d="M9 12l2 2 4-4"/></svg>Moderation</div>
-  </div></div>
-  <div class="navsec" data-sec="people"><div class="slbl" onclick="toggleSec(this)">People<svg class="chev" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg></div><div class="navgroup">
-   <div class="nv" data-p="tradies" onclick="go('tradies')"><svg class="ni" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.2"/><path d="M3.5 20a5.5 5.5 0 0 1 11 0"/><path d="M16 6a3 3 0 0 1 0 6M20.5 20a5 5 0 0 0-4-4.9"/></svg>Tradies<span class="ct" id="c-tr"></span></div>
-   <div class="nv" data-p="cust" onclick="go('cust')"><svg class="ni" viewBox="0 0 24 24"><circle cx="12" cy="8" r="3.6"/><path d="M5 20a7 7 0 0 1 14 0"/></svg>Customers<span class="ct" id="c-cu"></span></div>
-  </div></div>
-  <div class="navsec" data-sec="activity"><div class="slbl" onclick="toggleSec(this)">Activity<svg class="chev" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg></div><div class="navgroup">
-   <div class="nv" data-p="enq" onclick="go('enq')"><svg class="ni" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3.5 7l8.5 6 8.5-6"/></svg>Enquiries<span class="ct" id="c-en"></span></div>
-   <div class="nv" data-p="jobs" onclick="go('jobs')"><svg class="ni" viewBox="0 0 24 24"><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>Jobs</div>
-   <div class="nv" data-p="reviews" onclick="go('reviews')"><svg class="ni" viewBox="0 0 24 24"><path d="M12 3l2.7 5.5 6 .9-4.3 4.2 1 6L12 17l-5.4 2.6 1-6L3.3 9.4l6-.9z"/></svg>Reviews</div>
-  </div></div>
-  <div class="navsec" data-sec="control"><div class="slbl" onclick="toggleSec(this)">Control<svg class="chev" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg></div><div class="navgroup">
-   <div class="nv" data-p="money" onclick="go('money')"><svg class="ni" viewBox="0 0 24 24"><path d="M12 2v20"/><path d="M17 6.5c0-2-2.2-3-5-3s-5 1-5 3.2c0 4.6 10 2 10 6.3 0 2.2-2.2 3.2-5 3.2s-5-1.2-5-3.2"/></svg>Money</div>
-   <div class="nv" data-p="waitlist" onclick="go('waitlist')"><svg class="ni" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/></svg>Waitlist</div>
-   <div class="nv" data-p="notifs" onclick="go('notifs')"><svg class="ni" viewBox="0 0 24 24"><path d="M6 9a6 6 0 0 1 12 0c0 5 2 6 2 6H4s2-1 2-6z"/><path d="M10 20a2 2 0 0 0 4 0"/></svg>Notifications</div>
-   <div class="nv" data-p="map" onclick="go('map')"><svg class="ni" viewBox="0 0 24 24"><path d="M12 21s-7-6.3-7-11a7 7 0 0 1 14 0c0 4.7-7 11-7 11z"/><circle cx="12" cy="10" r="2.5"/></svg>Map &amp; areas</div>
-   <div class="nv" data-p="policies" onclick="go('policies')"><svg class="ni" viewBox="0 0 24 24"><path d="M4 5a2 2 0 0 1 2-2h13v16H6a2 2 0 0 0-2 2z"/><path d="M4 5v14"/></svg>Policies</div>
-  </div></div>
+  <div class="nv" data-p="trust" onclick="go('reports')"><svg class="ni" viewBox="0 0 24 24"><path d="M12 3l7 3v5c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6z"/><path d="M9 12l2 2 4-4"/></svg>Trust &amp; safety<span class="ct" id="c-trust"></span></div>
+  <div class="nv" data-p="people" onclick="go('tradies')"><svg class="ni" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.2"/><path d="M3.5 20a5.5 5.5 0 0 1 11 0"/><path d="M16 6a3 3 0 0 1 0 6M20.5 20a5 5 0 0 0-4-4.9"/></svg>People</div>
+  <div class="nv" data-p="activity" onclick="go('enq')"><svg class="ni" viewBox="0 0 24 24"><path d="M3 12h4l2.5-7 4 14 2.5-7H21"/></svg>Activity</div>
+  <div class="nv" data-p="control" onclick="go('money')"><svg class="ni" viewBox="0 0 24 24"><circle cx="7" cy="7" r="2.3"/><path d="M11 7h9M4 7h1"/><circle cx="15" cy="14" r="2.3"/><path d="M4 14h9M19 14h1"/></svg>Control</div>
   <div class="nv" data-p="system" onclick="go('system')" style="margin-top:6px"><svg class="ni" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>System</div>
   <div class="usercard" onclick="go('settings')" title="Account &amp; settings" style="cursor:pointer">
    <div class="av" id="whoami-av">A</div>
@@ -345,7 +333,7 @@ html[data-theme="dark"] .kpi:hover{box-shadow:0 2px 6px rgba(0,0,0,.5),0 22px 46
    <svg viewBox="0 0 24 24" style="width:16px;height:16px;fill:none;stroke:var(--mut);stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M5 5l1.5 1.5M17.5 17.5L19 19M19 5l-1.5 1.5M6.5 17.5L5 19"/></svg>
    </div>
  </aside>
- <main id="main"></main>
+ <div class="content"><div id="subnav" class="subnav"></div><main id="main"></main></div>
 </div>
 <div class="ov" id="ov"><div class="modal" id="modal"></div></div>
 
@@ -505,8 +493,17 @@ async function resolveReport(id){ask('Resolve report?','Records the outcome for 
 function toggleSec(el){const s=el.closest('.navsec');if(!s)return;s.classList.toggle('collapsed');try{localStorage.setItem('adminNav',JSON.stringify([...document.querySelectorAll('.navsec.collapsed')].map(x=>x.dataset.sec)));}catch(e){}}
 function restoreNav(){try{const c=JSON.parse(localStorage.getItem('adminNav')||'[]');document.querySelectorAll('.navsec').forEach(s=>s.classList.toggle('collapsed',c.includes(s.dataset.sec)));}catch(e){}}
 const SYS_SUBPAGES=['settings','security','health','audit'];
-function go(p){PAGE=p;SEL.clear();if(window.HEALTH_TIMER){clearInterval(window.HEALTH_TIMER);window.HEALTH_TIMER=null;}const hi=SYS_SUBPAGES.includes(p)?'system':p;document.querySelectorAll('.nv').forEach(n=>n.classList.toggle('on',n.dataset.p===hi));
- {const on=document.querySelector('.nv.on');const sec=on&&on.closest('.navsec');if(sec)sec.classList.remove('collapsed');}
+// main sidebar headers open a page whose siblings show as sub-tabs up top
+const SECTIONS={
+ trust:[['reports','Reports'],['flags','Flags'],['moderation','Moderation']],
+ people:[['tradies','Tradies'],['cust','Customers']],
+ activity:[['enq','Enquiries'],['jobs','Jobs'],['reviews','Reviews']],
+ control:[['money','Money'],['waitlist','Waitlist'],['notifs','Notifications'],['map','Map & areas'],['policies','Policies']]
+};
+const GROUP_OF={};Object.keys(SECTIONS).forEach(g=>SECTIONS[g].forEach(it=>GROUP_OF[it[0]]=g));
+function sectionTabs(p){const sn=$('subnav');if(!sn)return;const g=GROUP_OF[p];if(!g){sn.innerHTML='';return;}sn.innerHTML=`<div class="tabs">${SECTIONS[g].map(it=>`<div class="${it[0]===p?'on':''}" onclick="go('${it[0]}')">${esc(it[1])}</div>`).join('')}</div>`;}
+function go(p){PAGE=p;SEL.clear();if(window.HEALTH_TIMER){clearInterval(window.HEALTH_TIMER);window.HEALTH_TIMER=null;}const hi=GROUP_OF[p]||(SYS_SUBPAGES.includes(p)?'system':p);document.querySelectorAll('.nv').forEach(n=>n.classList.toggle('on',n.dataset.p===hi));
+ sectionTabs(p);
  ({dash:pDash,tradies:pTradies,apps:pApps,enq:pEnq,jobs:pJobs,reviews:pReviews,reports:pReports,flags:pFlags,cust:pCust,money:pMoney,waitlist:pWaitlist,notifs:pNotifs,map:pMap,policies:pPolicies,settings:pSettings,security:pSecurity,moderation:pModeration,health:pHealth,audit:pAudit,system:pSystem}[p])();}
 /* ── multi-select / bulk actions ── */
 let SEL=new Set();
@@ -541,9 +538,9 @@ async function loadCounts(){
   sb.from('profiles').select('*',{count:'exact',head:true}).eq('role','customer'),
   sb.from('content_reports').select('*',{count:'exact',head:true}).eq('status','open'),
   sb.from('listings').select('*',{count:'exact',head:true}).is('deleted_at',null).lt('insurance_expiry_date',cutoff)]);
- $('c-tr').textContent=tr.count??'';$('c-cu').textContent=cu.count??'';$('c-en').textContent=en.count??'';
  // badges that mean "needs you" turn red when > 0
- setBadge('c-ap',ap.count);setBadge('c-rp',rp.count);setBadge('c-fl',fl.count);
+ setBadge('c-ap',ap.count);
+ setBadge('c-trust',(rp.count||0)+(fl.count||0));
 }
 function setBadge(id,n){const el=$(id);if(!el)return;const hot=(n||0)>0;el.textContent=hot?n:'';el.style.background=hot?'rgba(224,74,58,.14)':'';el.style.color=hot?'#E04A3A':'';el.style.fontWeight=hot?'800':'';}
 

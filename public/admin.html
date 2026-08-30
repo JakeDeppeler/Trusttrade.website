@@ -2,32 +2,34 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="robots" content="noindex, nofollow">
 <title>TrustTrade — Admin (LIVE)</title>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="preload" href="/fonts/archivo.woff2" as="font" type="font/woff2" crossorigin>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <style>
-:root{--bg:#F5F6F8;--panel:#fff;--line:#E7E8EC;--line2:#F1F2F4;--ink:#14161B;--ink2:#4B4F58;--mut:#8A8F99;
- --gold:#F2A222;--goldd:#B4740E;--goldb:#FCF3E1;--green:#1FA463;--greenb:#E8F6EE;--red:#E5484D;--redb:#FDECEC;--amber:#D98A04;--amberb:#FBF1DA;--blue:#3A6FF0;--blueb:#EAF0FE;
- --sh:0 1px 2px rgba(20,22,30,.04),0 4px 16px rgba(20,22,30,.05);--f:'Inter',system-ui,sans-serif}
+@font-face{font-family:"Archivo";font-style:normal;font-weight:100 900;font-display:swap;src:url(/fonts/archivo.woff2) format("woff2")}
+@font-face{font-family:"Archivo";font-style:italic;font-weight:100 900;font-display:swap;src:url(/fonts/archivo-italic.woff2) format("woff2")}
+:root{--bg:#faf7ef;--panel:#ffffff;--cream:#f5eedf;--line:#e7ded0;--line2:#f0e9dc;--ink:#1f1813;--ink2:#5d503e;--mut:#8a7c66;
+ --gold:#f2a900;--goldd:#8a6200;--goldb:#fff8e9;--green:#1f9d57;--greenb:#e9f7ef;--red:#d64545;--redb:#fbeaea;--amber:#b4740e;--amberb:#fbf1da;--blue:#3A6FF0;--blueb:#EAF0FE;
+ --sh:0 1px 2px rgba(31,24,19,.04),0 12px 34px -16px rgba(31,24,19,.16);--f:"Archivo",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:var(--f);background:var(--bg);color:var(--ink);-webkit-font-smoothing:antialiased;font-size:14px}
 .gate{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;
- background:radial-gradient(120% 90% at 20% 0%,#2a2d34,rgba(42,45,52,0) 55%),linear-gradient(160deg,#17181c,#0d0e11)}
+ background:radial-gradient(120% 90% at 20% 0%,#3a2c17,rgba(58,44,23,0) 55%),linear-gradient(160deg,#1f1710,#120d07)}
 .lcard{background:#fff;border-radius:18px;box-shadow:0 30px 80px rgba(0,0,0,.4);width:100%;max-width:400px;padding:30px 28px}
 .lcard .lg{width:44px;height:44px;border-radius:12px;background:linear-gradient(135deg,#FFCB63,#F2A222);display:grid;place-items:center;color:#231700;margin-bottom:18px}
 .lcard h1{font-size:20px;font-weight:750;letter-spacing:-.02em}
 .lcard p{color:var(--mut);font-size:13px;margin-top:6px;line-height:1.5}
 .lcard label{display:block;font-size:12px;font-weight:600;color:var(--ink2);margin:16px 0 6px}
-.lcard input{width:100%;padding:11px 13px;border:1px solid var(--line);border-radius:10px;font-family:inherit;font-size:14px;background:#FBFBFC}
+.lcard input{width:100%;padding:11px 13px;border:1px solid var(--line);border-radius:10px;font-family:inherit;font-size:14px;background:#fbf9f3}
 .lcard input.code{letter-spacing:.4em;text-align:center;font-size:22px;font-weight:700}
 .lcard button{width:100%;margin-top:20px;padding:13px;border:0;border-radius:11px;background:var(--gold);color:#231700;font-weight:700;font-size:14px;cursor:pointer;font-family:inherit}
 .lcard button.ghost{background:transparent;color:var(--mut);font-weight:600;margin-top:8px;padding:8px}
 .lerr{color:var(--red);font-size:12.5px;margin-top:12px;min-height:16px}
 .qr{background:#fff;border:1px solid var(--line);border-radius:12px;padding:14px;display:grid;place-items:center;margin:16px 0}
 .qr svg,.qr img,.qr canvas{width:190px;height:190px}
-.secret{font-family:ui-monospace,monospace;font-size:12px;background:#F0F1F3;border-radius:8px;padding:8px 10px;word-break:break-all;color:var(--ink2);text-align:center}
+.secret{font-family:ui-monospace,monospace;font-size:12px;background:#f0e9dc;border-radius:8px;padding:8px 10px;word-break:break-all;color:var(--ink2);text-align:center}
 .badge2fa{display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:700;color:var(--green);background:var(--greenb);padding:5px 10px;border-radius:99px;margin-top:10px}
 .app{display:none;min-height:100vh}.app.on{display:flex}
 .side{width:212px;flex-shrink:0;background:var(--panel);border-right:1px solid var(--line);padding:14px 10px;display:flex;flex-direction:column;position:sticky;top:0;height:100vh;overflow-y:auto}
@@ -39,9 +41,9 @@ body{font-family:var(--f);background:var(--bg);color:var(--ink);-webkit-font-smo
 .nv{display:flex;align-items:center;gap:10px;padding:8px 12px;border-radius:9px;color:var(--ink2);cursor:pointer;font-weight:550;font-size:14px;margin-bottom:1px}
 .nv .ct:empty{display:none}
 .dinp{padding:8px 10px;border:1px solid var(--line);border-radius:9px;background:#fff;color:var(--ink);font-family:inherit;font-size:13px}
-html[data-theme="dark"] .dinp{background:#1D1E24;color:var(--ink)}
+html[data-theme="dark"] .dinp{background:#2a2216;color:var(--ink)}
 html[data-theme="dark"] .dinp::-webkit-calendar-picker-indicator{filter:invert(1) opacity(.7)}
-.nv:hover{background:#FBFBFC}.nv.on{background:var(--goldb);color:var(--goldd);font-weight:650}
+.nv:hover{background:#fbf9f3}.nv.on{background:var(--goldb);color:var(--goldd);font-weight:650}
 .nv .ct{margin-left:auto;font-size:11px;font-weight:700;padding:1px 7px;border-radius:99px;background:var(--line);color:var(--ink2)}
 .me{margin-top:auto;font-size:11.5px;color:var(--mut);padding:10px 8px;border-top:1px solid var(--line2)}
 .me b{color:var(--ink);display:block;font-size:12.5px}
@@ -75,7 +77,7 @@ th.srt{cursor:pointer;user-select:none}th.srt:hover{color:var(--ink)}th .ar{opac
 td{padding:12px 18px;border-bottom:1px solid var(--line2);font-size:13.5px;vertical-align:middle}
 tr:last-child td{border-bottom:0}
 .pill{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:650;padding:3px 9px;border-radius:99px}
-.pill.g{background:var(--greenb);color:var(--green)}.pill.r{background:var(--redb);color:var(--red)}.pill.a{background:var(--amberb);color:var(--amber)}.pill.n{background:#F0F1F3;color:var(--ink2)}.pill.b{background:var(--blueb);color:var(--blue)}
+.pill.g{background:var(--greenb);color:var(--green)}.pill.r{background:var(--redb);color:var(--red)}.pill.a{background:var(--amberb);color:var(--amber)}.pill.n{background:#f0e9dc;color:var(--ink2)}.pill.b{background:var(--blueb);color:var(--blue)}
 .mut{color:var(--mut)}.mono{font-variant-numeric:tabular-nums}.right{text-align:right}
 .empty{padding:26px 18px;color:var(--mut);font-size:13px}
 .dot{width:8px;height:8px;border-radius:50%;background:var(--green);display:inline-block}
@@ -119,23 +121,23 @@ tr:last-child td{border-bottom:0}
 .feed .fr .ft{font-size:13px;font-weight:500}.feed .fr .fm{margin-left:auto;font-size:11.5px;color:var(--mut)}
 .themebtn{cursor:pointer;color:var(--goldd);font-weight:600;font-size:12px}
 /* dark mode */
-html[data-theme="dark"]{--bg:#0E0F13;--panel:#17181D;--panel2:#1D1E24;--line:#282A31;--line2:#212228;--ink:#EDEEF2;--ink2:#AEB0BA;--mut:#7E808A;--goldd:#F5BE68;--goldb:#2C2411;--greenb:#12231A;--redb:#2C1615;--amberb:#251C0D;--blueb:#141C2E;--sh:0 1px 2px rgba(0,0,0,.5),0 6px 20px rgba(0,0,0,.45)}
+html[data-theme="dark"]{--bg:#17120b;--panel:#201a11;--panel2:#2a2216;--cream:#2a2216;--line:#342a1c;--line2:#2a2216;--ink:#f2ead9;--ink2:#c8b9a0;--mut:#8f8064;--goldd:#f5be68;--goldb:#2c2411;--greenb:#12231a;--redb:#2c1615;--amberb:#251c0d;--blueb:#141c2e;--sh:0 1px 2px rgba(0,0,0,.5),0 10px 30px -12px rgba(0,0,0,.6)}
 html[data-theme="dark"] .btn{background:#2E3038;color:#EDEEF2}
 html[data-theme="dark"] .btn.g{background:var(--green);color:#fff}
 html[data-theme="dark"] .btn.r{background:var(--redb);color:#FF9B93;border-color:rgba(229,72,77,.3)}
-html[data-theme="dark"] .btn.w{background:#1D1E24;color:var(--ink);border-color:var(--line)}
+html[data-theme="dark"] .btn.w{background:#2a2216;color:var(--ink);border-color:var(--line)}
 html[data-theme="dark"] th{background:var(--panel)}
-html[data-theme="dark"] tbody tr:hover{background:#1D1E24}
-html[data-theme="dark"] input,html[data-theme="dark"] select,html[data-theme="dark"] textarea{background:#1D1E24;color:var(--ink);border-color:var(--line)}
+html[data-theme="dark"] tbody tr:hover{background:#2a2216}
+html[data-theme="dark"] input,html[data-theme="dark"] select,html[data-theme="dark"] textarea{background:#2a2216;color:var(--ink);border-color:var(--line)}
 html[data-theme="dark"] .ov{background:rgba(0,0,0,.6)}
 html[data-theme="dark"] .modal{background:var(--panel);color:var(--ink);box-shadow:0 30px 80px rgba(0,0,0,.6)}
 html[data-theme="dark"] .modal h3{color:var(--ink)}
-html[data-theme="dark"] .modal input,html[data-theme="dark"] .modal select,html[data-theme="dark"] .modal textarea{background:#101116;color:var(--ink);border-color:var(--line)}
-html[data-theme="dark"] .nv:hover{background:#1D1E24}
+html[data-theme="dark"] .modal input,html[data-theme="dark"] .modal select,html[data-theme="dark"] .modal textarea{background:#17120b;color:var(--ink);border-color:var(--line)}
+html[data-theme="dark"] .nv:hover{background:#2a2216}
 html[data-theme="dark"] .nv.on{background:rgba(242,162,34,.13);color:#F7C877}
-html[data-theme="dark"] .nv.nsearch{background:#101116;color:var(--mut)}
+html[data-theme="dark"] .nv.nsearch{background:#17120b;color:var(--mut)}
 html[data-theme="dark"] .nv.nsearch .ct.kbd{border-color:#2C2E37}
-html[data-theme="dark"] .pill.n{background:#26272E;color:var(--ink2)}
+html[data-theme="dark"] .pill.n{background:#342a1c;color:var(--ink2)}
 html[data-theme="dark"] .err{background:var(--redb);color:#FF9B93}
 html[data-theme="dark"] .btn.w:hover{background:#25262D}
 html[data-theme="dark"] .tabs div.on{color:var(--ink)}
@@ -143,13 +145,13 @@ html[data-theme="dark"] .tabs div.on{color:var(--ink)}
    Replaces the old stacked v1–v4 refresh layers (which redefined the same
    values 3–4× and drifted). Single source of truth for spacing/type/radius. */
 :root{
-  --line:#E9EAEE;--line2:#F2F3F5;
-  --r-sm:10px;--r:14px;--r-lg:18px;
-  --sh:0 1px 2px rgba(20,22,30,.05),0 8px 22px -14px rgba(20,22,30,.14);
-  --f:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  --line:#e7ded0;--line2:#f0e9dc;
+  --r-sm:11px;--r:14px;--r-lg:18px;
+  --sh:0 1px 2px rgba(31,24,19,.04),0 12px 34px -16px rgba(31,24,19,.16);
+  --f:"Archivo",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
 }
 body{font-size:14.5px;letter-spacing:-.008em}
-main{padding:28px 34px 72px;background:radial-gradient(150% 90% at 100% -10%,rgba(242,162,34,.045),transparent 45%)}
+main{padding:28px 34px 72px;background:radial-gradient(150% 90% at 100% -10%,rgba(242,169,0,.05),transparent 45%)}
 h2{font-size:23px;font-weight:800;letter-spacing:-.03em}
 .subt{font-size:13.5px;margin:6px 0 22px}
 
@@ -157,7 +159,7 @@ h2{font-size:23px;font-weight:800;letter-spacing:-.03em}
 .side{padding:16px 12px}
 .side .brand{padding:2px 6px 16px}
 .side .brand b{font-size:15px}
-.side .brand .lg{width:34px;height:34px;border-radius:10px;overflow:hidden;flex-shrink:0;box-shadow:0 1px 3px rgba(20,22,30,.14);background:#FBF3E4}
+.side .brand .lg{width:34px;height:34px;border-radius:10px;overflow:hidden;flex-shrink:0;box-shadow:0 1px 3px rgba(20,22,30,.14);background:#fff8e9}
 .side .brand .lg img{width:100%;height:100%;object-fit:cover;display:block}
 .nv{border-radius:var(--r-sm);font-size:14px;padding:8px 11px;position:relative;margin-bottom:1px;gap:11px}
 .nv .ni{width:18px;height:18px;flex-shrink:0;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;opacity:.55;transition:opacity .12s}
@@ -1259,7 +1261,7 @@ function renderTP(){const t=TP.t,bk=TP.bk,rev=TP.rev;
   svc.length?`<div class="card"><div class="ch">Services &amp; pricing</div><div style="padding:6px 18px">${svc.map(s=>`<div style="display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--line2)"><span>${esc(s.name||s.title||s.label||'Service')}${s.detail?' <span class="mut" style="font-size:12px">'+esc(s.detail)+'</span>':''}</span><b>${s.price!=null?'$'+esc(s.price):esc(s.priceText||s.amount||'')}</b></div>`).join('')}</div></div>`:'<div class="card"><div class="empty">No services listed.</div></div>',
   photos.length?`<div class="card"><div class="ch">Gallery (${photos.length})</div><div style="padding:14px 18px;display:grid;grid-template-columns:repeat(4,1fr);gap:8px">${photos.slice(0,12).map(u=>`<img class="zoomable" src="${esc(u)}" style="width:100%;aspect-ratio:1;object-fit:cover;border-radius:10px">`).join('')}</div></div>`:'<div class="card"><div class="empty">No photos yet.</div></div>',
   `<div class="card"><div class="ch">Availability &amp; area</div><div style="padding:6px 18px">${hoursRows||kv('Business hours','—')}${kv('Service radius',t.service_radius_km?t.service_radius_km+' km':'—')}${kv('Suburb · postcode',(t.suburb||'')+' '+(t.postcode||''))}${kv('Cap slot',t.cap_slot||'—')}</div></div>`,
-  `<div class="card"><div class="ch">Reviews (${rev.length})</div><div style="padding:6px 18px">${rev.length?rev.map(r=>`<div style="padding:13px 0;border-bottom:1px solid var(--line2)"><div style="display:flex;align-items:center;gap:8px"><b>${esc(r.from_name||'—')}</b><span style="color:var(--gold)">${stars(r.rating)}</span><span class="pill ${r.source==='google'?'n':'g'}" style="margin-left:auto">${esc(r.source||'trusttrade')}</span>${r.hidden?'<span class="pill r">Hidden</span>':''}</div><div style="font-size:13px;color:var(--ink2);margin-top:6px">${esc(r.review_text||'')}</div>${r.reply_text?`<div style="margin-top:8px;padding:9px 11px;background:#FBFBFC;border:1px solid var(--line2);border-radius:8px;font-size:12.5px"><b>Reply</b> ${esc(r.reply_text)}</div>`:''}</div>`).join(''):'<div class="empty" style="padding:14px 0">No reviews yet.</div>'}</div></div>`,
+  `<div class="card"><div class="ch">Reviews (${rev.length})</div><div style="padding:6px 18px">${rev.length?rev.map(r=>`<div style="padding:13px 0;border-bottom:1px solid var(--line2)"><div style="display:flex;align-items:center;gap:8px"><b>${esc(r.from_name||'—')}</b><span style="color:var(--gold)">${stars(r.rating)}</span><span class="pill ${r.source==='google'?'n':'g'}" style="margin-left:auto">${esc(r.source||'trusttrade')}</span>${r.hidden?'<span class="pill r">Hidden</span>':''}</div><div style="font-size:13px;color:var(--ink2);margin-top:6px">${esc(r.review_text||'')}</div>${r.reply_text?`<div style="margin-top:8px;padding:9px 11px;background:#fbf9f3;border:1px solid var(--line2);border-radius:8px;font-size:12.5px"><b>Reply</b> ${esc(r.reply_text)}</div>`:''}</div>`).join(''):'<div class="empty" style="padding:14px 0">No reviews yet.</div>'}</div></div>`,
   `<div class="card"><div class="ch">Bookings (${bk.length})</div>${bk.length?`<table><tbody>${bk.map(b=>`<tr><td><b>${esc(b.job_title||'Job')}</b></td><td>${esc(b.status||'')}</td><td class="mut">${fmtDate(b.slot_start)}</td></tr>`).join('')}</tbody></table>`:'<div class="empty">No bookings yet.</div>'}</div>`,
   `<div class="card"><div class="ch">Conversations (${(TP.enq||[]).length})</div>${(TP.enq&&TP.enq.length)?`<table><thead><tr><th>Customer</th><th>Msgs</th><th>Stage</th><th>When</th><th class="right">Action</th></tr></thead><tbody>${TP.enq.map(e=>`<tr><td><b>${esc(e.from_name||'—')}</b></td><td class="mono">${Array.isArray(e.messages)?e.messages.length:0}</td><td>${esc(e.stage||e.status||'—')}</td><td class="mut">${ago(e.created_at)}</td><td class="right">${Array.isArray(e.messages)&&e.messages.length?`<button class="btn w" onclick="viewThread('${e.id}')">View thread</button>`:'<span class="mut">—</span>'}</td></tr>`).join('')}</tbody></table>`:'<div class="empty">No conversations for this tradie yet.</div>'}</div>`,
   `<div class="kpis" style="margin:0"><div class="kpi"><div class="k">Profile views</div><b>${t.stat_views||0}</b></div><div class="kpi"><div class="k">Enquiries</div><b>${t.stat_enquiries||0}</b></div><div class="kpi"><div class="k">Calls</div><b>${t.stat_calls||0}</b></div><div class="kpi"><div class="k">Emails</div><b>${t.stat_emails||0}</b></div><div class="kpi"><div class="k">Jobs done</div><b>${t.stat_jobs_complete||0}</b></div><div class="kpi"><div class="k">Reply time</div><b>${respAvg!=null?respAvg+'m':'—'}</b></div></div>`

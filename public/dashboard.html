@@ -515,10 +515,15 @@ function installReadOnly(){
 }
 function showPreviewBanner(name){
  if(document.getElementById('pvBanner')) return;
+ document.body.classList.add('preview');
+ if(!document.getElementById('pvStyle')){const st=document.createElement('style');st.id='pvStyle';
+  st.textContent='body.preview .side{top:46px;height:calc(100vh - 46px)}';document.head.appendChild(st);}
  const b=document.createElement('div'); b.id='pvBanner';
- b.style.cssText='position:sticky;top:0;z-index:50;display:flex;align-items:center;gap:10px;padding:9px 16px;background:#14161B;color:#fff;font-size:13px;font-weight:600';
- b.innerHTML='<span style="background:#F2A222;color:#231700;font-size:10px;font-weight:800;letter-spacing:.05em;padding:3px 8px;border-radius:99px">PREVIEW</span><span>Viewing <b>'+esc(name||'this tradie')+'</b>’s dashboard — read-only.</span><a onclick="location.replace(\'/admin\')" style="margin-left:auto;color:#F5BE68;cursor:pointer;font-weight:700">Back to admin</a>';
- const app=document.getElementById('app'); if(app) app.insertBefore(b, app.firstChild);
+ b.style.cssText='position:sticky;top:0;z-index:200;display:flex;align-items:center;gap:12px;height:46px;padding:0 20px;background:#1b1d21;color:#fff;font-size:13.5px;font-weight:600;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif';
+ b.innerHTML='<span style="background:#f2f3f5;color:#1b1d21;font-size:10px;font-weight:800;letter-spacing:.06em;padding:3px 9px;border-radius:99px">ADMIN PREVIEW</span>'
+  +'<span style="color:rgba(255,255,255,.78)">Viewing <b style="color:#fff">'+esc(name||'this tradie')+'</b> — read-only</span>'
+  +'<button onclick="location.replace(\'/admin\')" style="margin-left:auto;display:inline-flex;align-items:center;gap:6px;height:32px;padding:0 15px;border-radius:9px;background:#fff;color:#1b1d21;border:0;font-family:inherit;font-size:13px;font-weight:750;cursor:pointer">← Back to admin</button>';
+ document.body.insertBefore(b, document.getElementById('app'));
 }
 async function enterPreview(listingId){
  PREVIEW=true; installReadOnly();

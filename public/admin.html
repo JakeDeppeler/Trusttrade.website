@@ -335,6 +335,7 @@ html[data-theme="dark"] .kpi:hover{box-shadow:0 2px 6px rgba(0,0,0,.5),0 22px 46
    <div><b>TrustTrade</b><span class="sub">Management</span></div></div>
   <div class="nv nsearch" onclick="gsearch()"><svg class="ni" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>Search<span class="ct kbd">⌘K</span></div>
   <div class="nv on" data-p="dash" onclick="go('dash')"><svg class="ni" viewBox="0 0 24 24"><path d="M3 11l9-7 9 7"/><path d="M5 10v10h5v-6h4v6h5V10"/></svg>Dashboard</div>
+  <div class="nv" data-p="perf" onclick="go('perf')"><svg class="ni" viewBox="0 0 24 24"><path d="M3 3v18h18"/><path d="M7 14l3-4 3 3 4-6"/></svg>Analytics</div>
   <div class="nv" data-p="apps" onclick="go('apps')"><svg class="ni" viewBox="0 0 24 24"><path d="M3 12h5l2 3h4l2-3h5"/><path d="M5 5h14a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2z"/></svg>Applications<span class="ct" id="c-ap"></span></div>
   <div class="nv" data-p="tradies" onclick="go('tradies')"><svg class="ni" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.2"/><path d="M3.5 20a5.5 5.5 0 0 1 11 0"/><path d="M16 6a3 3 0 0 1 0 6M20.5 20a5 5 0 0 0-4-4.9"/></svg>Tradies<span class="rt"><span class="live" id="on-trad" style="display:none"><b>0</b></span><span class="ct" id="c-trad"></span></span></div>
   <div class="nv" data-p="cust" onclick="go('cust')"><svg class="ni" viewBox="0 0 24 24"><circle cx="12" cy="8" r="3.6"/><path d="M5 20a7 7 0 0 1 14 0"/></svg>Customers<span class="rt"><span class="live" id="on-cust" style="display:none"><b>0</b></span><span class="ct" id="c-cust"></span></span></div>
@@ -532,7 +533,7 @@ const GROUP_OF={};Object.keys(SECTIONS).forEach(g=>SECTIONS[g].forEach(it=>GROUP
 function sectionTabs(p){const sn=$('subnav');if(!sn)return;const g=GROUP_OF[p];if(!g){sn.innerHTML='';return;}sn.innerHTML=`<div class="tabs">${SECTIONS[g].map(it=>`<div class="${it[0]===p?'on':''}" onclick="go('${it[0]}')">${esc(it[1])}</div>`).join('')}</div>`;}
 function go(p){PAGE=p;SEL.clear();if(window.HEALTH_TIMER){clearInterval(window.HEALTH_TIMER);window.HEALTH_TIMER=null;}const hi=GROUP_OF[p]||(SYS_SUBPAGES.includes(p)?'system':p);document.querySelectorAll('.nv').forEach(n=>n.classList.toggle('on',n.dataset.p===hi));
  sectionTabs(p);
- ({dash:pDash,tradies:pTradies,apps:pApps,enq:pEnq,jobs:pJobs,reviews:pReviews,reports:pReports,flags:pFlags,cust:pCust,money:pMoney,waitlist:pWaitlist,notifs:pNotifs,map:pMap,policies:pPolicies,settings:pSettings,security:pSecurity,moderation:pModeration,health:pHealth,audit:pAudit,system:pSystem}[p])();}
+ ({dash:pDash,perf:pPerf,tradies:pTradies,apps:pApps,enq:pEnq,jobs:pJobs,reviews:pReviews,reports:pReports,flags:pFlags,cust:pCust,money:pMoney,waitlist:pWaitlist,notifs:pNotifs,map:pMap,policies:pPolicies,settings:pSettings,security:pSecurity,moderation:pModeration,health:pHealth,audit:pAudit,system:pSystem}[p])();}
 /* ── multi-select / bulk actions ── */
 let SEL=new Set();
 function selRow(cb){if(cb.checked)SEL.add(cb.value);else SEL.delete(cb.value);updateBulk();}
@@ -597,10 +598,14 @@ const PERF_METRICS=[
  {k:'tradies',label:'New tradies',color:'#e0a400'},
  {k:'customers',label:'New customers',color:'#8b5cf6'},
  {k:'apps',label:'Applications',color:'#e5484d'},
+ {k:'jobs',label:'Jobs',color:'#0891b2'},
+ {k:'reviews',label:'Reviews',color:'#db2777'},
 ];
-let PERF={range:28,on:{sessions:true,enquiries:true,tradies:false,customers:false,apps:false},data:null};
-function setPerfRange(n){PERF.range=n;document.querySelectorAll('#perfSeg button').forEach(b=>b.classList.toggle('on',+b.dataset.r===n));initPerf();}
-function togglePerf(k){PERF.on[k]=!PERF.on[k];renderPerf();}
+let PERF={range:28,big:false,on:{sessions:true,enquiries:true,tradies:false,customers:false,apps:false,jobs:false,reviews:false},data:null};
+try{const _p=JSON.parse(localStorage.getItem('tt_perf')||'null');if(_p){if(_p.range)PERF.range=_p.range;if(_p.on)Object.assign(PERF.on,_p.on);}}catch(e){}
+function perfSave(){try{localStorage.setItem('tt_perf',JSON.stringify({range:PERF.range,on:PERF.on}));}catch(e){}}
+function setPerfRange(n){PERF.range=n;perfSave();document.querySelectorAll('#perfSeg button').forEach(b=>b.classList.toggle('on',+b.dataset.r===n));initPerf();}
+function togglePerf(k){PERF.on[k]=!PERF.on[k];perfSave();renderPerf();}
 async function initPerf(){
  const wrap=$('perfWrap');if(!wrap)return;
  wrap.innerHTML='<div class="mut" style="padding:26px 4px;font-size:13px">Loading…</div>';
@@ -608,18 +613,20 @@ async function initPerf(){
  for(let i=PERF.range-1;i>=0;i--){const dt=new Date(now-i*864e5);days.push({key:dt.toISOString().slice(0,10),lbl:dt.toLocaleDateString('en-AU',{day:'numeric',month:'short'})});}
  const start=days[0].key+'T00:00:00Z';
  try{
-  const [ev,en,tr,cu,ap]=await Promise.all([
+  const [ev,en,tr,cu,ap,bk,rv]=await Promise.all([
    sb.from('app_events').select('created_at,session_id').gte('created_at',start).limit(50000),
    sb.from('enquiries').select('created_at').gte('created_at',start),
    sb.from('listings').select('joined_at').gte('joined_at',start).not('is_demo','is',true),
    sb.from('profiles').select('created_at').in('role',['user','customer']).gte('created_at',start).not('is_demo','is',true),
-   sb.from('applications').select('created_at').gte('created_at',start)
+   sb.from('applications').select('created_at').gte('created_at',start),
+   sb.from('bookings').select('created_at').gte('created_at',start),
+   sb.from('listing_reviews').select('created_at').gte('created_at',start)
   ]);
   const idxOf={};days.forEach((d,i)=>idxOf[d.key]=i);
   const sess=days.map(()=>new Set());
   (ev.data||[]).forEach(e=>{const i=idxOf[(e.created_at||'').slice(0,10)];if(i!=null&&e.session_id)sess[i].add(e.session_id);});
   const cnt=(rows,f)=>{const a=days.map(()=>0);(rows||[]).forEach(r=>{const i=idxOf[(r[f]||'').slice(0,10)];if(i!=null)a[i]++;});return a;};
-  PERF.data={days,series:{sessions:sess.map(s=>s.size),enquiries:cnt(en.data,'created_at'),tradies:cnt(tr.data,'joined_at'),customers:cnt(cu.data,'created_at'),apps:cnt(ap.data,'created_at')}};
+  PERF.data={days,series:{sessions:sess.map(s=>s.size),enquiries:cnt(en.data,'created_at'),tradies:cnt(tr.data,'joined_at'),customers:cnt(cu.data,'created_at'),apps:cnt(ap.data,'created_at'),jobs:cnt(bk.data,'created_at'),reviews:cnt(rv.data,'created_at')}};
   renderPerf();
  }catch(e){wrap.innerHTML=errBox(e);}
 }
@@ -637,7 +644,7 @@ function renderPerf(){
  const xl=li.map(i=>`<text x="${X(i).toFixed(0)}" y="${H-7}" fill="var(--mut)" font-size="13" text-anchor="${i===0?'start':i===n-1?'end':'middle'}">${days[i].lbl}</text>`).join('');
  wrap.innerHTML=`<div class="perf-cards">${cards}</div>
    <div class="perf-chart" style="position:relative">
-     <svg id="perfSvg" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" style="width:100%;height:230px;display:block;overflow:visible">
+     <svg id="perfSvg" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" style="width:100%;height:${PERF.big?360:230}px;display:block;overflow:visible">
        <line id="perfGuide" y1="${padT}" y2="${padT+plotH}" stroke="var(--mut)" stroke-width="1" stroke-dasharray="3 3" style="display:none"/>
        ${lines}${dots}${xl}
      </svg>
@@ -655,6 +662,7 @@ function renderPerf(){
  }
  chart.onmousemove=move;
  chart.onmouseleave=()=>{tip.style.display='none';guide.style.display='none';svg.querySelectorAll('.perfDot').forEach(d=>d.style.display='none');};
+ if(PERF.big){const tb=$('perfTable');if(tb){const act=PERF_METRICS.filter(m=>PERF.on[m.k]);tb.innerHTML=act.length?`<table><thead><tr><th>Date</th>${act.map(m=>`<th class="right">${m.label}</th>`).join('')}</tr></thead><tbody>${days.map((d,i)=>`<tr><td>${d.lbl}</td>${act.map(m=>`<td class="right mono">${series[m.k][i].toLocaleString()}</td>`).join('')}</tr>`).reverse().join('')}</tbody></table>`:'<div class="empty">Pick a metric above to see the daily breakdown.</div>';}}
 }
 function lineChart(vals,labels){const w=620,h=210,pad=26,mx=Math.max(...vals,1),n=vals.length;const X=i=>pad+i/(n-1||1)*(w-pad*2),Y=v=>h-pad-(v/mx)*(h-pad*2);const line=vals.map((v,i)=>`${X(i).toFixed(1)},${Y(v).toFixed(1)}`).join(' ');const area=`${pad},${h-pad} ${line} ${(w-pad)},${h-pad}`;
  return `<svg viewBox="0 0 ${w} ${h}" style="width:100%;height:auto;display:block"><polyline points="${area}" fill="rgba(58,111,240,.09)" stroke="none"/><polyline points="${line}" fill="none" stroke="#3A6FF0" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>${vals.map((v,i)=>`<circle cx="${X(i).toFixed(1)}" cy="${Y(v).toFixed(1)}" r="2.6" fill="#3A6FF0"/>`).join('')}</svg><div style="display:flex;justify-content:space-between;font-size:10.5px;color:var(--mut);padding:4px 22px 0">${labels.map(l=>`<span>${esc(l)}</span>`).join('')}</div>`;}
@@ -741,7 +749,7 @@ async function pDash(){loading('Dashboard');try{
    ${board.length?board.map(x=>`<tr><td><b>${esc(x.name)}</b></td><td class="mono">${x.n}</td><td>${x.avg==null?'<span class="mut">—</span>':(x.avg<1?Math.max(1,Math.round(x.avg*60))+'m':x.avg.toFixed(1)+'h')}</td><td><span class="pill ${x.hit>=80?'g':x.hit>=50?'a':'r'}">${x.hit}%</span></td><td class="right">${x.ov?`<span class="pill r">${x.ov}</span>`:'<span class="mut">0</span>'}</td></tr>`).join(''):'<tr><td colspan=5 class="empty">No enquiry response data yet.</td></tr>'}
    </tbody></table></div>`;
  // Optional panels
- const perfP=`<div class="card"><div class="ch">Performance<div class="seg" id="perfSeg" style="margin-left:auto">${[7,28,90].map(r=>`<button data-r="${r}" class="${PERF.range===r?'on':''}" onclick="setPerfRange(${r})">${r}d</button>`).join('')}</div></div><div id="perfWrap" style="padding:8px 16px 16px"></div></div>`;
+ const perfP=`<div class="card"><div class="ch"><span style="cursor:pointer" onclick="go('perf')">Performance</span><div class="seg" id="perfSeg" style="margin-left:auto">${[7,28,90].map(r=>`<button data-r="${r}" class="${PERF.range===r?'on':''}" onclick="setPerfRange(${r})">${r}d</button>`).join('')}</div><button class="btn w" style="margin-left:8px;padding:0 11px;height:30px" onclick="go('perf')" title="Open the full Performance page">Full view ↗</button></div><div id="perfWrap" style="padding:8px 16px 16px"></div></div>`;
  const trustP=`<div class="card"><div class="ch">Trust &amp; safety</div><div class="trust" style="padding:2px 18px 8px">
      ${trow('var(--redb)','var(--red)','flag','Open reports',openRep,'reports',openRep?'var(--red)':'')}
      ${trow('var(--amberb)','var(--amber)','pause','Suspended listings',suspended,'tradies','')}
@@ -768,8 +776,17 @@ async function pDash(){loading('Dashboard');try{
   ${row2}
   ${dashOn('board')?boardP:''}
   ${dashOn('newest')?newestP:''}`;
- if(dashOn('chart'))initPerf();
+ if(dashOn('chart')){PERF.big=false;initPerf();}
 }catch(e){$('main').innerHTML='<h2>Dashboard</h2>'+errBox(e);}}
+// dedicated full-page Performance / analytics view
+function pPerf(){
+ PERF.big=true;
+ $('main').innerHTML=`<div class="dashhead"><div><div class="subt" style="margin:0 0 2px">Platform overview</div><h2>Performance</h2></div>
+   <div class="ha"><div class="seg" id="perfSeg">${[7,28,90].map(r=>`<button data-r="${r}" class="${PERF.range===r?'on':''}" onclick="setPerfRange(${r})">${r}d</button>`).join('')}</div><button class="btn w" onclick="go('dash')">← Dashboard</button></div></div>
+   <div class="card"><div id="perfWrap" style="padding:12px 18px 18px"></div></div>
+   <div class="card"><div class="ch">By day</div><div id="perfTable"></div></div>`;
+ initPerf();
+}
 
 let TRD=[],TRDF={q:'',trade:'',area:'',rating:0};
 async function pTradies(){loading('Tradies');try{
@@ -911,15 +928,16 @@ function enqRender(){
  if(ENQF.range==='today')lo=new Date().setHours(0,0,0,0);else if(ENQF.range==='7d')lo=now-7*864e5;else if(ENQF.range==='30d')lo=now-30*864e5;else if(ENQF.range==='365d')lo=now-365*864e5;
  const fromT=ENQF.from?new Date(ENQF.from+'T00:00:00').getTime():null,toT=ENQF.to?new Date(ENQF.to+'T23:59:59').getTime():null;
  const rows=ENQ.filter(e=>{const t=new Date(e.created_at).getTime();if(lo&&t<lo)return false;if(fromT&&t<fromT)return false;if(toT&&t>toT)return false;if(ENQF.overdue&&enqSla(e).k!=='overdue')return false;if(q){const hay=((e.from_name||'')+' '+(e.from_town||'')+' '+(e.message||'')).toLowerCase();if(!hay.includes(q))return false;}return true;});
- const tb=$('enq_rows');if(tb)tb.innerHTML=rows.map(e=>`<tr onclick="openEnq('${e.id}')" style="cursor:pointer"><td><b>${esc(e.from_name||'—')}</b></td><td>${esc(e.from_town||'—')}</td><td>${e.urgency?'<span class="pill '+(String(e.urgency).toLowerCase().includes('urgent')?'r':'n')+'">'+esc(e.urgency)+'</span>':'—'}</td><td>${enqSlaPill(e)}</td><td class="mut" style="max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(e.message||'')}</td><td class="mut">${ago(e.created_at)}</td></tr>`).join('')||'<tr><td colspan=6 class="empty">No enquiries match these filters.</td></tr>';
+ const tb=$('enq_rows');if(tb)tb.innerHTML=rows.map(e=>`<tr onclick="openEnq('${e.id}')" style="cursor:pointer"><td><b>${esc(e.from_name||'—')}</b></td><td>${esc(e.from_town||'—')}</td><td>${e.urgency?'<span class="pill '+(String(e.urgency).toLowerCase().includes('urgent')?'r':'n')+'">'+esc(e.urgency)+'</span>':'—'}</td><td>${enqSlaPill(e)}</td><td class="mut" style="max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(e.message||'')}</td><td class="mut" style="white-space:nowrap">${ago(e.created_at)} <button class="btn r" style="height:24px;padding:0 9px;font-size:11px;margin-left:6px" onclick="event.stopPropagation();delEnq('${e.id}','${esc(e.from_name||'this enquiry')}')">Delete</button></td></tr>`).join('')||'<tr><td colspan=6 class="empty">No enquiries match these filters.</td></tr>';
  const c=$('enq_count');if(c)c.textContent=rows.length+' of '+ENQ.length+' enquiries';}
 
+async function delEnq(id,name){ask('Delete enquiry from '+(name||'this customer')+'?','This permanently removes the enquiry and its messages. Audited.','Reason (optional)',async r=>{const {error}=await sb.from('enquiries').delete().eq('id',id);if(error){toast(error.message||'Delete failed');return;}await audit('enquiry_deleted','enquiry',id,r||'deleted from admin');closeM();toast('Enquiry deleted');go('enq');},true);}
 async function openEnq(id){loading('Enquiry');try{
  const {data:e,error}=await sb.from('enquiries').select('*').eq('id',id).single();if(error)throw error;
  let tradie=null;if(e.listing_id){const r=await sb.from('listings').select('name,trade').eq('id',e.listing_id).maybeSingle();tradie=r.data;}
  const pill=e.urgency?`<span class="pill ${String(e.urgency).toLowerCase().includes('urgent')?'r':'n'}">${esc(e.urgency)}</span>`:'—';
- $('main').innerHTML=`<div style="display:flex;align-items:flex-start"><div><h2>${esc(e.from_name||'Enquiry')}</h2><div class="subt">Enquiry · ${esc(e.from_town||'—')} · ${ago(e.created_at)}</div></div>
-   <button class="btn w" style="margin-left:auto" onclick="go('enq')">← Enquiries</button></div>
+ $('main').innerHTML=`<div style="display:flex;align-items:flex-start;gap:8px"><div><h2>${esc(e.from_name||'Enquiry')}</h2><div class="subt">Enquiry · ${esc(e.from_town||'—')} · ${ago(e.created_at)}</div></div>
+   <span style="margin-left:auto"></span><button class="btn r" onclick="delEnq('${e.id}','${esc(e.from_name||'this enquiry')}')">Delete</button><button class="btn w" onclick="go('enq')">← Enquiries</button></div>
   <div class="mgrid"><div class="mcard"><div class="l">Urgency</div><div class="v" style="font-size:18px">${pill}</div></div>
    <div class="mcard"><div class="l">Response</div><div class="v" style="font-size:15px">${enqSlaPill(e)}${e.first_response_at?'<div class="mut" style="font-size:11.5px;margin-top:4px">Replied '+fmtDate(e.first_response_at)+'</div>':'<div class="mut" style="font-size:11.5px;margin-top:4px">No reply yet</div>'}</div></div>
    <div class="mcard"><div class="l">Routed to</div><div class="v" style="font-size:18px">${tradie?esc(tradie.name):'—'}</div></div></div>

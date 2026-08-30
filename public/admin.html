@@ -323,7 +323,7 @@ html[data-theme="dark"] .kpi:hover{box-shadow:0 2px 6px rgba(0,0,0,.5),0 22px 46
   <div class="nv on" data-p="dash" onclick="go('dash')"><svg class="ni" viewBox="0 0 24 24"><path d="M3 11l9-7 9 7"/><path d="M5 10v10h5v-6h4v6h5V10"/></svg>Dashboard</div>
   <div class="nv" data-p="apps" onclick="go('apps')"><svg class="ni" viewBox="0 0 24 24"><path d="M3 12h5l2 3h4l2-3h5"/><path d="M5 5h14a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2z"/></svg>Applications<span class="ct" id="c-ap"></span></div>
   <div class="nv" data-p="trust" onclick="go('reports')"><svg class="ni" viewBox="0 0 24 24"><path d="M12 3l7 3v5c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6z"/><path d="M9 12l2 2 4-4"/></svg>Trust &amp; safety<span class="ct" id="c-trust"></span></div>
-  <div class="nv" data-p="people" onclick="go('tradies')"><svg class="ni" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.2"/><path d="M3.5 20a5.5 5.5 0 0 1 11 0"/><path d="M16 6a3 3 0 0 1 0 6M20.5 20a5 5 0 0 0-4-4.9"/></svg>People</div>
+  <div class="nv" data-p="people" onclick="go('tradies')"><svg class="ni" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.2"/><path d="M3.5 20a5.5 5.5 0 0 1 11 0"/><path d="M16 6a3 3 0 0 1 0 6M20.5 20a5 5 0 0 0-4-4.9"/></svg>People<span class="live" id="pv-live" style="display:none;margin-left:auto;font-size:11px" title="People active on the site in the last 5 minutes"><b id="pv-live-n">0</b></span></div>
   <div class="nv" data-p="activity" onclick="go('enq')"><svg class="ni" viewBox="0 0 24 24"><path d="M3 12h4l2.5-7 4 14 2.5-7H21"/></svg>Activity</div>
   <div class="nv" data-p="control" onclick="go('money')"><svg class="ni" viewBox="0 0 24 24"><circle cx="7" cy="7" r="2.3"/><path d="M11 7h9M4 7h1"/><circle cx="15" cy="14" r="2.3"/><path d="M4 14h9M19 14h1"/></svg>Control</div>
   <div class="nv" data-p="system" onclick="go('system')" style="margin-top:6px"><svg class="ni" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>System</div>
@@ -410,6 +410,7 @@ async function signout(){await sb.auth.signOut();location.reload();}
 
 function enter(){show('g-pw');$('g-pw').style.display='none';$('app').classList.add('on');
  restoreNav();loadConfig();loadCounts();go('dash');
+ updateLive();if(!window.LIVE_TIMER)window.LIVE_TIMER=setInterval(updateLive,45000);
  sb.channel('rt').on('postgres_changes',{event:'*',schema:'public',table:'listings'},()=>{if(PAGE==='tradies')go('tradies');loadCounts();}).subscribe();
 }
 
@@ -467,6 +468,19 @@ async function approveApp(id,name){ask('Approve '+name+'?','Creates their login 
  if(error||!data||!data.ok){toast((data&&data.error)||(error&&error.message)||'Approve failed');return;}
  await audit('application_approved','application',id,(r||'approved + provisioned')+(data.docs_pending?(' — hidden, awaiting: '+(data.missing||'docs')):''));closeM();
  toast(data.already?'Already approved':(data.docs_pending?('Account made — profile hidden until: '+(data.missing||'docs')):'Approved — profile is live'));go('apps');});}
+// Delete an application record. For approved ones this only clears the intake row,
+// not the live listing/login (take those down from Tradies → Hide).
+async function delApplication(id,name,approved){
+ ask('Delete '+(name||'this application')+'?',
+   approved?'Removes the application record only — it does NOT remove their live listing or login. To take a tradie down, use Tradies → Hide. Permanent and audited.'
+           :'Permanently removes this application record. Audited.',
+   'Reason (optional)', async r=>{
+   const {error}=await sb.from('applications').delete().eq('id',id);
+   if(error){toast(error.message||'Delete failed');return;}
+   await audit('application_deleted','application',id,r||'deleted from admin');
+   closeM();toast('Application deleted');go('apps');
+ }, true);
+}
 // Admin override: push a pending (docs-incomplete) listing live once you've sighted the cert/photos.
 async function goLiveListing(id,name){ask('Put '+name+' live?','Only do this once you have sighted their insurance certificate and enough work photos. This makes the profile public. Audited.','Note (optional)',async r=>{const {error}=await sb.from('listings').update({status:'approved',was_approved:true}).eq('id',id);if(error){toast(error.message);return;}await audit('listing_went_live','listing',id,r||'admin override go-live');closeM();toast('Live');go('tradies');});}
 // Open the tradie's OWN dashboard in read-only preview (see exactly what they see).
@@ -529,6 +543,16 @@ async function saveCap(id,area,trade){const v=parseInt(val('capv'),10);if(isNaN(
  else{({error}=await sb.from('area_caps').insert({area,trade,max_tradies:v}));}
  if(error){toast(error.message);return;}await audit(id?'area_cap_updated':'area_cap_created','area_cap',id||(area+'/'+trade),'max_tradies='+v);closeM();toast('Cap saved');MAPTAB='caps';pMap();}
 
+// live "online now" — unique sessions with any event in the last 5 minutes
+async function updateLive(){
+ try{
+  const since=new Date(Date.now()-5*60000).toISOString();
+  const {data}=await sb.from('app_events').select('session_id').gt('created_at',since).limit(3000);
+  const n=new Set((data||[]).map(x=>x.session_id).filter(Boolean)).size;
+  const el=$('pv-live'),nn=$('pv-live-n');
+  if(el&&nn){nn.textContent=n;el.style.display='flex';}
+ }catch(e){}
+}
 async function loadCounts(){
  const cutoff=new Date(Date.now()+45*864e5).toISOString().slice(0,10);
  const [tr,ap,en,cu,rp,fl]=await Promise.all([
@@ -605,7 +629,10 @@ async function pDash(){loading('Dashboard');try{
  const METRIC_ORDER=['tradies','homeowners','enq7','pendapp','mrr','bookings','jobsdone','active','rating','waitlist','openrep','newtr','suspended'];
  const kpiCards=METRIC_ORDER.filter(k=>dashOn(k)).map(k=>kpi(...METRICS[k])).join('');
  // Optional panels
- const chartP=`<div class="card"><div class="ch">Unique sessions<span style="margin-left:auto;font-size:11px;color:var(--mut)">Last 14 days</span></div><div style="padding:14px 8px 10px">${lineChart(series,labels)}</div></div>`;
+ const total14=series.reduce((x,y)=>x+y,0);
+ const chartP=`<div class="card"><div class="ch">Unique sessions<span style="margin-left:auto;font-size:11px;color:var(--mut)">Last 14 days</span></div>
+   <div style="display:flex;align-items:baseline;gap:12px;padding:15px 18px 0"><b style="font-size:30px;font-weight:800;letter-spacing:-.03em">${total14.toLocaleString()}</b><span class="mut" style="font-size:12.5px">total · <b style="color:var(--ink);font-weight:750">${activeToday}</b> active today</span></div>
+   <div style="padding:4px 8px 10px">${lineChart(series,labels)}</div></div>`;
  const trustP=`<div class="card"><div class="ch">Trust &amp; safety</div><div class="trust" style="padding:2px 18px 8px">
      ${trow('var(--redb)','var(--red)','flag','Open reports',openRep,'reports',openRep?'var(--red)':'')}
      ${trow('var(--amberb)','var(--amber)','pause','Suspended listings',suspended,'tradies','')}
@@ -685,7 +712,7 @@ async function pApps(){loading('Applications');try{
    const sub=[esc(a.full_name||''),esc(a.trade||''),esc(a.location||''),a.service_radius?esc(a.service_radius):''].filter(Boolean).join(' · ');
    const actions=(a.status==='submitted'||a.status==='info_requested')
      ? `<button class="btn g" ${ok?'':'disabled title="needs licence + insurance" style="opacity:.5"'} onclick="approveApp('${a.id}','${esc(nm)}')">Approve &amp; go live</button> <button class="btn r" onclick="rejectApp('${a.id}','${esc(nm)}')">Reject</button> <button class="btn w" onclick="requestInfo('${a.id}','${esc(nm)}')">Request info</button>`
-     : a.status==='rejected' ? `<button class="btn w" onclick="reopenApp('${a.id}','${esc(nm)}')">Re-open</button>` : `<span class="pill g">Approved &amp; live</span>`;
+     : a.status==='rejected' ? `<button class="btn w" onclick="reopenApp('${a.id}','${esc(nm)}')">Re-open</button> <button class="btn r" onclick="delApplication('${a.id}','${esc(nm)}',false)">Delete</button>` : `<span class="pill g">Approved &amp; live</span> <button class="btn r" onclick="delApplication('${a.id}','${esc(nm)}',true)">Delete</button>`;
    return `<div class="appcard">
      <div class="appcard-head">
        <div class="appavatar" style="background:${appTint(a.trade)}">${ini}</div>
@@ -713,7 +740,7 @@ async function openApplication(id){loading('Application');try{
    ${a.status==='submitted'?'<span class="pill a">Pending</span>':a.status==='approved'?'<span class="pill g">Approved</span>':a.status==='rejected'?'<span class="pill r">Rejected</span>':a.status==='info_requested'?'<span class="pill a">Info needed</span>':'<span class="pill n">'+esc(a.status||'—')+'</span>'}
    ${a.insured?'<span class="pill g">Insured</span>':'<span class="pill r">No insurance</span>'}${a.licence?'<span class="pill b">Licence</span>':'<span class="pill r">No licence</span>'}
    <span style="margin-left:auto"></span>
-   ${(a.status==='submitted'||a.status==='info_requested')?`<button class="btn g" ${okApprove?'':'disabled title="needs licence + insurance" style="opacity:.5"'} onclick="approveApp('${a.id}','${esc(nm)}')">Approve</button> <button class="btn w" onclick="requestInfo('${a.id}','${esc(nm)}')">Request info</button> <button class="btn r" onclick="rejectApp('${a.id}','${esc(nm)}')">Reject</button>`:a.status==='rejected'?`<button class="btn w" onclick="reopenApp('${a.id}','${esc(nm)}')">Re-open</button>`:''}
+   ${(a.status==='submitted'||a.status==='info_requested')?`<button class="btn g" ${okApprove?'':'disabled title="needs licence + insurance" style="opacity:.5"'} onclick="approveApp('${a.id}','${esc(nm)}')">Approve</button> <button class="btn w" onclick="requestInfo('${a.id}','${esc(nm)}')">Request info</button> <button class="btn r" onclick="rejectApp('${a.id}','${esc(nm)}')">Reject</button>`:a.status==='rejected'?`<button class="btn w" onclick="reopenApp('${a.id}','${esc(nm)}')">Re-open</button> <button class="btn r" onclick="delApplication('${a.id}','${esc(nm)}',false)">Delete</button>`:`<button class="btn r" onclick="delApplication('${a.id}','${esc(nm)}',true)">Delete application</button>`}
   </div>
   <div class="subt">${esc(a.trade||'—')} · ${esc(a.location||'')} · applied ${fmtDate(a.created_at)}</div>
   ${a.status==='rejected'&&a.rejection_reason?`<div class="card" style="border-color:rgba(232,69,60,.3)"><div class="ch">Rejection reason (shown to applicant)</div><div style="padding:12px 18px;font-size:13.5px;color:var(--ink2)">${esc(a.rejection_reason)}</div></div>`:''}
@@ -735,20 +762,34 @@ async function openApplication(id){loading('Application');try{
   <div class="card"><div class="ch">Signature</div><div style="padding:16px 18px">${sig?`<img class="zoomable" src="${esc(sig)}" style="max-width:280px;background:#fff;border:1px solid var(--line2);border-radius:10px">`:'<span class="mut">Not signed</span>'}<div class="mut" style="font-size:12.5px;margin-top:8px">${esc(a.signature_name||'')}${a.signed_at?' · '+fmtDate(a.signed_at):''}${a.terms_agreed?' · agreed to terms':''}</div></div></div>`;
 }catch(e){$('main').innerHTML='<h2>Application</h2>'+errBox(e);}}
 
-let ENQ=[],ENQF={q:'',range:'all',from:'',to:''};
+let ENQ=[],ENQF={q:'',range:'all',from:'',to:'',overdue:false};
 async function pEnq(){loading('Enquiries');try{
- const {data,error}=await sb.from('enquiries').select('id,from_name,from_town,urgency,message,status,stage,created_at').order('created_at',{ascending:false}).limit(500);if(error)throw error;
+ const {data,error}=await sb.from('enquiries').select('id,from_name,from_town,urgency,message,status,stage,created_at,first_response_at').order('created_at',{ascending:false}).limit(500);if(error)throw error;
  ENQ=data||[];enqShell();enqRender();
 }catch(e){$('main').innerHTML='<h2>Enquiries</h2>'+errBox(e);}}
+// SLA: urgent enquiries must get a first reply in 4h, everything else in 24h
+function enqSlaHours(e){return /emerg|urgent|asap|today|now/i.test(e.urgency||'')?4:24;}
+function enqSla(e){const c=new Date(e.created_at).getTime();
+ if(e.first_response_at){const h=(new Date(e.first_response_at).getTime()-c)/36e5;return {k:h>enqSlaHours(e)?'late':'replied',h};}
+ if(/closed|complete|done|resolved|cancel/i.test((e.status||'')+' '+(e.stage||'')))return {k:'closed',h:0};
+ const h=(Date.now()-c)/36e5;return {k:h>enqSlaHours(e)?'overdue':'awaiting',h};}
+function enqSlaPill(e){const s=enqSla(e);const hr=n=>n<1?Math.max(1,Math.round(n*60))+'m':Math.round(n)+'h';
+ if(s.k==='closed')return '<span class="pill n">Closed</span>';
+ if(s.k==='replied')return `<span class="pill g">Replied ${hr(s.h)}</span>`;
+ if(s.k==='late')return `<span class="pill a">Replied late ${hr(s.h)}</span>`;
+ if(s.k==='overdue')return `<span class="pill r">Overdue ${hr(s.h)}</span>`;
+ return `<span class="pill a">Awaiting ${hr(s.h)}</span>`;}
 function enqShell(){
  const rb=(k,l)=>`<button class="${ENQF.range===k?'on':''}" onclick="enqRange('${k}')">${l}</button>`;
- $('main').innerHTML=`<h2>Enquiries</h2><div class="subt">Search and filter by date · one enquiry, one tradie</div>
+ const ov=ENQ.filter(e=>enqSla(e).k==='overdue').length;
+ $('main').innerHTML=`<h2>Enquiries</h2><div class="subt">Response tracking · flags any enquiry a tradie hasn't answered inside its SLA (4h urgent · 24h standard)</div>
   <div class="fbar">
-   <div class="sfield" style="flex:1;min-width:240px"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg><input id="enq_q" placeholder="Search name, town or message…" value="${esc(ENQF.q)}" oninput="ENQF.q=this.value;enqRender()"></div>
+   <div class="sfield" style="flex:1;min-width:210px"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg><input id="enq_q" placeholder="Search name, town or message…" value="${esc(ENQF.q)}" oninput="ENQF.q=this.value;enqRender()"></div>
+   <button class="btn ${ENQF.overdue?'r':'w'}" onclick="ENQF.overdue=!ENQF.overdue;enqShell();enqRender()" title="Show only enquiries past their reply SLA">${ov?('⚠ '+ov+' overdue'):'0 overdue'}${ENQF.overdue?' ✓':''}</button>
    <div class="seg">${rb('all','All')}${rb('today','Today')}${rb('7d','Week')}${rb('30d','Month')}${rb('365d','Year')}</div>
    <div style="display:flex;gap:6px;align-items:center;font-size:12px;color:var(--mut)">From<input id="enq_from" class="dinp" type="date" value="${ENQF.from}" onchange="enqCustom()"> to<input id="enq_to" class="dinp" type="date" value="${ENQF.to}" onchange="enqCustom()"></div>
   </div>
-  <div class="card"><table><thead><tr><th>From</th><th>Area</th><th>Urgency</th><th>Message</th><th>Status</th><th>When</th></tr></thead><tbody id="enq_rows"></tbody></table></div>
+  <div class="card"><table><thead><tr><th>From</th><th>Area</th><th>Urgency</th><th>Response</th><th>Message</th><th>When</th></tr></thead><tbody id="enq_rows"></tbody></table></div>
   <div class="subt" id="enq_count" style="margin-top:10px"></div>`;}
 function enqRange(k){ENQF.range=k;ENQF.from='';ENQF.to='';enqShell();enqRender();}
 function enqCustom(){ENQF.from=val('enq_from');ENQF.to=val('enq_to');ENQF.range='custom';enqShell();enqRender();}
@@ -756,8 +797,8 @@ function enqRender(){
  const q=(ENQF.q||'').toLowerCase();const now=Date.now();let lo=null;
  if(ENQF.range==='today')lo=new Date().setHours(0,0,0,0);else if(ENQF.range==='7d')lo=now-7*864e5;else if(ENQF.range==='30d')lo=now-30*864e5;else if(ENQF.range==='365d')lo=now-365*864e5;
  const fromT=ENQF.from?new Date(ENQF.from+'T00:00:00').getTime():null,toT=ENQF.to?new Date(ENQF.to+'T23:59:59').getTime():null;
- const rows=ENQ.filter(e=>{const t=new Date(e.created_at).getTime();if(lo&&t<lo)return false;if(fromT&&t<fromT)return false;if(toT&&t>toT)return false;if(q){const hay=((e.from_name||'')+' '+(e.from_town||'')+' '+(e.message||'')).toLowerCase();if(!hay.includes(q))return false;}return true;});
- const tb=$('enq_rows');if(tb)tb.innerHTML=rows.map(e=>`<tr onclick="openEnq('${e.id}')" style="cursor:pointer"><td><b>${esc(e.from_name||'—')}</b></td><td>${esc(e.from_town||'—')}</td><td>${e.urgency?'<span class="pill '+(String(e.urgency).toLowerCase().includes('urgent')?'r':'n')+'">'+esc(e.urgency)+'</span>':'—'}</td><td class="mut" style="max-width:280px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(e.message||'')}</td><td>${esc(e.stage||e.status||'—')}</td><td class="mut">${ago(e.created_at)}</td></tr>`).join('')||'<tr><td colspan=6 class="empty">No enquiries match these filters.</td></tr>';
+ const rows=ENQ.filter(e=>{const t=new Date(e.created_at).getTime();if(lo&&t<lo)return false;if(fromT&&t<fromT)return false;if(toT&&t>toT)return false;if(ENQF.overdue&&enqSla(e).k!=='overdue')return false;if(q){const hay=((e.from_name||'')+' '+(e.from_town||'')+' '+(e.message||'')).toLowerCase();if(!hay.includes(q))return false;}return true;});
+ const tb=$('enq_rows');if(tb)tb.innerHTML=rows.map(e=>`<tr onclick="openEnq('${e.id}')" style="cursor:pointer"><td><b>${esc(e.from_name||'—')}</b></td><td>${esc(e.from_town||'—')}</td><td>${e.urgency?'<span class="pill '+(String(e.urgency).toLowerCase().includes('urgent')?'r':'n')+'">'+esc(e.urgency)+'</span>':'—'}</td><td>${enqSlaPill(e)}</td><td class="mut" style="max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(e.message||'')}</td><td class="mut">${ago(e.created_at)}</td></tr>`).join('')||'<tr><td colspan=6 class="empty">No enquiries match these filters.</td></tr>';
  const c=$('enq_count');if(c)c.textContent=rows.length+' of '+ENQ.length+' enquiries';}
 
 async function openEnq(id){loading('Enquiry');try{
@@ -767,7 +808,7 @@ async function openEnq(id){loading('Enquiry');try{
  $('main').innerHTML=`<div style="display:flex;align-items:flex-start"><div><h2>${esc(e.from_name||'Enquiry')}</h2><div class="subt">Enquiry · ${esc(e.from_town||'—')} · ${ago(e.created_at)}</div></div>
    <button class="btn w" style="margin-left:auto" onclick="go('enq')">← Enquiries</button></div>
   <div class="mgrid"><div class="mcard"><div class="l">Urgency</div><div class="v" style="font-size:18px">${pill}</div></div>
-   <div class="mcard"><div class="l">Stage</div><div class="v" style="font-size:18px">${esc(e.stage||e.status||'—')}</div></div>
+   <div class="mcard"><div class="l">Response</div><div class="v" style="font-size:15px">${enqSlaPill(e)}${e.first_response_at?'<div class="mut" style="font-size:11.5px;margin-top:4px">Replied '+fmtDate(e.first_response_at)+'</div>':'<div class="mut" style="font-size:11.5px;margin-top:4px">No reply yet</div>'}</div></div>
    <div class="mcard"><div class="l">Routed to</div><div class="v" style="font-size:18px">${tradie?esc(tradie.name):'—'}</div></div></div>
   <div class="card"><div class="ch">Message</div><div style="padding:14px 18px;line-height:1.55">${esc(e.message||'—')}</div></div>
   <div class="card"><div class="ch">Details</div><table><tbody>

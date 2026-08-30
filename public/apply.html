@@ -79,6 +79,7 @@ textarea{resize:vertical;min-height:120px;line-height:1.55}
 .stat.ok{color:var(--green)}
 .stat.bad{color:var(--red)}
 .stat.pend{color:var(--mut)}
+.stat.warn{color:var(--gold-ink)}
 /* address autocomplete */
 .ac{position:relative}
 .ac-list{position:absolute;left:0;right:0;top:calc(100% + 4px);background:#fff;border:1px solid var(--line);border-radius:var(--r-sm);box-shadow:var(--sh);z-index:15;overflow:hidden;display:none}
@@ -504,8 +505,14 @@ async function contactCheck(payload){
   }catch(e){return null;}
 }
 let emailSeq=0,phoneSeq=0,abnSeq=0;
-async function onEmailBlur(){const e=val('email');if(!e){clearStat('emailStat');return;}const iss=emailIssue(e);if(iss){stat('emailStat','bad',iss);P.check.email=null;return;}stat('emailStat','pend','Checking…');const seq=++emailSeq;const res=await contactCheck({p_email:e});if(seq!==emailSeq)return;if(res&&res.email_taken){P.check.email=true;stat('emailStat','bad',whereMsg(res.email_where));}else{P.check.email=false;stat('emailStat','ok','Looks good ✓');}}
-async function onPhoneBlur(){const p=val('phone');if(!p){clearStat('phoneStat');return;}const iss=phoneIssue(p);if(iss){stat('phoneStat','bad',iss);P.check.phone=null;return;}stat('phoneStat','pend','Checking…');const seq=++phoneSeq;const res=await contactCheck({p_phone:p});if(seq!==phoneSeq)return;if(res&&res.phone_taken){P.check.phone=true;stat('phoneStat','bad',whereMsg(res.phone_where));}else{P.check.phone=false;stat('phoneStat','ok','Looks good ✓');}}
+async function onEmailBlur(){const e=val('email');if(!e){clearStat('emailStat');return;}const iss=emailIssue(e);if(iss){stat('emailStat','bad',iss);P.check.email=null;return;}stat('emailStat','pend','Checking…');const seq=++emailSeq;const res=await contactCheck({p_email:e});if(seq!==emailSeq)return;if(res&&res.email_taken){P.check.email=true;stat('emailStat','bad',whereMsg(res.email_where));}else{P.check.email=false;reconcilePersonal();}}
+async function onPhoneBlur(){const p=val('phone');if(!p){clearStat('phoneStat');return;}const iss=phoneIssue(p);if(iss){stat('phoneStat','bad',iss);P.check.phone=null;return;}stat('phoneStat','pend','Checking…');const seq=++phoneSeq;const res=await contactCheck({p_phone:p});if(seq!==phoneSeq)return;if(res&&res.phone_taken){P.check.phone=true;stat('phoneStat','bad',whereMsg(res.phone_where));}else{P.check.phone=false;stat('phoneStat','ok','Looks good ✓');}reconcilePersonal();}
+// if the mobile (or ABN) is already on Trust Trade but the email came back new, the email is almost always mistyped
+function reconcilePersonal(){
+  if(P.check.email!==false)return;
+  if(P.check.phone===true)stat('emailStat','warn','⚠ Double-check the spelling — the mobile below is already on Trust Trade');
+  else stat('emailStat','ok','Looks good ✓');
+}
 async function onAbnInput(){const a=val('abn');if(!a){clearStat('abnStat');P.check.abn=null;return;}if(!abnValid(a)){const d=a.replace(/\D/g,'');stat('abnStat','pend',d.length<11?d.length+'/11 digits':'That ABN isn\'t valid — check the digits');P.check.abn=null;return;}stat('abnStat','pend','Checking the register…');const seq=++abnSeq;const res=await contactCheck({p_abn:a});if(seq!==abnSeq)return;if(res&&res.abn_taken){P.check.abn=true;const m=whereMsg(res.abn_where);stat('abnStat','bad','Valid ABN — but '+m.charAt(0).toLowerCase()+m.slice(1));}else{P.check.abn=false;stat('abnStat','ok','Valid ABN ✓');}}
 
 // ---- address autocomplete (Nominatim, AU) ----

@@ -490,7 +490,13 @@ function stat(id,kind,msg){const e=$(id);if(!e)return;e.className='stat on '+kin
 function clearStat(id){const e=$(id);if(e){e.className='stat';e.textContent='';}}
 function setErrMsg(id,msg){const f=document.querySelector('.err[data-for="'+id+'"]');if(f&&msg)f.textContent=msg;}
 
-// ---- duplicate / existing-account check (server, returns booleans only) ----
+// ---- duplicate / existing-account check (server, returns booleans + source) ----
+function whereMsg(w){
+  if(w==='account')return 'Already registered — log in instead';
+  if(w==='listing')return 'Already listed on Trust Trade';
+  if(w==='application')return "You've already applied — we're on it";
+  return 'Already on Trust Trade';
+}
 async function contactCheck(payload){
   try{
     const r=await fetch(SB+'/rest/v1/rpc/apply_contact_check',{method:'POST',headers:{apikey:KEY,Authorization:'Bearer '+KEY,'Content-Type':'application/json'},body:JSON.stringify(payload)});
@@ -498,9 +504,9 @@ async function contactCheck(payload){
   }catch(e){return null;}
 }
 let emailSeq=0,phoneSeq=0,abnSeq=0;
-async function onEmailBlur(){const e=val('email');if(!e){clearStat('emailStat');return;}const iss=emailIssue(e);if(iss){stat('emailStat','bad',iss);P.check.email=null;return;}stat('emailStat','pend','Checking…');const seq=++emailSeq;const res=await contactCheck({p_email:e});if(seq!==emailSeq)return;if(res&&res.email_taken){P.check.email=true;stat('emailStat','bad','Already registered — try logging in instead');}else{P.check.email=false;stat('emailStat','ok','Looks good ✓');}}
-async function onPhoneBlur(){const p=val('phone');if(!p){clearStat('phoneStat');return;}const iss=phoneIssue(p);if(iss){stat('phoneStat','bad',iss);P.check.phone=null;return;}stat('phoneStat','pend','Checking…');const seq=++phoneSeq;const res=await contactCheck({p_phone:p});if(seq!==phoneSeq)return;if(res&&res.phone_taken){P.check.phone=true;stat('phoneStat','bad','Already registered — try logging in instead');}else{P.check.phone=false;stat('phoneStat','ok','Looks good ✓');}}
-async function onAbnInput(){const a=val('abn');if(!a){clearStat('abnStat');P.check.abn=null;return;}if(!abnValid(a)){const d=a.replace(/\D/g,'');stat('abnStat','pend',d.length<11?d.length+'/11 digits':'That ABN isn\'t valid — check the digits');P.check.abn=null;return;}stat('abnStat','pend','Checking the register…');const seq=++abnSeq;const res=await contactCheck({p_abn:a});if(seq!==abnSeq)return;if(res&&res.abn_taken){P.check.abn=true;stat('abnStat','bad','This ABN is already registered with us');}else{P.check.abn=false;stat('abnStat','ok','Valid ABN ✓');}}
+async function onEmailBlur(){const e=val('email');if(!e){clearStat('emailStat');return;}const iss=emailIssue(e);if(iss){stat('emailStat','bad',iss);P.check.email=null;return;}stat('emailStat','pend','Checking…');const seq=++emailSeq;const res=await contactCheck({p_email:e});if(seq!==emailSeq)return;if(res&&res.email_taken){P.check.email=true;stat('emailStat','bad',whereMsg(res.email_where));}else{P.check.email=false;stat('emailStat','ok','Looks good ✓');}}
+async function onPhoneBlur(){const p=val('phone');if(!p){clearStat('phoneStat');return;}const iss=phoneIssue(p);if(iss){stat('phoneStat','bad',iss);P.check.phone=null;return;}stat('phoneStat','pend','Checking…');const seq=++phoneSeq;const res=await contactCheck({p_phone:p});if(seq!==phoneSeq)return;if(res&&res.phone_taken){P.check.phone=true;stat('phoneStat','bad',whereMsg(res.phone_where));}else{P.check.phone=false;stat('phoneStat','ok','Looks good ✓');}}
+async function onAbnInput(){const a=val('abn');if(!a){clearStat('abnStat');P.check.abn=null;return;}if(!abnValid(a)){const d=a.replace(/\D/g,'');stat('abnStat','pend',d.length<11?d.length+'/11 digits':'That ABN isn\'t valid — check the digits');P.check.abn=null;return;}stat('abnStat','pend','Checking the register…');const seq=++abnSeq;const res=await contactCheck({p_abn:a});if(seq!==abnSeq)return;if(res&&res.abn_taken){P.check.abn=true;const m=whereMsg(res.abn_where);stat('abnStat','bad','Valid ABN — but '+m.charAt(0).toLowerCase()+m.slice(1));}else{P.check.abn=false;stat('abnStat','ok','Valid ABN ✓');}}
 
 // ---- address autocomplete (Nominatim, AU) ----
 let acTimer=null;
@@ -581,15 +587,15 @@ async function runStepChecks(){
   if(step===1){
     const res=await contactCheck({p_email:val('email'),p_phone:val('phone')});
     if(res){
-      if(res.email_taken){setErrMsg('email','This email is already registered — log in instead');setErr('email',true);stat('emailStat','bad','Already registered');}
-      if(res.phone_taken){setErrMsg('phone','This phone is already registered — log in instead');setErr('phone',true);stat('phoneStat','bad','Already registered');}
-      if(res.email_taken||res.phone_taken){toast('Looks like you already have an account');return false;}
+      if(res.email_taken){setErrMsg('email',whereMsg(res.email_where));setErr('email',true);stat('emailStat','bad',whereMsg(res.email_where));}
+      if(res.phone_taken){setErrMsg('phone',whereMsg(res.phone_where));setErr('phone',true);stat('phoneStat','bad',whereMsg(res.phone_where));}
+      if(res.email_taken||res.phone_taken){toast("Looks like you're already on Trust Trade");return false;}
     }
     return true;
   }
   if(step===2){
     const res=await contactCheck({p_abn:val('abn')});
-    if(res&&res.abn_taken){setErrMsg('abn','This ABN is already registered with us');setErr('abn',true);stat('abnStat','bad','Already registered');toast('That ABN is already on Trust Trade');return false;}
+    if(res&&res.abn_taken){setErrMsg('abn',whereMsg(res.abn_where));setErr('abn',true);stat('abnStat','bad',whereMsg(res.abn_where));toast('That ABN is already on Trust Trade');return false;}
     return true;
   }
   return true;

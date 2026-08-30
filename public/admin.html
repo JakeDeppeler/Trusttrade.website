@@ -547,7 +547,7 @@ async function saveCap(id,area,trade){const v=parseInt(val('capv'),10);if(isNaN(
 // live "online now" — unique sessions active in the last 5 min, split into
 // tradies (session's user owns a listing) vs customers/visitors (everyone else)
 let TRADIE_UIDS=null;
-async function loadTradieUids(){try{const {data}=await sb.from('listings').select('auth_user_id').not('auth_user_id','is',null);TRADIE_UIDS=new Set((data||[]).map(x=>x.auth_user_id).filter(Boolean));}catch(e){TRADIE_UIDS=new Set();}}
+async function loadTradieUids(){try{const {data}=await sb.from('listings').select('auth_user_id').not('auth_user_id','is',null).not('is_demo','is',true);TRADIE_UIDS=new Set((data||[]).map(x=>x.auth_user_id).filter(Boolean));}catch(e){TRADIE_UIDS=new Set();}}
 async function updateLive(){
  try{
   if(!TRADIE_UIDS)await loadTradieUids();
@@ -562,11 +562,11 @@ function setLive(id,n){const el=$(id);if(!el)return;el.style.display=n>0?'inline
 async function loadCounts(){
  const cutoff=new Date(Date.now()+45*864e5).toISOString().slice(0,10);
  const [liveTr,ap,cust,rp,fl]=await Promise.all([
-  sb.from('listings').select('*',{count:'exact',head:true}).eq('status','approved').is('deleted_at',null),
+  sb.from('listings').select('*',{count:'exact',head:true}).eq('status','approved').is('deleted_at',null).not('is_demo','is',true),
   sb.from('applications').select('*',{count:'exact',head:true}).eq('status','submitted'),
-  sb.from('profiles').select('*',{count:'exact',head:true}).in('role',['user','customer']),
+  sb.from('profiles').select('*',{count:'exact',head:true}).in('role',['user','customer']).not('is_demo','is',true),
   sb.from('content_reports').select('*',{count:'exact',head:true}).eq('status','open'),
-  sb.from('listings').select('*',{count:'exact',head:true}).is('deleted_at',null).lt('insurance_expiry_date',cutoff)]);
+  sb.from('listings').select('*',{count:'exact',head:true}).is('deleted_at',null).not('is_demo','is',true).lt('insurance_expiry_date',cutoff)]);
  // running totals next to the sidebar tabs
  setCount('c-trad',liveTr.count); setCount('c-cust',cust.count);
  // badges that mean "needs you" turn red when > 0
@@ -582,7 +582,7 @@ function lineChart(vals,labels){const w=620,h=210,pad=26,mx=Math.max(...vals,1),
 async function pDash(){loading('Dashboard');try{
  const now=Date.now(),d14=new Date(now-14*864e5).toISOString(),dayAgo=new Date(now-864e5).toISOString(),d7=new Date(now-7*864e5).toISOString();
  const [lst,subs,bk,app,rep,ev,enq,wl,cust]=await Promise.all([
-  sb.from('listings').select('id,name,status,trade,deleted_at,joined_at,rating,insured,insurance_expiry_date,licence,licence_expiry_date'),
+  sb.from('listings').select('id,name,status,trade,deleted_at,joined_at,rating,insured,insurance_expiry_date,licence,licence_expiry_date,is_demo'),
   sb.from('subscriptions').select('status'),
   sb.from('bookings').select('status,created_at'),
   sb.from('applications').select('id,business_name,full_name,trade,location,created_at,status,insured,licence,abn,police_check_held,wwcc_held,insurance_doc_url'),
@@ -590,15 +590,17 @@ async function pDash(){loading('Dashboard');try{
   sb.from('app_events').select('created_at,session_id,event_type,page').gt('created_at',d14).order('created_at',{ascending:true}),
   sb.from('enquiries').select('id,listing_id,created_at,first_response_at,urgency,status,stage'),
   sb.from('waitlist_signups').select('*',{count:'exact',head:true}),
-  sb.from('profiles').select('*',{count:'exact',head:true}).in('role',['user','customer'])]);
+  sb.from('profiles').select('*',{count:'exact',head:true}).in('role',['user','customer']).not('is_demo','is',true)]);
  if(lst.error)throw lst.error;
- const listings=(lst.data||[]).filter(l=>!l.deleted_at);
+ const listings=(lst.data||[]).filter(l=>!l.deleted_at&&!l.is_demo);
+ const demoLids=new Set((lst.data||[]).filter(l=>l.is_demo).map(l=>l.id));
+ const realEnq=(enq.data||[]).filter(e=>!e.listing_id||!demoLids.has(e.listing_id));
  const live=listings.filter(l=>l.status==='approved').length;
  const activeSubs=(subs.data||[]).filter(s=>s.status==='active').length;
  const pending=(app.data||[]).filter(a=>a.status==='submitted').length;
  const openRep=(rep.data||[]).filter(r=>r.status!=='resolved').length;
  const newTr7=listings.filter(l=>l.joined_at&&l.joined_at>d7).length;
- const enqAll=(enq.data||[]).length,enq7=(enq.data||[]).filter(e=>e.created_at>d7).length;
+ const enqAll=realEnq.length,enq7=realEnq.filter(e=>e.created_at>d7).length;
  const bookingsTotal=(bk.data||[]).length,jobsDone=(bk.data||[]).filter(b=>b.status==='completed').length;
  const rated=listings.filter(l=>l.rating>0),avgRating=rated.length?rated.reduce((s,l)=>s+(+l.rating||0),0)/rated.length:0;
  const waitlist=wl.count||0;
@@ -638,12 +640,12 @@ async function pDash(){loading('Dashboard');try{
  const kpiCards=METRIC_ORDER.filter(k=>dashOn(k)).map(k=>kpi(...METRICS[k])).join('');
  // Needs-you inbox + compliance alerts + tradie response leaderboard
  const nowISO=new Date(now).toISOString().slice(0,10),soonISO=new Date(now+30*864e5).toISOString().slice(0,10);
- const overdueEnq=(enq.data||[]).filter(e=>enqSla(e).k==='overdue').length;
+ const overdueEnq=realEnq.filter(e=>enqSla(e).k==='overdue').length;
  const insAlert=listings.filter(l=>l.insurance_expiry_date&&l.insurance_expiry_date<=soonISO).length;
  const insExpired=listings.filter(l=>l.insurance_expiry_date&&l.insurance_expiry_date<nowISO).length;
  const licAlert=listings.filter(l=>l.licence_expiry_date&&l.licence_expiry_date<=soonISO).length;
  const nameOf={};listings.forEach(l=>{nameOf[l.id]=l.name;});
- const byL={};(enq.data||[]).forEach(e=>{if(!e.listing_id)return;const b=byL[e.listing_id]||(byL[e.listing_id]={n:0,rep:0,sum:0,ov:0});b.n++;if(e.first_response_at){b.rep++;b.sum+=(new Date(e.first_response_at)-new Date(e.created_at))/36e5;}if(enqSla(e).k==='overdue')b.ov++;});
+ const byL={};realEnq.forEach(e=>{if(!e.listing_id)return;const b=byL[e.listing_id]||(byL[e.listing_id]={n:0,rep:0,sum:0,ov:0});b.n++;if(e.first_response_at){b.rep++;b.sum+=(new Date(e.first_response_at)-new Date(e.created_at))/36e5;}if(enqSla(e).k==='overdue')b.ov++;});
  const board=Object.entries(byL).map(([id,b])=>({name:nameOf[id]||'—',n:b.n,hit:Math.round(b.rep/b.n*100),avg:b.rep?b.sum/b.rep:null,ov:b.ov})).sort((a,b)=>(b.hit-a.hit)||((a.avg==null?1e9:a.avg)-(b.avg==null?1e9:b.avg))).slice(0,8);
  const urgent=pending+overdueEnq+openRep;
  const needItem=(col,bg,ic,label,n,page,red)=>n>0?`<div class="trow" onclick="go('${page}')"><span class="tic" style="background:${bg}"><svg viewBox="0 0 24 24" stroke="${col}">${ICO[ic]}</svg></span><b>${label}</b><span class="tn" style="color:${red?'var(--red)':'var(--ink)'}">${n}</span><span class="tar">›</span></div>`:'';

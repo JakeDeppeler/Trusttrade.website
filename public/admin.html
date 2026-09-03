@@ -71,7 +71,7 @@ h2{font-size:23px;font-weight:750;letter-spacing:-.03em}
 .kpi .k{font-size:10.5px;font-weight:700;color:var(--mut);text-transform:uppercase;letter-spacing:.04em;display:flex;align-items:center;gap:6px}
 .kpi b{display:block;font-size:27px;font-weight:750;letter-spacing:-.04em;margin-top:8px}
 .kpi .d{font-size:11.5px;color:var(--mut);margin-top:5px;font-weight:600}
-.card{background:var(--panel);border:1px solid var(--line);border-radius:14px;box-shadow:var(--sh);overflow:hidden;margin-bottom:16px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:14px;box-shadow:var(--sh);overflow:hidden;margin-bottom:12px}
 .ch{padding:14px 18px;border-bottom:1px solid var(--line2);font-weight:650;font-size:14px;display:flex;align-items:center;gap:8px}
 table{width:100%;border-collapse:collapse}
 th{text-align:left;font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--mut);padding:11px 18px;border-bottom:1px solid var(--line2);position:sticky;top:0;z-index:3;background:var(--panel)}
@@ -170,7 +170,7 @@ html[data-theme="dark"] .tabs div.on{color:var(--ink)}
   --f:"Archivo",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
 }
 body{font-size:14.5px;letter-spacing:-.008em}
-main{padding:28px 34px 72px;background:none}
+main{padding:22px 30px 60px;background:none}
 h2{font-size:23px;font-weight:800;letter-spacing:-.03em}
 .subt{font-size:13.5px;margin:6px 0 22px}
 
@@ -193,17 +193,17 @@ html[data-theme="dark"] .nv:hover{background:var(--panel2)}
 .slbl{padding:4px 12px 5px;font-size:10px;letter-spacing:.07em}
 
 /* KPIs — one size, one rhythm */
-.kpis{gap:14px;margin-bottom:22px}
-.kpi{border-radius:var(--r);padding:18px 20px;transition:transform .12s,box-shadow .12s}
+.kpis{gap:11px;margin-bottom:16px}
+.kpi{border-radius:var(--r);padding:14px 16px;transition:transform .12s,box-shadow .12s}
 .kpi:hover{transform:translateY(-1px);box-shadow:0 2px 6px rgba(20,22,30,.07),0 22px 46px -22px rgba(20,22,30,.24)}
 .kpi .k{font-size:10.5px;font-weight:800;letter-spacing:.05em}
-.kpi b{font-size:29px;font-weight:800;letter-spacing:-.035em;margin-top:9px}
+.kpi b{font-size:24px;font-weight:800;letter-spacing:-.035em;margin-top:9px}
 
 /* cards + tables */
 .card,.bulkbar{border-radius:var(--r)}
-.ch{padding:15px 20px;font-weight:750;font-size:14.5px;letter-spacing:-.01em}
+.ch{padding:12px 18px;font-weight:750;font-size:14.5px;letter-spacing:-.01em}
 th{padding:12px 20px;letter-spacing:.06em;font-size:10.5px}
-td{padding:14px 20px;font-size:13.5px}
+td{padding:11px 18px;font-size:13.5px}
 tbody tr{transition:background .12s}
 tbody tr:hover td{background:var(--line2)}
 
@@ -260,8 +260,8 @@ html[data-theme="dark"] .kpi:hover{box-shadow:0 2px 6px rgba(0,0,0,.5),0 22px 46
 .navsec.collapsed .navgroup{display:none}
 .navsec.collapsed .slbl .chev{transform:rotate(-90deg)}
 /* Overview — KPI icon-chip + trend, trust panel, newest apps */
-.kpi-top{display:flex;align-items:center;gap:8px;margin-bottom:14px}
-.kpi-ic{width:42px;height:42px;border-radius:12px;display:grid;place-items:center;flex-shrink:0}
+.kpi-top{display:flex;align-items:center;gap:8px;margin-bottom:9px}
+.kpi-ic{width:36px;height:36px;border-radius:12px;display:grid;place-items:center;flex-shrink:0}
 .kpi-ic svg{width:20px;height:20px;fill:none;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
 .kpi-tr{margin-left:auto;font-size:12px;font-weight:800;padding:3px 9px;border-radius:99px}
 .kpi-tr.up{background:var(--greenb);color:var(--green)}.kpi-tr.act{background:var(--redb);color:var(--red)}
@@ -551,12 +551,26 @@ function sortBy(th,idx,type){const table=th.closest('table'),tb=table.querySelec
 /* ── export the current table to CSV ── */
 function exportCSV(name){const t=$('main').querySelector('table');if(!t){toast('Nothing to export');return;}const rows=[...t.querySelectorAll('tr')].map(tr=>[...tr.children].map(td=>{if(td.querySelector('input[type=checkbox]'))return '';let s=(td.innerText||'').replace(/\s+/g,' ').trim();return '"'+s.replace(/"/g,'""')+'"';}).filter((_,i,a)=>true).join(','));const csv=rows.join('\n');const blob=new Blob([csv],{type:'text/csv'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name+'-'+new Date().toISOString().slice(0,10)+'.csv';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000);toast('Exported CSV');}
 /* ── editable area caps ── */
-function editCap(id,area,trade,cur){modal(`<h3>Cap · ${esc(area)} / ${esc(trade)}</h3><p style="color:var(--mut);font-size:12.5px;margin:4px 0 0">Max tradies allowed in ${esc(area)} for ${esc(trade)} before the area locks.</p><input id="capv" type="number" min="0" value="${cur}" style="margin-top:10px"><div class="mf"><button class="btn w" onclick="closeM()">Cancel</button><button class="btn g" onclick="saveCap('${id}','${esc(area)}','${esc(trade)}')">Save cap</button></div>`);setTimeout(()=>{const e=$('capv');if(e){e.focus();e.select();}},60);}
-async function saveCap(id,area,trade){const v=parseInt(val('capv'),10);if(isNaN(v)||v<0){toast('Enter a number');return;}
+const AU_STATES=['VIC','NSW','QLD','SA','WA','TAS','ACT','NT'];
+function stateOf(pc){pc=parseInt(String(pc||'').replace(/\D/g,''),10);if(!pc)return '';
+ if((pc>=1000&&pc<=1999)||(pc>=2000&&pc<=2599)||(pc>=2619&&pc<=2899)||(pc>=2921&&pc<=2999))return 'NSW';
+ if((pc>=200&&pc<=299)||(pc>=2600&&pc<=2618)||(pc>=2900&&pc<=2920))return 'ACT';
+ if((pc>=3000&&pc<=3999)||(pc>=8000&&pc<=8999))return 'VIC';
+ if((pc>=4000&&pc<=4999)||(pc>=9000&&pc<=9999))return 'QLD';
+ if(pc>=5000&&pc<=5999)return 'SA';
+ if(pc>=6000&&pc<=6999)return 'WA';
+ if(pc>=7000&&pc<=7999)return 'TAS';
+ if(pc>=800&&pc<=999)return 'NT';
+ return '';}
+function editCap(id,area,trade,cur,state){modal(`<h3>Cap · ${esc(area)} / ${esc(trade)}</h3><p style="color:var(--mut);font-size:12.5px;margin:4px 0 0">Max tradies allowed in ${esc(area)} for ${esc(trade)} before the area locks.</p>
+ <label style="display:block;font-size:11px;font-weight:750;color:var(--mut);text-transform:uppercase;letter-spacing:.03em;margin:12px 0 5px">Max tradies</label><input id="capv" type="number" min="0" value="${cur}">
+ <label style="display:block;font-size:11px;font-weight:750;color:var(--mut);text-transform:uppercase;letter-spacing:.03em;margin:12px 0 5px">State <span style="text-transform:none;font-weight:500">(for filtering as you scale)</span></label><select id="capst"><option value="">—</option>${AU_STATES.map(s=>`<option value="${s}" ${state===s?'selected':''}>${s}</option>`).join('')}</select>
+ <div class="mf"><button class="btn w" onclick="closeM()">Cancel</button><button class="btn g" onclick="saveCap('${id}','${esc(area)}','${esc(trade)}')">Save cap</button></div>`);setTimeout(()=>{const e=$('capv');if(e){e.focus();e.select();}},60);}
+async function saveCap(id,area,trade){const v=parseInt(val('capv'),10);if(isNaN(v)||v<0){toast('Enter a number');return;}const st=val('capst')||null;
  let error;
- if(id){({error}=await sb.from('area_caps').update({max_tradies:v}).eq('id',id));}
- else{({error}=await sb.from('area_caps').insert({area,trade,max_tradies:v}));}
- if(error){toast(error.message);return;}await audit(id?'area_cap_updated':'area_cap_created','area_cap',id||(area+'/'+trade),'max_tradies='+v);closeM();toast('Cap saved');MAPTAB='caps';pMap();}
+ if(id){({error}=await sb.from('area_caps').update({max_tradies:v,state:st}).eq('id',id));}
+ else{({error}=await sb.from('area_caps').insert({area,trade,max_tradies:v,state:st}));}
+ if(error){toast(error.message);return;}await audit(id?'area_cap_updated':'area_cap_created','area_cap',id||(area+'/'+trade),'max='+v+(st?' state='+st:''));closeM();toast('Cap saved');MAPTAB='caps';pMap();}
 
 // live "online now" — unique sessions active in the last 5 min, split into
 // tradies (session's user owns a listing) vs customers/visitors (everyone else)
@@ -1123,8 +1137,27 @@ async function renderDemoAccounts(){
      <div style="display:flex;gap:9px;flex-wrap:wrap"><button class="btn g" onclick="createMock('tradie')">+ Create mock tradie</button><button class="btn w" onclick="createMock('customer')">+ Create mock customer</button>${(tr.data||[]).length?`<button class="btn w" onclick="previewDash('${(tr.data||[])[0].id}')">▶ Open the tradie app</button>`:''}</div>
    </div></div>
    <div class="card"><div class="ch">Mock tradies (${(tr.data||[]).length})</div><table><thead><tr><th>Name</th><th>Trade</th><th>Area</th><th>Status</th><th class="right">Action</th></tr></thead><tbody>${trRows}</tbody></table></div>
-   <div class="card"><div class="ch">Mock customers (${(cu.data||[]).length})</div><table><thead><tr><th>Name</th><th>Email</th><th>Created</th><th class="right">Action</th></tr></thead><tbody>${cuRows}</tbody></table></div>`;
+   <div class="card"><div class="ch">Mock customers (${(cu.data||[]).length})</div><table><thead><tr><th>Name</th><th>Email</th><th>Created</th><th class="right">Action</th></tr></thead><tbody>${cuRows}</tbody></table></div>
+   <div class="card" style="border-color:rgba(214,69,69,.35)"><div class="ch" style="color:var(--red)">Reset for launch</div><div style="padding:14px 18px"><div class="mut" style="font-size:12.5px;margin-bottom:12px;line-height:1.5">Before you go live, clear out the test activity — analytics, enquiries, jobs, reviews — so your real numbers start at zero. Your tradie listings and real accounts are kept. This is permanent.</div><button class="btn r" onclick="resetLaunchModal()">Clear stats / reset for launch…</button></div></div>`;
  }catch(e){el.innerHTML=errBox(e);}
+}
+function resetLaunchModal(){
+ const opts=[['events','Analytics events (sessions & the Performance chart)'],['enquiries','Enquiries'],['jobs','Jobs, quotes &amp; invoices'],['reviews','Reviews'],['resetStats','Reset listing stats (jobs done, ratings, review counts)'],['demoAccounts','Delete all demo / sandbox accounts']];
+ modal(`<h3 style="color:var(--red)">Reset for launch</h3>
+  <p style="color:var(--mut);font-size:12.5px;margin:4px 0 12px;line-height:1.5">Pick what to wipe so the platform starts fresh at go-live. <b>Tradie listings and real accounts are kept.</b> This can't be undone.</p>
+  <div style="display:flex;flex-direction:column;gap:9px;font-size:13.5px">${opts.map(([k,l])=>`<label style="display:flex;align-items:center;gap:9px;font-weight:500"><input type="checkbox" id="rs_${k}" style="width:auto" ${k==='demoAccounts'?'':'checked'}> ${l}</label>`).join('')}</div>
+  <div style="margin-top:14px"><label style="display:block;font-size:11px;font-weight:750;color:var(--mut);text-transform:uppercase;letter-spacing:.03em;margin-bottom:5px">Type CLEAR to confirm</label><input id="rs_confirm" placeholder="CLEAR" autocomplete="off"></div>
+  <div class="mf"><button class="btn w" onclick="closeM()">Cancel</button><button class="btn r" onclick="doReset()">Clear selected</button></div>`);
+ setTimeout(()=>{const e=$('rs_confirm');if(e)e.focus();},60);
+}
+async function doReset(){
+ if((val('rs_confirm')||'').trim().toUpperCase()!=='CLEAR'){toast('Type CLEAR to confirm');return;}
+ const clear={};['events','enquiries','jobs','reviews','resetStats','demoAccounts'].forEach(k=>{const cb=$('rs_'+k);if(cb&&cb.checked)clear[k]=true;});
+ if(!Object.keys(clear).length){toast('Nothing selected');return;}
+ closeM();toast('Clearing…');
+ const {data,error}=await sb.functions.invoke('admin-tools',{body:{action:'reset',clear}});
+ if(error||(data&&data.error)){toast((data&&data.error)||(error&&error.message)||'Reset failed');return;}
+ toast('Done — platform reset');TRADIE_UIDS=null;loadCounts();setSettingsTab('demo');
 }
 async function createMock(type){toast('Creating mock '+type+'…');
  try{const {data,error}=await sb.functions.invoke('create-mock',{body:{type}});
@@ -1523,22 +1556,27 @@ async function drawMapView(){
  }catch(e){body.innerHTML=errBox(e);}
 }
 function mapFocus(id,lat,lng){if(!window.MAP)return;window.MAP.setView([lat,lng],14);const m=window.MAPMARKERS&&window.MAPMARKERS[id];if(m)m.openPopup();}
+let CAPF={state:''};
+function capState(k){CAPF.state=k;renderCaps();}
 async function renderCaps(){
  const body=$('ma_body');if(!body)return;
- try{const [caps,lst]=await Promise.all([sb.from('area_caps').select('*'),sb.from('listings').select('suburb,area_key,trade,status').is('deleted_at',null)]);if(caps.error)throw caps.error;
+ try{const [caps,lst]=await Promise.all([sb.from('area_caps').select('*'),sb.from('listings').select('suburb,postcode,area_key,trade,status').is('deleted_at',null).not('is_demo','is',true)]);if(caps.error)throw caps.error;
   const defCap=parseInt(CFG.cap_default,10)||3;
-  // One row per suburb × trade that appears on the map (any live listing), so the
-  // caps list mirrors the map. "Filled" counts only APPROVED tradies (the ones
-  // actually occupying a slot). Manual caps with no tradies yet still show.
   const groups={};
-  (lst.data||[]).forEach(l=>{const area=(l.suburb||'—').trim();const trade=(l.trade||'—').trim();const key=area.toLowerCase()+'|'+trade.toLowerCase();if(!groups[key])groups[key]={area,trade,n:0};if(l.status==='approved')groups[key].n++;});
+  (lst.data||[]).forEach(l=>{const area=(l.suburb||'—').trim();const trade=(l.trade||'—').trim();const key=area.toLowerCase()+'|'+trade.toLowerCase();if(!groups[key])groups[key]={area,trade,n:0,state:stateOf(l.postcode)};if(!groups[key].state)groups[key].state=stateOf(l.postcode);if(l.status==='approved')groups[key].n++;});
   const capByKey={};(caps.data||[]).forEach(c=>{capByKey[(c.area||'').trim().toLowerCase()+'|'+(c.trade||'').trim().toLowerCase()]=c;});
-  Object.values(capByKey).forEach(c=>{const key=(c.area||'').trim().toLowerCase()+'|'+(c.trade||'').trim().toLowerCase();if(!groups[key])groups[key]={area:c.area,trade:c.trade,n:0};});
-  const rows=Object.keys(groups).sort().map(key=>{const g=groups[key];const cap=capByKey[key];const max=cap?cap.max_tradies:defCap;const full=g.n>=max;
+  Object.values(capByKey).forEach(c=>{const key=(c.area||'').trim().toLowerCase()+'|'+(c.trade||'').trim().toLowerCase();if(!groups[key])groups[key]={area:c.area,trade:c.trade,n:0,state:c.state||''};});
+  const stateFor=key=>{const c=capByKey[key];return (c&&c.state)||groups[key].state||'';};
+  const stCounts={};Object.keys(groups).forEach(k=>{const s=stateFor(k);if(s)stCounts[s]=(stCounts[s]||0)+1;});
+  let keys=Object.keys(groups);
+  if(CAPF.state)keys=keys.filter(k=>stateFor(k)===CAPF.state);
+  keys.sort((a,b)=>((stateFor(a)+'|'+groups[a].area+groups[a].trade).localeCompare(stateFor(b)+'|'+groups[b].area+groups[b].trade)));
+  const rows=keys.map(key=>{const g=groups[key];const cap=capByKey[key];const max=cap?cap.max_tradies:defCap;const full=g.n>=max;const st=stateFor(key);
     const capNote=cap?'':'<span class="mut" style="font-size:11px"> · default</span>';
-    const btn=cap?`<button class="btn w" onclick="editCap('${cap.id}','${esc(g.area)}','${esc(g.trade)}',${max})">Edit cap</button>`:`<button class="btn w" onclick="editCap('','${esc(g.area)}','${esc(g.trade)}',${defCap})">Set cap</button>`;
-    return `<tr><td><b>${esc(g.area)}</b></td><td>${esc(g.trade)}</td><td class="mono">${g.n} / ${max}${capNote}</td><td>${full?'<span class="pill r">Full</span>':'<span class="pill g">Open</span>'}</td><td class="right">${btn}</td></tr>`;}).join('')||'<tr><td colspan=5 class="empty">No tradies on the map yet.</td></tr>';
-  body.innerHTML=`<div class="subt" style="margin:0 0 12px">One row per suburb × trade on the map · caps default to ${defCap} (change in Settings) until you override an area.</div><div class="card"><table><thead><tr><th>Area</th><th>Trade</th><th>Filled</th><th>Status</th><th class="right">Action</th></tr></thead><tbody>${rows}</tbody></table></div>`;
+    const btn=cap?`<button class="btn w" onclick="editCap('${cap.id}','${esc(g.area)}','${esc(g.trade)}',${max},'${esc(st)}')">Edit cap</button>`:`<button class="btn w" onclick="editCap('','${esc(g.area)}','${esc(g.trade)}',${defCap},'${esc(st)}')">Set cap</button>`;
+    return `<tr><td>${st?'<span class="pill n">'+st+'</span>':'<span class="mut">—</span>'}</td><td><b>${esc(g.area)}</b></td><td>${esc(g.trade)}</td><td class="mono">${g.n} / ${max}${capNote}</td><td>${full?'<span class="pill r">Full</span>':'<span class="pill g">Open</span>'}</td><td class="right">${btn}</td></tr>`;}).join('')||'<tr><td colspan=6 class="empty">No areas match this filter.</td></tr>';
+  const filter=`<div class="seg" style="margin:0 0 12px;flex-wrap:wrap"><button class="${CAPF.state===''?'on':''}" onclick="capState('')">All (${Object.keys(groups).length})</button>${AU_STATES.filter(s=>stCounts[s]).map(s=>`<button class="${CAPF.state===s?'on':''}" onclick="capState('${s}')">${s} (${stCounts[s]})</button>`).join('')}</div>`;
+  body.innerHTML=`<div class="subt" style="margin:0 0 12px">One row per suburb × trade · caps default to ${defCap} (change in Settings) until you override · filter by state as you scale.</div>${filter}<div class="card"><table><thead><tr><th>State</th><th>Area</th><th>Trade</th><th>Filled</th><th>Status</th><th class="right">Action</th></tr></thead><tbody>${rows}</tbody></table></div>`;
  }catch(e){body.innerHTML=errBox(e);}
 }
 
@@ -1622,7 +1660,7 @@ async function openUser(id){loading('Customer');try{
   sb.from('bookings').select('id,job_title,status,slot_start,listing_id,created_at').eq('customer_id',id).order('created_at',{ascending:false}).limit(20)]);
  if(error)throw error;const names=await listingNames();
  $('main').innerHTML=`<div style="margin-bottom:12px"><a class="mut" style="cursor:pointer" onclick="go('cust')">← Customers</a></div>
-  <div style="display:flex;align-items:center;gap:14px"><h2>${esc(u.name||'—')}</h2>${u.suspended?'<span class="pill r">Suspended</span>':'<span class="pill g">Active</span>'}<span style="margin-left:auto"></span>${u.suspended?`<button class="btn g" onclick="unsuspendUser('${u.id}')">Unsuspend</button>`:`<button class="btn r" onclick="suspendUser('${u.id}','${esc(u.name||'')}')">Suspend</button>`}</div>
+  <div style="display:flex;align-items:center;gap:10px"><h2>${esc(u.name||'—')}</h2>${u.suspended?'<span class="pill r">Suspended</span>':'<span class="pill g">Active</span>'}<span style="margin-left:auto"></span>${u.suspended?`<button class="btn g" onclick="unsuspendUser('${u.id}')">Unsuspend</button>`:`<button class="btn w" onclick="suspendUser('${u.id}','${esc(u.name||'')}')">Suspend</button>`}<button class="btn r" onclick="delCustomer('${u.id}','${esc(u.name||u.email||'this customer')}')">Delete</button></div>
   <div class="subt">${esc(u.email||'')} · ${esc(u.phone||'')} · ${esc(u.suburb||'')} ${esc(u.postcode||'')} ${esc(u.state||'')}</div>
   <div class="kpis"><div class="kpi"><div class="k">Jobs booked</div><b>${(bk.data||[]).length}</b></div>
    <div class="kpi"><div class="k">Joined</div><b style="font-size:16px">${fmtDate(u.created_at)}</b></div>
@@ -1633,6 +1671,7 @@ async function openUser(id){loading('Customer');try{
   <div class="card"><div class="ch">Bookings (${(bk.data||[]).length})</div>${(bk.data&&bk.data.length)?`<table><tbody>${bk.data.map(b=>`<tr><td><b>${esc(b.job_title||'Job')}</b></td><td>${esc(names[b.listing_id]||'')}</td><td>${esc(b.status||'')}</td><td class="mut">${fmtDate(b.slot_start||b.created_at)}</td></tr>`).join('')}</tbody></table>`:'<div class="empty">No bookings.</div>'}</div>`;
 }catch(e){$('main').innerHTML='<h2>Customer</h2>'+errBox(e);}}
 async function deleteListing(id,name){ask('Delete '+name+'?','Removes the listing from the app. This is a soft delete — it\'s recoverable and audited, not wiped. Reason required.','Reason (min 9 chars)',async r=>{if(r.trim().length<9){toast('Reason too short');return;}const {error}=await sb.from('listings').update({deleted_at:new Date().toISOString(),status:'hidden',cap_slot:null}).eq('id',id);if(error){toast(error.message);return;}await audit('listing_deleted','listing',id,r);closeM();go('tradies');toastAction('Listing deleted','Undo',()=>undeleteListing(id));},true);}
+async function delCustomer(id,name){ask('Permanently delete '+(name||'this customer')+'?','Removes their account and login for good — this cannot be undone. Their past enquiries are kept but unlinked from the account. Audited.','Reason (optional)',async r=>{closeM();toast('Deleting…');const {data,error}=await sb.functions.invoke('admin-tools',{body:{action:'delete_user',user_id:id,reason:r}});if(error||(data&&data.error)){toast((data&&data.error)||(error&&error.message)||'Delete failed');return;}toast('Customer deleted');go('cust');},true);}
 async function suspendUser(id,name){ask('Suspend '+name+'?','Blocks their app access. Reason is logged.','Reason (min 9 chars)',async r=>{if(r.trim().length<9){toast('Reason too short');return;}const {error}=await sb.from('profiles').update({suspended:true,suspended_reason:r,suspended_at:new Date().toISOString()}).eq('id',id);if(error){toast(error.message);return;}await audit('user_suspended','profile',id,r);closeM();toast('Suspended');openUser(id);},true);}
 async function unsuspendUser(id){const {error}=await sb.from('profiles').update({suspended:false,suspended_reason:null}).eq('id',id);if(error){toast(error.message);return;}await audit('user_unsuspended','profile',id,'lifted');toast('Unsuspended');openUser(id);}
 const val=id=>($(id)?$(id).value:'');

@@ -631,24 +631,37 @@ async function initPerf(){
  for(let i=win-1;i>=0;i--){const dt=new Date(now-i*864e5);days.push({key:dt.toISOString().slice(0,10),lbl:dt.toLocaleDateString('en-AU',{day:'numeric',month:'short'})});}
  const start=days[0].key+'T00:00:00Z';
  try{
-  const [ev,en,tr,cu,ap,bk,rv]=await Promise.all([
+  const [ev,en,tr,cu,ap,bk,rv,dl]=await Promise.all([
    sb.from('app_events').select('created_at,session_id').gte('created_at',start).limit(50000),
-   sb.from('enquiries').select('created_at').gte('created_at',start),
+   sb.from('enquiries').select('created_at,listing_id').gte('created_at',start),
    sb.from('listings').select('joined_at').gte('joined_at',start).not('is_demo','is',true),
    sb.from('profiles').select('created_at').in('role',['user','customer']).gte('created_at',start).not('is_demo','is',true),
    sb.from('applications').select('created_at').gte('created_at',start),
-   sb.from('bookings').select('created_at').gte('created_at',start),
-   sb.from('listing_reviews').select('created_at').gte('created_at',start)
+   sb.from('bookings').select('created_at,listing_id').gte('created_at',start),
+   sb.from('listing_reviews').select('created_at,listing_id').gte('created_at',start),
+   sb.from('listings').select('id').eq('is_demo',true)
   ]);
+  const demoL=new Set((dl.data||[]).map(x=>x.id));
   const idxOf={};days.forEach((d,i)=>idxOf[d.key]=i);
   const sess=days.map(()=>new Set());
   (ev.data||[]).forEach(e=>{const i=idxOf[(e.created_at||'').slice(0,10)];if(i!=null&&e.session_id)sess[i].add(e.session_id);});
   const cnt=(rows,f)=>{const a=days.map(()=>0);(rows||[]).forEach(r=>{const i=idxOf[(r[f]||'').slice(0,10)];if(i!=null)a[i]++;});return a;};
-  const full={sessions:sess.map(s=>s.size),enquiries:cnt(en.data,'created_at'),tradies:cnt(tr.data,'joined_at'),customers:cnt(cu.data,'created_at'),apps:cnt(ap.data,'created_at'),jobs:cnt(bk.data,'created_at'),reviews:cnt(rv.data,'created_at')};
+  const cntF=(rows,f)=>{const a=days.map(()=>0);(rows||[]).forEach(r=>{if(r.listing_id&&demoL.has(r.listing_id))return;const i=idxOf[(r[f]||'').slice(0,10)];if(i!=null)a[i]++;});return a;};
+  const full={sessions:sess.map(s=>s.size),enquiries:cntF(en.data,'created_at'),tradies:cnt(tr.data,'joined_at'),customers:cnt(cu.data,'created_at'),apps:cnt(ap.data,'created_at'),jobs:cntF(bk.data,'created_at'),reviews:cntF(rv.data,'created_at')};
   const cur={},prev={};Object.keys(full).forEach(k=>{cur[k]=full[k].slice(win-R);if(PERF.compare)prev[k]=full[k].slice(0,R);});
   PERF.data={days:days.slice(win-R),series:cur,prev:PERF.compare?prev:null};
   renderPerf();
  }catch(e){wrap.innerHTML=errBox(e);}
+}
+// Catmull-Rom -> cubic bezier so sparse data reads as a smooth curve
+function smoothD(pts){
+ if(!pts||!pts.length)return '';
+ if(pts.length<2)return `M${pts[0].x.toFixed(1)},${pts[0].y.toFixed(1)}`;
+ let d=`M${pts[0].x.toFixed(1)},${pts[0].y.toFixed(1)}`;
+ for(let i=0;i<pts.length-1;i++){const p0=pts[i-1]||pts[i],p1=pts[i],p2=pts[i+1],p3=pts[i+2]||p2;
+  const c1x=p1.x+(p2.x-p0.x)/6,c1y=p1.y+(p2.y-p0.y)/6,c2x=p2.x-(p3.x-p1.x)/6,c2y=p2.y-(p3.y-p1.y)/6;
+  d+=`C${c1x.toFixed(1)},${c1y.toFixed(1)} ${c2x.toFixed(1)},${c2y.toFixed(1)} ${p2.x.toFixed(1)},${p2.y.toFixed(1)}`;}
+ return d;
 }
 function renderPerf(){
  const wrap=$('perfWrap');if(!wrap||!PERF.data)return;
@@ -658,7 +671,12 @@ function renderPerf(){
  const X=i=>padL+(n<=1?0:i/(n-1)*plotW);
  const active=PERF_METRICS.filter(m=>PERF.on[m.k]);
  PERF._pts=active.map(m=>{const vals=series[m.k];const pv=prev?prev[m.k]:null;const mx=Math.max(...vals,...(pv||[]),1),Y=v=>padT+plotH-(v/mx)*plotH;return {k:m.k,color:m.color,label:m.label,pts:vals.map((v,i)=>({x:X(i),y:Y(v),v})),ppts:pv?pv.map((v,i)=>({x:X(i),y:Y(v),v})):null};});
- const lines=PERF._pts.map(p=>`${p.ppts?`<polyline points="${p.ppts.map(pt=>pt.x.toFixed(1)+','+pt.y.toFixed(1)).join(' ')}" fill="none" stroke="${p.color}" stroke-width="1.6" stroke-dasharray="4 4" opacity="0.38"/>`:''}<polyline points="${p.pts.map(pt=>pt.x.toFixed(1)+','+pt.y.toFixed(1)).join(' ')}" fill="none" stroke="${p.color}" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>`).join('');
+ const single=PERF._pts.length===1;const baseY=(padT+plotH).toFixed(1);
+ const lines=PERF._pts.map(p=>{let s='';
+  if(single&&p.pts.length){s+=`<path d="${smoothD(p.pts)} L${p.pts[p.pts.length-1].x.toFixed(1)},${baseY} L${p.pts[0].x.toFixed(1)},${baseY} Z" fill="${p.color}" opacity="0.09"/>`;}
+  if(p.ppts)s+=`<path d="${smoothD(p.ppts)}" fill="none" stroke="${p.color}" stroke-width="1.6" stroke-dasharray="4 4" opacity="0.38"/>`;
+  s+=`<path d="${smoothD(p.pts)}" fill="none" stroke="${p.color}" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>`;
+  return s;}).join('');
  const dots=active.map(m=>`<circle class="perfDot" data-k="${m.k}" r="4" fill="var(--panel)" stroke="${m.color}" stroke-width="2.5" style="display:none"/>`).join('');
  const li=[...new Set([0,Math.floor(n/4),Math.floor(n/2),Math.floor(3*n/4),n-1])];
  const xl=li.map(i=>`<text x="${X(i).toFixed(0)}" y="${H-7}" fill="var(--mut)" font-size="13" text-anchor="${i===0?'start':i===n-1?'end':'middle'}">${days[i].lbl}</text>`).join('');
@@ -1347,15 +1365,17 @@ async function pSystem(){loading('System');try{
  const dayAgo=new Date(Date.now()-864e5).toISOString();
  // Pull 24h health history + live platform counts in parallel — the metrics show
  // "how everything is working", the strip shows current status + uptime.
- const [rows,tradies,homeowners,appsWaiting,enq,jobs,errs]=await Promise.all([
+ const [rows,tradies,homeowners,appsWaiting,enq,jobs,errs,nh]=await Promise.all([
   (async()=>{try{const {data}=await sb.from('system_health').select('checked_at,worst').gte('checked_at',dayAgo).order('checked_at',{ascending:false}).limit(2000);return data||[];}catch(e){return [];}})(),
   scount(sb.from('listings').select('*',{count:'exact',head:true}).eq('status','approved').is('deleted_at',null)),
   scount(sb.from('profiles').select('*',{count:'exact',head:true}).eq('role','customer')),
   scount(sb.from('applications').select('*',{count:'exact',head:true}).in('status',['submitted','pending','info_requested'])),
   scount(sb.from('enquiries').select('*',{count:'exact',head:true})),
   scount(sb.from('bookings').select('*',{count:'exact',head:true})),
-  scount(sb.from('error_logs').select('*',{count:'exact',head:true}).gte('created_at',dayAgo))
+  scount(sb.from('error_logs').select('*',{count:'exact',head:true}).gte('created_at',dayAgo)),
+  (async()=>{try{const {data}=await sb.rpc('notif_health');return data||{};}catch(e){return {};}})()
  ]);
+ const N=nh||{};
  const last=rows[0];
  const up=rows.length?Math.round(rows.filter(x=>x.worst===0).length/rows.length*100):null;
  const stMap={0:['g','All systems operational'],1:['a','Degraded — some services slow'],2:['r','Incident — a service is down']};
@@ -1381,6 +1401,17 @@ async function pSystem(){loading('System');try{
    ${mtile('#EAF4FF','#3A6FF0','mail',enq,'Enquiries')}
    ${mtile('#F1F0F4','#6B7280','job',jobs,'Jobs booked')}
    ${mtile(errs>0?'#FDECEC':'#E9F7EF',errs>0?'#D64545':'#1F9D57','err',errs,'Errors · 24h',errs>0)}
+  </div>
+  <div class="ssec-lbl">Notifications</div>
+  <div class="card" style="margin-bottom:20px"><div class="ch">Notification pipeline<span class="pill ${(N.sent24||0)>0?'g':'n'}" style="margin-left:auto">${(N.sent24||0)>0?'Flowing':'Quiet'}</span></div>
+   <div style="display:flex;gap:26px;padding:16px 18px;flex-wrap:wrap">
+     <div><div class="mut" style="font-size:11px;text-transform:uppercase;letter-spacing:.03em;font-weight:600">Sent · 24h</div><div style="font-weight:800;font-size:22px">${N.sent24??'—'}</div></div>
+     <div><div class="mut" style="font-size:11px;text-transform:uppercase;letter-spacing:.03em;font-weight:600">Sent · 7d</div><div style="font-weight:800;font-size:22px">${N.sent7??'—'}</div></div>
+     <div><div class="mut" style="font-size:11px;text-transform:uppercase;letter-spacing:.03em;font-weight:600">Enquiries · 7d</div><div style="font-weight:800;font-size:22px">${N.enquiry7??'—'}</div></div>
+     <div><div class="mut" style="font-size:11px;text-transform:uppercase;letter-spacing:.03em;font-weight:600">Messages · 7d</div><div style="font-weight:800;font-size:22px">${N.message7??'—'}</div></div>
+     <div style="margin-left:auto;text-align:right"><div class="mut" style="font-size:11px;text-transform:uppercase;letter-spacing:.03em;font-weight:600">Last sent</div><div style="font-weight:800;font-size:16px">${N.last?ago(N.last):'—'}</div></div>
+   </div>
+   <div class="mut" style="font-size:12px;padding:12px 18px 16px;border-top:1px solid var(--line2)">Every enquiry, message and reply creates an in-app notification — which also fires an email and a native push automatically.</div>
   </div>
   <div class="ssec-lbl">Manage</div>
   <div class="sysgrid">

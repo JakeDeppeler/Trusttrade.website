@@ -111,8 +111,10 @@ tr:last-child td{border-bottom:0}
 .perf-card:hover{border-color:var(--c)}
 .perf-card.on{border-top-color:var(--c);background:var(--bg)}
 .perf-card .perf-k{font-size:10.5px;font-weight:750;color:var(--mut);text-transform:uppercase;letter-spacing:.04em}
-.perf-card .perf-v{font-size:22px;font-weight:800;letter-spacing:-.025em;color:var(--ink)}
+.perf-card .perf-v{font-size:22px;font-weight:800;letter-spacing:-.025em;color:var(--ink);display:inline-flex;align-items:baseline;gap:7px}
 .perf-card.on .perf-v{color:var(--c)}
+.perf-d{font-size:11px;font-weight:800;letter-spacing:0}
+.perf-d.up{color:var(--green)}.perf-d.down{color:var(--red)}.perf-d.flat{color:var(--mut)}
 .perf-tip{position:absolute;top:4px;background:var(--panel);border:1px solid var(--line);border-radius:10px;box-shadow:var(--sh);padding:9px 12px;font-size:12.5px;pointer-events:none;z-index:6;min-width:132px}
 .perf-tip .perf-day{font-weight:800;margin-bottom:5px;font-size:12px}
 .perf-tr{display:flex;align-items:center;gap:7px;padding:2px 0;white-space:nowrap}
@@ -616,16 +618,17 @@ const PERF_METRICS=[
  {k:'jobs',label:'Jobs',color:'#0891b2'},
  {k:'reviews',label:'Reviews',color:'#db2777'},
 ];
-let PERF={range:28,big:false,on:{sessions:true,enquiries:true,tradies:false,customers:false,apps:false,jobs:false,reviews:false},data:null};
-try{const _p=JSON.parse(localStorage.getItem('tt_perf')||'null');if(_p){if(_p.range)PERF.range=_p.range;if(_p.on)Object.assign(PERF.on,_p.on);}}catch(e){}
-function perfSave(){try{localStorage.setItem('tt_perf',JSON.stringify({range:PERF.range,on:PERF.on}));}catch(e){}}
+let PERF={range:28,big:false,compare:false,on:{sessions:true,enquiries:true,tradies:false,customers:false,apps:false,jobs:false,reviews:false},data:null};
+try{const _p=JSON.parse(localStorage.getItem('tt_perf')||'null');if(_p){if(_p.range)PERF.range=_p.range;if(_p.on)Object.assign(PERF.on,_p.on);if(typeof _p.compare==='boolean')PERF.compare=_p.compare;}}catch(e){}
+function perfSave(){try{localStorage.setItem('tt_perf',JSON.stringify({range:PERF.range,on:PERF.on,compare:PERF.compare}));}catch(e){}}
 function setPerfRange(n){PERF.range=n;perfSave();document.querySelectorAll('#perfSeg button').forEach(b=>b.classList.toggle('on',+b.dataset.r===n));initPerf();}
 function togglePerf(k){PERF.on[k]=!PERF.on[k];perfSave();renderPerf();}
+function togglePerfCompare(){PERF.compare=!PERF.compare;perfSave();initPerf();}
 async function initPerf(){
  const wrap=$('perfWrap');if(!wrap)return;
  wrap.innerHTML='<div class="mut" style="padding:26px 4px;font-size:13px">Loading…</div>';
- const now=Date.now(),days=[];
- for(let i=PERF.range-1;i>=0;i--){const dt=new Date(now-i*864e5);days.push({key:dt.toISOString().slice(0,10),lbl:dt.toLocaleDateString('en-AU',{day:'numeric',month:'short'})});}
+ const now=Date.now(),R=PERF.range,win=(PERF.compare?2:1)*R,days=[];
+ for(let i=win-1;i>=0;i--){const dt=new Date(now-i*864e5);days.push({key:dt.toISOString().slice(0,10),lbl:dt.toLocaleDateString('en-AU',{day:'numeric',month:'short'})});}
  const start=days[0].key+'T00:00:00Z';
  try{
   const [ev,en,tr,cu,ap,bk,rv]=await Promise.all([
@@ -641,19 +644,21 @@ async function initPerf(){
   const sess=days.map(()=>new Set());
   (ev.data||[]).forEach(e=>{const i=idxOf[(e.created_at||'').slice(0,10)];if(i!=null&&e.session_id)sess[i].add(e.session_id);});
   const cnt=(rows,f)=>{const a=days.map(()=>0);(rows||[]).forEach(r=>{const i=idxOf[(r[f]||'').slice(0,10)];if(i!=null)a[i]++;});return a;};
-  PERF.data={days,series:{sessions:sess.map(s=>s.size),enquiries:cnt(en.data,'created_at'),tradies:cnt(tr.data,'joined_at'),customers:cnt(cu.data,'created_at'),apps:cnt(ap.data,'created_at'),jobs:cnt(bk.data,'created_at'),reviews:cnt(rv.data,'created_at')}};
+  const full={sessions:sess.map(s=>s.size),enquiries:cnt(en.data,'created_at'),tradies:cnt(tr.data,'joined_at'),customers:cnt(cu.data,'created_at'),apps:cnt(ap.data,'created_at'),jobs:cnt(bk.data,'created_at'),reviews:cnt(rv.data,'created_at')};
+  const cur={},prev={};Object.keys(full).forEach(k=>{cur[k]=full[k].slice(win-R);if(PERF.compare)prev[k]=full[k].slice(0,R);});
+  PERF.data={days:days.slice(win-R),series:cur,prev:PERF.compare?prev:null};
   renderPerf();
  }catch(e){wrap.innerHTML=errBox(e);}
 }
 function renderPerf(){
  const wrap=$('perfWrap');if(!wrap||!PERF.data)return;
- const {days,series}=PERF.data,n=days.length;
- const cards=PERF_METRICS.map(m=>{const tot=series[m.k].reduce((a,b)=>a+b,0);return `<button class="perf-card${PERF.on[m.k]?' on':''}" style="--c:${m.color}" onclick="togglePerf('${m.k}')"><span class="perf-k">${m.label}</span><span class="perf-v">${tot.toLocaleString()}</span></button>`;}).join('');
+ const {days,series,prev}=PERF.data,n=days.length;
+ const cards=PERF_METRICS.map(m=>{const tot=series[m.k].reduce((a,b)=>a+b,0);let dl='';if(prev){const pt=prev[m.k].reduce((a,b)=>a+b,0);const d=pt?Math.round((tot-pt)/pt*100):(tot>0?100:0);dl=`<span class="perf-d ${d>0?'up':d<0?'down':'flat'}">${d>0?'↑':d<0?'↓':''}${Math.abs(d)}%</span>`;}return `<button class="perf-card${PERF.on[m.k]?' on':''}" style="--c:${m.color}" onclick="togglePerf('${m.k}')"><span class="perf-k">${m.label}</span><span class="perf-v">${tot.toLocaleString()}${dl}</span></button>`;}).join('');
  const W=1000,H=300,padL=8,padR=8,padT=14,padB=26,plotW=W-padL-padR,plotH=H-padT-padB;
  const X=i=>padL+(n<=1?0:i/(n-1)*plotW);
  const active=PERF_METRICS.filter(m=>PERF.on[m.k]);
- PERF._pts=active.map(m=>{const vals=series[m.k],mx=Math.max(...vals,1),Y=v=>padT+plotH-(v/mx)*plotH;return {k:m.k,color:m.color,label:m.label,pts:vals.map((v,i)=>({x:X(i),y:Y(v),v}))};});
- const lines=PERF._pts.map(p=>`<polyline points="${p.pts.map(pt=>pt.x.toFixed(1)+','+pt.y.toFixed(1)).join(' ')}" fill="none" stroke="${p.color}" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>`).join('');
+ PERF._pts=active.map(m=>{const vals=series[m.k];const pv=prev?prev[m.k]:null;const mx=Math.max(...vals,...(pv||[]),1),Y=v=>padT+plotH-(v/mx)*plotH;return {k:m.k,color:m.color,label:m.label,pts:vals.map((v,i)=>({x:X(i),y:Y(v),v})),ppts:pv?pv.map((v,i)=>({x:X(i),y:Y(v),v})):null};});
+ const lines=PERF._pts.map(p=>`${p.ppts?`<polyline points="${p.ppts.map(pt=>pt.x.toFixed(1)+','+pt.y.toFixed(1)).join(' ')}" fill="none" stroke="${p.color}" stroke-width="1.6" stroke-dasharray="4 4" opacity="0.38"/>`:''}<polyline points="${p.pts.map(pt=>pt.x.toFixed(1)+','+pt.y.toFixed(1)).join(' ')}" fill="none" stroke="${p.color}" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>`).join('');
  const dots=active.map(m=>`<circle class="perfDot" data-k="${m.k}" r="4" fill="var(--panel)" stroke="${m.color}" stroke-width="2.5" style="display:none"/>`).join('');
  const li=[...new Set([0,Math.floor(n/4),Math.floor(n/2),Math.floor(3*n/4),n-1])];
  const xl=li.map(i=>`<text x="${X(i).toFixed(0)}" y="${H-7}" fill="var(--mut)" font-size="13" text-anchor="${i===0?'start':i===n-1?'end':'middle'}">${days[i].lbl}</text>`).join('');
@@ -671,7 +676,7 @@ function renderPerf(){
    const idx=Math.round(rel*(n-1)),vbX=padL+(n<=1?0:idx/(n-1)*plotW);
    guide.setAttribute('x1',vbX);guide.setAttribute('x2',vbX);guide.style.display='';
    let rows='';
-   PERF._pts.forEach(p=>{const pt=p.pts[idx];const d=svg.querySelector('.perfDot[data-k="'+p.k+'"]');if(d){d.setAttribute('cx',pt.x);d.setAttribute('cy',pt.y);d.style.display='';}rows+=`<div class="perf-tr"><span class="perf-sw" style="background:${p.color}"></span>${p.label}<b>${pt.v.toLocaleString()}</b></div>`;});
+   PERF._pts.forEach(p=>{const pt=p.pts[idx];const d=svg.querySelector('.perfDot[data-k="'+p.k+'"]');if(d){d.setAttribute('cx',pt.x);d.setAttribute('cy',pt.y);d.style.display='';}const pv=p.ppts?` <span class="mut" style="font-weight:600">vs ${p.ppts[idx].v.toLocaleString()}</span>`:'';rows+=`<div class="perf-tr"><span class="perf-sw" style="background:${p.color}"></span>${p.label}<b>${pt.v.toLocaleString()}</b>${pv}</div>`;});
    tip.innerHTML=`<div class="perf-day">${days[idx].lbl}</div>${rows||'<div class="mut">Pick a metric above</div>'}`;tip.style.display='';
    const cx=e.clientX-rect.left,tw=tip.offsetWidth||140;let left=cx+14;if(left+tw>rect.width)left=cx-tw-14;if(left<0)left=4;tip.style.left=left+'px';
  }
@@ -766,7 +771,7 @@ async function pDash(){loading('Dashboard');try{
    ${board.length?board.map(x=>`<tr><td><b>${esc(x.name)}</b></td><td class="mono">${x.n}</td><td>${x.avg==null?'<span class="mut">—</span>':(x.avg<1?Math.max(1,Math.round(x.avg*60))+'m':x.avg.toFixed(1)+'h')}</td><td><span class="pill ${x.hit>=80?'g':x.hit>=50?'a':'r'}">${x.hit}%</span></td><td class="right">${x.ov?`<span class="pill r">${x.ov}</span>`:'<span class="mut">0</span>'}</td></tr>`).join(''):'<tr><td colspan=5 class="empty">No enquiry response data yet.</td></tr>'}
    </tbody></table></div>`;
  // Optional panels
- const perfP=`<div class="card"><div class="ch"><span style="cursor:pointer" onclick="go('perf')">Performance</span><div class="seg" id="perfSeg" style="margin-left:auto">${[7,28,90].map(r=>`<button data-r="${r}" class="${PERF.range===r?'on':''}" onclick="setPerfRange(${r})">${r}d</button>`).join('')}</div><button class="btn w" style="margin-left:8px;padding:0 11px;height:30px" onclick="go('perf')" title="Open the full Performance page">Full view ↗</button></div><div id="perfWrap" style="padding:8px 16px 16px"></div></div>`;
+ const perfP=`<div class="card"><div class="ch"><span style="cursor:pointer" onclick="go('perf')">Performance</span><div class="seg" id="perfSeg" style="margin-left:auto">${[7,28,90].map(r=>`<button data-r="${r}" class="${PERF.range===r?'on':''}" onclick="setPerfRange(${r})">${r}d</button>`).join('')}</div><button class="btn ${PERF.compare?'':'w'}" id="perfCmp" style="margin-left:8px;padding:0 11px;height:30px" onclick="togglePerfCompare()" title="Compare with the previous period">Compare${PERF.compare?' ✓':''}</button><button class="btn w" style="margin-left:6px;padding:0 11px;height:30px" onclick="go('perf')" title="Open the full Performance page">Full view ↗</button></div><div id="perfWrap" style="padding:8px 16px 16px"></div></div>`;
  const trustP=`<div class="card"><div class="ch">Trust &amp; safety</div><div class="trust" style="padding:2px 18px 8px">
      ${trow('var(--redb)','var(--red)','flag','Open reports',openRep,'reports',openRep?'var(--red)':'')}
      ${trow('var(--amberb)','var(--amber)','pause','Suspended listings',suspended,'tradies','')}
@@ -799,7 +804,7 @@ async function pDash(){loading('Dashboard');try{
 function pPerf(){
  PERF.big=true;
  $('main').innerHTML=`<div class="dashhead"><div><div class="subt" style="margin:0 0 2px">Platform overview</div><h2>Performance</h2></div>
-   <div class="ha"><div class="seg" id="perfSeg">${[7,28,90].map(r=>`<button data-r="${r}" class="${PERF.range===r?'on':''}" onclick="setPerfRange(${r})">${r}d</button>`).join('')}</div><button class="btn w" onclick="go('dash')">← Dashboard</button></div></div>
+   <div class="ha"><div class="seg" id="perfSeg">${[7,28,90].map(r=>`<button data-r="${r}" class="${PERF.range===r?'on':''}" onclick="setPerfRange(${r})">${r}d</button>`).join('')}</div><button class="btn ${PERF.compare?'':'w'}" id="perfCmp" onclick="togglePerfCompare()" title="Compare with the previous period">Compare${PERF.compare?' ✓':''}</button><button class="btn w" onclick="go('dash')">← Dashboard</button></div></div>
    <div class="card"><div id="perfWrap" style="padding:12px 18px 18px"></div></div>
    <div class="card"><div class="ch">By day</div><div id="perfTable"></div></div>`;
  initPerf();

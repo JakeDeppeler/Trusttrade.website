@@ -107,12 +107,12 @@ tr:last-child td{border-bottom:0}
 .tabs div.on{color:var(--ink);border-bottom-color:var(--gold)}
 /* Performance overlay chart (Search-Console style) */
 .perf-cards{display:flex;gap:10px;flex-wrap:wrap;margin:6px 0 16px}
-.perf-card{display:flex;flex-direction:column;gap:3px;align-items:flex-start;padding:9px 15px;border:1px solid var(--line);border-radius:12px;background:var(--panel);cursor:pointer;min-width:112px;border-top:3px solid var(--line);transition:border-color .12s,background .12s;font-family:inherit;text-align:left}
-.perf-card:hover{border-color:var(--c)}
-.perf-card.on{border-top-color:var(--c);background:var(--bg)}
-.perf-card .perf-k{font-size:10.5px;font-weight:750;color:var(--mut);text-transform:uppercase;letter-spacing:.04em}
+.perf-card{display:flex;flex-direction:column;gap:3px;align-items:flex-start;padding:9px 15px;border:1px solid var(--line);border-radius:12px;background:var(--panel);cursor:pointer;min-width:112px;transition:border-color .12s,background .12s;font-family:inherit;text-align:left}
+.perf-card:hover{border-color:var(--mut)}
+.perf-card.on{background:var(--cream);border-color:var(--mut)}
+.perf-card .perf-k{font-size:10.5px;font-weight:750;color:var(--mut);text-transform:uppercase;letter-spacing:.04em;display:inline-flex;align-items:center;gap:6px}
+.perf-card .perf-sw2{width:8px;height:8px;border-radius:50%;background:var(--c);flex-shrink:0}
 .perf-card .perf-v{font-size:22px;font-weight:800;letter-spacing:-.025em;color:var(--ink);display:inline-flex;align-items:baseline;gap:7px}
-.perf-card.on .perf-v{color:var(--c)}
 .perf-d{font-size:11px;font-weight:800;letter-spacing:0}
 .perf-d.up{color:var(--green)}.perf-d.down{color:var(--red)}.perf-d.flat{color:var(--mut)}
 .perf-tip{position:absolute;top:4px;background:var(--panel);border:1px solid var(--line);border-radius:10px;box-shadow:var(--sh);padding:9px 12px;font-size:12.5px;pointer-events:none;z-index:6;min-width:132px}
@@ -610,13 +610,13 @@ function setBadge(id,n){const el=$(id);if(!el)return;const hot=(n||0)>0;el.textC
 function spark(vals,color){if(!vals||!vals.length)return '';const mn=Math.min(...vals),mx=Math.max(...vals),rng=(mx-mn)||1,n=vals.length;const pts=vals.map((v,i)=>`${(i/(n-1||1)*100).toFixed(1)},${(29-((v-mn)/rng)*26-1).toFixed(1)}`).join(' ');return `<svg class="spark" viewBox="0 0 100 30" preserveAspectRatio="none"><polyline points="${pts}" fill="none" stroke="${color}" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>`;}
 /* ===== Performance overlay chart — toggle metrics, hover for values ===== */
 const PERF_METRICS=[
- {k:'sessions',label:'Sessions',color:'#3a6ff0'},
- {k:'enquiries',label:'Enquiries',color:'#1f9d57'},
- {k:'tradies',label:'New tradies',color:'#e0a400'},
- {k:'customers',label:'New customers',color:'#8b5cf6'},
- {k:'apps',label:'Applications',color:'#e5484d'},
- {k:'jobs',label:'Jobs',color:'#0891b2'},
- {k:'reviews',label:'Reviews',color:'#db2777'},
+ {k:'sessions',label:'Sessions',color:'#5b78b3'},
+ {k:'enquiries',label:'Enquiries',color:'#4f9377'},
+ {k:'tradies',label:'New tradies',color:'#bd9a4e'},
+ {k:'customers',label:'New customers',color:'#8a77ab'},
+ {k:'apps',label:'Applications',color:'#c07576'},
+ {k:'jobs',label:'Jobs',color:'#5090a0'},
+ {k:'reviews',label:'Reviews',color:'#ad7196'},
 ];
 let PERF={range:28,big:false,compare:false,on:{sessions:true,enquiries:true,tradies:false,customers:false,apps:false,jobs:false,reviews:false},data:null};
 try{const _p=JSON.parse(localStorage.getItem('tt_perf')||'null');if(_p){if(_p.range)PERF.range=_p.range;if(_p.on)Object.assign(PERF.on,_p.on);if(typeof _p.compare==='boolean')PERF.compare=_p.compare;}}catch(e){}
@@ -666,7 +666,7 @@ function smoothD(pts){
 function renderPerf(){
  const wrap=$('perfWrap');if(!wrap||!PERF.data)return;
  const {days,series,prev}=PERF.data,n=days.length;
- const cards=PERF_METRICS.map(m=>{const tot=series[m.k].reduce((a,b)=>a+b,0);let dl='';if(prev){const pt=prev[m.k].reduce((a,b)=>a+b,0);const d=pt?Math.round((tot-pt)/pt*100):(tot>0?100:0);dl=`<span class="perf-d ${d>0?'up':d<0?'down':'flat'}">${d>0?'↑':d<0?'↓':''}${Math.abs(d)}%</span>`;}return `<button class="perf-card${PERF.on[m.k]?' on':''}" style="--c:${m.color}" onclick="togglePerf('${m.k}')"><span class="perf-k">${m.label}</span><span class="perf-v">${tot.toLocaleString()}${dl}</span></button>`;}).join('');
+ const cards=PERF_METRICS.map(m=>{const tot=series[m.k].reduce((a,b)=>a+b,0);let dl='';if(prev){const pt=prev[m.k].reduce((a,b)=>a+b,0);const d=pt?Math.round((tot-pt)/pt*100):(tot>0?100:0);dl=`<span class="perf-d ${d>0?'up':d<0?'down':'flat'}">${d>0?'↑':d<0?'↓':''}${Math.abs(d)}%</span>`;}return `<button class="perf-card${PERF.on[m.k]?' on':''}" style="--c:${m.color}" onclick="togglePerf('${m.k}')"><span class="perf-k">${PERF.on[m.k]?'<span class="perf-sw2"></span>':''}${m.label}</span><span class="perf-v">${tot.toLocaleString()}${dl}</span></button>`;}).join('');
  const W=1000,H=300,padL=8,padR=8,padT=14,padB=26,plotW=W-padL-padR,plotH=H-padT-padB;
  const X=i=>padL+(n<=1?0:i/(n-1)*plotW);
  const active=PERF_METRICS.filter(m=>PERF.on[m.k]);

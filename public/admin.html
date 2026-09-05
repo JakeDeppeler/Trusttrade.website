@@ -261,10 +261,11 @@ html[data-theme="dark"] .kpi:hover{box-shadow:0 2px 6px rgba(0,0,0,.5),0 22px 46
 .navsec.collapsed .slbl .chev{transform:rotate(-90deg)}
 /* Overview — KPI icon-chip + trend, trust panel, newest apps */
 .kpi-top{display:flex;align-items:center;gap:8px;margin-bottom:9px}
-.kpi-ic{width:36px;height:36px;border-radius:12px;display:grid;place-items:center;flex-shrink:0}
-.kpi-ic svg{width:20px;height:20px;fill:none;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
-.kpi-tr{margin-left:auto;font-size:12px;font-weight:800;padding:3px 9px;border-radius:99px}
-.kpi-tr.up{background:var(--greenb);color:var(--green)}.kpi-tr.act{background:var(--redb);color:var(--red)}
+.kpi-ic{width:34px;height:34px;border-radius:10px;display:grid;place-items:center;flex-shrink:0;background:var(--cream);color:var(--ink2)}
+.kpi-ic svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
+.kpi-tr{margin-left:auto;font-size:11.5px;font-weight:750;padding:3px 9px;border-radius:99px;display:inline-flex;align-items:center;gap:3px}
+.kpi-tr.up{background:var(--greenb);color:var(--green)}.kpi-tr.act{background:var(--redb);color:var(--red)}.kpi-tr.down{background:var(--redb);color:var(--red)}.kpi-tr.flat{background:var(--line2);color:var(--mut)}
+.dashhead .dot{width:7px;height:7px;border-radius:50%;background:var(--green);display:inline-block;vertical-align:middle;margin-right:5px;box-shadow:0 0 0 3px rgba(31,157,87,.16)}
 .trust .trow{display:flex;align-items:center;gap:12px;padding:13px 4px;border-top:1px solid var(--line2);cursor:pointer}
 .trust .trow:first-child{border-top:0}
 .trust .trow .tic{width:34px;height:34px;border-radius:10px;display:grid;place-items:center;flex-shrink:0}
@@ -701,7 +702,9 @@ async function pDash(){loading('Dashboard');try{
  const pending=(app.data||[]).filter(a=>a.status==='submitted').length;
  const openRep=(rep.data||[]).filter(r=>r.status!=='resolved').length;
  const newTr7=listings.filter(l=>l.joined_at&&l.joined_at>d7).length;
+ const nc7=await sb.from('profiles').select('*',{count:'exact',head:true}).in('role',['user','customer']).not('is_demo','is',true).gte('created_at',d7);const newCust7=nc7.count||0;
  const enqAll=realEnq.length,enq7=realEnq.filter(e=>e.created_at>d7).length;
+ const enqPrev7=realEnq.filter(e=>e.created_at>d14&&e.created_at<=d7).length;const enqT=enqPrev7?Math.round((enq7-enqPrev7)/enqPrev7*100):(enq7>0?100:0);
  const bookingsTotal=(bk.data||[]).length,jobsDone=(bk.data||[]).filter(b=>b.status==='completed').length;
  const rated=listings.filter(l=>l.rating>0),avgRating=rated.length?rated.reduce((s,l)=>s+(+l.rating||0),0)/rated.length:0;
  const waitlist=wl.count||0;
@@ -718,19 +721,19 @@ async function pDash(){loading('Dashboard');try{
  const suspended=listings.filter(l=>l.status==='hidden').length;
  const newestApps=(app.data||[]).filter(x=>x.status==='submitted').sort((x,y)=>(y.created_at||'').localeCompare(x.created_at||'')).slice(0,5);
  const ICO={wrench:'<path d="M14.7 6.3a4 4 0 0 0-5.4 5.4l-6 6 2 2 6-6a4 4 0 0 0 5.4-5.4l-2.3 2.3-1.7-.3-.3-1.7 2.3-2.3z"/>',users:'<circle cx="9" cy="8" r="3.2"/><path d="M3.5 20a5.5 5.5 0 0 1 11 0M16 6a3 3 0 0 1 0 6M20.5 20a5 5 0 0 0-4-4.9"/>',mail:'<rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3.5 7l8.5 6 8.5-6"/>',file:'<path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/>',pause:'<rect x="7" y="5" width="3.5" height="14" rx="1"/><rect x="13.5" y="5" width="3.5" height="14" rx="1"/>',flag:'<path d="M5 21V4M5 4h11l-2 4 2 4H5"/>',users2:'<circle cx="9" cy="8" r="3.2"/><path d="M3.5 20a5.5 5.5 0 0 1 11 0"/>',dollar:'<path d="M12 2v20"/><path d="M17 6.5c0-2-2.2-3-5-3s-5 1-5 3.2c0 4.6 10 2 10 6.3 0 2.2-2.2 3.2-5 3.2s-5-1.2-5-3.2"/>',job:'<rect x="3" y="7" width="18" height="13" rx="2"/><path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>',check:'<path d="M20 6L9 17l-5-5"/>',pulse:'<path d="M3 12h4l2 6 4-14 2 8h6"/>',star:'<path d="M12 3l2.7 5.5 6 .9-4.3 4.2 1 6L12 17l-5.4 2.6 1-6L3.3 9.4l6-.9z"/>'};
- const kpi=(bg,col,ic,val,label,badge)=>`<div class="kpi"><div class="kpi-top"><span class="kpi-ic" style="background:${bg}"><svg viewBox="0 0 24 24" stroke="${col}">${ICO[ic]}</svg></span>${badge||''}</div><b>${val}</b><div class="k">${label}</div></div>`;
+ const kpi=(bg,col,ic,val,label,badge)=>`<div class="kpi"><div class="kpi-top"><span class="kpi-ic"><svg viewBox="0 0 24 24">${ICO[ic]}</svg></span>${badge||''}</div><b>${val}</b><div class="k">${label}</div></div>`;
  const trow=(bg,col,ic,label,n,page,nc)=>`<div class="trow" onclick="go('${page}')"><span class="tic" style="background:${bg}"><svg viewBox="0 0 24 24" stroke="${col}">${ICO[ic]}</svg></span><b>${label}</b><span class="tn"${nc?` style="color:${nc}"`:''}>${n}</span><span class="tar">›</span></div>`;
  // Metric registry — every card the user can switch on via Customise. Rendered in
  // this order, filtered by dashOn(). Keys must match DASH_KEYS below.
  const METRICS={
-  tradies:['var(--goldb)','var(--goldd)','wrench',live,'Live tradies',newTr7?`<span class="kpi-tr up">↑ ${newTr7}</span>`:''],
-  homeowners:['var(--blueb)','var(--blue)','users',homeowners.toLocaleString(),'Homeowners',''],
-  enq7:['var(--greenb)','var(--green)','mail',enq7,'Enquiries · 7d',t7>0?`<span class="kpi-tr up">↑ ${t7}%</span>`:''],
-  pendapp:['var(--redb)','var(--red)','file',pending,'Applications waiting',pending?'<span class="kpi-tr act">Action</span>':''],
+  tradies:['var(--goldb)','var(--goldd)','wrench',live,'Live tradies',newTr7?`<span class="kpi-tr up">↑ ${newTr7} new</span>`:'<span class="kpi-tr flat">0 new</span>'],
+  homeowners:['var(--blueb)','var(--blue)','users',homeowners.toLocaleString(),'Homeowners',newCust7?`<span class="kpi-tr up">↑ ${newCust7} new</span>`:'<span class="kpi-tr flat">0 new</span>'],
+  enq7:['var(--greenb)','var(--green)','mail',enq7,'Enquiries · 7d',`<span class="kpi-tr ${enqT>0?'up':enqT<0?'down':'flat'}">${enqT>0?'↑ ':enqT<0?'↓ ':''}${Math.abs(enqT)}%</span>`],
+  pendapp:['var(--redb)','var(--red)','file',pending,'Applications waiting',pending?'<span class="kpi-tr act">Action</span>':'<span class="kpi-tr flat">Clear</span>'],
   mrr:['var(--greenb)','var(--green)','dollar','$'+(activeSubs*subPrice()),'MRR',activeSubs?`<span class="kpi-tr up">${activeSubs} active</span>`:''],
   bookings:['var(--blueb)','var(--blue)','job',bookingsTotal,'Bookings',''],
   jobsdone:['var(--greenb)','var(--green)','check',jobsDone,'Jobs completed',''],
-  active:['var(--goldb)','var(--goldd)','pulse',activeToday,'Active today',`<span class="kpi-tr ${t7>=0?'up':'act'}">${t7>=0?'↑':'↓'} ${Math.abs(t7)}%</span>`],
+  active:['var(--goldb)','var(--goldd)','pulse',activeToday,'Active today',`<span class="kpi-tr ${t7>=0?'up':'down'}">${t7>=0?'↑':'↓'} ${Math.abs(t7)}%</span>`],
   rating:['var(--amberb)','var(--amber)','star',avgRating?avgRating.toFixed(2):'—','Avg rating',''],
   waitlist:['var(--blueb)','var(--blue)','users2',waitlist,'Waitlist',''],
   openrep:['var(--redb)','var(--red)','flag',openRep,'Open reports',openRep?'<span class="kpi-tr act">Action</span>':''],
@@ -781,8 +784,8 @@ async function pDash(){loading('Dashboard');try{
  const row1=pair(dashOn('trust')?trustP:'',dashOn('top')?topP:'');
  const row2=pair(dashOn('recent')?recentP:'','');
  $('main').innerHTML=`
-  <div class="dashhead"><div><div class="subt" style="margin:0 0 2px">TrustTrade Management</div><h2>Platform Overview</h2></div>
-   <div class="ha"><button class="btn w" onclick="customiseDash()"><svg viewBox="0 0 24 24" style="width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;vertical-align:-2px;margin-right:5px"><path d="M4 6h10M18 6h2M4 12h2M10 12h10M4 18h7M15 18h5"/><circle cx="16" cy="6" r="2"/><circle cx="8" cy="12" r="2"/><circle cx="13" cy="18" r="2"/></svg>Customise</button><button class="btn w" onclick="exportCSV('tradies')">Export</button><button class="btn g" onclick="go('apps')">Review ${pending} app${pending===1?'':'s'}</button></div></div>
+  <div class="dashhead"><div><div class="subt" style="margin:0 0 3px"><span class="dot"></span>${new Date().toLocaleDateString('en-AU',{weekday:'long',day:'numeric',month:'long'})} · live</div><h2>Platform Overview</h2></div>
+   <div class="ha"><button class="btn w" onclick="customiseDash()"><svg viewBox="0 0 24 24" style="width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;vertical-align:-2px;margin-right:5px"><path d="M4 6h10M18 6h2M4 12h2M10 12h10M4 18h7M15 18h5"/><circle cx="16" cy="6" r="2"/><circle cx="8" cy="12" r="2"/><circle cx="13" cy="18" r="2"/></svg>Customise</button><button class="btn w" onclick="exportCSV('tradies')">Export</button>${pending?`<button class="btn g" onclick="go('apps')">Review ${pending} app${pending===1?'':'s'}</button>`:''}</div></div>
   ${dashOn('needs')?needsP:''}
   ${kpiCards?`<div class="kpis">${kpiCards}</div>`:'<div class="card"><div class="empty">No metric cards selected — click Customise to choose what you see.</div></div>'}
   ${dashOn('chart')?perfP:''}

@@ -144,7 +144,7 @@ function page(l, reviews) {
     : `<b>New</b> <span class="muted">· No reviews yet</span>`;
 
   return `<!doctype html><html lang="en-AU"><head>
-<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="apple-itunes-app" content="app-id=6778369757">
 <title>${H(title)}</title><meta name="description" content="${H(desc)}">
 <link rel="canonical" href="${url}"><meta name="robots" content="index, follow, max-image-preview:large">
 <meta name="theme-color" content="#f2a900"><link rel="icon" type="image/png" sizes="48x48" href="/favicon-48.png"><link rel="apple-touch-icon" href="/apple-touch-icon.png">
@@ -197,7 +197,7 @@ function directory(listings, hubLinks, areaLinks) {
   const trades = [...new Set(listings.map((l) => l.trade).filter(Boolean))].sort();
   const ld = { "@context": "https://schema.org", "@type": "ItemList", itemListElement: listings.map((l, i) => ({ "@type": "ListItem", position: i + 1, url: `${SITE}/tradie/${l.slug}`, name: l.name })) };
   return `<!doctype html><html lang="en-AU"><head>
-<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="apple-itunes-app" content="app-id=6778369757">
 <title>Verified Local Tradies in Victoria | Trust Trade</title>
 <meta name="description" content="Browse verified, insured local tradies on Trust Trade — electricians, plumbers, HVAC and more across Victoria. Every one licence-checked.">
 <link rel="canonical" href="${SITE}/tradie"><meta name="theme-color" content="#f2a900"><link rel="icon" type="image/png" sizes="48x48" href="/favicon-48.png">
@@ -260,7 +260,7 @@ function areaPage(cat, loc, serving, otherAreas, otherTrades) {
   const otherTradeLinks = otherTrades.map((t) => `<a href="/find/${t.slug}-in-${slugify(suburb)}">${H(t.plural)} in ${H(suburb)}</a>`).join("");
 
   return `<!doctype html><html lang="en-AU"><head>
-<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="apple-itunes-app" content="app-id=6778369757">
 <title>${H(title)}</title><meta name="description" content="${H(desc)}">
 <link rel="canonical" href="${url}"><meta name="robots" content="index, follow, max-image-preview:large">
 <meta name="theme-color" content="#f2a900"><link rel="icon" href="/favicon.ico" sizes="any"><link rel="icon" type="image/png" sizes="48x48" href="/favicon-48.png"><link rel="apple-touch-icon" href="/apple-touch-icon.png">
@@ -343,7 +343,7 @@ function tradeHubPage(cat, tradies, areaSuburbs) {
  <div class="card"><h2>Are you a ${H(cat.singular)}?</h2><p class="body">List your business free while we grow — a few spots per suburb, then it locks. Verified tradies get real jobs, not lead-auction spam.</p><a class="big" href="/for-tradies">List your business →</a></div>`;
 
   return `<!doctype html><html lang="en-AU"><head>
-<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="apple-itunes-app" content="app-id=6778369757">
 <title>${H(title)}</title><meta name="description" content="${H(desc)}">
 <link rel="canonical" href="${url}"><meta name="robots" content="${has ? "index, follow, max-image-preview:large" : "noindex, follow"}">
 <meta name="theme-color" content="#f2a900"><link rel="icon" href="/favicon.ico" sizes="any"><link rel="icon" type="image/png" sizes="48x48" href="/favicon-48.png"><link rel="apple-touch-icon" href="/apple-touch-icon.png">
@@ -439,7 +439,7 @@ a{color:inherit;text-decoration:none}
 // client-side from live Supabase data — so new tradies work with no redeploy.
 function dynamicProfile() {
   return `<!doctype html><html lang="en-AU"><head>
-<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="apple-itunes-app" content="app-id=6778369757">
 <title>Tradie · Trust Trade</title><meta name="robots" content="index, follow">
 <meta name="theme-color" content="#f2a900"><link rel="icon" type="image/png" sizes="48x48" href="/favicon-48.png">
 ${STYLE}</head><body>

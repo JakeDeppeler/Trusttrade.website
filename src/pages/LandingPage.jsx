@@ -5,6 +5,8 @@ import { usePageReveal } from "../components/RedesignSections.jsx";
 import "../styles/hiw-redesign.css";
 import "../styles/landing-sections.css";
 
+import { APP_STORE_URL } from "../routes.js";
+
 function scrollToWaitlist() {
   const el = document.getElementById("download");
   if (!el) return;
@@ -327,9 +329,9 @@ function ForTradiesSection({ onJoin }) {
               </div>
             </div>
             <div style={{ marginTop: 32, display: "flex", gap: 10, flexWrap: "wrap" }}>
-              <button className="btn btn-dark" onClick={onJoin}>
+              <a className="btn btn-dark" href="/apply">
                 Apply to join as a tradie →
-              </button>
+              </a>
               <a
                 href="#faq"
                 className="btn btn-ghost"
@@ -642,7 +644,7 @@ function FAQSection() {
   );
 }
 
-function MobileStickyCTA({ onJoin }) {
+function MobileStickyCTA() {
   const [visible, setVisible] = useState(false);
   useEffect(() => {
     const f = () => setVisible(window.scrollY > 400);
@@ -652,9 +654,9 @@ function MobileStickyCTA({ onJoin }) {
   }, []);
   return (
     <div className={"mobile-sticky " + (visible ? "visible" : "")}>
-      <button className="btn btn-primary" onClick={onJoin}>
+      <a className="btn btn-primary" href={APP_STORE_URL} target="_blank" rel="noopener">
         Download the app →
-      </button>
+      </a>
     </div>
   );
 }
@@ -685,11 +687,9 @@ function BevelHero() {
         <div className="hero-actions">
           <a
             className="appstore-btn"
-            href="#download"
-            onClick={(e) => {
-              e.preventDefault();
-              scrollToWaitlist();
-            }}
+            href={APP_STORE_URL}
+            target="_blank"
+            rel="noopener"
           >
             <span className="glyph" aria-hidden="true">
               <svg width="22" height="24" viewBox="0 0 24 24" fill="currentColor">
@@ -953,9 +953,9 @@ function ForTradiesSplit() {
               </div>
             </div>
             <div style={{ marginTop: 40, display: "flex", gap: 12, flexWrap: "wrap" }}>
-              <button className="btn btn-dark btn-lg" onClick={scrollToWaitlist}>
+              <a className="btn btn-dark btn-lg" href="/apply">
                 Apply to join as a tradie →
-              </button>
+              </a>
               <PageLink
                 href="For Tradies.html"
                 className="btn btn-ghost btn-lg"
@@ -1304,9 +1304,9 @@ function ForTradiesBand() {
               ))}
             </div>
             <div style={{ marginTop: 34, display: "flex", gap: 12, flexWrap: "wrap" }}>
-              <button className="btn btn-primary btn-lg" onClick={scrollToWaitlist}>
+              <a className="btn btn-primary btn-lg" href="/apply">
                 Apply to join as a tradie →
-              </button>
+              </a>
             </div>
           </div>
           <div className="tradies-visual reveal" aria-hidden="true">
@@ -1444,7 +1444,7 @@ export default function LandingPage() {
         <PageDownloadCTA />
       </main>
       <PageFooter />
-      <MobileStickyCTA onJoin={scrollToWaitlist} />
+      <MobileStickyCTA />
     </>
   );
 }

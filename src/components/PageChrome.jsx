@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { useLocation } from "react-router-dom";
 import PageLink from "./PageLink.jsx";
-import { HREF_TO_ROUTE, resolveHref } from "../routes.js";
+import { HREF_TO_ROUTE, resolveHref, APP_STORE_URL } from "../routes.js";
 
 export const PAGE_LINKS = [
   { label: "How it works", href: "How it works.html" },
@@ -75,7 +75,9 @@ export function MobileNavMenu({ current }) {
             <div className="nav-overlay-cta">
               <PageLink
                 className="btn btn-primary btn-lg"
-                href="Trust Trade Landing.html#download"
+                href={APP_STORE_URL}
+                target="_blank"
+                rel="noopener"
               >
                 Download app →
               </PageLink>
@@ -135,9 +137,9 @@ export function PageHeader({ current }) {
         <div className="header-cta">
           <span className="header-pill">
             <span className="dot"></span>
-            Coming soon · iOS &amp; Android
+            Now on iOS · Android coming soon
           </span>
-          <PageLink className="btn btn-primary btn-sm header-cta-btn" href="Trust Trade Landing.html#download">
+          <PageLink className="btn btn-primary btn-sm header-cta-btn" href={APP_STORE_URL} target="_blank" rel="noopener">
             Download app
           </PageLink>
           <MobileNavMenu current={current} />
@@ -161,7 +163,7 @@ export function PageHero({
   lede,
   meta,
   ctaLabel,
-  ctaHref = "Trust Trade Landing.html#download",
+  ctaHref = "Trust Trade Landing.html#waitlist",
   secondaryLabel,
   secondaryHref,
 }) {
@@ -231,7 +233,7 @@ export function PageWaitlistFooterCTA({
             </p>
           </div>
           <div className="page-cta-actions">
-            <PageLink href="Trust Trade Landing.html#download" className="btn btn-primary btn-lg">
+            <PageLink href="Trust Trade Landing.html#waitlist" className="btn btn-primary btn-lg">
               Get on the list →
             </PageLink>
             <PageLink href={secondaryHref} className="btn btn-ghost btn-lg">
@@ -265,7 +267,7 @@ export function PageDownloadCTA({
             </h2>
             <p className="lede">{lede}</p>
             <div className="final-actions">
-              <PageLink className="appstore-btn" href="Trust Trade Landing.html#download">
+              <PageLink className="appstore-btn" href={APP_STORE_URL} target="_blank" rel="noopener">
                 <span className="glyph" aria-hidden="true">
                   <svg width="22" height="24" viewBox="0 0 24 24" fill="currentColor">
                     <path d="M17.05 12.94c.02-2.34 1.92-3.47 2-3.52-1.09-1.6-2.79-1.82-3.4-1.85-1.43-.15-2.81.86-3.54.86-.74 0-1.86-.84-3.06-.82-1.57.02-3.03.92-3.84 2.33-1.65 2.86-.42 7.08 1.18 9.4.78 1.13 1.71 2.4 2.93 2.35 1.18-.05 1.63-.76 3.05-.76 1.42 0 1.82.76 3.06.74 1.27-.02 2.07-1.15 2.84-2.29.9-1.31 1.27-2.59 1.29-2.65-.03-.01-2.47-.95-2.51-3.79zM14.74 5.72c.66-.8 1.1-1.91.98-3.02-.95.04-2.09.63-2.77 1.43-.61.71-1.14 1.84-1 2.94 1.06.08 2.13-.54 2.79-1.35z" />
@@ -306,7 +308,7 @@ export function PageFooter() {
               trades.
             </p>
             <div className="footer-store">
-              <PageLink className="appstore-btn light" href="Trust Trade Landing.html#download">
+              <PageLink className="appstore-btn light" href={APP_STORE_URL} target="_blank" rel="noopener">
                 <span className="glyph" aria-hidden="true">
                   <svg width="20" height="22" viewBox="0 0 24 24" fill="currentColor">
                     <path d="M17.05 12.94c.02-2.34 1.92-3.47 2-3.52-1.09-1.6-2.79-1.82-3.4-1.85-1.43-.15-2.81.86-3.54.86-.74 0-1.86-.84-3.06-.82-1.57.02-3.03.92-3.84 2.33-1.65 2.86-.42 7.08 1.18 9.4.78 1.13 1.71 2.4 2.93 2.35 1.18-.05 1.63-.76 3.05-.76 1.42 0 1.82.76 3.06.74 1.27-.02 2.07-1.15 2.84-2.29.9-1.31 1.27-2.59 1.29-2.65-.03-.01-2.47-.95-2.51-3.79zM14.74 5.72c.66-.8 1.1-1.91.98-3.02-.95.04-2.09.63-2.77 1.43-.61.71-1.14 1.84-1 2.94 1.06.08 2.13-.54 2.79-1.35z" />
@@ -333,7 +335,7 @@ export function PageFooter() {
             <h3>For Tradies</h3>
             <ul>
               <li><PageLink href="For Tradies.html">Why join</PageLink></li>
-              <li><PageLink href="Trust Trade Landing.html#download">Apply</PageLink></li>
+              <li><PageLink href="/apply">Apply</PageLink></li>
               <li><PageLink href="FAQ.html#tradies">Tradie FAQ</PageLink></li>
               <li><a href="mailto:jake@trusttrade.au">Contact</a></li>
             </ul>

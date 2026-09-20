@@ -4,6 +4,7 @@ import {
   PageHero,
 } from "../components/PageChrome.jsx";
 import PageLink from "../components/PageLink.jsx";
+import { APP_STORE_URL } from "../routes.js";
 import { usePageReveal } from "../components/RedesignSections.jsx";
 import "../styles/hiw-redesign.css";
 
@@ -188,7 +189,7 @@ export default function OurStoryPage() {
               A real person answers. Usually me.
             </p>
             <div style={{ display: "flex", gap: 12, justifyContent: "center", flexWrap: "wrap", marginTop: 26 }}>
-              <PageLink href="Trust Trade Landing.html#download" className="btn btn-primary btn-lg">
+              <PageLink href={APP_STORE_URL} className="btn btn-primary btn-lg" target="_blank" rel="noopener">
                 Find a tradie
               </PageLink>
               <PageLink href="For Tradies.html" className="btn btn-ghost btn-lg">

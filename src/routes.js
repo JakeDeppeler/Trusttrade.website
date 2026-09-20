@@ -11,6 +11,10 @@ export const HREF_TO_ROUTE = {
   "Tools.html": "/tools",
 };
 
+// The live App Store listing. Australia-only, so the /au/ path is required:
+// the region-less apps.apple.com/app/<id> form 404s for this app.
+export const APP_STORE_URL = "https://apps.apple.com/au/app/trust-trade/id6778369757";
+
 export function resolveHref(href) {
   if (!href) return href;
   const [pathOnly, hash = ""] = href.split("#");

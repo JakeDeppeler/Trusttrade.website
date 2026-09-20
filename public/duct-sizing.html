@@ -2475,9 +2475,11 @@ function ducts(){
       }
     }
     const room = outNode && S.rooms.find(x=>x.id===b.room);
+    // Only flag a run once it's meaningfully out — >10% over the noise target or the
+    // velocity limit. A run a whisker over spec isn't worth a warning.
     const loud = outNode
-      ? ncOf(lps, r.d) > (NC_TARGET[room?room.type:'other']||35)+0.5
-      : v > velLimit(role)+0.05;
+      ? ncOf(lps, r.d) > (NC_TARGET[room?room.type:'other']||35)*1.1
+      : v > velLimit(role)*1.1;
     return {...s, id, a, b, a2, b2, c:fix.c, n:r.n, d:r.d, dUp, redT, lps, role, len,
       vel:v, limit:velLimit(role), nc: outNode ? ncOf(lps, r.d) : null,
       pa:frictionPaPerM(v, r.d), paTotal:frictionPaPerM(v,r.d)*len,
@@ -2501,7 +2503,7 @@ function ducts(){
         const v=velocity(s.lps, s.d, s.n);
         out.push({...s, c:fix.c, len, role, vel:v, limit:velLimit(role),
           pa:frictionPaPerM(v,s.d), paTotal:frictionPaPerM(v,s.d)*len,
-          loud: v > velLimit(role)+0.05,
+          loud: v > velLimit(role)*1.1,   // only warn once it's >10% over the limit
           bendFixed:fix.fixed, bendR:fix.R, bendWas:fix.was,
           tight: fix.R < GOOD_BEND*(s.d/1000)});
       });
@@ -3440,22 +3442,35 @@ const ductPx=d=>{
    so a long run with a reducer still reads as flex and still shows its airflow. */
 function flexDetail(d, px, col, ret, st){
   if(st==='flex' && S.zoom>.55){
-    const step=Math.max(0.13, 0.20 - px*0.002);
+    /* Real insulated flex reads as a tightly CORRUGATED tube: a shadowed groove with a
+       lit ridge just ahead of it, repeated down the run, plus a soft crown highlight so
+       it looks round rather than a flat ribbon. Ribs are batched into two strokes for
+       the whole run so the animation loop stays cheap. */
+    const step=Math.max(0.09, 0.15 - px*0.002);      // tighter pitch = more like real flex
     const L=bezLen(d.a,d.c,d.b);
-    const nribs=Math.min(90, Math.max(3, Math.round(L/step)));
-    ctx.strokeStyle=hexA(col,.22); ctx.lineWidth=Math.max(0.8, px*0.07);
-    ctx.beginPath();
+    const nribs=Math.min(140, Math.max(3, Math.round(L/step)));
+    const seg=[];
     for(let i=1;i<nribs;i++){
       const t=i/nribs;
       const p=w2s(dpt(d,t));
       const q=w2s(dpt(d,Math.min(1,t+0.012)));
       const dx=q.x-p.x, dy=q.y-p.y, m=Math.hypot(dx,dy)||1;
       const w=(d.dUp && d.redT!=null && t<d.redT) ? ductPx({...d,d:d.dUp}) : px;
-      const nx=-dy/m*(w*0.40), ny=dx/m*(w*0.40);
-      ctx.moveTo(p.x-nx, p.y-ny); ctx.lineTo(p.x+nx, p.y+ny);
+      seg.push({p, ux:dx/m, uy:dy/m, nx:-dy/m, ny:dx/m, hw:w*0.42});
     }
+    // shadowed grooves
+    ctx.strokeStyle=hexA(col,.34); ctx.lineWidth=Math.max(0.8, px*0.10);
+    ctx.beginPath();
+    seg.forEach(s=>{ ctx.moveTo(s.p.x-s.nx*s.hw, s.p.y-s.ny*s.hw); ctx.lineTo(s.p.x+s.nx*s.hw, s.p.y+s.ny*s.hw); });
     ctx.stroke();
-    ctx.strokeStyle=PAL().crown; ctx.lineWidth=Math.max(1, px*0.16);
+    // lit ridges a hair ahead of each groove — the embossed corrugation
+    ctx.strokeStyle='rgba(255,255,255,.30)'; ctx.lineWidth=Math.max(0.6, px*0.06);
+    ctx.beginPath();
+    seg.forEach(s=>{ const o=Math.max(1, px*0.11), ox=s.ux*o, oy=s.uy*o;
+      ctx.moveTo(s.p.x+ox-s.nx*s.hw, s.p.y+oy-s.ny*s.hw); ctx.lineTo(s.p.x+ox+s.nx*s.hw, s.p.y+oy+s.ny*s.hw); });
+    ctx.stroke();
+    // crown highlight down the middle for tube roundness
+    ctx.strokeStyle=PAL().crown; ctx.lineWidth=Math.max(1, px*0.20);
     pathOf(d); ctx.stroke();
   }
   if(VIEW().air){
@@ -3902,6 +3917,14 @@ function drawDampers(ds){
   const placeBack=(run, node, distM, tMin)=>{ let t=tMin;
     for(let s=0.98; s>=0; s-=0.02){ const p=dpt(run,s); if(Math.hypot(p.x-node.x, p.y-node.y) >= distM){ t=s; break; } }
     place(run, Math.max(tMin, t)); };
+  // Sit a damper a FIXED short distance OUT from the box on an outlet leg, so it always
+  // clamps hard to the BDO's spigot no matter how long the leg is (a fraction drifted off
+  // down long legs — which is why it looked to float mid-run). Scans out until it clears
+  // the collar.
+  const placeFwd=(run, node, distM, tMax)=>{ let t=0.06;
+    for(let s=0.04; s<=tMax; s+=0.02){ const p=dpt(run,s);
+      if(Math.hypot(p.x-node.x, p.y-node.y) >= distM){ t=s; break; } }
+    place(run, t); };
 
   legsByParent.forEach((legs, node)=>{
     const zones=[...new Set(legs.map(l=>l.zone).filter(zoneOk))];
@@ -3918,7 +3941,9 @@ function drawDampers(ds){
       // to the box on that zone's OWN outlet leg (the other side).
       zones.forEach(z=>{ if(drawn.has(z)) return;
         const leg=legs.find(l=>l.zone===z); if(!leg) return;
-        drawn.add(z); place(leg, node.junction?0.12:0.5); });
+        drawn.add(z);
+        if(node.junction) placeFwd(leg, node, 0.55, 0.6);   // hard on the BDO spigot
+        else place(leg, 0.5); });                             // straight off a plenum spigot
     }
   });
 }
@@ -7994,12 +8019,34 @@ const TO_GROUPS=[
 /* Grouped take-off model from the drawn job. */
 function takeoffModel(){
   const q=bom();
-  const skip=new Set(['consumable','waste','electrical']); // itemised in the kit instead
+  const ds=supplyDucts();
+  const byD=flexByD(ds), bags=bagsByD(ds);
+  // Flex is ORDERED IN BAGS, rounded up per run (a run to an outlet takes a full bag —
+  // you never splice the off-cut), with the cut metres shown alongside.
+  const flexRows=Object.keys(byD).map(Number).sort((a,b)=>a-b).map(d=>({
+    desc:`Insulated flex duct ${d}Ø ${S.rval||'R1.0'}`,
+    note:`${Math.ceil(byD[d])} m cut`,
+    qty:bags[d]||Math.max(1,Math.ceil((byD[d]||0)/BAG_M)), uom:'bag',
+    term:`insulated flexible duct ${d}`}));
+  // Each BDO carries its size in mm (the inlet Ø you order the box by), grouped by
+  // way-count + inlet size so a 3-way Ø300 and a 3-way Ø250 list separately.
+  const btoRows=(()=>{
+    const g={}; btoHubs().forEach(h=>{
+      const inlet=h.arms.find(a=>a.inlet)||h.arms[0];
+      const ways=Math.min(3, Math.max(2, h.arms.length-1));
+      const key=ways+'|'+(inlet&&inlet.d||'');
+      g[key]=(g[key]||0)+1; });
+    return Object.entries(g).sort().map(([k,n])=>{ const [ways,dia]=k.split('|');
+      return {desc:`Branch take-off, ${ways}-way (DBTO)`, note:dia?`Ø${dia} mm`:'',
+        qty:n, uom:'ea', term:`duct branch take off ${ways} way${dia?' '+dia:''}`}; });
+  })();
+  const skip=new Set(['consumable','waste','electrical','flex','bto']); // flex→bags, bto→sized, kit below
   const lines=q.L.filter(l=>!skip.has(l.cat));
-  const groups=TO_GROUPS.map(g=>({
-    name:g.name,
-    rows:lines.filter(l=>g.cats.includes(l.cat)).map(l=>({desc:l.desc,qty:l.qty,uom:l.uom,term:reeceTerm(l)}))
-  })).filter(g=>g.rows.length);
+  const groups=TO_GROUPS.map(g=>{
+    let rows=lines.filter(l=>g.cats.includes(l.cat)).map(l=>({desc:l.desc,qty:l.qty,uom:l.uom,term:reeceTerm(l)}));
+    if(g.cats.includes('flex')) rows=[...flexRows, ...rows, ...btoRows];
+    return {name:g.name, rows};
+  }).filter(g=>g.rows.length);
   groups.push({name:'Consumables & fixings — on every install', rows:installKit(q), kit:true});
   const count=groups.reduce((a,g)=>a+g.rows.length,0);
   return {groups, count, q};
@@ -8012,6 +8059,7 @@ function renderTakeoff(){
   }
   const m=takeoffModel();
   const rl='color:#2563eb;font-weight:600;text-decoration:none;font-size:12px';
+  const pQty=r=>r.qty+' '+r.uom+((r.qty!==1 && /^(bag|roll|pk|tube|tub|kit|set|coil)$/.test(r.uom))?'s':'');
   b.innerHTML=`
   <div class="card" style="display:flex;justify-content:space-between;align-items:center;gap:10px">
     <div>
@@ -8027,8 +8075,8 @@ function renderTakeoff(){
     <h3>${g.name}</h3>
     <table><thead><tr><th>Item</th><th class="n">Qty</th><th></th></tr></thead><tbody>
     ${g.rows.map(r=>`<tr>
-      <td>${r.desc}</td>
-      <td class="n">${r.qty} ${r.uom}</td>
+      <td>${r.desc}${r.note?` <span style="color:var(--muted);font-size:11px">· ${r.note}</span>`:''}</td>
+      <td class="n">${pQty(r)}</td>
       <td class="n"><a href="${REECE_SEARCH(r.term)}" target="_blank" rel="noopener" style="${rl}">Reece →</a></td>
     </tr>`).join('')}
     </tbody></table>`).join('')}
@@ -8038,8 +8086,8 @@ function renderTakeoff(){
 }
 function downloadTakeoffCSV(m){
   const esc=s=>`"${String(s==null?'':s).replace(/"/g,'""')}"`;
-  const rows=[['Group','Item','Qty','Unit','Reece search']];
-  m.groups.forEach(g=>g.rows.forEach(r=>rows.push([g.name,r.desc,r.qty,r.uom,REECE_SEARCH(r.term)])));
+  const rows=[['Group','Item','Detail','Qty','Unit','Reece search']];
+  m.groups.forEach(g=>g.rows.forEach(r=>rows.push([g.name,r.desc,r.note||'',r.qty,r.uom,REECE_SEARCH(r.term)])));
   const csv=rows.map(r=>r.map(esc).join(',')).join('\r\n');
   const blob=new Blob([csv],{type:'text/csv'});
   const a=document.createElement('a');
@@ -8050,10 +8098,11 @@ function printTakeoff(m){
   const t=m.q.t, u=m.q.u;
   const esc=s=>String(s==null?'':s).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
   const head=`${u?u.kw.toFixed(1)+' kW':''} ${SYS[S.sys].name} · ${ZONING[S.zoning].name} · ${t.zones} zone${t.zones>1?'s':''} · ${S.vents.length} outlets · ${t.area.toFixed(0)} m²`;
+  const pQty=r=>r.qty+' '+r.uom+((r.qty!==1 && /^(bag|roll|pk|tube|tub|kit|set|coil)$/.test(r.uom))?'s':'');
   const body=m.groups.map(g=>`
     <h2>${esc(g.name)}</h2>
     <table><thead><tr><th>Item</th><th class="q">Qty</th><th class="c">✓</th></tr></thead><tbody>
-    ${g.rows.map(r=>`<tr><td>${esc(r.desc)}</td><td class="q">${r.qty} ${esc(r.uom)}</td><td class="c"></td></tr>`).join('')}
+    ${g.rows.map(r=>`<tr><td>${esc(r.desc)}${r.note?` <span class="dt">· ${esc(r.note)}</span>`:''}</td><td class="q">${esc(pQty(r))}</td><td class="c"></td></tr>`).join('')}
     </tbody></table>`).join('');
   const w=window.open('','_blank');
   if(!w){ flash('Allow pop-ups to print the take-off'); return; }
@@ -8069,6 +8118,7 @@ function printTakeoff(m){
     th{color:#94a3b8;font-weight:600;font-size:11px;text-transform:uppercase}
     .q{text-align:right;white-space:nowrap;width:90px}
     .c{width:32px;text-align:center;color:#cbd5e1}
+    .dt{color:#94a3b8;font-size:11px}
     .foot{margin-top:20px;color:#94a3b8;font-size:11px;border-top:1px solid #e2e8f0;padding-top:8px}
     @media print{body{margin:14mm}}
   </style></head><body>

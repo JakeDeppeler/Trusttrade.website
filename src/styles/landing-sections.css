@@ -183,7 +183,9 @@ section.block { padding: clamp(80px, 10vw, 140px) 0; position: relative; }
 .hero-rating .stars { color: var(--accent-ink); letter-spacing: 2px; font-size: 15px; }
 .phone.sm { width: min(230px, 62vw); border-radius: 38px; padding: 8px; }
 .phone.sm .phone-screen { border-radius: 31px; }
-.showcase { padding: clamp(20px, 5vw, 48px) 0 clamp(24px, 3vw, 44px); overflow: hidden; }
+/* Showcase phones read as a preview strip — smaller than the hero phones. */
+.showcase .phone.sm { width: clamp(168px, 15vw, 186px); }
+.showcase { padding: clamp(20px, 5vw, 48px) 0 clamp(4px, 1.2vw, 14px); overflow: hidden; }
 /* .container (same element) sets `margin:0 auto` later in the cascade, which would
    reset margin-bottom to 0 — so scope to .showcase to win on specificity. */
 .showcase .showcase-head { text-align: center; margin-bottom: clamp(48px, 6vw, 76px); }
@@ -211,7 +213,7 @@ section.block { padding: clamp(80px, 10vw, 140px) 0; position: relative; }
 }
 
 .works {
-  padding: clamp(48px, 7vw, 90px) 0;
+  padding: clamp(28px, 4vw, 52px) 0;
   border-top: 1px solid var(--line); border-bottom: 1px solid var(--line);
   background: var(--bg-soft);
 }
@@ -242,6 +244,12 @@ section.block { padding: clamp(72px, 9vw, 130px) 0; position: relative; }
 .sec-intro { text-align: center; max-width: 720px; margin: 0 auto clamp(48px, 6vw, 76px); }
 .sec-intro .eyebrow { margin-bottom: 18px; }
 .sec-intro .lede { margin: 20px auto 0; text-align: center; }
+/* "Right tradie. First time." intro was competing with the hero — tighten the
+   top padding, drop the heading a size, pull the intro closer to the rows. */
+#how { padding-top: clamp(40px, 5vw, 78px); }
+#how .sec-intro { margin-bottom: clamp(28px, 3.5vw, 48px); }
+#how .sec-intro .h-1 { font-size: clamp(28px, 3.8vw, 40px); }
+#how .sec-intro .lede { max-width: 600px; }
 .feature-row {
   display: grid; grid-template-columns: 1fr; gap: 40px;
   align-items: center; margin-bottom: clamp(80px, 10vw, 140px);

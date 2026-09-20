@@ -3816,10 +3816,18 @@ function drawBTO(h){
   const thru=Math.atan2(-inlet.dir.y,-inlet.dir.x)+spun;
   const rel=outs.map(a=>{ let d=Math.atan2(a.dir.y,a.dir.x)-thru;
     while(d>Math.PI)d-=2*Math.PI; while(d<-Math.PI)d+=2*Math.PI; return {a,d}; }).sort((p,q)=>p.d-q.d);
+  // A BDO IS A RIGID CASTING — its spigots sit at the SAME fanned angles every time,
+  // no matter where each flex run ends up going. Earlier we pointed each collar down
+  // its own duct so there'd be no kink, but that deformed the moulding into a
+  // different blob per box. Instead: fixed fan slots (inlet always at the back),
+  // outlets assigned left-to-right by bearing so runs still don't cross. The flex
+  // articulates off the fixed spigot; the casting never changes shape.
+  const FAN={1:[0],2:[-38,38],3:[-46,0,46],4:[-58,-20,20,58]};
+  const slots=FAN[rel.length] || rel.map(r=>r.d*180/Math.PI);   // 5+ ways: fall back
   // collar OD IS the nominal duct Ø (his rule) — dia comes straight from each duct,
   // scale 0.24 × F makes the drawn collar exactly as wide as the drawn duct.
   const v19arms=[{angle:180, dia:inlet.d, len:LN}];
-  rel.forEach(r=> v19arms.push({angle: r.d*180/Math.PI, dia:r.a.d, len:LN}));
+  rel.forEach((r,i)=> v19arms.push({angle: slots[i], dia:r.a.d, len:LN}));
   const F=k/240;                                   // his units → true screen scale
   drawV19(c.x, c.y, R, v19arms, {hub:22, blend:14}, F, 'moulded');
 

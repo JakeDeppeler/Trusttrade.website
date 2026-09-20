@@ -71,6 +71,18 @@ const ALL_FAQS = FAQ_SECTIONS.flatMap((s) =>
   s.items.map((i) => ({ ...i, sectionId: s.id, sectionName: s.name }))
 );
 
+// FAQPage structured data — rendered into the (now prerendered) /faq HTML so
+// Google can show the questions as a rich result. Built from the same Q&A source.
+const FAQ_SCHEMA = {
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  mainEntity: ALL_FAQS.map((f) => ({
+    "@type": "Question",
+    name: f.q,
+    acceptedAnswer: { "@type": "Answer", text: f.a },
+  })),
+};
+
 export default function FAQPage() {
   const [query, setQuery] = useState("");
   const [openIds, setOpenIds] = useState({});
@@ -121,6 +133,10 @@ export default function FAQPage() {
 
   return (
     <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(FAQ_SCHEMA) }}
+      />
       <PageHeader current="FAQ.html" />
 
       <PageHero
@@ -145,7 +161,7 @@ export default function FAQPage() {
                   className={activeSection === sec.id ? "active" : ""}
                   onClick={() => scrollToSection(sec.id)}
                 >
-, {sec.name}
+                  {sec.name}
                 </button>
               ))}
             </div>

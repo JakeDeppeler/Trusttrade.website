@@ -568,8 +568,9 @@ fetch(SB+'/rest/v1/listings?select=*&status=eq.approved&deleted_at=is.null&slug=
     }
 
     const urls = [`${SITE}/tradie`, ...listings.map((l) => `${SITE}/tradie/${l.slug}`), ...hubUrls, ...areaUrls];
+    const lastmod = new Date().toISOString().slice(0, 10); // build date — tells crawlers these regenerated today
     writeFileSync("public/sitemap-tradies.xml",
-      `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls.map((u) => `  <url><loc>${u}</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>`).join("\n")}\n</urlset>\n`);
+      `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls.map((u) => `  <url><loc>${u}</loc><lastmod>${lastmod}</lastmod><changefreq>weekly</changefreq><priority>0.8</priority></url>`).join("\n")}\n</urlset>\n`);
 
     console.log(`[tradie-pages] generated ${listings.length} profiles + ${ALL_TRADES.length} trade hubs (${hubIndexed} indexed) + ${areaUrls.length} area pages + directory + _dynamic + sitemap`);
   } catch (e) {

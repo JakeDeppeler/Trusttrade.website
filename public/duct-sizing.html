@@ -242,6 +242,7 @@
     <label class="hbtn" for="file-proj">Open</label>
     <input type="file" id="file-proj" accept=".json" hidden/>
     <button class="hbtn" id="btn-save">Save</button>
+    <button class="hbtn" id="btn-plan" title="Download the plan as a PNG, with the duct-size colour chart">Plan</button>
     <button class="hbtn icon" id="btn-rules" title="What this can &amp; can't do">?</button>
     <button class="hbtn icon" id="btn-settings" title="Settings">⚙</button>
     <button class="hbtn primary" id="btn-print">Quote</button>
@@ -3935,7 +3936,7 @@ function drawDampers(ds){
       // inlet, clipped right to it, so it throttles both ducts at once (master, lounge,
       // kitchen/dining). Fixed 0.55 m setback keeps it hard against the BDO.
       const z=zones[0], inl=inletOf.get(node);
-      if(inl && !drawn.has(z)){ drawn.add(z); placeBack(inl, node, 0.65, 0.35); }
+      if(inl && !drawn.has(z)){ drawn.add(z); placeBack(inl, node, 0.4, 0.12); }  // snug against the box, not back down the trunk
     } else {
       // shared box, a single-vent room, or straight off a spigot → one per zone, clipped
       // to the box on that zone's OWN outlet leg (the other side).
@@ -8164,6 +8165,57 @@ $('#btn-print').onclick=()=>{
   $$('.pane').forEach(p=>p.classList.toggle('on',p.id==='pane-quote'));
   setTimeout(()=>print(),120);
 };
+
+/* Download the whole plan as a PNG, with the duct-size colour chart baked in so
+   whoever opens it can read which colour is which Ø. Fits the plan to the canvas,
+   snapshots it, then composes a header + the size chart underneath. */
+function downloadPlan(){
+  if(!S.rooms.length){ flash('Draw or load a plan first'); return; }
+  const savePan={x:S.pan.x,y:S.pan.y}, saveZoom=S.zoom;
+  fit();                                        // whole plan into view, then snapshot cv
+  const dpr=devicePixelRatio||1, S1=v=>Math.round(v*dpr);
+  const planW=cv.width, planH=cv.height;        // device px (already dpr-scaled)
+  const ds=supplyDucts(), byD=flexByD(ds), bags=bagsByD(ds);
+  const sizes=Object.keys(byD).map(Number).sort((a,b)=>a-b);
+  const t=totals();
+  const u=(S.unitPick&&CATALOG.find(p=>p.sku===S.unitPick))||unitFor(t.design,t.design*LPS_PER_KW);
+  const pad=S1(28), head=S1(66), rowH=S1(30), legTitle=S1(34);
+  const legH=legTitle + (sizes.length+1)*rowH + S1(20);
+  const outW=Math.max(planW, S1(560)) + pad*2;
+  const outH=head + planH + legH + pad*3;
+  const ec=document.createElement('canvas'); ec.width=outW; ec.height=outH;
+  const g=ec.getContext('2d'); const dark=S.dark;
+  const INK=dark?'#e8eef7':'#0f172a', MUT=dark?'#93a3bb':'#64748b', LINE=dark?'#2a3752':'#e2e8f0';
+  g.fillStyle=dark?'#0b1220':'#ffffff'; g.fillRect(0,0,outW,outH); g.textBaseline='top'; g.textAlign='left';
+  // header
+  g.fillStyle=INK; g.font=`700 ${S1(20)}px -apple-system,system-ui,sans-serif`;
+  g.fillText('Ducted design — plan', pad, pad);
+  g.fillStyle=MUT; g.font=`${S1(12.5)}px -apple-system,system-ui,sans-serif`;
+  g.fillText(`${t.area.toFixed(0)} m²  ·  ${t.design.toFixed(1)} kW design  ·  ${u?u.kw.toFixed(1)+' kW unit':''}  ·  ${t.zones} zones  ·  ${S.vents.length} outlets  ·  ${bagsTotal(ds)} bags`, pad, pad+S1(29));
+  // plan snapshot, centred
+  const px=Math.max(pad, pad+(outW-pad*2-planW)/2);
+  g.drawImage(cv, px, head+pad);
+  // size chart
+  const ly=head+pad+planH+pad;
+  g.strokeStyle=LINE; g.lineWidth=S1(1); g.beginPath(); g.moveTo(pad, ly-S1(8)); g.lineTo(outW-pad, ly-S1(8)); g.stroke();
+  g.fillStyle=INK; g.font=`700 ${S1(13)}px -apple-system,system-ui,sans-serif`; g.fillText('DUCT SIZE CHART', pad, ly);
+  let ry=ly+legTitle; g.font=`${S1(13)}px -apple-system,system-ui,sans-serif`;
+  sizes.forEach(sz=>{
+    g.fillStyle=SIZECOL[sz]||'#64748b'; g.fillRect(pad, ry+S1(2), S1(28), S1(15));
+    g.fillStyle=INK; g.fillText(`Ø${sz}`, pad+S1(40), ry);
+    g.fillStyle=MUT; g.fillText(`${Math.ceil(byD[sz])} m  ·  ${bags[sz]||Math.max(1,Math.ceil(byD[sz]/BAG_M))} bags`, pad+S1(120), ry);
+    ry+=rowH;
+  });
+  g.fillStyle=dark?'#334155':'#475569'; g.fillRect(pad, ry+S1(2), S1(28), S1(15));
+  g.fillStyle=INK; g.fillText('Return air', pad+S1(40), ry);
+  g.fillStyle=MUT; g.font=`${S1(11)}px -apple-system,system-ui,sans-serif`;
+  g.fillText('Trust Trade Ducted Designer · colours = duct Ø · flex ordered in whole bags per run', pad, outH-pad-S1(2));
+  // download + restore the view
+  const a=document.createElement('a'); a.href=ec.toDataURL('image/png'); a.download='ducted-plan.png'; a.click();
+  S.pan.x=savePan.x; S.pan.y=savePan.y; S.zoom=saveZoom; $('#z-lvl').textContent=Math.round(S.zoom*100)+'%'; draw();
+  flash('Plan PNG downloaded');
+}
+$('#btn-plan').onclick=downloadPlan;
 
 { const b=$('#btn-ai-read'); if(b) b.onclick=aiReadPlan; }
 

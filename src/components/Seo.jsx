@@ -72,12 +72,16 @@ function upsertMeta(attr, key, content) {
 export default function Seo() {
   const { pathname } = useLocation();
   useEffect(() => {
-    const meta = ROUTE_META[pathname] || {
+    // Normalize a trailing slash (e.g. /for-tradies/) back to the keyed path so a
+    // stray inbound link still gets the right title/description instead of the
+    // generic fallback.
+    const key = pathname !== "/" && pathname.endsWith("/") ? pathname.slice(0, -1) : pathname;
+    const meta = ROUTE_META[key] || {
       title: "Trust Trade®",
       description: DEFAULT_DESC,
     };
     const fullTitle = meta.exactTitle ? meta.title : `${meta.title} | Trust Trade®`;
-    const url = SITE + (pathname === "/" ? "/" : pathname);
+    const url = SITE + (key === "/" ? "/" : key);
 
     document.title = fullTitle;
     upsertMeta("name", "description", meta.description);

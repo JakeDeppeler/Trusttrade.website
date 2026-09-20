@@ -12,7 +12,43 @@ import Beasties from "beasties";
 const root = process.cwd();
 const dist = path.join(root, "dist");
 const ssrDir = path.join(root, ".ssr-build");
-const ROUTES = ["/"]; // only "/" is eager; other routes stay client-rendered
+const SITE = "https://trusttrade.au";
+
+// Per-route <head> stamping. The built template (dist/index.html) carries the
+// HOMEPAGE title/description/canonical/OG. If we injected each route's body into
+// that template untouched, every marketing page would ship the homepage's title
+// and a canonical pointing at "/" — telling search engines the whole funnel is a
+// duplicate of the homepage. So for non-home routes we overwrite those tags with
+// the route's own metadata (mirroring src/components/Seo.jsx so the static HTML and
+// the client agree).
+const esc = (s) =>
+  String(s)
+    .replace(/&/g, "&amp;")
+    .replace(/"/g, "&quot;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+
+function stampHead(html, url, meta) {
+  const pageUrl = SITE + (url === "/" ? "/" : url);
+  const fullTitle = meta.exactTitle ? meta.title : `${meta.title} | Trust Trade®`;
+  const ogTitle = meta.exactTitle ? meta.title : `${meta.title} · Trust Trade`;
+  const desc = meta.description || "";
+  const set = [
+    [/<title>[\s\S]*?<\/title>/, `<title>${esc(fullTitle)}</title>`],
+    [/<meta\s+name="description"[\s\S]*?\/>/, `<meta name="description" content="${esc(desc)}" />`],
+    [/<link\s+rel="canonical"[^>]*\/>/, `<link rel="canonical" href="${esc(pageUrl)}" />`],
+    [/<meta\s+property="og:title"[^>]*\/>/, `<meta property="og:title" content="${esc(ogTitle)}" />`],
+    [/<meta\s+property="og:description"[^>]*\/>/, `<meta property="og:description" content="${esc(desc)}" />`],
+    [/<meta\s+property="og:url"[^>]*\/>/, `<meta property="og:url" content="${esc(pageUrl)}" />`],
+    [/<meta\s+name="twitter:title"[^>]*\/>/, `<meta name="twitter:title" content="${esc(ogTitle)}" />`],
+    [/<meta\s+name="twitter:description"[^>]*\/>/, `<meta name="twitter:description" content="${esc(desc)}" />`],
+    // The hero image preload only helps the homepage LCP — drop it on subpages.
+    [/\s*<link\s+rel="preload"\s+as="image"[^>]*\/>/, ""],
+  ];
+  let out = html;
+  for (const [re, rep] of set) out = out.replace(re, rep);
+  return out;
+}
 
 // 1. Build the SSR bundle (inherits vite.config.js: react plugin, etc.).
 await build({
@@ -26,7 +62,11 @@ await build({
 });
 
 // 2. Render each route and inject into the built template.
-const { render } = await import(pathToFileURL(path.join(ssrDir, "entry-server.js")).href);
+const { render, ROUTE_META } = await import(pathToFileURL(path.join(ssrDir, "entry-server.js")).href);
+// Prerender every marketing route we have metadata for: "/" (eager) plus each
+// static page. Client-side code-splitting is untouched — this only affects the
+// static HTML the crawler and social scrapers see first.
+const ROUTES = Object.keys(ROUTE_META);
 const template = fs.readFileSync(path.join(dist, "index.html"), "utf8");
 const MARKER = '<div id="root"></div>';
 if (!template.includes(MARKER)) {
@@ -54,12 +94,15 @@ const beasties = new Beasties({
 });
 
 for (const url of ROUTES) {
-  const appHtml = render(url);
+  const appHtml = await render(url);
   if (!appHtml || appHtml.length < 500) {
     console.error(`prerender: ${url} produced suspiciously small HTML (${appHtml && appHtml.length} bytes) — aborting.`);
     process.exit(1);
   }
-  const out = template.replace(MARKER, `<div id="root">${appHtml}</div>`);
+  // Home keeps the template's rich head as-is (keywords + full JSON-LD); every
+  // other route gets its own title/description/canonical/OG stamped in.
+  const headed = url === "/" ? template : stampHead(template, url, ROUTE_META[url]);
+  const out = headed.replace(MARKER, `<div id="root">${appHtml}</div>`);
   let finalHtml;
   try {
     finalHtml = await beasties.process(out);

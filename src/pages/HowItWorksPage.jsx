@@ -71,7 +71,7 @@ export default function HowItWorksPage() {
         eyebrow="How it works"
         title="Tap. Match."
         italicWord="Done."
-        lede="Three taps from 'something's wrong' to a tradie in the diary with a price in writing. Here's exactly what happens in between, on both sides of the app."
+        lede="It's 6pm, the hot water's gone cold, and you couldn't pick a good plumber from a dodgy one. Here's the whole story of how Trust Trade gets you from there to a verified local in your diary — with a price in writing — in about three taps. Follow it the whole way down."
         meta={[
           { k: "Time to quote", v: "~3 minutes" },
           { k: "Steps for you", v: "Three" },
@@ -164,8 +164,9 @@ How we verify</div>
               Vetted four ways <span className="it">before they're listed.</span>
             </h2>
             <p className="lede">
-              Every tradie you're matched with is checked before the first job ever lands in front
-              of you. Fail any one and it's a hard no, not a "proceed with caution".
+              That shortlist is only worth something if every name on it is the real deal. So before
+              a tradie can turn up in it, they clear four checks — fail any one and it's a hard no,
+              not a "proceed with caution".
             </p>
           </div>
 
@@ -194,8 +195,9 @@ What you see on a profile</div>
               Every claim <span className="it">links to a check.</span>
             </h2>
             <p className="lede">
-              If we say "licenced", you can tap it and see which regulator, what class, when we last
-              checked. No hand-waving "verified" badges.
+              "Verified" is easy to slap on a profile. Ours isn't a sticker — tap any claim on a
+              tradie's profile and the receipt's right there: which regulator, what class, when we
+              last checked.
             </p>
           </div>
 
@@ -252,8 +254,9 @@ The tradie side</div>
               A clear job ticket. <span className="it">Not a bidding war.</span>
             </h2>
             <p className="lede">
-              On the other end, your job lands as one clean brief, the trade, the suburb, the
-              urgency, the photos, with a 60-second window to claim it or pass.
+              That's your side of the glass. Flip it over: on the other end, your job lands as one
+              clean brief — the trade, the suburb, the urgency, the photos — with a 60-second window
+              to claim it or pass.
             </p>
           </div>
 
@@ -287,6 +290,10 @@ After the job</div>
             <h2 className="h-1">
               Receipts, reviews, <span className="it">repeat.</span>
             </h2>
+            <p className="lede">
+              The spanner's back in the ute — but the job doesn't just evaporate. Here's what Trust
+              Trade holds onto once the work's done, so the next one's even easier.
+            </p>
           </div>
 
           <div className="checklist reveal" style={{ "--rd": "60ms" }}>

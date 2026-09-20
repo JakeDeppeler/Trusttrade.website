@@ -196,6 +196,20 @@ section.block { padding: clamp(80px, 10vw, 140px) 0; position: relative; }
 @keyframes scroll-x { from { transform: translateX(0); } to { transform: translateX(-50%); } }
 .showcase-marquee .phone { flex-shrink: 0; }
 @media (prefers-reduced-motion: reduce) { .showcase-track { animation: none; } }
+
+/* Mobile: tidy the app showcase — smaller phones read as a preview strip,
+   heading gets more breathing room so it doesn't feel cramped. */
+@media (max-width: 640px) {
+  .showcase { padding-top: clamp(36px, 9vw, 56px); }
+  .showcase .showcase-head { margin-bottom: clamp(24px, 6vw, 34px); padding-left: 20px; padding-right: 20px; }
+  .showcase .showcase-head .eyebrow { margin-bottom: 10px !important; font-size: 11px; }
+  .showcase .showcase-head .h-2 { font-size: clamp(21px, 5.6vw, 26px); line-height: 1.14; letter-spacing: -0.02em; }
+  .showcase .phone.sm { width: 150px; padding: 6px; border-radius: 30px; }
+  .showcase .phone.sm .phone-screen { border-radius: 25px; }
+  .showcase-track { gap: 26px; }
+  .showcase-marquee { padding: 6px 0; }
+}
+
 .works {
   padding: clamp(48px, 7vw, 90px) 0;
   border-top: 1px solid var(--line); border-bottom: 1px solid var(--line);

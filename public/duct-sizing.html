@@ -3539,6 +3539,28 @@ const ductPx=d=>{
   // stop growing, so it looked to SHRINK relative to everything else on zoom-in.)
   return Math.max(2.5, w);
 };
+/* ---- metallic tube shading. Real insulated flex is a foil/silver sleeve over a
+   wire helix: a round tube with a dark rim, a desaturated foil body and a bright
+   sheen down the crown. We fake the cylinder with concentric centred strokes
+   (widest+darkest at the rim → narrow+bright at the crown), tinted by the size
+   colour so you can still read it. */
+const _h2r=h=>{h=(h||'#000').replace('#','');if(h.length===3)h=h.split('').map(c=>c+c).join('');const n=parseInt(h,16);return [(n>>16)&255,(n>>8)&255,n&255];};
+const _rgba=(r,g,b,a)=>`rgba(${Math.round(r)},${Math.round(g)},${Math.round(b)},${a==null?1:a})`;
+function cshade(hex,f,a){const [r,g,b]=_h2r(hex);const m=v=> f<=1 ? v*f : v+(255-v)*(f-1);return _rgba(m(r),m(g),m(b),a);}
+function cmix(h1,h2,t,a){const A=_h2r(h1),B=_h2r(h2);return _rgba(A[0]+(B[0]-A[0])*t,A[1]+(B[1]-A[1])*t,A[2]+(B[2]-A[2])*t,a);}
+const FLEX_SILVER='#cfd7df';
+function tubeStroke(drawPath, px, col, ret){
+  const a = ret?0.82:1;
+  const rim  = cmix(cshade(col,0.62), FLEX_SILVER, 0.28, a);   // dark rim
+  const body = cmix(col, FLEX_SILVER, 0.40, a);                // foil-tinted body
+  const upper= cmix(cmix(col,FLEX_SILVER,0.62), '#ffffff', 0.22, a);
+  const spec = cmix('#ffffff', col, 0.10, ret?0.55:0.85);      // sheen
+  ctx.lineCap='round';
+  ctx.strokeStyle=rim;   ctx.lineWidth=px+2;          drawPath(); ctx.stroke();
+  ctx.strokeStyle=body;  ctx.lineWidth=Math.max(1,px*0.88); drawPath(); ctx.stroke();
+  ctx.strokeStyle=upper; ctx.lineWidth=Math.max(1,px*0.5);  drawPath(); ctx.stroke();
+  ctx.strokeStyle=spec;  ctx.lineWidth=Math.max(0.8,px*0.16); drawPath(); ctx.stroke();
+}
 /* Ribs, crown highlight and the moving air — shared by one-size and two-size runs,
    so a long run with a reducer still reads as flex and still shows its airflow. */
 function flexDetail(d, px, col, ret, st){
@@ -3559,19 +3581,24 @@ function flexDetail(d, px, col, ret, st){
       const w=(d.dUp && d.redT!=null && t<d.redT) ? ductPx({...d,d:d.dUp}) : px;
       seg.push({p, ux:dx/m, uy:dy/m, nx:-dy/m, ny:dx/m, hw:w*0.42});
     }
+    /* HELICAL corrugation. A flex sleeve is a spiral wire, so the ribs run DIAGONALLY
+       across the tube, not straight across — tilt each rib along the run to match. */
+    const T=px*0.55;                                  // helix tilt
     // shadowed grooves
-    ctx.strokeStyle=hexA(col,.34); ctx.lineWidth=Math.max(0.8, px*0.10);
+    ctx.strokeStyle=cshade(col,0.5,0.42); ctx.lineWidth=Math.max(0.8, px*0.11);
     ctx.beginPath();
-    seg.forEach(s=>{ ctx.moveTo(s.p.x-s.nx*s.hw, s.p.y-s.ny*s.hw); ctx.lineTo(s.p.x+s.nx*s.hw, s.p.y+s.ny*s.hw); });
+    seg.forEach(s=>{ ctx.moveTo(s.p.x-s.nx*s.hw-s.ux*T, s.p.y-s.ny*s.hw-s.uy*T);
+                     ctx.lineTo(s.p.x+s.nx*s.hw+s.ux*T, s.p.y+s.ny*s.hw+s.uy*T); });
     ctx.stroke();
     // lit ridges a hair ahead of each groove — the embossed corrugation
-    ctx.strokeStyle='rgba(255,255,255,.30)'; ctx.lineWidth=Math.max(0.6, px*0.06);
+    ctx.strokeStyle='rgba(255,255,255,.34)'; ctx.lineWidth=Math.max(0.6, px*0.07);
     ctx.beginPath();
-    seg.forEach(s=>{ const o=Math.max(1, px*0.11), ox=s.ux*o, oy=s.uy*o;
-      ctx.moveTo(s.p.x+ox-s.nx*s.hw, s.p.y+oy-s.ny*s.hw); ctx.lineTo(s.p.x+ox+s.nx*s.hw, s.p.y+oy+s.ny*s.hw); });
+    seg.forEach(s=>{ const o=Math.max(1, px*0.12), ox=s.ux*o, oy=s.uy*o;
+      ctx.moveTo(s.p.x+ox-s.nx*s.hw-s.ux*T, s.p.y+oy-s.ny*s.hw-s.uy*T);
+      ctx.lineTo(s.p.x+ox+s.nx*s.hw+s.ux*T, s.p.y+oy+s.ny*s.hw+s.uy*T); });
     ctx.stroke();
-    // crown highlight down the middle for tube roundness
-    ctx.strokeStyle=PAL().crown; ctx.lineWidth=Math.max(1, px*0.20);
+    // crown sheen down the middle for tube roundness
+    ctx.strokeStyle=PAL().crown; ctx.lineWidth=Math.max(1, px*0.18);
     pathOf(d); ctx.stroke();
   }
   if(VIEW().air){
@@ -3660,10 +3687,8 @@ function drawDuct(d){
     /* LONG RUN: one size up from the box, a reducer, then the outlet size home. */
     const colUp=S.colorBy==='zone' ? col : (SIZECOL[d.dUp]||col);
     const tR=d.redT, ov=0.02;                       // overlap under the reducer — no gap
-    ctx.strokeStyle=hexA(colUp,.22); ctx.lineWidth=pxUp+4; pathSeg(d,0,tR+ov); ctx.stroke();
-    ctx.strokeStyle=hexA(colUp,.62); ctx.lineWidth=pxUp;   pathSeg(d,0,tR+ov); ctx.stroke();
-    ctx.strokeStyle=hexA(col,.22); ctx.lineWidth=px+4; pathSeg(d,Math.max(0,tR-ov),1); ctx.stroke();
-    ctx.strokeStyle=hexA(col,.62); ctx.lineWidth=px;   pathSeg(d,Math.max(0,tR-ov),1); ctx.stroke();
+    tubeStroke(()=>pathSeg(d,0,tR+ov), pxUp, colUp, ret);
+    tubeStroke(()=>pathSeg(d,Math.max(0,tR-ov),1), px, col, ret);
     // the REDUCER — a short galv taper where the size steps down
     { const p=w2s(dpt(d,d.redT)), q=w2s(dpt(d,Math.min(1,d.redT+0.02)));
       const dx=q.x-p.x, dy=q.y-p.y, m=Math.hypot(dx,dy)||1;
@@ -3681,8 +3706,7 @@ function drawDuct(d){
       ctx.closePath(); ctx.fill(); ctx.stroke(); ctx.restore(); }
     flexDetail(d, px, col, ret, st);
   } else {
-    ctx.strokeStyle=hexA(col,ret?.30:.22); ctx.lineWidth=px+4; pathOf(d); ctx.stroke();
-    ctx.strokeStyle=hexA(col,ret?.72:.62); ctx.lineWidth=px;   pathOf(d); ctx.stroke();
+    tubeStroke(()=>pathOf(d), px, col, ret);
     flexDetail(d, px, col, ret, st);
   }
   // a bend we had to open up to keep the air moving

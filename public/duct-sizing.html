@@ -3215,7 +3215,9 @@ function bestUnitRot(p){
 function refineUnitBends(){
   if(!S.unit || !S.vents.length) return;
   const base=diagnostics();
-  if(!(base.kinks||[]).length) return;                    // no actual kink — the arcs are all smooth
+  // fire for an actual kink, a crossing, or a run under the box — the three things a bad
+  // unit spot causes. All clean → leave the unit exactly where it is.
+  if(!((base.kinks||[]).length || base.crossings || base.underUnit)) return;
   const u0={x:S.unit.x, y:S.unit.y}, rot0=S.rot, routes0=S.routes;
   const x1=Math.min(...S.rooms.map(r=>r.x))+0.4, x2=Math.max(...S.rooms.map(r=>r.x+r.w))-0.4;
   const y1=Math.min(...S.rooms.map(r=>r.y))+0.4, y2=Math.max(...S.rooms.map(r=>r.y+r.h))-0.4;
@@ -3224,7 +3226,7 @@ function refineUnitBends(){
   /* A kink dominates everything — one is worth 1000. Under that, prefer the plan with the
      rounder bends (bendCost), then the shortest supply, then the spot nearest the optimised
      centre. A crossing or a run under the box disqualifies a candidate. */
-  const key=(dg,x,y)=> (dg.kinks||[]).length*1000 + bendCost(dg)
+  const key=(dg,x,y)=> ((dg.kinks||[]).length + dg.crossings + dg.underUnit)*1000 + bendCost(dg)
                      + Math.max(0, dg.supplyM-baseLen)*2 + Math.hypot(x-u0.x,y-u0.y)*3;
   /* A fresh REAL route is ~230 ms (chain placement + every bend fitted) — too slow to scan
      wholesale. But a spot that clears the tight sweeps is almost always a short step from the
@@ -4194,14 +4196,16 @@ function drawDampers(ds){
       // inlet, clipped right to it, so it throttles both ducts at once (master, lounge,
       // kitchen/dining). Fixed 0.55 m setback keeps it hard against the BDO.
       const z=zones[0], inl=inletOf.get(node);
-      if(inl && !drawn.has(z)){ drawn.add(z); placeBack(inl, node, 0.4, 0.12); }  // snug against the box, not back down the trunk
+      if(inl && !drawn.has(z)){ drawn.add(z); placeBack(inl, node, 0.28, 0.08); }  // BOLTED to the box inlet collar
     } else {
       // shared box, a single-vent room, or straight off a spigot → one per zone, clipped
       // to the box on that zone's OWN outlet leg (the other side).
       zones.forEach(z=>{ if(drawn.has(z)) return;
         const leg=legs.find(l=>l.zone===z); if(!leg) return;
         drawn.add(z);
-        if(node.junction) placeFwd(leg, node, 0.55, 0.6);   // hard on the BDO spigot
+        // BOLTED ONTO THE BDO: sit the damper right on the outlet SPIGOT (inside the collar
+        // lead), so it reads as part of the casting and the duct leaves off the END of it.
+        if(node.junction) placeFwd(leg, node, COLLAR_LEAD*0.72, 0.5);
         else place(leg, 0.5); });                             // straight off a plenum spigot
     }
   });
@@ -5091,9 +5095,13 @@ cv.addEventListener('pointerup',()=>{
       }
     }
     // dragged the fan coil by hand → REDESIGN off the new spot: reface it at the rooms,
-    // clear any stuck box positions, and re-route the whole plan fresh so nothing kinks
-    // against the old layout.
-    if(S.drag.h && S.drag.h.k==='unit' && S.unit){ S.rot=bestUnitRot(S.unit); S.boxes={}; S.routes={}; PLAN_NONCE++; }
+    // clear any stuck box positions, re-route the whole plan fresh, then a small clean-up
+    // nudge so dropping it near a tangle-spot settles to the nearest clean one instead of
+    // leaving crossings/kinks (that's the "it breaks when I move it").
+    if(S.drag.h && S.drag.h.k==='unit' && S.unit){
+      S.rot=bestUnitRot(S.unit); S.boxes={}; S.routes={}; PLAN_NONCE++;
+      refineUnitBends();
+    }
     commit();
   }
   /* A CLICK (no drag) on a part → the edit-in-place popover: flip/plenum/rotate on

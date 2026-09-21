@@ -2317,6 +2317,74 @@ function leaveDirOf(a, parentMap){
 const bendOf=(id,a,b)=>S.routes[id]||(S.routes[id]=defaultBend(a,b));
 const bez=(a,c,b,t)=>({x:(1-t)**2*a.x+2*(1-t)*t*c.x+t*t*b.x, y:(1-t)**2*a.y+2*(1-t)*t*c.y+t*t*b.y});
 function bezLen(a,c,b){let L=0,p=a; for(let i=1;i<=16;i++){const q=bez(a,c,b,i/16);L+=dist(p,q);p=q;} return L;}
+/* CUBIC SWEEP — the run leaves its collar tangent to the arm, and (into a BDO) lands
+   tangent to the inlet collar. A cubic has a handle on EACH end, so BOTH tangents are
+   honoured at once — the quadratic could only satisfy one, which is what put a corner
+   at the collar mouth whenever relaxBend dragged its single control off-axis. Here the
+   handles ALWAYS lie on the collar axes (no corner is possible); we just grow them until
+   the tightest point clears the minimum bend radius. Growing a handle opens the arc while
+   keeping the tangent — so a run can never kink, only sweep wider. */
+const cbz=(A,P1,P2,B,t)=>{const u=1-t,uu=u*u,tt=t*t;
+  return {x:uu*u*A.x+3*uu*t*P1.x+3*u*tt*P2.x+tt*t*B.x,
+          y:uu*u*A.y+3*uu*t*P1.y+3*u*tt*P2.y+tt*t*B.y};};
+function cbzLen(A,P1,P2,B){let L=0,p=A;for(let i=1;i<=20;i++){const q=cbz(A,P1,P2,B,i/20);L+=dist(p,q);p=q;}return L;}
+function cbzMinR(A,P1,P2,B){let mn=Infinity,pr=A,cu=cbz(A,P1,P2,B,1/44);
+  for(let i=2;i<=44;i++){const nx=cbz(A,P1,P2,B,i/44);
+    const d2=2*((cu.x-pr.x)*(nx.y-pr.y)-(cu.y-pr.y)*(nx.x-pr.x));
+    if(Math.abs(d2)>1e-9){
+      const ux=((cu.x*cu.x-pr.x*pr.x+cu.y*cu.y-pr.y*pr.y)*(nx.y-pr.y)-(nx.x*nx.x-pr.x*pr.x+nx.y*nx.y-pr.y*pr.y)*(cu.y-pr.y))/d2;
+      const uy=((nx.x*nx.x-pr.x*pr.x+nx.y*nx.y-pr.y*pr.y)*(cu.x-pr.x)-(cu.x*cu.x-pr.x*pr.x+cu.y*cu.y-pr.y*pr.y)*(nx.x-pr.x))/d2;
+      const R=Math.hypot(pr.x-ux,pr.y-uy);if(R<mn)mn=R;}
+    pr=cu;cu=nx;}
+  return mn;}
+/* does the cubic loop back over itself? (a ballooned handle makes a hairpin loop —
+   worse than a kink). Sample it and test for a self-crossing. */
+function cbzSelfHits(A,P1,P2,B){
+  const N=26, pts=[]; for(let i=0;i<=N;i++) pts.push(cbz(A,P1,P2,B,i/N));
+  const seg=(p1,p2,p3,p4)=>{const den=(p4.y-p3.y)*(p2.x-p1.x)-(p4.x-p3.x)*(p2.y-p1.y);
+    if(Math.abs(den)<1e-12)return false;
+    const ua=((p4.x-p3.x)*(p1.y-p3.y)-(p4.y-p3.y)*(p1.x-p3.x))/den,
+          ub=((p2.x-p1.x)*(p1.y-p3.y)-(p2.y-p1.y)*(p1.x-p3.x))/den;
+    return ua>0.01&&ua<0.99&&ub>0.01&&ub<0.99;};
+  for(let i=0;i<N;i++)for(let j=i+2;j<N;j++){ if(i===0&&j===N-1) continue;
+    if(seg(pts[i],pts[i+1],pts[j],pts[j+1])) return true; }
+  return false;
+}
+/* THE CUBIC. Leave handle is PINNED to the spigot/arm axis (Ldir) — the duct always
+   leaves the collar straight. The arrival handle tries the BDO's inlet-collar axis first
+   (dirIn) so the run lands square in the collar; but if that collar faces away from where
+   the trunk comes from, honouring it would loop the run — so we fall back to arriving
+   along the chord, which can never loop. For each candidate we scan the handle length and
+   keep the smoothest (largest-radius) NON-LOOPING arc, taking the first that clears the
+   min bend radius. Result: no kink and no loop, ever — only a wider or gentler sweep. */
+function cubicHandles(A,B,Ldir,dirIn,dia){
+  const gap=dist(A,B)||1, floor=minBendR(dia);
+  const chord={x:(B.x-A.x)/gap, y:(B.y-A.y)/gap};
+  /* the SMOOTHEST arrival for a fixed leave tangent is the mirror of Ldir across the
+     chord — that makes the run a symmetric circular-arc-like sweep (the roundest curve
+     that leaves along Ldir and reaches B). It's the rescue for a spigot that points away
+     from its box: instead of an L or a hairpin, one wide even arc. */
+  const cr=chord.x*Ldir.y-chord.y*Ldir.x, dt=chord.x*Ldir.x+chord.y*Ldir.y;
+  const alpha=Math.atan2(cr,dt), ca=Math.cos(-alpha), sa=Math.sin(-alpha);
+  const mirror={x:chord.x*ca-chord.y*sa, y:chord.x*sa+chord.y*ca};
+  const cands=[]; if(dirIn) cands.push(dirIn); cands.push(mirror, chord);
+  let best=null;
+  for(const Adir of cands){
+    for(let s=0.30; s<=1.35; s+=0.09){
+      const h=gap*s;
+      const P1={x:A.x+Ldir.x*h, y:A.y+Ldir.y*h};
+      const P2={x:B.x-Adir.x*h, y:B.y-Adir.y*h};
+      if(cbzSelfHits(A,P1,P2,B)) continue;         // reject any looping arc
+      const R=cbzMinR(A,P1,P2,B);
+      if(!best || R>best.R) best={P1,P2,R};
+      if(R>=floor) return {P1:best.P1, P2:best.P2};
+    }
+    if(best && best.R>=floor) break;
+  }
+  if(best) return {P1:best.P1, P2:best.P2};
+  const h=gap*0.4;                                 // last resort: gentle chord arc
+  return {P1:{x:A.x+Ldir.x*h,y:A.y+Ldir.y*h}, P2:{x:B.x-chord.x*h,y:B.y-chord.y*h}};
+}
 
 /* MULTI-POINT FLEX. A run can carry a list of WAYPOINTS you drop along it (one per
    metre, or wherever you want a bend). With waypoints it's a smooth Catmull-Rom
@@ -2391,7 +2459,9 @@ function knotsOf(d){
   return P;
 }
 function dpt(d,t){ const P=knotsOf(d);
-  return P ? crPoint(P, t) : bez(d.a2||d.a,d.c,d.b2||d.b,t); }
+  if(P) return crPoint(P, t);                       // hand-drawn waypoint spline
+  if(d.hc) return cbz(d.a2||d.a, d.hc.P1, d.hc.P2, d.b2||d.b, t);   // collar-tangent sweep
+  return bez(d.a2||d.a,d.c,d.b2||d.b,t); }          // plain quadratic (no collar lead)
 function dlen(d){ let L=0,p=dpt(d,0); for(let i=1;i<=24;i++){const q=dpt(d,i/24);L+=dist(p,q);p=q;} return L; }
 function splineLenOf(a,wp,b){ const P=[a,...wp,b]; let L=0,p=crPoint(P,0);
   for(let i=1;i<=24;i++){const q=crPoint(P,i/24);L+=dist(p,q);p=q;} return L; }
@@ -2516,40 +2586,29 @@ function ducts(){
                  const rx=cx*co-cy*si, ry=cx*si+cy*co; cx=rx; cy=ry; }
                return {x:b.x+cx*COLLAR_LEAD, y:b.y+cy*COLLAR_LEAD}; })()
       : null;
-    /* THE SWEEP. The run must PIVOT AT THE COLLAR — tangent to the collar axis as it
-       leaves — and land tangent to the BDO's inlet collar where there is one. So the
-       quadratic's control point sits ON the leave axis (ideally at its intersection
-       with the arrival axis, which makes BOTH ends tangent). Never a hard corner:
-       if the target sits behind the collar (fold risk), keep the broad safe arc. */
+    /* THE SWEEP as a CUBIC: one handle on the leave arm, one on the BDO inlet collar,
+       so the run pivots AT the collar (tangent as it leaves) AND lands tangent to the
+       inlet — both ends at once, which a single-control quadratic could never do. The
+       handles are grown until the tightest point clears the min bend radius, so the run
+       can only ever sweep wider, never corner. This is the geometry that draws. */
+    let hc=null;
     if(a2 && !hasWp){
-      const Ld=leaveDir, dxb=(b2||b).x-a2.x, dyb=(b2||b).y-a2.y;
-      const distB=Math.hypot(dxb,dyb)||1, fwd=dxb*Ld.x+dyb*Ld.y;
-      let c=null;
-      if(b2){
-        const Ad={x:b2.x-b.x, y:b2.y-b.y}; const al=Math.hypot(Ad.x,Ad.y)||1; Ad.x/=al; Ad.y/=al;
-        const den=Ld.x*Ad.y-Ld.y*Ad.x;
-        if(Math.abs(den)>1e-6){
-          const wx=b2.x-a2.x, wy=b2.y-a2.y;
-          const sI=(wx*Ad.y-wy*Ad.x)/den, tI=(wx*Ld.y-wy*Ld.x)/den;
-          /* control at 3/4 of the way to the axis intersection: still tangent at the
-             collar, but the curve starts EARLIER — a longer, rounder sweep instead of
-             straight-then-turn. */
-          if(sI>0.05 && tI>0.05 && sI<distB*2 && tI<distB*2)
-            c={x:a2.x+Ld.x*sI*0.75, y:a2.y+Ld.y*sI*0.75};
-        }
-      }
-      if(!c){
-        /* No axis intersection (or the box sits beside/behind the collar): STILL leave
-           along the collar axis — control point ahead on the axis — so the run sweeps
-           out and turns in one wide arc. Even a full U-turn is a sweep, never a corner. */
-        const s2=Math.min(Math.max(fwd>0 ? fwd*0.45 : distB*0.45, 0.35), Math.max(distB,0.6));
-        c={x:a2.x+Ld.x*s2, y:a2.y+Ld.y*s2};
-      }
-      fix=relaxBend(a2, c, b2||b, r.d);
+      const A=a2, B=b2||b, Ld=leaveDir;
+      let Adir;                                     // tangent the run must ARRIVE on
+      if(b2){ const ax=b.x-b2.x, ay=b.y-b2.y, al=Math.hypot(ax,ay)||1; Adir={x:ax/al,y:ay/al}; }
+      else  { const ax=B.x-A.x, ay=B.y-A.y, al=Math.hypot(ax,ay)||1; Adir={x:ax/al,y:ay/al}; }
+      hc=cubicHandles(A, B, Ld, Adir, r.d);
+      const Rreal=cbzMinR(A, hc.P1, hc.P2, B);
+      // belly midpoint stands in for the old quadratic control (sibling-separation +
+      // BDO leg-direction hint read it); the VISIBLE curve is the cubic.
+      fix={c:{x:(hc.P1.x+hc.P2.x)/2, y:(hc.P1.y+hc.P2.y)/2},
+           fixed: Rreal < minBendR(r.d)*1.02, R:Rreal, was:fix.was};
     }
-    // waypoint runs measure their real spline length (plus the lead); a plain run uses its bezier
+    // waypoint runs measure their real spline length; a cubic run measures the cubic; a
+    // plain run its bezier — all plus the collar leads.
     const len=(hasWp ? (LEAD + splineLenOf(a2||a, rObj.wp, b))
-                     : (LEAD + bezLen(a2||a,fix.c,b2||b) + (b2?COLLAR_LEAD:0)))*FLEX_SLACK;
+                     : hc ? (LEAD + cbzLen(a2, hc.P1, hc.P2, b2||b) + (b2?COLLAR_LEAD:0))
+                          : (LEAD + bezLen(a2||a,fix.c,b2||b) + (b2?COLLAR_LEAD:0)))*FLEX_SLACK;
     const v=velocity(lps, r.d, r.n);
     /* A BRANCH is the outlet's own neck now, so its duct velocity IS the face
        velocity — and judging that against a duct-velocity limit would flag half
@@ -2557,25 +2616,18 @@ function ducts(){
        What matters at an outlet is whether it will be HEARD. So branches are
        judged on noise, trunks on velocity. */
     const outNode = b && isOutletNode(b);
-    /* LONG-RUN RULE: a run holds ONE size — relocating a vent never resizes it. Past
-       6 m the friction bites, so the run goes ONE SIZE UP from the plenum end and
-       REDUCES DOWN to the outlet size for the final stretch (a drawn, priced reducer).
-       Under 6 m: one size, no reducer, ever. */
-    let dUp=null, redT=null;
-    if(outNode && len>6.05 && pinnedD==null){   // a hand-pinned run holds its size — no reducer
-      const si=DUCT_SIZES.indexOf(r.d);
-      if(si>=0 && si<DUCT_SIZES.length-1){
-        dUp=DUCT_SIZES[si+1];
-        redT=Math.max(0.15, Math.min(0.85, (len-6)/len));   // reducer ~6 m before the outlet
-      }
-    }
+    /* A DUCT NEVER REDUCES DOWN TO A VENT. The flex feeding an outlet runs the outlet's
+       own size the whole way — one clean bag, no reducer, no step-down at the grille.
+       If a run would ever get too long, capFlexRuns drops a BDO nearer the vent instead
+       of stepping the duct up and reducing it back down. So: no dUp, ever. */
+    const dUp=null, redT=null;
     const room = outNode && S.rooms.find(x=>x.id===b.room);
     // Only flag a run once it's meaningfully out — >10% over the noise target or the
     // velocity limit. A run a whisker over spec isn't worth a warning.
     const loud = outNode
       ? ncOf(lps, r.d) > (NC_TARGET[room?room.type:'other']||35)*1.1
       : v > velLimit(role)*1.1;
-    return {...s, id, a, b, a2, b2, c:fix.c, n:r.n, d:r.d, dUp, redT, lps, role, len,
+    return {...s, id, a, b, a2, b2, c:fix.c, hc, n:r.n, d:r.d, dUp, redT, lps, role, len,
       vel:v, limit:velLimit(role), nc: outNode ? ncOf(lps, r.d) : null,
       pa:frictionPaPerM(v, r.d), paTotal:frictionPaPerM(v,r.d)*len,
       loud,
@@ -3514,19 +3566,22 @@ function promptRoom(room){
 }
 function pathOf(d){
   const wp=wpsOf(d);
-  if(wp){                                   // smooth spline through the waypoints
+  if(wp){                                   // smooth spline through the hand-dropped waypoints
     ctx.beginPath(); const s0=w2s(dpt(d,0)); ctx.moveTo(s0.x,s0.y);
     const N=Math.max(24, (wp.length+1)*10);
     for(let i=1;i<=N;i++){ const p=w2s(dpt(d,i/N)); ctx.lineTo(p.x,p.y); }
     return;
   }
-  // straight lead out of the collar mouth (a→a2), the sweep, then a straight lead IN
-  // through the destination collar (b2→b) when the run lands on a BDO.
-  const a0=w2s(d.a), a=w2s(d.a2||d.a), c=w2s(d.c), b=w2s(d.b), b1=d.b2?w2s(d.b2):null;
+  // straight lead out of the collar mouth (a→a2), the cubic sweep, then a straight lead
+  // IN through the destination collar (b2→b) when the run lands on a BDO.
+  const a0=w2s(d.a), A=w2s(d.a2||d.a), b1=d.b2?w2s(d.b2):null, b=w2s(d.b);
   ctx.beginPath(); ctx.moveTo(a0.x,a0.y);
-  if(d.a2) ctx.lineTo(a.x,a.y);
-  if(b1){ ctx.quadraticCurveTo(c.x,c.y,b1.x,b1.y); ctx.lineTo(b.x,b.y); }
-  else ctx.quadraticCurveTo(c.x,c.y,b.x,b.y);}
+  if(d.a2) ctx.lineTo(A.x,A.y);
+  const E=b1||b;
+  if(d.hc){ const P1=w2s(d.hc.P1), P2=w2s(d.hc.P2);
+    ctx.bezierCurveTo(P1.x,P1.y,P2.x,P2.y,E.x,E.y); }
+  else { const c=w2s(d.c); ctx.quadraticCurveTo(c.x,c.y,E.x,E.y); }
+  if(b1) ctx.lineTo(b.x,b.y);}
 /* TRUE SCALE. A Ø500 duct is half a metre wide on the plan — not a metre.
    Clamped only so it stays visible when you zoom right out. */
 const DUCT_STYLES={

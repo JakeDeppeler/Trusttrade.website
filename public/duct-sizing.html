@@ -558,6 +558,12 @@ const FLEX_SLACK=1.15;
    comes cleanly out of the collar, every time. */
 const COLLAR_LEAD=0.42;   // starter-collar length + the flex's straight lead out of it
 const MAX_BRANCH=3;            // never more than three ducts off any one point
+/* Total spin of a BDO's collar frame = the auto-rotation the router works out to
+   aim the (rigid) fan at the rooms it feeds, PLUS any manual spin you gave it.
+   Threaded through the router (legDir, arrival lead) AND drawBTO so the drawn
+   casting and the flex leave-directions are always the same frame. */
+const boxSpin = bid => ((bid && S.boxRot && S.boxRot[bid])||0)*Math.PI/180
+                     + ((bid && S.boxAuto && S.boxAuto[bid])||0);
 
 /* ===========================================================================
    NOISE — what the customer actually complains about.
@@ -2417,7 +2423,7 @@ function ducts(){
     // the box's inlet collar (on the trunk chord), so the flex visibly enters the collar.
     const b2 = (b && b.junction && s.kind!=='return')
       ? (()=>{ let cx=a.x-b.x, cy=a.y-b.y; const cl=Math.hypot(cx,cy)||1; cx/=cl; cy/=cl;
-               const spun=((b.bid && S.boxRot && S.boxRot[b.bid])||0)*Math.PI/180;
+               const spun=boxSpin(b.bid);   // auto-rotation + your spin, same frame as drawBTO
                if(spun){ const co=Math.cos(spun), si=Math.sin(spun);
                  const rx=cx*co-cy*si, ry=cx*si+cy*co; cx=rx; cy=ry; }
                return {x:b.x+cx*COLLAR_LEAD, y:b.y+cy*COLLAR_LEAD}; })()
@@ -2531,34 +2537,36 @@ function ducts(){
          casting's forward fan. drawBTO reads these same a2 leads, so drawn collars and
          duct directions are ONE frame — that's what kills both the sharp bend and the
          "3-way that looks like a 2-way". */
-      const COLLAR_ARC=74, COLLAR_SEP=38;                  // deg: max fan half-angle, min gap
       const legDir=new Map();
+      S.boxAuto={};   // recomputed every route: the auto-rotation that aims each rigid box at its rooms
       { const kids=new Map();
         plan.segs.forEach(s=>{ if(!kids.has(s.a)) kids.set(s.a,[]); kids.get(s.a).push(s); });
+        const D2R=Math.PI/180;
+        const FAN={1:[0],2:[-38,38],3:[-45,0,45],4:[-58,-20,20,58]};
         kids.forEach((legs,node)=>{
           const par=parentMap.get(node);
           if(!par || legs.length<2) return;                 // only real branch boxes fan
-          const thx=node.x-par.x, thy=node.y-par.y, tl=Math.hypot(thx,thy)||1;
-          // your spin on this BDO rotates its whole collar frame
-          const spun=((node.bid && S.boxRot && S.boxRot[node.bid])||0)*Math.PI/180;
-          const thru=Math.atan2(thy/tl, thx/tl)+spun;
-          const rel=legs.map(s=>{ let d=Math.atan2(s.b.y-node.y, s.b.x-node.x)-thru;
-            while(d>Math.PI)d-=2*Math.PI; while(d<-Math.PI)d+=2*Math.PI; return {s,d:d*180/Math.PI}; });
-          rel.sort((p,q)=>p.d-q.d);
-          // aim at the real bearing, clamp to the fan, then open up ONLY where collars
-          // would touch — pushing right, pulling the whole set back if it overflows.
-          /* RIGID CASTING. A branch box is a moulding — its spigots sit at FIXED fan
-             angles off the trunk through-axis, never swung round to aim at the room.
-             So the box keeps ONE shape every time. Each leg takes the fixed slot
-             nearest its bearing (rel is sorted, slots are sorted, so left stays left);
-             the flex then leaves the spigot straight and makes a gentle RADIUS bend to
-             the room. drawBTO reads these same leave-directions, so the drawn collars
-             and the flex are one frame — the duct comes off the END of the spigot. */
-          const FAN={1:[0],2:[-38,38],3:[-45,0,45],4:[-58,-20,20,58]};
-          const t = FAN[rel.length]
-            || rel.map(r=>Math.max(-COLLAR_ARC, Math.min(COLLAR_ARC, r.d)));  // 5+ ways: fall back to fanned real bearings
-          rel.forEach((r,i)=>{ const ang=thru+t[i]*Math.PI/180;
-            legDir.set(r.s.id, {x:Math.cos(ang), y:Math.sin(ang)}); });
+          const thx=node.x-par.x, thy=node.y-par.y;
+          const userspun=((node.bid && S.boxRot && S.boxRot[node.bid])||0)*Math.PI/180;
+          const base=Math.atan2(thy,thx)+userspun;          // trunk-through axis + your spin
+          // each leg's real bearing off the base, sorted L→R so left stays left (no crossings)
+          const rel=legs.map(s=>{ let d=Math.atan2(s.b.y-node.y,s.b.x-node.x)-base;
+            while(d>Math.PI)d-=2*Math.PI; while(d<-Math.PI)d+=2*Math.PI; return {s,d}; }).sort((p,q)=>p.d-q.d);
+          const off=(FAN[rel.length] || rel.map((r,i)=>-55+110*i/(rel.length-1||1)))
+                    .map(x=>x*D2R);                          // fixed spigot slots (rad)
+          /* AIM THE RIGID BOX AT ITS ROOMS. The casting can't bend, so a fan locked to
+             the trunk makes the flex turn hard for rooms off to the side — the sharp
+             bend. With sorted legs on sorted slots, leg i bends |rel_i − slot_i − θ|;
+             the θ that minimises the WORST bend is the midrange of (rel_i − slot_i), and
+             the worst bend then drops to half the spread. Rotate the whole box by that
+             (clamped), stored so drawBTO + the arrival lead rotate in the same frame. */
+          const err=rel.map((r,i)=>r.d-off[i]);
+          let theta=(Math.max(...err)+Math.min(...err))/2;
+          theta=Math.max(-0.87,Math.min(0.87,theta));       // ≤ ~50° of box rotation
+          if(node.bid) S.boxAuto[node.bid]=theta;
+          const thru=base+theta;
+          rel.forEach((r,i)=>{ const ang=thru+off[i];
+            legDir.set(r.s.id,{x:Math.cos(ang),y:Math.sin(ang)}); });
         });
       }
       plan.segs.forEach(s=>out.push(mk(s,s.lps,s.a,s.b,s.id, legDir.get(s.id) || leaveDirOf(s.a, parentMap))));
@@ -3826,8 +3834,8 @@ function drawBTO(h){
   const arms0=h.arms, inlet=arms0.find(a=>a.inlet)||arms0[0];
   const outs=arms0.filter(a=>a!==inlet);
   // orient the casting so its inlet (his angle 180 = local +y) runs down the trunk,
-  // plus whatever spin you gave this box in its popover
-  const spun=((h.p.bid && S.boxRot && S.boxRot[h.p.bid])||0)*Math.PI/180;
+  // plus the auto-rotation that aims it at its rooms AND whatever spin you gave it
+  const spun=boxSpin(h.p.bid);
   const R=Math.atan2(-inlet.dir.x, inlet.dir.y)+spun;
   const LN=COLLAR_LEAD*240;                         // len 72 == the flex's straight lead
   // Each outlet collar is drawn along the duct's OWN leave direction (the a2 lead the

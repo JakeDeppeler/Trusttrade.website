@@ -2941,6 +2941,13 @@ function diagnostics(){
   }
   const tight=ds.filter(d=>d.bendFixed);
   const marginal=ds.filter(d=>!d.bendFixed&&d.tight);
+  /* KINKS — the bend the eye actually reads as sharp. The cubic sweep holds every run to a
+     smooth radius; only a run whose tightest point falls below ~1.1× its diameter looks
+     hard. This (not bendFixed, which flags anything under the generous 1.5× "ideal") is what
+     the unit placer drives to zero, and its depth below the line for how sharp each one is. */
+  const kinks=ds.filter(d=> d.b && d.bendR!=null && d.bendR < KINK_RATIO*(d.d/1000));
+  let worstBend=Infinity; ds.forEach(d=>{ if(d.b && d.bendR!=null){
+    const rat=d.bendR/(d.d/1000); if(rat<worstBend) worstBend=rat; } });
   // refrigerant COPPER run — condenser to fan coil, incl. the wall drop and bends
   const pipe = pipeRun();
   const pipeStraight = (S.unit&&S.outdoor) ? dist(S.unit,S.outdoor) : 0;
@@ -2967,9 +2974,20 @@ function diagnostics(){
       }
     });
   }
-  return {index, crossings, underUnit, tight, marginal, pipe, pipeStraight, branches, shortB, longB, avgB,
+  return {index, crossings, underUnit, tight, marginal, kinks, worstBend, pipe, pipeStraight, branches, shortB, longB, avgB,
     supplyM: sup.reduce((a,d)=>a+d.len*(d.n||1),0),
     returnM: ds.filter(d=>d.kind==='return').reduce((a,d)=>a+d.len*(d.n||1),0)};
+}
+const KINK_RATIO=1.1;   // ×diameter — a run whose tightest radius is below this reads as a KINK
+/* Cost of the bends in a routed plan, for the unit placer/facer. A KINK (a run whose radius
+   fell below ~1.1× its diameter — an actually sharp bend) is what we drive to zero, weighted
+   by how far below the line it fell. Runs merely inside the generous 1.5× "ideal" (dg.tight)
+   are smooth arcs, so they only get a feather-touch nudge. */
+function bendCost(dg){
+  let sev=0;
+  (dg.kinks||[]).forEach(d=>{ const line=KINK_RATIO*(d.d/1000);
+    sev += Math.max(0, (line - (d.bendR||0)) / (d.d/1000)); });
+  return (dg.kinks||[]).length*80 + sev*60 + (dg.tight||[]).length*3;
 }
 const MAX_PIPE=30;   // typical single-split refrigerant pipe limit, metres
 
@@ -3151,11 +3169,65 @@ function bestUnitRot(p){
     ROTS.forEach(deg=>{
       S.rot=deg; S.routes={};
       const dg=diagnostics();
-      const c=(dg.crossings + dg.underUnit)*100 + dg.supplyM + dg.returnM;
+      /* BEND-AWARE FACING. A trunk forced below its min radius (dg.tight) is the tight
+         sweep you get when a box sits off the spigot's fan slot — point the unit so the
+         slots line up with the boxes and those sweeps open out. Weighted below crossings
+         (still the worst thing) but above raw length, plus the depth below floor so a
+         near-kink costs more than a whisker-tight one. */
+      const c=(dg.crossings + dg.underUnit)*100 + bendCost(dg) + dg.supplyM + dg.returnM;
       if(c<bc){ bc=c; br=deg; }
     });
   } finally { S.rot=rot0; S.unit=unit0; S.routes=routes0; }
   return br;
+}
+/* BEND-AWARE NUDGE. optimiseUnit ranks positions on straight chords, so it can't see
+   that a box will land off a spigot's fan slot and force a tight trunk sweep. Once the
+   plan is routed for real, if any trunk is still pushed below its minimum radius, walk the
+   unit around its spot a little — it only mounts square, so re-test all four facings at each
+   candidate — and keep the position+facing that clears the tight sweeps. A crossing or a
+   run under the box outweighs everything (never trade a bend for those); a small pull back
+   toward the original spot and total run length break ties. Only when the unit was
+   auto-placed — a unit you dropped keeps its spot. */
+function refineUnitBends(){
+  if(!S.unit || !S.vents.length) return;
+  const base=diagnostics();
+  if(!(base.kinks||[]).length) return;                    // no actual kink — the arcs are all smooth
+  const u0={x:S.unit.x, y:S.unit.y}, rot0=S.rot, routes0=S.routes;
+  const x1=Math.min(...S.rooms.map(r=>r.x))+0.4, x2=Math.max(...S.rooms.map(r=>r.x+r.w))-0.4;
+  const y1=Math.min(...S.rooms.map(r=>r.y))+0.4, y2=Math.max(...S.rooms.map(r=>r.y+r.h))-0.4;
+  const cl=(v,a,b)=>Math.min(b,Math.max(a,v));
+  const baseLen=base.supplyM;
+  /* A kink dominates everything — one is worth 1000. Under that, prefer the plan with the
+     rounder bends (bendCost), then the shortest supply, then the spot nearest the optimised
+     centre. A crossing or a run under the box disqualifies a candidate. */
+  const key=(dg,x,y)=> (dg.kinks||[]).length*1000 + bendCost(dg)
+                     + Math.max(0, dg.supplyM-baseLen)*2 + Math.hypot(x-u0.x,y-u0.y)*3;
+  /* A fresh REAL route is ~230 ms (chain placement + every bend fitted) — too slow to scan
+     wholesale. But a spot that clears the tight sweeps is almost always a short step from the
+     optimised centre, so walk a fine local grid NEAREST-FIRST at the chosen facing and stop
+     at the very first spot that comes back genuinely clean. A hard real-route cap keeps the
+     nudge to about a second; if nothing clears in budget we keep the best seen. */
+  const pts=[];
+  for(let gx=-2;gx<=2;gx++) for(let gy=-2;gy<=2;gy++){
+    if(!gx && !gy) continue;
+    const px=snap(cl(u0.x+gx*0.8, x1, x2)), py=snap(cl(u0.y+gy*0.8, y1, y2));
+    pts.push({x:px, y:py, home:Math.hypot(px-u0.x,py-u0.y)});
+  }
+  pts.sort((a,b)=>a.home-b.home);
+  let best={x:u0.x, y:u0.y, rot:rot0, k:key(base,u0.x,u0.y)};
+  let budget=10;                                           // capped real routes
+  try{
+    for(const p of pts){
+      if(budget<=0) break;
+      S.unit={x:p.x,y:p.y}; S.rot=rot0; S.routes={}; budget--;
+      const dg=diagnostics();
+      if(dg.crossings || dg.underUnit) continue;
+      const k=key(dg,p.x,p.y);
+      if(k<best.k-1e-6) best={x:p.x,y:p.y,rot:rot0,k};
+      if(best.k<1000) break;                               // genuinely zero tight sweeps — done
+    }
+  } finally { S.routes=routes0; }
+  S.unit={x:best.x, y:best.y}; S.rot=best.rot; S.routes={};
 }
 
 /* ------------------------------------------------------------- HISTORY */
@@ -6612,7 +6684,8 @@ function autoDesign(){
       if(!(d.a.spigot||d.a.junction) || isOutletNode(d.b)) continue;   // trunk = box/spigot → box
       m=Math.max(m, d.len||0); } return m; };
     const scoreOf=dg=>dg.crossings*100 + dg.underUnit*100 + dg.supplyM*0.01
-                     + Math.max(0, longestTrunk()-6)*4;   // penalise cross-house trunks
+                     + Math.max(0, longestTrunk()-6)*4    // penalise cross-house trunks
+                     + bendCost(dg);                      // …and tight trunk sweeps
     S.routes={}; S.rot=bestUnitRot(S.unit); S.routes={};
     const dg0=diagnostics();
     if(dg0.crossings>0 || dg0.underUnit>0 || longestTrunk()>7.5){
@@ -6626,6 +6699,10 @@ function autoDesign(){
       S.takeoffs=best.tk; S.rot=best.rot; S.routes={}; balance();
     }
   }
+
+  /* Open out any tight trunk sweep by nudging the auto-placed unit — a box that sat off a
+     spigot's fan slot gets one aimed at it. A unit you dropped yourself keeps its spot. */
+  if(!P.unit){ refineUnitBends(); }
 
   /* RETURN AIR — auto-place the return box just off the unit's return face and run
      the return to it, so it appears on Auto-design (drawn as the v19 return box, its

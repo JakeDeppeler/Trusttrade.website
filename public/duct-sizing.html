@@ -2757,9 +2757,11 @@ function ducts(){
       out.push(mk({kind:'return',zone:-1}, returnFlow()/nrn, boxPt, port, 'ret'+i));
     });
   }
-  /* TRUNK ≥ BRANCH. A run feeding a box must be at least one size UP on the biggest
-     leg leaving that box — you never neck a Ø200 into a Ø200 three-way. Walk the
-     tree bottom-up (by node identity) and bump each trunk that isn't wide enough. */
+  /* TRUNK ≥ BRANCH. A run feeding a box that SPLITS must be one size UP on the biggest leg
+     — you never neck a Ø200 into a Ø200 three-way. But a box that feeds a SINGLE outlet is
+     just a pass-through: its inlet carries exactly that one vent's air, so it stays the SAME
+     size as the vent — no step-down between a vent and its box. Walk the tree bottom-up so
+     bumps cascade up. */
   {
     const kids=new Map();
     out.forEach(d=>{ if(d.kind==='return') return; if(!kids.has(d.a)) kids.set(d.a,[]); kids.get(d.a).push(d); });
@@ -2771,7 +2773,8 @@ function ducts(){
         if(d.kind==='return' || !d.b || !d.b.junction) return;   // only runs INTO a box
         const legs=kids.get(d.b)||[];
         if(!legs.length) return;
-        const need=bump(Math.max(...legs.map(l=>l.d)));           // one size over the biggest leg
+        const biggest=Math.max(...legs.map(l=>l.d));
+        const need = legs.length>=2 ? bump(biggest) : biggest;   // single-outlet box → match, don't bump
         if(d.d < need){ d.d=need; d.vel=velocity(d.lps,d.d,d.n); d.pa=frictionPaPerM(d.vel,d.d);
           d.paTotal=d.pa*d.len; changed=true; }
       });
@@ -2972,6 +2975,16 @@ function diagnostics(){
   const kinks=ds.filter(d=> d.b && d.bendR!=null && d.bendR < KINK_RATIO*(d.d/1000));
   let worstBend=Infinity; ds.forEach(d=>{ if(d.b && d.bendR!=null){
     const rat=d.bendR/(d.d/1000); if(rat<worstBend) worstBend=rat; } });
+  /* BACKING — a run that leaves its box heading one way and arrives heading the other
+     (total turn past ~95°) reads as "doubling back on itself", even when the radius is a
+     smooth arc. The bend radius can't see it (a wide U is still smooth), so measure the
+     turn from the run's start heading to its end heading directly. */
+  const BACK_COS=Math.cos(95*Math.PI/180);
+  const backing=ds.filter(d=>{ if(!d.a||!d.b) return false;
+    const p0=dpt(d,0),p1=dpt(d,0.12),p8=dpt(d,0.88),p9=dpt(d,1);
+    const sx=p1.x-p0.x,sy=p1.y-p0.y,ex=p9.x-p8.x,ey=p9.y-p8.y;
+    const sl=Math.hypot(sx,sy)||1,el=Math.hypot(ex,ey)||1;
+    return (sx*ex+sy*ey)/(sl*el) < BACK_COS; });
   // refrigerant COPPER run — condenser to fan coil, incl. the wall drop and bends
   const pipe = pipeRun();
   const pipeStraight = (S.unit&&S.outdoor) ? dist(S.unit,S.outdoor) : 0;
@@ -2998,7 +3011,7 @@ function diagnostics(){
       }
     });
   }
-  return {index, crossings, underUnit, tight, marginal, kinks, worstBend, pipe, pipeStraight, branches, shortB, longB, avgB,
+  return {index, crossings, underUnit, tight, marginal, kinks, worstBend, backing, pipe, pipeStraight, branches, shortB, longB, avgB,
     supplyM: sup.reduce((a,d)=>a+d.len*(d.n||1),0),
     returnM: ds.filter(d=>d.kind==='return').reduce((a,d)=>a+d.len*(d.n||1),0)};
 }
@@ -3011,7 +3024,8 @@ function bendCost(dg){
   let sev=0;
   (dg.kinks||[]).forEach(d=>{ const line=KINK_RATIO*(d.d/1000);
     sev += Math.max(0, (line - (d.bendR||0)) / (d.d/1000)); });
-  return (dg.kinks||[]).length*80 + sev*60 + (dg.tight||[]).length*3;
+  // a run doubling back on itself is the other thing the eye hates; weigh it below a kink.
+  return (dg.kinks||[]).length*80 + sev*60 + (dg.backing||[]).length*12 + (dg.tight||[]).length*3;
 }
 const MAX_PIPE=30;   // typical single-split refrigerant pipe limit, metres
 
@@ -3215,9 +3229,9 @@ function bestUnitRot(p){
 function refineUnitBends(){
   if(!S.unit || !S.vents.length) return;
   const base=diagnostics();
-  // fire for an actual kink, a crossing, or a run under the box — the three things a bad
-  // unit spot causes. All clean → leave the unit exactly where it is.
-  if(!((base.kinks||[]).length || base.crossings || base.underUnit)) return;
+  // fire for a kink, a crossing, a run under the box, or a run doubling back — the things a
+  // bad unit spot causes. All clean → leave the unit exactly where it is.
+  if(!((base.kinks||[]).length || base.crossings || base.underUnit || (base.backing||[]).length)) return;
   const u0={x:S.unit.x, y:S.unit.y}, rot0=S.rot, routes0=S.routes;
   const x1=Math.min(...S.rooms.map(r=>r.x))+0.4, x2=Math.max(...S.rooms.map(r=>r.x+r.w))-0.4;
   const y1=Math.min(...S.rooms.map(r=>r.y))+0.4, y2=Math.max(...S.rooms.map(r=>r.y+r.h))-0.4;
@@ -3241,8 +3255,12 @@ function refineUnitBends(){
     pts.push({x:px, y:py, home:Math.hypot(px-u0.x,py-u0.y)});
   }
   pts.sort((a,b)=>a.home-b.home);
-  let best={x:u0.x, y:u0.y, rot:rot0, k:key(base,u0.x,u0.y)};
-  let budget=18;                                           // capped real routes
+  // "clean enough" = no kink, no crossing, no run under the box. Backing (a wide U-turn) is
+  // structural on some plans — it stays a soft tiebreaker in the key, not a stop condition,
+  // so we never wander the unit miles for it or grind the whole budget chasing it.
+  const goodEnough=dg=>!(dg.kinks.length || dg.crossings || dg.underUnit);
+  let best={x:u0.x, y:u0.y, rot:rot0, k:key(base,u0.x,u0.y), ok:goodEnough(base)};
+  let budget=18;                                          // capped real routes
   try{
     for(const p of pts){
       if(budget<=0) break;
@@ -3250,8 +3268,8 @@ function refineUnitBends(){
       const dg=diagnostics();
       if(dg.crossings || dg.underUnit) continue;
       const k=key(dg,p.x,p.y);
-      if(k<best.k-1e-6) best={x:p.x,y:p.y,rot:rot0,k};
-      if(best.k<1000) break;                               // genuinely zero tight sweeps — done
+      if(k<best.k-1e-6) best={x:p.x,y:p.y,rot:rot0,k,ok:goodEnough(dg)};
+      if(best.ok) break;                                  // got a spot with no kink/cross/under — take it
     }
   } finally { S.routes=routes0; }
   S.unit={x:best.x, y:best.y}; S.rot=best.rot; S.routes={};

@@ -1485,13 +1485,54 @@ function armGroups(from, leaves, inDir, k){
   return best ? best.gs.filter(g=>g.length) : [sorted];
 }
 
+/* CHAIN-AWARE PLACEMENT — the doubling-back fix. Outlets strung out ALONG a trunk
+   can't all hang off one box without it overshooting a near one (the run then loops
+   back on itself). So split them into "stations": grow a station outward from the
+   feed point, adding the next outlet only while a box over the whole station keeps
+   EVERY outlet in front of it (never behind). When the next one would sit behind,
+   close the station — a downstream box picks it up. Each station becomes one box in
+   a chain down the trunk, which is exactly a fitter dropping another BDO instead of
+   running to the back of the house and back. */
+function chainStations(from, leaves){
+  if(leaves.length<=1) return [leaves];
+  const c=wcent(leaves); let ix=c.x-from.x, iy=c.y-from.y; const il=Math.hypot(ix,iy)||1; ix/=il; iy/=il;
+  const proj=n=>(n.x-from.x)*ix+(n.y-from.y)*iy;
+  const sorted=leaves.slice().sort((a,b)=>proj(a)-proj(b));
+  const stations=[]; let cur=[sorted[0]];
+  for(let i=1;i<sorted.length;i++){
+    const cand=[...cur, sorted[i]];
+    const bx=weber([from, ...cand, ...cand]);            // where a box over the station would sit
+    const behind=cand.some(n=> armAngle(dirTo(from,bx), bx, n) > ARM_HARD);   // any outlet behind it?
+    if(behind || cand.length>MAX_BRANCH){ stations.push(cur); cur=[sorted[i]]; }   // a box fans ≤3
+    else cur=cand;
+  }
+  stations.push(cur);
+  // A NON-terminal station also needs one arm for the trunk carrying on, so cap it at
+  // MAX_BRANCH−1 and push the overflow downstream. The last station keeps up to 3 (a
+  // clustered 3-vent room stays one clean 3-way box instead of being split needlessly).
+  for(let i=0;i<stations.length-1;i++)
+    while(stations[i].length>MAX_BRANCH-1) stations[i+1].unshift(stations[i].pop());
+  return stations;
+}
 function branchTree(root,leaves,zoneArg,out,path,gp){
   const inDir=inDirOf(root, gp);
   const leaf=(n,i)=>out.push({id:path+'.'+i, kind:n.outlet?'branch':'trunk',
     zone:n.zone??zoneArg, a:root, b:n, lps:n.lps});
-  const splitBox=(g,i,zn)=>{ const j=placeBox(root,g,'B:'+path+'.'+i, gp); j.junction=true;
-    out.push({id:path+'.'+i, kind:'trunk', zone:zn??zoneArg, a:root, b:j, lps:j.lps});
-    branchTree(j,g,zn??zoneArg,out,path+'.'+i, root); };
+  const splitBox=(g,i,zn)=>{
+    const bp='B:'+path+'.'+i, tid=path+'.'+i, zz=zn??zoneArg;
+    // chain the sub-group so a box never overshoots a near outlet (see chainStations)
+    const stations = FAST_ROUTE ? [g] : chainStations(root, g);
+    let prev=null;
+    stations.forEach((st,si)=>{
+      const from=prev||root, sbid=si===0?bp:bp+'.c'+si, tt=si===0?tid:tid+'.c'+si;
+      const pos=placeBox(from, st, sbid, si===0?gp:prev);
+      const box={x:pos.x, y:pos.y, bid:sbid, junction:true, lps:wcent(st).lps};
+      out.push({id:tt, kind:'trunk', zone:zz, a:from, b:box,
+                lps:stations.slice(si).reduce((a,gg)=>a+wcent(gg).lps,0)});
+      branchTree(box, st, zz, out, tt, from);
+      prev=box;
+    });
+  };
   const zoneSet=new Set(leaves.map(n=>n.zone));
 
   /* ONE ZONE on this box → its vents ride it directly (≤3), or the room chains within
@@ -1802,11 +1843,27 @@ function supplyPlanCompute(unit,vents,tk,rot){
     const bid='B:z'+zn.zone+(zn.feed?'.'+zi:'');
     const parent=parentOf.get(zn) || unit;
     const gp=gpOf.get(parent) || null;
-    const box=placeBox(parent, zn.vs, bid, gp);
-    zn.x=box.x; zn.y=box.y;                   // the segment feeding it moves with it
-    zn.bid=bid; zn.junction=true;
-    branchTree(zn, zn.vs.map(v=>({...v,outlet:true})), zn.zone, segs,
-               'z'+zn.zone+(zn.feed?'.'+zi:''), parent);
+    const zpath='z'+zn.zone+(zn.feed?'.'+zi:'');
+    const outlets=zn.vs.map(v=>({...v,outlet:true}));
+    // CHAIN the zone's outlets so no box overshoots a near one (see chainStations).
+    // The trunk parent→zn already exists; zn BECOMES the first station's box, and any
+    // further stations get their own boxes chained downstream off it.
+    const stations = FAST_ROUTE ? [outlets] : chainStations(parent, outlets);
+    let prev=null;                        // the previous station's box (null → use zn, fed from parent)
+    stations.forEach((st,si)=>{
+      const from = prev || parent;
+      const sbid = si===0 ? bid : bid+'.c'+si;
+      const pos = placeBox(from, st, sbid, si===0 ? gp : prev);
+      const box = si===0 ? zn : {bid:sbid};
+      box.x=pos.x; box.y=pos.y; box.bid=sbid; box.junction=true;
+      if(si>0) box.lps=wcent(st).lps;      // zn keeps its full-zone lps for the feeding trunk
+      if(si>0){                           // chain trunk from the previous box, carrying this + downstream
+        const downLps=stations.slice(si).reduce((a,g)=>a+wcent(g).lps,0);
+        segs.push({id:zpath+'.ct'+si, kind:'trunk', zone:0, a:prev, b:box, lps:downLps});
+      }
+      branchTree(box, st, zn.zone, segs, zpath+'.s'+si, from);   // fan this station forward
+      prev=box;
+    });
   });
 
   /* ---- how a collar aims the flex at its box (shared by the picker + the final

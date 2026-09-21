@@ -248,14 +248,14 @@ export default function ForHomeownersPage() {
         title="Find a tradie."
         italicWord="Without the drama."
         lede="Verified, insured locals with a fixed call-out fee in writing before anyone rolls. Built by a mech plumber who knows the trade from both sides of the front door."
-        ctaLabel="Get early access →"
+        ctaLabel="Get notified on Android →"
         secondaryLabel="See how it works"
         secondaryHref="How it works.html"
         meta={[
           { k: "Cost", v: "Free for homeowners" },
           { k: "Verification", v: "Licence + insurance + ABN" },
           { k: "Quote format", v: "Fixed call-out, in writing" },
-          { k: "Coverage", v: "VIC at launch" },
+          { k: "Coverage", v: "VIC for now" },
         ]}
       />
 
@@ -298,7 +298,7 @@ export default function ForHomeownersPage() {
 
       <PageWaitlistFooterCTA
         headline="No more drama."
-        subhead="Get on the list."
+        subhead="Android's coming."
         secondaryLabel="I'm a tradie"
         secondaryHref="For Tradies.html"
       />

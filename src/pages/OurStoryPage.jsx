@@ -51,7 +51,7 @@ const VALUES = [
 const JOURNEY = [
   { when: "The problem", p: "Years on the tools watching lead-gen platforms burn tradies and mislead customers." },
   { when: "The decision", p: "Enough. Started building Trust Trade: verification-first, no per-lead fees, capped regions." },
-  { when: "The build", p: "Verification framework, review policy, codes of conduct for both sides. Done properly before launch, not after." },
+  { when: "The build", p: "Verification framework, review policy, codes of conduct for both sides. Done properly from the start, not bolted on after." },
   { when: "Now", p: "Founding tradies joining across Victoria. Verified one at a time, by hand." },
 ];
 

@@ -20,13 +20,13 @@ const TRADIE_FAQ_GROUPS = [
   {
     name: "Joining & pricing",
     items: [
-      { q: "What does it cost to join as a tradie?", a: "Free to apply, free to be listed at launch. Founding members (the first 100 verified tradies) lock in lifetime founding-member pricing on any future paid tiers. Standard fees come in after public launch in 2027." },
+      { q: "What does it cost to join as a tradie?", a: "Free to apply and free to be listed while we grow. Founding members — the first 50 verified tradies — lock in lifetime founding-member pricing on any future paid tiers." },
       { q: "Do you take a cut of my job?", a: "No. Trust Trade doesn't sit between you and your customer's money. You invoice them direct, you get paid direct. We're the paper trail and the routing layer, not a middleman." },
-      { q: "How do I get verified?", a: "Apply via the waitlist, upload your licence, insurance certificate of currency, ABN, and ID. We check with the relevant state regulator and confirm the documents. Two reference jobs (two past customers willing to vouch in writing). Usually 48-72 hours end to end." },
+      { q: "How do I get verified?", a: "Apply, then upload your licence, insurance certificate of currency, ABN, and ID. We check with the relevant state regulator and confirm the documents. Two reference jobs (two past customers willing to vouch in writing). Usually 48-72 hours end to end." },
       { q: "Can I set my own call-out fee?", a: "Yes, per job, every job. Your default rate is saved, but you can override it on any specific job before sending. No platform-set minimums, no algorithmic discount." },
       { q: "What if I want to take a few weeks off?", a: "Switch yourself to Unavailable in the app. No jobs route to you. Switch back on whenever. No lock-in, no penalty, no clawback." },
-      { q: "Can I be on multiple lead-gen platforms at once?", a: "Yeah, that's your call. We don't ask for exclusivity. Most tradies in our beta run us alongside one other platform during launch and drop the other once we've ramped." },
-      { q: "What trades do you cover?", a: "Thirty-five trades across six categories at launch, wet trades, electrical, building/carpentry, surfaces, outside work, and specialists. Full list on the Trades we cover page. If your trade isn't there, email Jake, we add by request." },
+      { q: "Can I be on multiple lead-gen platforms at once?", a: "Yeah, that's your call. We don't ask for exclusivity. Plenty of tradies run us alongside one other platform at first and drop the other once they've ramped." },
+      { q: "What trades do you cover?", a: "Thirty-five trades across six categories — wet trades, electrical, building/carpentry, surfaces, outside work, and specialists. Full list on the Trades we cover page. If your trade isn't there, email Jake, we add by request." },
     ],
   },
   {
@@ -44,16 +44,16 @@ const ELIGIBILITY = [
   { h: "A current trade licence", p: "Checked with the state regulator, VBA, ESV, VBPRB. Apprentices under a qualified holder.", s: "Regulator check" },
   { h: "Public liability + workers' comp", p: "Minimum $10m PL, workers' comp if you employ. Certificate of currency on file.", s: "Insurance verified" },
   { h: "An active ABN", p: "Sole trader, partnership or Pty Ltd. We check the ABR, suspended means no listing.", s: "ABR-checked" },
-  { h: "A Victoria work address", p: "VIC-only at launch. NSW, QLD, SA from mid-2027, pop your ABN in for the wait.", s: "VIC at launch" },
+  { h: "A Victoria work address", p: "VIC for now. NSW, QLD and SA are rolling out next — pop your ABN in and we'll let you know when your state opens.", s: "VIC for now" },
   { h: "A clean disciplinary record", p: "No active suspensions or consumer-affairs orders. Checked at apply, re-checked quarterly.", s: "Quarterly re-check" },
   { h: "A phone with a camera", p: "That's the hardware list. Any iPhone or Android from the last five years works.", s: "iOS 16+ / Android 10+" },
 ];
 
 const FOUNDING_LOCKS = [
-  { h: "Lifetime founding pricing.", p: "Whatever premium routing costs in 2028 or 2032, you pay 2026 rates. Forever, on the same ABN.", s: "Lock 01" },
-  { h: "Founding badge on your profile.", p: "Customers see the mark. We surface founding members first in your trade + radius until 2027.", s: "Lock 02" },
+  { h: "Lifetime founding pricing.", p: "Whatever premium routing costs down the track, you pay founding rates. Forever, on the same ABN.", s: "Lock 01" },
+  { h: "Founding badge on your profile.", p: "Customers see the mark. We surface founding members first in your trade + radius.", s: "Lock 02" },
   { h: "Direct line to the team.", p: "A real human on a real phone, Jake's mobile, for your first 12 months. No ticket queue.", s: "Lock 03" },
-  { h: "Free to apply, free to list.", p: "No card, no commitment. Get verified, get listed, take jobs, all at zero cost at launch.", s: "Lock 04" },
+  { h: "Free to apply, free to list.", p: "No card, no commitment. Get verified, get listed, take jobs, all at zero cost.", s: "Lock 04" },
 ];
 
 export default function ForTradiesPage() {
@@ -92,7 +92,7 @@ export default function ForTradiesPage() {
             </p>
             <div className="ftr-hero-ticks">
               <span><span className="tk">✓</span> Free to apply</span>
-              <span><span className="tk">✓</span> Founding-100 perks</span>
+              <span><span className="tk">✓</span> Founding-50 perks</span>
               <span><span className="tk">✓</span> No lock-in</span>
             </div>
           </div>
@@ -170,7 +170,7 @@ export default function ForTradiesPage() {
               <h3>Your way</h3>
               <div className="vs-list">
                 {[
-                  "No lead fees. Free to be listed. Founding-100 locked in for life",
+                  "No lead fees. Free to be listed. Founding-50 locked in for life",
                   "One tradie at a time. They pick you, or it moves on",
                   "You set the call-out, per job. They approve before you roll",
                   "Verified, mobile-confirmed accounts with a brief on file",
@@ -320,19 +320,19 @@ export default function ForTradiesPage() {
         </div>
       </section>
 
-      {/* ===== Founding 100 — progress meter ===== */}
+      {/* ===== Founding 50 — progress meter ===== */}
       <section className="page-section bordered">
         <div className="container">
           <div className="mid-head reveal">
-            <div className="eyebrow accent">Founding 100</div>
-            <h2 className="h-1">First 100 in are <span className="it">locked in for life.</span></h2>
-            <p className="lede">No paid tier exists yet. When it does, premium routing and analytics, the first 100 verified tradies pay founding rates. Forever. The moment we're full, the badge is gone.</p>
+            <div className="eyebrow accent">Founding 50</div>
+            <h2 className="h-1">First 50 in are <span className="it">locked in for life.</span></h2>
+            <p className="lede">No paid tier exists yet. When it does — premium routing and analytics — the first 50 verified tradies pay founding rates. Forever. The moment we're full, the badge is gone.</p>
           </div>
 
           <div className="meter reveal" style={{ "--pct": "50%" }}>
             <div className="meter-top">
-              <div className="meter-big"><span className="it">50</span> <span className="of">of 100 spots left</span></div>
-              <div className="meter-note">Victoria · closing at launch</div>
+              <div className="meter-big"><span className="it">50</span> <span className="of">founding spots</span></div>
+              <div className="meter-note">Victoria · limited</div>
             </div>
             <div className="meter-bar"><div className="meter-fill"></div></div>
 

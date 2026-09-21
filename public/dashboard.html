@@ -485,9 +485,9 @@ async function removeMfa(id){
 async function pBilling(){loading('Billing');try{
  let sub=null;try{const {data}=await sb.from('subscriptions').select('*').eq('listing_id',LST.id).limit(1);sub=data&&data[0];}catch(e){}
  $('main').innerHTML=`<h1>Billing</h1><div class="subt">Your TrustTrade membership</div>
-  <div class="banner"><b>You're on free launch access — $0/month.</b><div class="mut" style="margin-top:4px;font-size:13px">We're not charging tradies yet. When paid plans start, it'll be a flat monthly membership — no lead fees and no commission, ever. Customers always pay you direct.</div></div>
+  <div class="banner"><b>Free while we grow — $0/month.</b><div class="mut" style="margin-top:4px;font-size:13px">We're not charging tradies yet. When paid plans start, it'll be a flat monthly membership — no lead fees and no commission, ever. Customers always pay you direct.</div></div>
   <div class="card"><div class="ch">Membership</div><div style="padding:6px 18px">
-   ${kv('Plan','Launch access (free)')}${kv('Price','$0 / month')}${kv('Lead fees','$0 — always')}${kv('Commission on jobs','$0 — you keep 100%')}${kv('Status',sub?(sub.status||'—'):'Active (free)')}
+   ${kv('Plan','Free plan')}${kv('Price','$0 / month')}${kv('Lead fees','$0 — always')}${kv('Commission on jobs','$0 — you keep 100%')}${kv('Status',sub?(sub.status||'—'):'Active (free)')}
   </div></div>
   <div class="card"><div style="padding:16px 18px" class="mut">Homeowners pay you directly for the work. TrustTrade never touches your job money.</div></div>`;
 }catch(e){$('main').innerHTML='<h1>Billing</h1>'+errBox(e);}}

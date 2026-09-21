@@ -98,9 +98,9 @@ export default function TradesPage() {
         eyebrow="Trades we cover"
         title="Thirty-five trades."
         italicWord="One platform."
-        lede="At launch we cover every trade Australian homes actually need. If we don't have a verified specialist in your postcode for a niche trade, you'll see that up-front, no false promises."
+        lede="We cover every trade Australian homes actually need. If we don't have a verified specialist in your postcode for a niche trade, you'll see that up-front, no false promises."
         meta={[
-          { k: "Trades at launch", v: `${totalTrades} trades · ${TRADE_CATEGORIES.length} categories` },
+          { k: "Trades we cover", v: `${totalTrades} trades · ${TRADE_CATEGORIES.length} categories` },
           { k: "Coverage", v: "Victoria-wide" },
           { k: "Specialists added", v: "By postcode demand" },
           { k: "Request a trade", v: "jake@trusttrade.au" },

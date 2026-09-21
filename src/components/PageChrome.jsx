@@ -213,8 +213,8 @@ export function PageHero({
 }
 
 export function PageWaitlistFooterCTA({
-  headline = "Be first in.",
-  subhead = "Lock in early.",
+  headline = "On Android?",
+  subhead = "We'll tell you.",
   secondaryLabel = "I'm a tradie",
   secondaryHref = "For Tradies.html",
 }) {
@@ -223,18 +223,18 @@ export function PageWaitlistFooterCTA({
       <div className="container">
         <div className="page-cta-inner">
           <div className="page-cta-text">
-            <div className="eyebrow accent">Pre-register</div>
+            <div className="eyebrow accent">Coming to Android</div>
             <h2 className="h-1">
               {headline} <span className="it">{subhead}</span>
             </h2>
             <p className="lede">
-              Web access opens for waitlist members before public launch. Founding-member pricing,
-              verified badge on day one, no spam.
+              Trust Trade's live on iPhone now, and Android's on the way. Leave your details and
+              we'll message you the day it lands. No spam.
             </p>
           </div>
           <div className="page-cta-actions">
             <PageLink href="Trust Trade Landing.html#waitlist" className="btn btn-primary btn-lg">
-              Get on the list →
+              Get notified →
             </PageLink>
             <PageLink href={secondaryHref} className="btn btn-ghost btn-lg">
               {secondaryLabel}
@@ -252,7 +252,7 @@ export function PageDownloadCTA({
   eyebrow = "Ready when you are",
   title = "Get it",
   italic = "done proper.",
-  lede = "Verified, insured, recommended local tradies, landing on your phone soon. Download Trust Trade and find the right human, first time.",
+  lede = "Verified, insured, recommended local tradies, now on your iPhone. Download Trust Trade and find the right human, first time.",
   photoNote = "Photo · tradie ute + toolbox, warm dusk",
 }) {
   return (
@@ -280,7 +280,7 @@ export function PageDownloadCTA({
               </PageLink>
               <div className="final-qr" aria-hidden="true">
                 <div className="qr" />
-                <div className="qr-txt">Scan to download when we launch in the App Store.</div>
+                <div className="qr-txt">Scan to download Trust Trade from the App Store.</div>
               </div>
             </div>
           </div>

@@ -72,17 +72,17 @@ const TIMELINE = [
   {
     when: "May 2026",
     title: "Public waitlist opens.",
-    body: "Where we are now. Waitlist open, Founding 50 spots up for grabs, iOS build in TestFlight with a small alpha cohort.",
+    body: "The public waitlist opens, Founding 50 spots go up for grabs, and the iOS build heads into TestFlight with a small alpha cohort.",
   },
   {
-    when: "Q4 2026",
-    title: "Launch.",
-    body: "Web access opens for the waitlist. iOS shortly after, Android close behind. Victoria-wide from day one.",
+    when: "Sep 2026",
+    title: "Live on the App Store.",
+    body: "Where we are now. Trust Trade goes live on the App Store for iPhone, Victoria-wide. Founding 50 spots are still open, and Android's on the way.",
   },
   {
-    when: "2027",
+    when: "Next",
     title: "NSW, QLD, SA.",
-    body: "We open the next three states in the months after launch, verification stack ported state by state, founding-member program continues.",
+    body: "We open the next three states as we grow, verification stack ported state by state, and the founding-member program continues.",
   },
 ];
 
@@ -121,7 +121,7 @@ export default function AboutPage() {
           { k: "Founded", v: "Melbourne, 2024" },
           { k: "Team", v: "Solo founder" },
           { k: "ABN", v: "40 873 784 535" },
-          { k: "Status", v: "Pre-launch, Q4 2026" },
+          { k: "Status", v: "Live on the App Store (iOS)" },
         ]}
       />
 
@@ -130,7 +130,7 @@ export default function AboutPage() {
           <div className="about-grid">
             <div>
               <div className="eyebrow accent" style={{ marginBottom: 14 }}>
-, The why
+                The why
               </div>
               <h2 className="h-1">
                 A mech plumber <span className="it">with a software problem.</span>

@@ -12,11 +12,11 @@ const FAQ_SECTIONS = [
     id: "general",
     name: "General",
     items: [
-      { q: "When does Trust Trade launch?", a: "We're rolling out invites fortnightly from Q4 2026, starting with Victoria. iOS first, Android close behind. Web access opens for waitlist members before the public launch." },
+      { q: "Is Trust Trade out yet?", a: "Yes, it's live now. Download Trust Trade from the App Store on your iPhone, with Victoria covered to start. Android's on the way, so leave your details and we'll tell you the day it lands." },
       { q: "Is Trust Trade free for homeowners?", a: "Yes, finding, requesting and booking a tradie is free. You only ever pay the tradie's quoted call-out fee, and only once you've approved it in writing. There's no Trust Trade surcharge on top." },
-      { q: "Where are you operating?", a: "Starting in Victoria, Melbourne metro, Geelong, and Gippsland (yes, including Pakenham). NSW, QLD and SA in the months after launch. If you're outside these, join the waitlist and we'll email you when your state opens." },
+      { q: "Where are you operating?", a: "Starting in Victoria, Melbourne metro, Geelong, and Gippsland (yes, including Pakenham). NSW, QLD and SA are rolling out next. If you're outside these, pop your details in and we'll email you when your state opens." },
       { q: "Why 'Trust Trade'?", a: "Because the two biggest things missing from finding a tradie online were trust and a clear paper trail. We picked a name that put both up front. The ® is registered in Australia." },
-      { q: "How is this different from existing platforms?", a: "Three big differences: tradies are verified before they're listed (not just signed up); we don't sell leads (no race-to-the-bottom bidding); and every job leaves a real receipt. We charge tradies nothing to be listed at launch." },
+      { q: "How is this different from existing platforms?", a: "Three big differences: tradies are verified before they're listed (not just signed up); we don't sell leads (no race-to-the-bottom bidding); and every job leaves a real receipt. We charge tradies nothing to be listed while we grow." },
     ],
   },
   {
@@ -36,13 +36,13 @@ const FAQ_SECTIONS = [
     id: "tradies",
     name: "Tradies",
     items: [
-      { q: "What does it cost to join as a tradie?", a: "Free to apply, free to be listed at launch. Founding members (the first 50 verified tradies) lock in lifetime founding-member pricing on any future paid tiers. Standard fees come in after public launch in 2027." },
+      { q: "What does it cost to join as a tradie?", a: "Free to apply and free to be listed while we grow. Founding members — the first 50 verified tradies — lock in lifetime founding-member pricing on any future paid tiers." },
       { q: "Do you take a cut of my job?", a: "No. Trust Trade doesn't sit between you and your customer's money. You invoice them direct, you get paid direct. We're the paper trail and the routing layer, not a middleman." },
-      { q: "How do I get verified?", a: "Apply via the waitlist, upload your licence, insurance certificate of currency, ABN, and ID. We check with the relevant state regulator and confirm the documents. Two reference jobs (two past customers willing to vouch in writing). Usually 48-72 hours end to end." },
+      { q: "How do I get verified?", a: "Apply, upload your licence, insurance certificate of currency, ABN, and ID. We check with the relevant state regulator and confirm the documents. Two reference jobs (two past customers willing to vouch in writing). Usually 48-72 hours end to end." },
       { q: "Can I set my own call-out fee?", a: "Yes, per job, every job. Your default rate is saved, but you can override it on any specific job before sending. No platform-set minimums, no algorithmic discount." },
       { q: "What if I want to take a few weeks off?", a: "Switch yourself to Unavailable in the app. No jobs route to you. Switch back on whenever. No lock-in, no penalty, no clawback." },
-      { q: "Can I be on multiple lead-gen platforms at once?", a: "Yeah, that's your call. We don't ask for exclusivity. Most tradies in our beta run us alongside one other platform during launch and drop the other once we've ramped." },
-      { q: "What trades do you cover?", a: "Thirty-five trades across six categories at launch, wet trades, electrical, building/carpentry, surfaces, outside work, and specialists. Full list on the Trades we cover page. If your trade isn't there, email Jake, we add by request." },
+      { q: "Can I be on multiple lead-gen platforms at once?", a: "Yeah, that's your call. We don't ask for exclusivity. Plenty of tradies run us alongside one other platform to start with, then drop the other once we've ramped." },
+      { q: "What trades do you cover?", a: "Thirty-five trades across six categories — wet trades, electrical, building/carpentry, surfaces, outside work, and specialists. Full list on the Trades we cover page. If your trade isn't there, email Jake, we add by request." },
     ],
   },
   {

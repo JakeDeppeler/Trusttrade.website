@@ -66,12 +66,12 @@ function Hero({ onJoin }) {
               className="btn btn-primary btn-lg"
               onClick={onJoin}
             >
-              Join the waitlist →
+              Get notified on Android →
             </button>
           </div>
           <div className="hero-trust-row centered">
             <div className="hero-trust-dot" aria-hidden="true"></div>
-            <div>Founding 50 spots open · No spam, ever</div>
+            <div>Now on iPhone, Android next · No spam, ever</div>
           </div>
           <div className="hero-devices" aria-hidden="true">
             <div className="hero-phone-container">
@@ -440,23 +440,23 @@ function WaitlistMoment() {
         <div className="waitlist-inner">
           <div>
             <div className="eyebrow" style={{ marginBottom: 24 }}>
-, The waitlist
+              Coming to Android
             </div>
             <h2 className="h-1">
-              Be first in.
+              On Android?
               <br />
-              <span className="it">Lock in early.</span>
+              <span className="it">We'll give you a shout.</span>
             </h2>
             <p
               className="lede"
               style={{ marginTop: 28, fontSize: "clamp(17px, 1.5vw, 21px)" }}
             >
-              Waitlist members get web access before public launch, founding-member pricing, and a
-              verified badge on their tradie profile. We open the gates fortnightly.
+              Trust Trade's live on iPhone right now. Android's on the way, so pop your details in
+              and we'll message you the day it lands. No spam, just the one heads-up.
             </p>
             <div className="waitlist-meta">
               <div>
-                <span className="check">✓</span> Early web access
+                <span className="check">✓</span> First to know
               </div>
               <div>
                 <span className="check">✓</span> Founding-member pricing
@@ -475,10 +475,10 @@ function WaitlistMoment() {
               <h3>{alreadyOnList ? "Already on the list." : "You're in, mate."}</h3>
               <p>
                 {alreadyOnList
-                  ? "Good news, you signed up earlier. We'll email you the day before access opens."
+                  ? "Good news, you're already on the list. We'll give you a shout the day Android lands."
                   : submittedRole === "tradie"
-                  ? "We'll email you a temporary password and a link to download the app the day before verification opens. Check your inbox for a confirmation."
-                  : "We'll email you the day before web access opens. Check your inbox for a confirmation."}
+                  ? "We've got your details, we'll be in touch about getting you verified and listed. Check your inbox for a confirmation."
+                  : "We'll give you a shout the day Trust Trade lands on Android. Check your inbox for a confirmation."}
               </p>
             </div>
           ) : (
@@ -561,7 +561,7 @@ function WaitlistMoment() {
                 type="submit"
                 disabled={submitting}
               >
-                {submitting ? "Saving…" : "Get my spot →"}
+                {submitting ? "Saving…" : "Get notified →"}
               </button>
               {error && (
                 <div className="small" style={{ color: "var(--emergency)", marginTop: 8 }}>
@@ -570,8 +570,8 @@ function WaitlistMoment() {
               )}
               <div className="small">
                 {isTradie
-                  ? "We'll email you a temp password and download link when verification opens. By joining you agree to our Terms & Privacy."
-                  : "By joining you agree to our Terms & Privacy. Unsubscribe with one tap."}
+                  ? "We'll be in touch about getting you verified and listed. By signing up you agree to our Terms & Privacy."
+                  : "By signing up you agree to our Terms & Privacy. Unsubscribe with one tap."}
               </div>
             </form>
           )}
@@ -582,13 +582,13 @@ function WaitlistMoment() {
 }
 
 const LANDING_FAQS = [
-  { q: "When does the app launch?", a: "We're rolling out invites fortnightly from Q4 2026, starting with Victoria. iOS first, Android close behind. Web access opens for waitlist members before public launch." },
+  { q: "Is the app out yet?", a: "Yes, it's live now. Download Trust Trade from the App Store on your iPhone, with Victoria covered to start. Android's on the way, so leave your details and we'll tell you the day it lands." },
   { q: "Is Trust Trade free for homeowners?", a: "Yeah, finding and booking a tradie is free. You only ever pay the tradie's quoted call-out fee, and only after you've approved it in writing." },
   { q: "How do you verify tradies?", a: "We check licence numbers with the relevant state regulator (e.g. VBA for builders, ESV for sparkies), confirm public liability and workers' comp insurance, and only show reviews from confirmed bookings on the platform." },
-  { q: "Which trades are covered?", a: "At launch: electricians, plumbers, HVAC, carpenters, builders, painters, tilers, roofers, plasterers, landscapers, concreters, fencers, handymen, bricklayers and floorers. More on request." },
+  { q: "Which trades are covered?", a: "Electricians, plumbers, HVAC, carpenters, builders, painters, tilers, roofers, plasterers, landscapers, concreters, fencers, handymen, bricklayers and floorers. More on request." },
   { q: "Does the AI replace talking to a real tradie?", a: "Nope. The AI's job is to work out which trade you actually need from a plain-English description, then point you at verified humans. The fix-it bit is still done by a real, insured person, on site." },
-  { q: "I'm a tradie, what does it cost to join?", a: "Free to apply and free to be listed. Founding members (the first 50 in) get lifetime founding-member pricing on any future paid tiers. Standard fees kick in after public launch." },
-  { q: "Where are you operating?", a: "Starting in Victoria, Melbourne metro, Geelong, and Gippsland (yes, including Pakenham). NSW, QLD and SA in the months after launch." },
+  { q: "I'm a tradie, what does it cost to join?", a: "Free to apply and free to be listed while we grow. Founding members — the first 50 in — lock in lifetime founding-member pricing on any future paid tiers." },
+  { q: "Where are you operating?", a: "Starting in Victoria, Melbourne metro, Geelong, and Gippsland (yes, including Pakenham). NSW, QLD and SA are rolling out next." },
   { q: "What if it goes wrong on the day?", a: "Every booking has a receipt: name, address, time, price, the lot. If something's off, both sides have the record. We mediate disputes between verified accounts within 48 hours." },
 ];
 
@@ -703,8 +703,7 @@ function BevelHero() {
           </a>
         </div>
         <div className="hero-rating">
-          <span className="stars">★★★★★</span>
-          <span>1,247 mates already in line</span>
+          <span>Now on the App Store · Verified, insured local tradies</span>
         </div>
 
         {/* Side phones are ALWAYS in the DOM (not JS-gated) so they never pop in after
@@ -1381,6 +1380,7 @@ export default function LandingPage() {
         <FeatureBreakdowns />
         <ForTradiesBand />
         <FeatureGrid />
+        <WaitlistMoment />
         <PageDownloadCTA />
       </main>
       <PageFooter />

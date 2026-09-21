@@ -21,11 +21,11 @@ const HIW_FAQ = [
   {
     name: "General",
     items: [
-      { q: "When does Trust Trade launch?", a: "We're rolling out invites fortnightly from Q4 2026, starting with Victoria. iOS first, Android close behind. Web access opens for waitlist members before the public launch." },
+      { q: "Is Trust Trade out yet?", a: "Yes, it's live now. Download Trust Trade from the App Store on your iPhone, with Victoria covered to start. Android's on the way, so leave your details and we'll tell you the day it lands." },
       { q: "Is Trust Trade free for homeowners?", a: "Yes, finding, requesting and booking a tradie is free. You only ever pay the tradie's quoted call-out fee, and only once you've approved it in writing. There's no Trust Trade surcharge on top." },
-      { q: "Where are you operating?", a: "Starting in Victoria, Melbourne metro, Geelong, and Gippsland (yes, including Pakenham). NSW, QLD and SA in the months after launch. If you're outside these, join the waitlist and we'll email you when your state opens." },
+      { q: "Where are you operating?", a: "Starting in Victoria, Melbourne metro, Geelong, and Gippsland (yes, including Pakenham). NSW, QLD and SA are rolling out next. If you're outside these, pop your details in and we'll email you when your state opens." },
       { q: "Why 'Trust Trade'?", a: "Because the two biggest things missing from finding a tradie online were trust and a clear paper trail. We picked a name that put both up front. The ® is registered in Australia." },
-      { q: "How is this different from existing platforms?", a: "Three big differences: tradies are verified before they're listed (not just signed up); we don't sell leads (no race-to-the-bottom bidding); and every job leaves a real receipt. We charge tradies nothing to be listed at launch." },
+      { q: "How is this different from existing platforms?", a: "Three big differences: tradies are verified before they're listed (not just signed up); we don't sell leads (no race-to-the-bottom bidding); and every job leaves a real receipt. We charge tradies nothing to be listed while we grow." },
     ],
   },
   {
@@ -76,7 +76,7 @@ export default function HowItWorksPage() {
           { k: "Time to quote", v: "~3 minutes" },
           { k: "Steps for you", v: "Three" },
           { k: "Cost to use", v: "Free for homeowners" },
-          { k: "Coverage", v: "VIC at launch" },
+          { k: "Coverage", v: "VIC for now" },
         ]}
       />
 
@@ -213,7 +213,7 @@ What you see on a profile</div>
               <div className="doc-row"><div className="k">Workers' comp</div><div className="v">Active · 3 employees</div></div>
               <div className="doc-row"><div className="k">Identity check</div><div className="v">Matched · Apr 2026</div></div>
               <div className="doc-row"><div className="k">Disciplinary</div><div className="v">No active orders</div></div>
-              <div className="doc-row"><div className="k">Last re-check</div><div className="v">Q2 2026 · Next: Q3 2026</div></div>
+              <div className="doc-row"><div className="k">Re-checks</div><div className="v">Quarterly</div></div>
             </div>
             <div>
               <h3 className="h-2" style={{ marginBottom: 18 }}>The receipt.</h3>
@@ -343,7 +343,7 @@ Questions</div>
               Everything else, <span className="it">answered.</span>
             </h2>
             <p className="lede">
-              The questions homeowners ask us most, launch, cost, verification, what happens when a
+              The questions homeowners ask us most, availability, cost, verification, what happens when a
               job goes sideways. On the tools instead? The tradie questions live on the{" "}
               <PageLink href="FAQ.html#tradies">FAQ</PageLink> page. Still stuck? Email{" "}
               <a href="mailto:jake@trusttrade.au">jake@trusttrade.au</a>.

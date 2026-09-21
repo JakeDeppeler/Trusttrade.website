@@ -2648,7 +2648,11 @@ function ducts(){
              the θ that minimises the WORST bend is the midrange of (rel_i − slot_i), and
              the worst bend then drops to half the spread. Rotate the whole box by that
              (clamped), stored so drawBTO + the arrival lead rotate in the same frame. */
-          const err=rel.map((r,i)=>r.d-off[i]);
+          // Include the INLET (its ideal is θ=0 — pointing straight back down the
+          // trunk) alongside the outlet errors, so rotating the box to face its rooms
+          // can't buy a gentle outlet bend at the price of a sharp trunk-into-box bend.
+          // The midrange then balances the worst of {inlet, every outlet}.
+          const err=[0, ...rel.map((r,i)=>r.d-off[i])];
           let theta=(Math.max(...err)+Math.min(...err))/2;
           theta=Math.max(-0.87,Math.min(0.87,theta));       // ≤ ~50° of box rotation
           if(node.bid) S.boxAuto[node.bid]=theta;
@@ -2969,7 +2973,9 @@ function staticPressure(){
 /* Find the unit POSITION and ROTATION that give the shortest, cleanest runs.
    Rotation matters as much as position: point the plenum face the wrong way and
    every duct has to wrap around the unit. */
-const ROTS=[0,30,60,90,120,150,180,210,240,270,300,330];
+/* A fan coil mounts square to the house — its face points front, back, left or
+   right, never on a diagonal. So only the four orthogonal facings are on offer. */
+const ROTS=[0,90,180,270];
 /* Do two segments actually cross (not just meet at a shared box)? */
 function xseg(p1,p2,p3,p4){
   const den=(p4.y-p3.y)*(p2.x-p1.x)-(p4.x-p3.x)*(p2.y-p1.y);

@@ -1580,10 +1580,34 @@ function branchTree(root,leaves,zoneArg,out,path,gp){
   leaves.forEach(n=>{ (byZone.get(n.zone)||byZone.set(n.zone,[]).get(n.zone)).push(n); });
   const atoms=[...byZone.values()].map(vs=> vs.length>1 ? {...wcent(vs), members:vs, zone:vs[0].zone} : vs[0]);
   if(atoms.length<=MAX_BRANCH){
+    /* KEEP A PASS-THROUGH TRUNK BOX 2-WAY. When a sub-trunk carries on to another box (a
+       members atom) AND two or more loose single-vent zones would otherwise tap straight off
+       this same big-trunk box, don't hang them in the fast trunk air — a pair of little
+       outlets right in the plenum stream come out noisy and uneven ("smashed"). Group those
+       loose zones behind ONE splitter box on a stepped-down sub-trunk; each still gets its own
+       damper on its own branch. The box is then just: sub-trunk to the vents' box + the trunk
+       carrying on (e.g. 350 in → 300 to the two beds' box + 300 onward). */
+    const singles=atoms.filter(a=>!a.members), subs=atoms.filter(a=>a.members);
+    if(!FAST_ROUTE && subs.length>=1 && singles.length>=2){
+      let i=0;
+      splitBox(singles, i++, null);                 // the loose vents → one shared splitter box
+      subs.forEach(a=> splitBox(a.members, i++, a.zone));
+      return;
+    }
     atoms.forEach((a,i)=> a.members ? splitBox(a.members,i,a.zone) : leaf(a,i));
     return;
   }
-  armGroups(root, atoms, inDir, MAX_BRANCH).forEach((g,i)=>{
+  /* MORE ZONES than a box can fan → group the zone-atoms into arms, a splitter box per arm.
+     Off a BIG trunk, though, don't leave loose single vents tapping the fast plenum air — pull
+     the arm count down until at most one arm is a lone vent, so the rest ride their own
+     stepped-down sub-boxes (each zone still dampered on its own branch). That's the fitter's
+     "350 in → 300 + 300 out", not a 350 spitting straight into a fistful of little outlets. */
+  const flow=leaves.reduce((a,n)=>a+(n.lps||0),0);
+  const bigTrunk = !FAST_ROUTE && ductRun(flow,'trunk').d>=300;
+  let k=MAX_BRANCH, arms=armGroups(root, atoms, inDir, k);
+  const looseCount=gs=>gs.filter(g=>g.flatMap(a=>a.members||[a]).length===1).length;
+  if(bigTrunk) while(k>2 && looseCount(arms)>=2){ k--; arms=armGroups(root, atoms, inDir, k); }
+  arms.forEach((g,i)=>{
     const members=g.flatMap(a=>a.members||[a]);
     members.length===1 ? leaf(members[0],i) : splitBox(members,i,null);
   });
@@ -3207,15 +3231,16 @@ function refineUnitBends(){
      optimised centre, so walk a fine local grid NEAREST-FIRST at the chosen facing and stop
      at the very first spot that comes back genuinely clean. A hard real-route cap keeps the
      nudge to about a second; if nothing clears in budget we keep the best seen. */
-  const pts=[];
-  for(let gx=-2;gx<=2;gx++) for(let gy=-2;gy<=2;gy++){
+  const pts=[]; const seen=new Set();
+  for(let gx=-4;gx<=4;gx++) for(let gy=-4;gy<=4;gy++){
     if(!gx && !gy) continue;
     const px=snap(cl(u0.x+gx*0.8, x1, x2)), py=snap(cl(u0.y+gy*0.8, y1, y2));
+    const key2=px+','+py; if(seen.has(key2)) continue; seen.add(key2);
     pts.push({x:px, y:py, home:Math.hypot(px-u0.x,py-u0.y)});
   }
   pts.sort((a,b)=>a.home-b.home);
   let best={x:u0.x, y:u0.y, rot:rot0, k:key(base,u0.x,u0.y)};
-  let budget=10;                                           // capped real routes
+  let budget=18;                                           // capped real routes
   try{
     for(const p of pts){
       if(budget<=0) break;
@@ -3714,24 +3739,19 @@ function flexDetail(d, px, col, ret, st){
       const w=(d.dUp && d.redT!=null && t<d.redT) ? ductPx({...d,d:d.dUp}) : px;
       seg.push({p, ux:dx/m, uy:dy/m, nx:-dy/m, ny:dx/m, hw:w*0.42});
     }
-    /* HELICAL corrugation. A flex sleeve is a spiral wire, so the ribs run DIAGONALLY
-       across the tube, not straight across — tilt each rib along the run to match. */
-    const T=px*0.55;                                  // helix tilt
     // shadowed grooves
-    ctx.strokeStyle=cshade(col,0.5,0.42); ctx.lineWidth=Math.max(0.8, px*0.11);
+    ctx.strokeStyle=hexA(col,.34); ctx.lineWidth=Math.max(0.8, px*0.10);
     ctx.beginPath();
-    seg.forEach(s=>{ ctx.moveTo(s.p.x-s.nx*s.hw-s.ux*T, s.p.y-s.ny*s.hw-s.uy*T);
-                     ctx.lineTo(s.p.x+s.nx*s.hw+s.ux*T, s.p.y+s.ny*s.hw+s.uy*T); });
+    seg.forEach(s=>{ ctx.moveTo(s.p.x-s.nx*s.hw, s.p.y-s.ny*s.hw); ctx.lineTo(s.p.x+s.nx*s.hw, s.p.y+s.ny*s.hw); });
     ctx.stroke();
     // lit ridges a hair ahead of each groove — the embossed corrugation
-    ctx.strokeStyle='rgba(255,255,255,.34)'; ctx.lineWidth=Math.max(0.6, px*0.07);
+    ctx.strokeStyle='rgba(255,255,255,.30)'; ctx.lineWidth=Math.max(0.6, px*0.06);
     ctx.beginPath();
-    seg.forEach(s=>{ const o=Math.max(1, px*0.12), ox=s.ux*o, oy=s.uy*o;
-      ctx.moveTo(s.p.x+ox-s.nx*s.hw-s.ux*T, s.p.y+oy-s.ny*s.hw-s.uy*T);
-      ctx.lineTo(s.p.x+ox+s.nx*s.hw+s.ux*T, s.p.y+oy+s.ny*s.hw+s.uy*T); });
+    seg.forEach(s=>{ const o=Math.max(1, px*0.11), ox=s.ux*o, oy=s.uy*o;
+      ctx.moveTo(s.p.x+ox-s.nx*s.hw, s.p.y+oy-s.ny*s.hw); ctx.lineTo(s.p.x+ox+s.nx*s.hw, s.p.y+oy+s.ny*s.hw); });
     ctx.stroke();
-    // crown sheen down the middle for tube roundness
-    ctx.strokeStyle=PAL().crown; ctx.lineWidth=Math.max(1, px*0.18);
+    // crown highlight down the middle for tube roundness
+    ctx.strokeStyle=PAL().crown; ctx.lineWidth=Math.max(1, px*0.20);
     pathOf(d); ctx.stroke();
   }
   if(VIEW().air){
@@ -3816,34 +3836,15 @@ function drawDuct(d){
     ctx.strokeStyle=col; ctx.lineWidth=px; pathOf(d); ctx.stroke();
     if(ret){ ctx.strokeStyle=PAL().paper; ctx.lineWidth=Math.max(1,px*.35);
       ctx.setLineDash([5,5]); pathOf(d); ctx.stroke(); ctx.setLineDash([]); }
-  } else if(!ret && d.dUp && d.redT!=null){
-    /* LONG RUN: one size up from the box, a reducer, then the outlet size home. */
-    const colUp=S.colorBy==='zone' ? col : (SIZECOL[d.dUp]||col);
-    const tR=d.redT, ov=0.02;                       // overlap under the reducer — no gap
-    tubeStroke(()=>pathSeg(d,0,tR+ov), pxUp, colUp, ret);
-    tubeStroke(()=>pathSeg(d,Math.max(0,tR-ov),1), px, col, ret);
-    // the REDUCER — a short galv taper where the size steps down
-    { const p=w2s(dpt(d,d.redT)), q=w2s(dpt(d,Math.min(1,d.redT+0.02)));
-      const dx=q.x-p.x, dy=q.y-p.y, m=Math.hypot(dx,dy)||1;
-      const ux=dx/m, uy=dy/m, nx=-uy, ny=ux;
-      const w1=pxUp*0.55+1.5, w2=px*0.55+1.5, ll=Math.max(7, px*0.55);
-      ctx.save(); ctx.lineJoin='round';
-      const g=ctx.createLinearGradient(p.x-nx*w1,p.y-ny*w1,p.x+nx*w1,p.y+ny*w1);
-      g.addColorStop(0,'#d6dde4'); g.addColorStop(1,'#98a2ad');
-      ctx.fillStyle=g; ctx.strokeStyle='#11141a'; ctx.lineWidth=1.4;
-      ctx.beginPath();
-      ctx.moveTo(p.x-ux*ll-nx*w1, p.y-uy*ll-ny*w1);
-      ctx.lineTo(p.x-ux*ll+nx*w1, p.y-uy*ll+ny*w1);
-      ctx.lineTo(p.x+ux*ll+nx*w2, p.y+uy*ll+ny*w2);
-      ctx.lineTo(p.x+ux*ll-nx*w2, p.y+uy*ll-ny*w2);
-      ctx.closePath(); ctx.fill(); ctx.stroke(); ctx.restore(); }
-    flexDetail(d, px, col, ret, st);
   } else {
-    tubeStroke(()=>pathOf(d), px, col, ret);
+    // the flat two-tone flex: a translucent body halo with a solid core down the middle
+    ctx.strokeStyle=hexA(col,ret?.30:.22); ctx.lineWidth=px+4; pathOf(d); ctx.stroke();
+    ctx.strokeStyle=hexA(col,ret?.72:.62); ctx.lineWidth=px;   pathOf(d); ctx.stroke();
     flexDetail(d, px, col, ret, st);
   }
-  // a bend we had to open up to keep the air moving
-  if(d.bendFixed){
+  // only mark a bend that's an ACTUAL kink (below ~1.1× diameter) — the smooth arcs
+  // the cubic holds everything else to don't need a warning.
+  if(d.b && d.bendR!=null && d.bendR < KINK_RATIO*(d.d/1000)){
     const m=w2s(dpt(d,.5));
     ctx.fillStyle='#fff'; ctx.strokeStyle='#d97706'; ctx.lineWidth=2;
     ctx.beginPath(); ctx.arc(m.x,m.y,Math.max(4,px*.42),0,7); ctx.fill(); ctx.stroke();

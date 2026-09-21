@@ -1369,65 +1369,6 @@ function FeatureGrid() {
   );
 }
 
-/* ===== Reviews wall ===== */
-const REVIEWS = [
-  { s: 5, t: "Sparkie was here same arvo", r: "Fuse kept tripping, described it in the app and had a verified sparkie booked within the hour. Fixed price up front, no dramas.", who: "Bianca R.", loc: "Berwick, VIC", tag: "Homeowner", av: "B" },
-  { s: 5, t: "No more tyre-kickers", r: "Every lead's a real job now. Homeowner's already told the app what they need before I even reply. Massive time saver.", who: "Dave, DK Plumbing", loc: "Pakenham, VIC", tag: "Tradie", av: "D" },
-  { s: 5, t: "Finally, a quote in writing", r: "Loved seeing the call-out fee before he came out. Tapped approve and got a booking confirmation with everything logged.", who: "Marcus T.", loc: "Officer, VIC", tag: "Homeowner", av: "M" },
-  { s: 5, t: "Reckon it's the future", r: "Being verified against my licence and insurance actually means something. Customers trust the badge, so they book quicker.", who: "Jess, Valley Electrics", loc: "Yarra Valley, VIC", tag: "Tradie", av: "J" },
-  { s: 5, t: "Knew who I was dealing with", r: "The verified tick and real reviews gave me the confidence to book someone I'd never heard of. Turned up on time, did it proper.", who: "Priya S.", loc: "Cranbourne, VIC", tag: "Homeowner", av: "P" },
-  { s: 5, t: "One thread, no chaos", r: "Everything for the job lives in one chat, quote, photos, the lot. Way better than losing texts across three numbers.", who: "Tom H.", loc: "Narre Warren, VIC", tag: "Homeowner", av: "T" },
-  { s: 5, t: "Set my own price", r: "No racing to the bottom on price. I quote what the job's worth and they approve it. That's how it should be.", who: "Sam, Ace Carpentry", loc: "Gippsland, VIC", tag: "Tradie", av: "S" },
-  { s: 5, t: "Emergency sorted fast", r: "Flagged a burst pipe as urgent at 6pm and had someone on site by 8. Genuinely saved the kitchen ceiling.", who: "Lauren M.", loc: "Melbourne, VIC", tag: "Homeowner", av: "L" },
-  { s: 5, t: "Payments come quicker", r: "Booking receipts mean no arguing about what was agreed. Invoices get paid without the usual chasing.", who: "Nick, Metro HVAC", loc: "Dandenong, VIC", tag: "Tradie", av: "N" },
-];
-function RevCard({ rv }) {
-  return (
-    <div className="rev-card">
-      <div className="stars">{"★".repeat(rv.s)}</div>
-      <h3>{rv.t}</h3>
-      <p>"{rv.r}"</p>
-      <div className="rev-meta">
-        <div className="av">{rv.av}</div>
-        <div className="who"><strong>{rv.who}</strong>{rv.loc}</div>
-        <div className="rev-tag">{rv.tag}</div>
-      </div>
-    </div>
-  );
-}
-function Reviews() {
-  const cols = [
-    [REVIEWS[0], REVIEWS[3], REVIEWS[6]],
-    [REVIEWS[1], REVIEWS[4], REVIEWS[7]],
-    [REVIEWS[2], REVIEWS[5], REVIEWS[8]],
-  ];
-  const clsFor = (i) => ["", "b", "c"][i];
-  return (
-    <section className="block reviews" id="reviews">
-      <div className="container">
-        <div className="sec-intro reveal">
-          <div className="eyebrow accent dot" style={{ justifyContent: "center" }}>Loved on both sides</div>
-          <h2 className="h-1" style={{ marginTop: 18 }}>
-            Homeowners and tradies, <span className="it">on the same team.</span>
-          </h2>
-          <p className="lede">
-            Early access members are already sorting jobs the honest way. Here's what they reckon.
-          </p>
-        </div>
-        <div className="reviews-cols reveal">
-          {cols.map((col, ci) => (
-            <div className={"rev-col " + clsFor(ci)} key={ci}>
-              {[...col, ...col].map((rv, i) => (
-                <RevCard rv={rv} key={i} />
-              ))}
-            </div>
-          ))}
-        </div>
-      </div>
-    </section>
-  );
-}
-
 export default function LandingPage() {
   usePageReveal();
   return (
@@ -1440,7 +1381,6 @@ export default function LandingPage() {
         <FeatureBreakdowns />
         <ForTradiesBand />
         <FeatureGrid />
-        <Reviews />
         <PageDownloadCTA />
       </main>
       <PageFooter />

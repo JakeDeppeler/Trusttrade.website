@@ -279,6 +279,35 @@
         <button data-view="all"   data-tip="Velocity, pressure and noise">Everything</button>
       </div>
       <div class="hint" id="hint">Upload a house plan, or load the demo</div>
+      <!-- Guided setup banner: walks you through rooms → outlets → return → unit → auto-draw -->
+      <div class="wiz" id="wiz" hidden>
+        <div class="wiz-steps" id="wiz-steps"></div>
+        <div class="wiz-body">
+          <div class="wiz-title" id="wiz-title"></div>
+          <div class="wiz-tip" id="wiz-tip"></div>
+        </div>
+        <div class="wiz-actions">
+          <button class="hbtn" id="wiz-auto" hidden></button>
+          <button class="hbtn" id="wiz-exit" title="Leave the guided flow">Exit</button>
+          <button class="hbtn primary" id="wiz-next">Next →</button>
+        </div>
+      </div>
+      <style>
+        .wiz{position:absolute;left:50%;bottom:20px;transform:translateX(-50%);z-index:55;
+          display:flex;align-items:center;gap:14px;width:min(600px,calc(100% - 40px));
+          background:var(--panel);border:1px solid var(--line);border-radius:14px;
+          box-shadow:0 10px 34px rgba(15,23,42,.20);padding:11px 13px}
+        .wiz[hidden]{display:none}
+        .wiz-steps{display:flex;gap:6px;align-items:center;flex:none}
+        .wiz-dot{width:23px;height:23px;border-radius:50%;display:grid;place-items:center;
+          font-size:11px;font-weight:800;background:var(--hover);color:var(--muted)}
+        .wiz-dot.on{background:var(--accent);color:#fff}
+        .wiz-dot.done{background:var(--ok);color:#fff}
+        .wiz-body{flex:1;min-width:0}
+        .wiz-title{font-weight:700;font-size:13.5px;letter-spacing:-.01em}
+        .wiz-tip{font-size:12px;color:var(--muted);line-height:1.35;margin-top:1px}
+        .wiz-actions{display:flex;gap:6px;flex:none}
+      </style>
       <div class="legend" id="legend"></div>
       <div class="ctxpop" id="ctxpop" hidden></div>
       <div class="zoombar">
@@ -4217,6 +4246,20 @@ function tag(x,y,t,c){
 function returnDucts(){ return returnFlow() > 520 ? 2 : 1; }   // 2 collars past ~520 L/s
 function drawReturn(r){
   const PL=PAL(), k=S.ppm*S.zoom, F=k/240;             // his units → true screen scale
+  /* The return box bolts to the UNIT's return face, so without a unit there's nothing
+     to orient it to (this is the guided flow, where you drop the return before the
+     unit). Draw a simple grille marker where you placed it until the unit lands and
+     the real box + run get drawn. */
+  if(!S.unit){
+    const c=w2s(r), s=Math.max(12, 0.42*k);
+    ctx.save(); ctx.fillStyle=PL.card; ctx.strokeStyle=PL.metalEdge; ctx.lineWidth=2;
+    roundRect(c.x-s, c.y-s*0.66, s*2, s*1.32, 4); ctx.fill(); ctx.stroke();
+    ctx.strokeStyle=PL.metalFold; ctx.lineWidth=1.4; ctx.globalAlpha=.8;
+    for(let i=1;i<=4;i++){ const yy=c.y-s*0.66+ s*1.32*i/5; ctx.beginPath(); ctx.moveTo(c.x-s+3,yy); ctx.lineTo(c.x+s-3,yy); ctx.stroke(); }
+    ctx.globalAlpha=1; ctx.restore();
+    if(S.zoom>=0.5) tag(c.x, c.y+s*0.66+6, 'RETURN', PL.muted);
+    return;
+  }
   const rr=ductRun(returnFlow(),'return');             // the ACTUAL return duct — collars match it
   const n=Math.max(1,rr.n), dia=rr.d;
   const rot=(S.rot||0)*Math.PI/180, L=unitFrame(S.unit,rot), f=flipSign();
@@ -4666,15 +4709,18 @@ cv.addEventListener('pointerdown',e=>{
     const fresh=!S.unit;
     S.unit={x:w.x,y:w.y};S.placed.unit=true;S.routes={};
     /* Placing a unit BY HAND means you're drawing this one up — no auto-route.
-       Manual duct mode, blank sheet; Auto-design is still one click away. */
-    if(fresh && !S.placeStep && !S.manualDuct){
+       Manual duct mode, blank sheet; Auto-design is still one click away. EXCEPT in
+       the guided wizard, where placing the unit is the last step before it auto-draws. */
+    if(fresh && !S.placeStep && !S.manualDuct && !wizOn()){
       S.manualDuct=true; S.dboxes=[]; S.links=[];
       flash('Unit placed — draw runs with D, drop BTOs with B. Or hit Auto-design to route it.');
     }
     commit();
+    if(wizOn()){ wizAdvance(false); return; }
     if(S.placeStep==='unit'){ advancePlacement('return'); } else setTool('select');
     return;}
   if(S.tool==='return'){pushHist();S.ret={x:w.x,y:w.y};S.placed.ret=true;commit();
+    if(wizOn()){ wizAdvance(false); return; }
     if(S.placeStep==='return'){ advancePlacement('done'); } else setTool('select');
     return;}
   if(S.tool==='outdoor'){pushHist();S.outdoor={x:w.x,y:w.y};S.placed.outdoor=true;commit();
@@ -6297,12 +6343,18 @@ async function traceRooms(){
    the return, or hand it to the app. Once you've placed them (or chosen "pick for
    me" once), it remembers and won't nag again. */
 $('#btn-ai').onclick=()=>{
-  if(!live().length){ flash('No conditioned rooms — trace a plan or load the demo'); return; }
+  // Nothing set up yet → walk through the whole thing (rooms → outlets → return → unit → draw).
+  if(!live().length){ startWizard(); return; }
   const placedGear = (S.placed.unit && S.unit) && (S.placed.ret && S.ret);
   if(placedGear || S.autoPickChosen){ autoDesign(); return; }
   const box=$('#choose'); box.classList.add('on');
-  $('#choose-place').onclick=()=>{ box.classList.remove('on'); startGuidedPlacement(); };
-  $('#choose-auto').onclick=()=>{ box.classList.remove('on'); S.autoPickChosen=true; autoDesign(); };
+  const t=$('#choose-t'), s=$('#choose-s'), p=$('#choose-place'), a=$('#choose-auto');
+  if(t) t.textContent='Set it up together, or auto?';
+  if(s) s.textContent="Walk through it one step at a time — outlets, return, unit — or let the app place the gear and route it all now.";
+  if(p) p.textContent='Walk me through it';
+  if(a) a.textContent='Do it all for me';
+  p.onclick=()=>{ box.classList.remove('on'); startWizard(); };
+  a.onclick=()=>{ box.classList.remove('on'); S.autoPickChosen=true; autoDesign(); };
 };
 
 /* GUIDED PLACEMENT.
@@ -6340,6 +6392,90 @@ function advancePlacement(to){
   ai(`Gear placed. <b>Draw it up yourself</b>: <b>D</b> draws a run node-to-node, <b>B</b> drops
       a branch take-off. Hit <b>Auto-design</b> any time to have it routed for you.`);
 }
+/* ============================================================ GUIDED WIZARD
+   The whole set-up as a walk-through: mark the rooms → drop the outlets → place
+   the return → place the unit → and it auto-draws everything in between. Each step
+   sets the right tool and shows what to do; the last one routes the job. */
+const WIZ=[
+  {key:'scale', title:'Set the scale', tool:'scale',
+    tip:'Click the two ends of one wall you know, so room areas come out right.',
+    need:()=> !!S.bg && !S.calibrated, done:()=> !!S.calibrated},
+  {key:'rooms', title:'Mark out the rooms', tool:'room',
+    tip:'Drag a box for each room (or click each corner for an odd shape), then set its type in the panel.',
+    done:()=> live().length>=1},
+  {key:'outlets', title:'Place the ceiling outlets', tool:'vent',
+    tip:'Click where each outlet goes — or let the app place them by room.',
+    autoLabel:'Auto-place', auto:()=>{ placeOutlets(); commit(); },
+    done:()=> S.vents.length>=1},
+  {key:'return', title:'Place the return air', tool:'return',
+    tip:'Click where the return-air grille goes — a central spot like the hallway.',
+    autoLabel:'Pick for me', auto:()=> wizAutoReturn(), advanceOnPlace:true,
+    done:()=> !!S.ret},
+  {key:'unit', title:'Place the fan coil', tool:'unit', last:true,
+    tip:'Last one — click where the indoor unit sits, then it draws the whole run.',
+    autoLabel:'Pick for me', auto:()=> wizAutoUnit(), advanceOnPlace:true,
+    done:()=> !!S.unit},
+];
+const wizSteps=()=> WIZ.filter(s=> s.need ? s.need() : true);
+const wizOn=()=> !!(S.wiz && S.wiz.on);
+function wizAutoUnit(){
+  const b=optimiseUnit();
+  if(b){ S.unit={x:snap(b.x), y:snap(b.y)}; S.rot=b.rot; S.rot=bestUnitRot(S.unit); }
+  else { const c=live(); S.unit={x:snap(c.reduce((a,r)=>a+roomCentre(r).x,0)/c.length),
+                                 y:snap(c.reduce((a,r)=>a+roomCentre(r).y,0)/c.length)}; }
+  S.placed.unit=true; commit();
+}
+function wizAutoReturn(){
+  const rs=live(); if(!rs.length) return;
+  const cx=rs.reduce((a,r)=>a+roomCentre(r).x,0)/rs.length;   // central, hallway-ish
+  const cy=rs.reduce((a,r)=>a+roomCentre(r).y,0)/rs.length;
+  S.ret={x:snap(cx), y:snap(cy)}; S.placed.ret=true; commit();
+}
+function startWizard(){
+  S.wiz={on:true, i:0};
+  const steps=wizSteps();
+  const first=steps.findIndex(s=>!s.done());
+  S.wiz.i = first<0 ? steps.length-1 : first;
+  wizShow();
+}
+function wizShow(){
+  const el=$('#wiz'); if(!el) return;
+  if(!wizOn()){ el.hidden=true; return; }
+  const steps=wizSteps(), i=Math.min(S.wiz.i, steps.length-1), st=steps[i];
+  el.hidden=false;
+  $('#wiz-steps').innerHTML = steps.map((s,k)=>
+    `<div class="wiz-dot ${(k<i||s.done())?'done':''} ${k===i?'on':''}">${(k<i||s.done())?'✓':(k+1)}</div>`).join('');
+  $('#wiz-title').textContent = `Step ${i+1} of ${steps.length} · ${st.title}`;
+  $('#wiz-tip').textContent = st.tip;
+  const ab=$('#wiz-auto');
+  if(st.auto){ ab.hidden=false; ab.textContent=st.autoLabel||'Do it for me'; } else ab.hidden=true;
+  $('#wiz-next').textContent = st.last ? 'Finish & draw →' : 'Next →';
+  setTool(st.tool);
+  ai(`<b>Guided setup — ${st.title}.</b><br/>${st.tip}`);
+}
+function wizAdvance(fromClick){
+  if(!wizOn()) return;
+  const steps=wizSteps(), st=steps[Math.min(S.wiz.i, steps.length-1)];
+  if(fromClick && !st.done()){ flash('Finish this step first — '+st.tip); return; }
+  if(st.last){ wizFinish(); return; }
+  S.wiz.i++;
+  const s2=wizSteps();
+  while(S.wiz.i < s2.length-1 && s2[S.wiz.i].done()) S.wiz.i++;   // skip anything already done
+  if(S.wiz.i >= s2.length){ wizFinish(); return; }
+  wizShow();
+}
+function wizFinish(){
+  S.wiz=null; const el=$('#wiz'); if(el) el.hidden=true;
+  autoDesign();
+  flash('Done — the ductwork is drawn. Tweak anything, or hit Quote.');
+}
+{ const n=$('#wiz-next'); if(n) n.onclick=()=>{ if(wizOn()) wizAdvance(true); }; }
+{ const x=$('#wiz-exit'); if(x) x.onclick=()=>{ S.wiz=null; $('#wiz').hidden=true; setTool('select');
+    flash('Left guided setup — Auto-design is still one click away.'); }; }
+{ const a=$('#wiz-auto'); if(a) a.onclick=()=>{ if(!wizOn()) return;
+    const steps=wizSteps(), st=steps[Math.min(S.wiz.i,steps.length-1)];
+    if(st && st.auto){ st.auto(); wizAdvance(false); } }; }
+
 function autoDesign(){
   if(!live().length){ flash('No conditioned rooms — trace a plan or load the demo'); return; }
   pushHist();

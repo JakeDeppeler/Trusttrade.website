@@ -2319,8 +2319,10 @@ function sortWP(d){ const r=S.routes[d.id]; if(!r||!r.wp) return;
    and the pressure drop goes through the roof — that outlet will never deliver.
    So: measure the tightest point on every run, and if it's illegal, straighten
    the run until it isn't, then TELL the user we did it.                      */
-const MIN_BEND=1.0;                         // × duct diameter (centreline)
-const GOOD_BEND=1.5;                        // what you'd actually want
+const MIN_BEND=1.5;                         // × duct diameter (centreline) — the HARD floor a
+                                            // run relaxes to; matched to GOOD so no bend entering
+                                            // or leaving a BDO is ever tighter than a proper radius
+const GOOD_BEND=1.6;                        // what you'd actually want
 const minBendR=d=>MIN_BEND*(d/1000);        // metres
 function bezMinRadius(a,c,b){
   const d2={x:2*(a.x-2*c.x+b.x), y:2*(a.y-2*c.y+b.y)};   // constant for a quadratic
@@ -3136,7 +3138,11 @@ function draw(){
       VENTFEED.set(d.b.id, {duct:d, dist});
     });
   }
-  ds.forEach(drawDuct);
+  /* Supply first, then the return run semi-transparent on TOP — the return is the
+     fattest duct and used to black out every supply run it crossed. At 0.7 alpha the
+     supply ducts read straight through where they cross under it. */
+  ds.filter(d=>d.kind!=='return').forEach(drawDuct);
+  { const rr=ds.filter(d=>d.kind==='return'); if(rr.length){ ctx.save(); ctx.globalAlpha=0.68; rr.forEach(drawDuct); ctx.restore(); } }
   btoHubs(ds).forEach(drawBTO);           // the take-offs, drawn as the castings they are
   drawDampers(ds);                        // the motorised zone dampers, on each zone's feed
   S.vents.forEach(drawVent);
@@ -4472,6 +4478,14 @@ function hit(w){
   for(const d of ducts()){
     if(d.b && d.b.junction && d.b.bid && dist(w,d.b)<0.42) return {k:'box',o:d.b, bid:d.b.bid};
   }
+  /* EQUIPMENT FIRST. The vents, unit, outdoor and return are discrete things you
+     grab directly — check them BEFORE the generous flex catch so clicking the
+     return (or a vent) that happens to sit over ductwork grabs the FITTING, not the
+     duct running underneath it. */
+  for(let i=S.vents.length-1;i>=0;i--) if(dist(w,S.vents[i])<.35) return {k:'vent',o:S.vents[i]};
+  if(S.unit&&dist(w,S.unit)<.7) return {k:'unit',o:S.unit};
+  if(S.outdoor&&dist(w,S.outdoor)<.6) return {k:'outdoor',o:S.outdoor};
+  if(S.ret&&dist(w,S.ret)<.55) return {k:'return',o:S.ret};
   /* Grab the flex easily — a generous catch radius along the WHOLE run (sample the
      curve densely, not just its midpoint) so you can pick it up anywhere and drag it. */
   { let best=null, bestD=0.8/S.zoom;
@@ -4483,10 +4497,6 @@ function hit(w){
     }
     if(best) return {k:'duct', o:best.id, d:best};
   }
-  for(let i=S.vents.length-1;i>=0;i--) if(dist(w,S.vents[i])<.35) return {k:'vent',o:S.vents[i]};
-  if(S.unit&&dist(w,S.unit)<.7) return {k:'unit',o:S.unit};
-  if(S.outdoor&&dist(w,S.outdoor)<.6) return {k:'outdoor',o:S.outdoor};
-  if(S.ret&&dist(w,S.ret)<.5) return {k:'return',o:S.ret};
   for(let i=S.rooms.length-1;i>=0;i--){const r=S.rooms[i];
     if(roomHit(r,w)) return {k:'room',o:r};}
   return null;

@@ -4850,6 +4850,51 @@ function enterManual(){
   if(!S.unit) flash('Manual ducting on — place the fan coil (U) to start your runs.');
   else if(!S.links.length) flash('Manual ducting on — you own the layout now.');
 }
+/* Drop a NEW BDO into the middle of an auto run. First ask whether the app should auto-redraw
+   the runs around it, or you want to draw them yourself — both bake the current auto layout
+   into editable ducts and splice the new box into the run you clicked. */
+function promptInsertBDO(w, run){
+  const box=$('#choose');
+  if(!box){ insertBDO(w, run, true); return; }
+  box.classList.add('on');
+  const t=$('#choose-t'), s=$('#choose-s'), p=$('#choose-place'), a=$('#choose-auto');
+  if(t) t.textContent='Add a BDO on this run?';
+  if(s) s.textContent='Drop a take-off box here. The app can auto-redraw the runs around it, or you can draw them off it yourself.';
+  if(a) a.textContent='Auto-redraw the runs';
+  if(p) p.textContent="I'll draw from it";
+  a.onclick=()=>{ box.classList.remove('on'); insertBDO(w, run, true); };
+  p.onclick=()=>{ box.classList.remove('on'); insertBDO(w, run, false); };
+}
+function insertBDO(w, run, autoWire){
+  pushHist();
+  if(!S.manualDuct) enterManual();                 // bake the auto layout into editable ducts
+  const N=manualNodes();
+  const findId=p=>{ let best=null,bd=0.7; for(const id in N){ const d=dist(p,N[id]); if(d<bd){bd=d;best=id;} } return best; };
+  const fromId=run&&run.a?findId(run.a):null, toId=run&&run.b?findId(run.b):null;
+  const bid='B'+(1+(S.dboxes||[]).reduce((m,b)=>Math.max(m,+b.id.slice(1)||0),0));
+  const nextL=()=>'L'+(1+(S.links||[]).reduce((m,l)=>Math.max(m,+l.id.slice(1)||0),0));
+  S.dboxes.push({id:bid, x:snap(w.x), y:snap(w.y)});
+  const link=(S.links||[]).find(l=>l.from===fromId && l.to===toId);
+  if(link){ const oldTo=link.to; link.to=bid; S.links.push({id:nextL(), from:bid, to:oldTo, size:null}); }
+  else if(fromId){ S.links.push({id:nextL(), from:fromId, to:bid, size:null}); }   // fallback: hang it off the parent
+  if(autoWire){
+    // pull the nearest outlets onto the new box so it actually fans — up to a 3-way, only where
+    // it shortens the flex and stays inside a bag. Vents are leaves, so re-parenting can't loop.
+    const Nn=manualNodes(), Nbox=Nn[bid];
+    const parentOf={}; (S.links||[]).forEach(l=>{ parentOf[l.to]=l.from; });
+    const fanOf=id=>(S.links||[]).filter(l=>l.from===id).length;
+    const cands=Object.values(Nn).filter(n=>n.kind==='vent').map(v=>{
+        const par=Nn[parentOf[v.id]]; return {v, cur:par?dist(v,par):1e9, toN:dist(v,Nbox)}; })
+      .filter(c=> c.toN < c.cur-0.3 && c.toN <= FLEX_MAX && c.toN >= HARD_BRANCH)
+      .sort((a,b)=>a.toN-b.toN);
+    for(const c of cands){ if(fanOf(bid)>=MAX_BRANCH) break;
+      const cur=(S.links||[]).find(l=>l.to===c.v.id); if(!cur||cur.from===bid) continue;
+      cur.from=bid; }
+  }
+  S.routes={}; commit();
+  flash(autoWire ? `BDO ${bid} added — runs redrawn around it. Drag it to fine-tune.`
+                 : `BDO ${bid} added — draw runs off it with D, or drag it to move.`);
+}
 const label=n=> n.kind==='spigot' ? 'plenum spigot '+(n.i+1)
               : n.kind==='box'    ? 'BTO '+n.id
               : 'the Ø'+(n.size||200)+' outlet';
@@ -4966,14 +5011,18 @@ cv.addEventListener('pointerdown',e=>{
       const hubs=btoHubs();
       let best=null;
       hubs.forEach(h=>{ const d=dist(w,h.p); if(h.p.bid && (!best||d<best.d)) best={bid:h.p.bid, d}; });
-      if(best){
+      if(best && best.d<0.7){
         pushHist();
         (S.boxes ??= {})[best.bid]={x:snap(w.x), y:snap(w.y)};
         commit();
         flash('BDO pinned here — the runs auto-draw through it. Drag it to adjust.');
         return;
       }
-      flash('No BDO to place — the layout has none. Switch Ducting to "Draw it myself" to add boxes freely.');
+      // clicked ON A RUN, away from any BDO → offer to drop a NEW BDO in the middle of it,
+      // and ask whether to auto-redraw the runs around it or hand-draw from it.
+      const onRun=hit(w);
+      if(onRun && onRun.k==='duct'){ promptInsertBDO({x:w.x,y:w.y}, onRun.d); return; }
+      flash('Click on a run to drop a BDO into it — or on an existing BDO to pin it.');
       return;
     }
     pushHist();

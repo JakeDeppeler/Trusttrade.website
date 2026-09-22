@@ -1,5 +1,13 @@
 {
   "buildCommand": "node scripts/gen-tradie-pages.mjs && vite build && node scripts/prerender.mjs",
+  "headers": [
+    {
+      "source": "/(duct-sizing|job-calculator|dashboard|admin|apply).html",
+      "headers": [
+        { "key": "Cache-Control", "value": "public, max-age=0, must-revalidate" }
+      ]
+    }
+  ],
   "rewrites": [
     { "source": "/dashboard", "destination": "/dashboard.html" },
     { "source": "/admin", "destination": "/admin.html" },

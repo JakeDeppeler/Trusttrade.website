@@ -5029,7 +5029,7 @@ cv.addEventListener('pointerdown',e=>{
       let node, added=false;
       if(bi>=0){ node=r.wp[bi]; }
       else { node={x:w.x,y:w.y}; r.wp.push(node); sortWP(h.d); added=true; }
-      S.drag={mode:'bend', sp, id:h.o, wp:node, added, A:(h.d.a2||h.d.a), B:h.d.b};
+      S.drag={mode:'bend', sp, id:h.o, wp:node, added, A:(h.d.a2||h.d.a), B:h.d.b, dia:h.d.d};
     }
     else if(h.k==='box'){ S.drag={mode:'box',sp,bid:h.bid,start:{x:h.o.x,y:h.o.y}}; clearBoxRoutes(h.bid); }
     else if(h.k==='dbox') S.drag={mode:'move',sp,start:{...h.o},h};
@@ -5066,16 +5066,21 @@ cv.addEventListener('pointermove',e=>{
     draw(); return;
   }
   if(S.drag?.mode==='bend'&&moved){
-    /* Clamp the bend so a run can never fold back on itself: keep the point within a
-       sane sideways reach of the line between its neighbours (the auto runs bend this
-       gently too). */
+    /* Clamp the bend so a run can never fold back on itself AND never bend tighter than the
+       duct's minimum radius — you can't kink flex by dragging it, same rule the auto runs
+       follow. The tightest a bend through this point can be is a circular arc; hold its radius
+       at ≥ the min so it stays a proper sweep. */
     const r=S.routes[S.drag.id], wp=r&&r.wp?r.wp:[], i=wp.indexOf(S.drag.wp);
     const prev = i>0 ? wp[i-1] : S.drag.A, next = (i>=0&&i<wp.length-1) ? wp[i+1] : S.drag.B;
     const ex=next.x-prev.x, ey=next.y-prev.y, L=Math.hypot(ex,ey)||1, ux=ex/L, uy=ey/L;
     let px=w.x-prev.x, py=w.y-prev.y;
     let along=px*ux+py*uy; along=Math.max(-L*0.25, Math.min(L*1.25, along));  // stay along the run
     const perpx=px-along*ux, perpy=py-along*uy, perp=Math.hypot(perpx,perpy);
-    const maxPerp=Math.max(0.5, L*0.7);                                        // gentle bend only
+    // radius cap: for a bend of half-chord a and sagitta h, R = (a²+h²)/2h; hold R ≥ minR by
+    // capping h. If the chord is already ≥ 2·minR a full sweep is fine, so only the fold guard.
+    const minR=minBendR(S.drag.dia||250)*1.05, a=L/2;
+    let radCap = a>=minR ? Infinity : (minR - Math.sqrt(Math.max(0, minR*minR - a*a)));
+    const maxPerp=Math.min(Math.max(0.5, L*0.7), radCap);                     // gentle, and never kinked
     const s=perp>maxPerp?maxPerp/perp:1;
     S.drag.wp.x=prev.x+along*ux+perpx*s; S.drag.wp.y=prev.y+along*uy+perpy*s;
     draw(); return;

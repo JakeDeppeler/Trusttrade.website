@@ -1360,6 +1360,7 @@ function weber(pts){
    3 spigots × 8 zones is 6,561 options, which is nothing.
 =========================================================================== */
 const IMBALANCE_COST=0.045;      // metres of duct we'd happily spend per L/s of imbalance
+const BACK_FEAS=0.03;            // metres of duct we'd spend per L/s to keep a zone from being trapped behind its box
 function spigotGroups(nodes, k, unit){
   if(k<=1) return [nodes];
   if(nodes.length<=k) return nodes.map(n=>[n]);
@@ -1378,14 +1379,24 @@ function spigotGroups(nodes, k, unit){
     if(gs.some(g=>!g.length)) continue;        // a spigot with nothing on it is a waste
 
     // duct proxy: everything in a group runs back to that group's take-off point
-    let len=0;
+    let len=0, backPen=0;
     gs.forEach(g=>{ const c0=wcent(g);
       len += dist(unit, c0);                   // trunk from the unit out to the group
       g.forEach(n=>{ len += dist(c0, n); });   // and from there to each zone
+      /* FEASIBILITY. The trunk reaches this group's box along unit→box. A zone sitting BEHIND
+         that box (the box→zone direction opposes the trunk) can't be fed without the flex
+         doubling back — the thing no box position fixes. Price it, so the grouping splits
+         angularly-opposed zones onto different spigots instead of trapping one behind a box. */
+      if(g.length>1){
+        let ix=c0.x-unit.x, iy=c0.y-unit.y; const il=Math.hypot(ix,iy)||1; ix/=il; iy/=il;
+        g.forEach(n=>{ let ox=n.x-c0.x, oy=n.y-c0.y; const ol=Math.hypot(ox,oy)||1;
+          const dot=(ix*ox+iy*oy)/ol;          // +1 in front of the box, −1 straight behind it
+          if(dot<0) backPen += (-dot)*(n.lps||100)*BACK_FEAS; });
+      }
     });
     const f=gs.map(g=>g.reduce((a,n)=>a+n.lps,0));
     const imb=Math.max(...f)-Math.min(...f);
-    const cost = len + IMBALANCE_COST*imb;
+    const cost = len + IMBALANCE_COST*imb + backPen;
     if(!best || cost<best.cost) best={gs, cost, imb, len};
   }
   return best ? best.gs : balanceFlow(cluster(nodes,k));
@@ -6717,6 +6728,10 @@ function autoDesign(){
 
   /* The unit goes wherever the duct run is shortest — unless you dropped it. */
   if(!P.unit || !S.unit){
+    // Place from a CANONICAL takeoff count so the spot is deterministic — optimiseUnit reads
+    // S.takeoffs, and letting the carried-over value feed it is what made repeat auto-designs
+    // drift and flip plenum counts. The real takeoff pick happens below.
+    if(S.sys!=='heater') S.takeoffs=Math.min(3, MAX_BRANCH);
     let sx=0,sy=0,sw=0;
     live().forEach(r=>{const l=roomLoad(r),c=roomCentre(r);sx+=c.x*l.kw;sy+=c.y*l.kw;sw+=l.kw;});
     S.unit={x:snap(sx/sw), y:snap(sy/sw)};        // load centroid as the starting guess
@@ -6753,18 +6768,18 @@ function autoDesign(){
     const scoreOf=dg=>dg.crossings*100 + dg.underUnit*100 + dg.supplyM*0.01
                      + Math.max(0, longestTrunk()-6)*4    // penalise cross-house trunks
                      + bendCost(dg);                      // …and tight trunk sweeps
-    S.routes={}; S.rot=bestUnitRot(S.unit); S.routes={};
-    const dg0=diagnostics();
-    if(dg0.crossings>0 || dg0.underUnit>0 || longestTrunk()>7.5){
-      let best={tk:S.takeoffs, rot:S.rot, score:scoreOf(dg0)};
-      for(const tk of [2,3,1]){
-        if(tk===best.tk) continue;
-        S.takeoffs=tk; S.routes={}; S.rot=bestUnitRot(S.unit); S.routes={};
-        const score=scoreOf(diagnostics());
-        if(score<best.score-1e-6) best={tk,score,rot:S.rot};
-      }
-      S.takeoffs=best.tk; S.rot=best.rot; S.routes={}; balance();
+    /* Pick the takeoff count DETERMINISTICALLY at the placed unit: a 2-way vs a 3-way plenum,
+       lowest count winning ties. scoreOf weighs crossings, long cross-house trunks, tight
+       sweeps and doubling back, so the cleaner plenum wins; the bend refine below then settles
+       the unit for whichever won. (1-way is left out — one collar can't carry a whole house's
+       air without howling.) */
+    let best=null;
+    for(const tk of [2,3]){
+      S.takeoffs=tk; S.routes={}; S.rot=bestUnitRot(S.unit); S.routes={};
+      const score=scoreOf(diagnostics());
+      if(!best || score<best.score-1e-6) best={tk, rot:S.rot, score};
     }
+    S.takeoffs=best.tk; S.rot=best.rot; S.routes={}; balance();
   }
 
   /* Open out any tight trunk sweep by nudging the auto-placed unit — a box that sat off a

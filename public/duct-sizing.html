@@ -3274,6 +3274,46 @@ function refineUnitBends(){
   } finally { S.routes=routes0; }
   S.unit={x:best.x, y:best.y}; S.rot=best.rot; S.routes={};
 }
+/* PER-BDO NUDGE. Moving the unit gets backing down to what the GROUPING allows; the rest is
+   a box sitting off the trunk that feeds it. Global arm-angle penalties don't work (the
+   codebase author found they just collapse a box onto its vents — armPenalty is 0 on purpose),
+   but a VERIFIED local nudge does: for each box on a doubling-back trunk, rank a small ring of
+   spots by the straight-line turn through the box, then real-route the best few and PIN (via
+   S.boxes) the first that actually cuts backing with no new kink/crossing/under-box run and no
+   over-long flex. A box the grouping has truly trapped (no spot helps) is left where it was.
+   S.boxes is cleared and rebuilt by the next auto-design / unit drag, so nothing sticks stale. */
+function refineBoxBends(){
+  if(FAST_ROUTE || !S.unit || !S.vents.length) return;
+  const failed=new Set();                          // boxes no spot could help — don't retry
+  for(let iter=0; iter<2; iter++){
+    const base=diagnostics();
+    if(!base.backing.length) break;
+    const targets=[...new Set(base.backing.map(d=>d.b&&d.b.bid).filter(Boolean))].filter(b=>!failed.has(b));
+    if(!targets.length) break;
+    let improved=false;
+    for(const bid of targets){
+      const bnode=ducts().find(x=>x.b&&x.b.bid===bid); if(!bnode){ failed.add(bid); continue; }
+      const cur={x:bnode.b.x, y:bnode.b.y};
+      // a small ring of spots around the box; the box re-rotates itself at each, so we can't
+      // predict the winner — real-route each and take the first that cuts backing cleanly.
+      const cand=[];
+      for(const rad of [0.6,1.1]) for(let k=0;k<6;k++){ const a=k*Math.PI/3;
+        cand.push({x:snap(cur.x+Math.cos(a)*rad), y:snap(cur.y+Math.sin(a)*rad)}); }
+      let pinned=null;
+      for(const p of cand){
+        S.boxes[bid]=p; S.routes={};
+        const dg=diagnostics();
+        if(dg.crossings>base.crossings || dg.underUnit>base.underUnit || dg.kinks.length>base.kinks.length) continue;
+        if(ducts().some(d=> d.a&&d.a.bid===bid && d.b&&isOutletNode(d.b) && d.len>FLEX_MAX+0.4)) continue;
+        if(dg.backing.length < base.backing.length){ pinned=p; break; }
+      }
+      if(pinned){ S.boxes[bid]=pinned; improved=true; } else { delete S.boxes[bid]; failed.add(bid); }
+      S.routes={};
+    }
+    if(!improved) break;
+  }
+  S.routes={};
+}
 
 /* ------------------------------------------------------------- HISTORY */
 const snapshot=()=>JSON.stringify({rooms:S.rooms,vents:S.vents,unit:S.unit,ret:S.ret,
@@ -5118,7 +5158,7 @@ cv.addEventListener('pointerup',()=>{
     // leaving crossings/kinks (that's the "it breaks when I move it").
     if(S.drag.h && S.drag.h.k==='unit' && S.unit){
       S.rot=bestUnitRot(S.unit); S.boxes={}; S.routes={}; PLAN_NONCE++;
-      refineUnitBends();
+      refineUnitBends(); refineBoxBends();
     }
     commit();
   }
@@ -6730,6 +6770,7 @@ function autoDesign(){
   /* Open out any tight trunk sweep by nudging the auto-placed unit — a box that sat off a
      spigot's fan slot gets one aimed at it. A unit you dropped yourself keeps its spot. */
   if(!P.unit){ refineUnitBends(); }
+  refineBoxBends();   // then straighten any box still doubling back on its own feed
 
   /* RETURN AIR — auto-place the return box just off the unit's return face and run
      the return to it, so it appears on Auto-design (drawn as the v19 return box, its

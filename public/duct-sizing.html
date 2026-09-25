@@ -239,6 +239,7 @@
     <label class="hbtn" for="file-plan">Upload plan</label>
     <input type="file" id="file-plan" accept="image/*" hidden/>
     <button class="hbtn ai" id="btn-ai">Auto-design</button>
+    <button class="hbtn" id="btn-clean" title="Search every take-off grouping to clear kinks &amp; crossings on a messy plan (slower)">Clean&nbsp;up</button>
     <label class="hbtn" for="file-proj">Open</label>
     <input type="file" id="file-proj" accept=".json" hidden/>
     <button class="hbtn" id="btn-save">Save</button>
@@ -1760,8 +1761,27 @@ let PLAN_NONCE=0;              // bumped by Auto-design → forces a fresh regro
    under your cursor). The run just follows its outlet. The tree only regroups on
    Auto-design or a structural change — vents added/removed, zones, takeoffs,
    the unit moved or spun, a box dragged, an outlet pinned. */
+/* GROUPING PIN (Phase 3). When set, it PINS which outlet-zone rides which take-off — a map
+   { zone : takeoffIndex } — so supplyPlanCompute honours it instead of letting spigotGroups pick
+   by its length/imbalance proxy. The grouping search (groupSearch) writes it; it lives in S so the
+   drawn plan uses it and a saved design keeps it. Cleared (delete) by Auto-design = normal.
+   GROUP_OVERRIDE is a TRANSIENT override the search sets while trialling a candidate; it wins over
+   the pin so the search never has to touch S.groupPin per candidate. */
+let GROUP_OVERRIDE=null;
+function activeGroupMap(){ return GROUP_OVERRIDE || (S&&S.groupPin) || null; }
+function applyGroupOverride(zoneNodes, k){
+  const map=activeGroupMap(); if(!map) return null;
+  const gs=Array.from({length:k},()=>[]);
+  for(const zn of zoneNodes){
+    const gi=map[zn.zone];
+    if(gi==null || gi<0 || gi>=k) return null;      // map doesn't fit this k → caller falls back
+    gs[gi].push(zn);
+  }
+  return gs.some(g=>!g.length) ? null : gs;         // no empty spigots
+}
 const planKey=(unit,vents,tk,rot)=>JSON.stringify([
   unit&&[unit.x,unit.y], rot, tk, S.sys, S.boxes, FAST_ROUTE, S.ventPin, PLAN_NONCE,
+  GROUP_OVERRIDE, S&&S.groupPin,
   vents.map(v=>[v.id,v.zone,v.lps,v.size])]);
 function supplyPlan(unit,vents,tk,rot){
   if(!unit||!vents.length) return {segs:[],takeoffs:[],zoneNodes:[],len:0};
@@ -1812,7 +1832,7 @@ function supplyPlanCompute(unit,vents,tk,rot){
   }
 
   const k=Math.min(tk,MAX_BRANCH,zoneNodes.length);
-  let groups=spigotGroups(zoneNodes, k, unit);
+  let groups = applyGroupOverride(zoneNodes, k) || spigotGroups(zoneNodes, k, unit);
 
   /* THE TRANSITION IS ONE BOX on the supply face, with 2 or 3 collars on it —
      the middle straight ahead, the sides angled out (see the reference casting).
@@ -2969,13 +2989,18 @@ function diagnostics(){
     return ua>0.02&&ua<0.98&&ub>0.02&&ub<0.98;
   };
   const P=ds.map(poly);
-  let crossings=0;
+  let crossings=0, supCrossings=0;
   for(let i=0;i<ds.length;i++) for(let j=i+1;j<ds.length;j++){
     if(ds[i].a===ds[j].a||ds[i].b===ds[j].b||ds[i].b===ds[j].a||ds[i].a===ds[j].b) continue;
     let hit=false;
     for(let m=0;m<10&&!hit;m++) for(let n=0;n<10&&!hit;n++)
       if(seg(P[i][m],P[i][m+1],P[j][n],P[j][n+1])) hit=true;
-    if(hit) crossings++;
+    if(hit){ crossings++;
+      // SUPPLY-only crossings: the return duct follows the unit and is placed AFTER unit
+      // placement, so a return crossing at a candidate unit spot is spurious — the unit placer
+      // (refineUnitBends) must not be blocked by it. Track it separately.
+      if(ds[i].kind!=='return' && ds[j].kind!=='return') supCrossings++;
+    }
   }
   const tight=ds.filter(d=>d.bendFixed);
   const marginal=ds.filter(d=>!d.bendFixed&&d.tight);
@@ -3022,7 +3047,7 @@ function diagnostics(){
       }
     });
   }
-  return {index, crossings, underUnit, tight, marginal, kinks, worstBend, backing, pipe, pipeStraight, branches, shortB, longB, avgB,
+  return {index, crossings, supCrossings, underUnit, tight, marginal, kinks, worstBend, backing, pipe, pipeStraight, branches, shortB, longB, avgB,
     supplyM: sup.reduce((a,d)=>a+d.len*(d.n||1),0),
     returnM: ds.filter(d=>d.kind==='return').reduce((a,d)=>a+d.len*(d.n||1),0)};
 }
@@ -3038,6 +3063,50 @@ function bendCost(dg){
   // a run doubling back on itself is the other thing the eye hates; weigh it below a kink.
   return (dg.kinks||[]).length*80 + sev*60 + (dg.backing||[]).length*12 + (dg.tight||[]).length*3;
 }
+
+/* ---- GLOBAL AUTOROUTER: one cost for a whole routed plan (lower = better) ----
+   The single objective the global placement search (globalPlan) minimises. It subsumes the
+   ad-hoc takeoff-sweep score in autoDesign: HARD manufacturability failures (kinks, crossings,
+   runs under the box) dominate at 1000 each so the search will trade almost any length to shed
+   one; then bendCost (doubling-back + tight sweeps); then a penalty on any single trunk running
+   more than TRUNK_FREE metres across the house; then raw supply length as the material tiebreak;
+   then how unevenly the takeoffs are loaded (a fitter wants the plenum's legs balanced). */
+const PC_HARD=1000, PC_LONGTRUNK=4, PC_TRUNK_FREE=6, PC_SUPPLY=0.02, PC_IMBAL=0.4;
+/* Longest single TRUNK (box/spigot → box, not a branch to an outlet) — the cross-house "loop"
+   nobody wants. Mirrors the closure autoDesign used for its takeoff sweep, hoisted so the cost
+   function and the search share one definition. */
+function longestTrunkLen(){
+  let m=0; for(const d of ducts()){
+    if(d.kind==='return' || !d.a || !d.b) continue;
+    if(!(d.a.spigot||d.a.junction) || isOutletNode(d.b)) continue;   // trunk = box/spigot → box
+    m=Math.max(m, d.len||0);
+  } return m;
+}
+/* Imbalance across the plenum takeoffs: spread of L/s carried by each spigot's subtree,
+   normalised by the mean, so an evenly-fed 2- or 3-way scores 0 and a lopsided one is penalised.
+   Reads the trunk ducts leaving a spigot node. */
+function takeoffImbalance(){
+  const loads=[];
+  for(const d of ducts()){
+    if(d.kind==='return' || !d.a || !d.b) continue;
+    if(d.a.spigot && (d.a.lps!=null)) loads.push(d.a.lps);
+  }
+  if(loads.length<2) return 0;
+  const mean=loads.reduce((a,b)=>a+b,0)/loads.length;
+  if(mean<=0) return 0;
+  const spread=Math.max(...loads)-Math.min(...loads);
+  return spread/mean;
+}
+function planCost(dg){
+  dg=dg||diagnostics();
+  const hard=((dg.kinks||[]).length + (dg.crossings||0) + (dg.underUnit||0))*PC_HARD;
+  const lt=longestTrunkLen();
+  return hard + bendCost(dg)
+       + Math.max(0, lt-PC_TRUNK_FREE)*PC_LONGTRUNK
+       + (dg.supplyM||0)*PC_SUPPLY
+       + takeoffImbalance()*PC_IMBAL*100;
+}
+
 const MAX_PIPE=30;   // typical single-split refrigerant pipe limit, metres
 
 /* ---------------------------------------------------------- AIR CHANGES ---
@@ -3135,6 +3204,222 @@ function chordCrossings(segs){
   }
   return n;
 }
+/* Cheap chord-based cost for a candidate unit spot + facing + takeoff count. This is the proxy
+   the placement search ranks with under FAST_ROUTE — NOT the real bend metrics (those need a
+   real route). It steers the search to the right neighbourhood; the shortlist is then re-scored
+   with the real router + planCost. Shared by optimiseUnit and globalPlan so there's one truth. */
+function unitProxyCost(p, rotDeg, tk, cx, cy){
+  const r=rotDeg*Math.PI/180;
+  const plan=supplyPlan(p,S.vents,tk,r);
+  const retSeg=S.ret ? [{a:S.ret, b:returnPort(p,r)}] : [];
+  const ret=S.ret ? dist(returnPort(p,r), S.ret)*1.4 : 0;
+  const f=S.flip?-1:1, fn={x:-Math.sin(r)*f, y:Math.cos(r)*f};
+  let facePen=0;
+  plan.zoneNodes.forEach(zn=>{
+    const dx=zn.x-p.x, dy=zn.y-p.y, L=Math.hypot(dx,dy)||1;
+    const dot=(dx*fn.x+dy*fn.y)/L;                 // +1 straight ahead, −1 behind
+    if(dot<0.25) facePen += (0.25-dot)*(zn.lps||100)*0.02;
+  });
+  const centrePen = Math.hypot(p.x-cx, p.y-cy) * 3.0;
+  const overUnit = runsUnderUnit(plan.segs, p, r) * 40;
+  return plan.len + ret + facePen + centrePen + overUnit
+       + 2.5*chordCrossings(plan.segs.concat(retSeg));
+}
+
+/* ---- GLOBAL AUTOROUTER: multi-start placement search ----
+   optimiseUnit is a single local descent from the house centre on the chord proxy, and it picks
+   the takeoff count separately afterwards — so on long multi-wing homes it settles in a local
+   optimum whose real route kinks or crosses. globalPlan instead seeds MANY starts (house centre,
+   load centroid, every zone centroid, a coarse grid), descends each on the fast proxy, shortlists
+   the most promising DISTINCT (position, takeoff) candidates, then REAL-routes the shortlist and
+   picks the one with the lowest planCost — jointly over position, facing and takeoff count.
+   Returns {x,y,rot,tk,cost} or null. Leaves S.* as it found them. */
+const GP_SHORTLIST=9;     // distinct candidates that earn a pre-refine real score
+const GP_FACE_TOP=3;      // finalists (incl. incumbents) that get the full refine + real score
+const GP_MAX_VENTS=22;    // above this a real route is ~0.5 s, so refine-evaluating finalists would
+                          // run for a minute — hand those mega-homes to the greedy router (Phase 3
+                          // + a base-router speedup are what make them tractable).
+let GP_REFINE_BUDGET=null; // globalPlan lowers refineUnitBends' budget while RANKING finalists; the
+                           // chosen winner then gets a full-budget refine back in autoDesign.
+function globalPlan(){
+  if(!S.vents.length||!S.rooms.length) return null;
+  if(S.vents.length>GP_MAX_VENTS) return null;   // too slow to refine-eval — greedy fallback
+  const lv=live(); if(!lv.length) return null;
+  const x1=Math.min(...S.rooms.map(r=>r.x))+0.5, x2=Math.max(...S.rooms.map(r=>r.x+r.w))-0.5;
+  const y1=Math.min(...S.rooms.map(r=>r.y))+0.5, y2=Math.max(...S.rooms.map(r=>r.y+r.h))-0.5;
+  const bx1=Math.min(...lv.map(r=>r.x)), bx2=Math.max(...lv.map(r=>r.x+r.w));
+  const by1=Math.min(...lv.map(r=>r.y)), by2=Math.max(...lv.map(r=>r.y+r.h));
+  const cx=(bx1+bx2)/2, cy=(by1+by2)/2;
+  const cl=(v,a,b)=>Math.min(b,Math.max(a,v));
+  const tks = S.sys==='heater' ? [1] : [2,3];
+
+  // SEEDS — house centre, load centroid, every zone centroid, a coarse grid.
+  const seeds=[]; const pushSeed=(x,y)=>{ seeds.push({x:cl(x,x1,x2), y:cl(y,y1,y2)}); };
+  pushSeed(cx,cy);
+  { let sx=0,sy=0,sw=0; lv.forEach(r=>{const l=roomLoad(r),c=roomCentre(r);sx+=c.x*l.kw;sy+=c.y*l.kw;sw+=l.kw;});
+    if(sw) pushSeed(sx/sw, sy/sw); }
+  { const zc={}; S.vents.forEach(v=>{ (zc[v.zone]||(zc[v.zone]={x:0,y:0,w:0})); const z=zc[v.zone]; z.x+=v.x; z.y+=v.y; z.w++; });
+    Object.values(zc).forEach(z=> pushSeed(z.x/z.w, z.y/z.w)); }
+  const gstep=Math.max(1.3, Math.min(x2-x1,y2-y1)/5);
+  for(let x=x1;x<=x2+1e-6;x+=gstep) for(let y=y1;y<=y2+1e-6;y+=gstep) pushSeed(x,y);
+
+  // FAST proxy — descend each seed×tk, collect candidates.
+  const cands=[];
+  const was=FAST_ROUTE; FAST_ROUTE=true;
+  try{
+    const bestRotAt=(p,tk)=>{ let br=0,bc=Infinity; ROTS.forEach(r=>{const c=unitProxyCost(p,r,tk,cx,cy); if(c<bc){bc=c;br=r;}}); return {rot:br,c:bc}; };
+    for(const s of seeds) for(const tk of tks){
+      let cur={x:s.x,y:s.y}, rr=bestRotAt(cur,tk);
+      for(const step of [0.6,0.25]){
+        let moved=true, guard=0;
+        while(moved && guard++<6){ moved=false;
+          for(const d of [[step,0],[-step,0],[0,step],[0,-step]]){
+            const np={x:cl(cur.x+d[0],x1,x2), y:cl(cur.y+d[1],y1,y2)};
+            const nr=bestRotAt(np,tk);
+            if(nr.c<rr.c-1e-6){ cur=np; rr=nr; moved=true; }
+          }
+        }
+      }
+      cands.push({x:snap(cur.x), y:snap(cur.y), rot:rr.rot, tk, proxy:rr.c});
+    }
+  } finally { FAST_ROUTE=was; }
+
+  // Shortlist the best DISTINCT (position, takeoff) candidates.
+  cands.sort((a,b)=>a.proxy-b.proxy);
+  const short=[], seen=[];
+  for(const c of cands){
+    if(seen.some(s=>s.tk===c.tk && Math.hypot(s.x-c.x,s.y-c.y)<0.8)) continue;
+    seen.push(c); short.push(c);
+    if(short.length>=GP_SHORTLIST) break;
+  }
+  /* SAFETY NET — always real-score the incumbent greedy optimiser's spot for each takeoff count.
+     The chord proxy doesn't perfectly track real crossings, so the proxy shortlist can miss the
+     basin optimiseUnit descends into; injecting it guarantees globalPlan is never WORSE than
+     today's router — the real-scoring below simply keeps whichever wins. */
+  { const tk0i=S.takeoffs;
+    for(const tk of tks){
+      S.takeoffs=tk;
+      const g=optimiseUnit();
+      if(g) short.push({x:snap(g.x), y:snap(g.y), rot:g.rot, tk, proxy:g.c, inc:true});
+    }
+    S.takeoffs=tk0i;
+  }
+
+  // REAL route each shortlisted candidate once (at its proxy facing) → planCost; then give the
+  // top few a full 12-facing real lock and keep the outright best.
+  const u0=S.unit, rot0=S.rot, tk0=S.takeoffs, routes0=S.routes, boxes0=S.boxes;
+  const clone=o=>{ try{ return JSON.parse(JSON.stringify(o||{})); }catch(e){ return {}; } };
+  let best=null;
+  try{
+    /* Stage 1 — cheap PRE-refine real score to rank the shortlist. */
+    const scored=[];
+    for(const c of short){
+      S.unit={x:c.x,y:c.y}; S.takeoffs=c.tk; S.rot=c.rot; S.routes={}; S.boxes={};
+      balance();                                     // duct sizes depend on unit/tk — score fairly
+      scored.push({c, pre:planCost(diagnostics())});
+    }
+    scored.sort((a,b)=>a.pre-b.pre);
+    /* Stage 2 — the true objective is planCost AFTER the refine passes (refineUnitBends nudges the
+       unit to open tight sweeps; that's where the greedy router's quality comes from). So build a
+       small finalist set — every injected incumbent, plus the best pre-refine spots up to the cap —
+       run the FULL refine on each, and keep the lowest real post-refine cost. */
+    /* Finalists = the two injected incumbents (already good) plus the best global challenger. */
+    const fin=[]; const addFin=c=>{ if(!fin.some(f=>f.tk===c.tk && Math.hypot(f.x-c.x,f.y-c.y)<0.5)) fin.push(c); };
+    scored.forEach(s=>{ if(s.c.inc) addFin(s.c); });                 // incumbents always
+    for(const s of scored){ if(fin.length>=GP_FACE_TOP) break; addFin(s.c); }
+    for(const c of fin){
+      S.unit={x:c.x,y:c.y}; S.takeoffs=c.tk; S.routes={}; S.boxes={};
+      balance();
+      S.rot=bestUnitRot({x:c.x,y:c.y}); S.routes={};
+      refineUnitBends();                             // FULL budget — the incumbent only shows its
+      refineBoxBends();                              // quality after a full refine, so rank on it
+      const cost=planCost(diagnostics());
+      if(!best || cost<best.cost-1e-6)
+        best={x:S.unit.x, y:S.unit.y, rot:S.rot, tk:c.tk, boxes:clone(S.boxes), cost};
+    }
+  } finally { S.unit=u0; S.rot=rot0; S.takeoffs=tk0; S.routes=routes0; S.boxes=boxes0; }
+  return best;
+}
+
+/* ---- GLOBAL AUTOROUTER: grouping / partition search (Phase 3) ----
+   THE lever for messy plans. spigotGroups already enumerates outlet→takeoff groupings, but ranks
+   them on a length/imbalance/back-feasibility proxy that can't see the real kinks & crossings a
+   grouping causes — so on a long multi-wing home it settles on a grouping that routes with a kink.
+   groupSearch re-ranks the groupings by the real planCost: it enumerates the distinct partitions of
+   the zones into the takeoff count, pre-refine real-routes each to shortlist, then FULL-refines the
+   best few and keeps the lowest post-refine planCost. Measured to take medium16 from 2 kinks → 0. */
+const GROUP_MAX_PARTS=360;   // distinct partitions we'll consider (≈ Stirling S(zones,k) we afford)
+const GROUP_PREFAST=80;      // FAST-prefiltered shortlist that earns a REAL pre-refine route
+const GROUP_FACE_TOP=3;      // shortlisted groupings that earn a full refine
+
+/* All canonical set-partitions of `items` into exactly k non-empty blocks (restricted-growth
+   strings: a[0]=0, a[i] ≤ 1+max(a[0..i-1])), returned as { item : blockIndex } maps. null if it
+   would exceed `cap` (a home with too many zones to enumerate — those stay on the greedy grouping). */
+function enumSetPartitions(items, k, cap){
+  const n=items.length, out=[], a=new Array(n).fill(0);
+  let overflow=false;
+  const rec=(i, maxUsed)=>{
+    if(overflow) return;
+    if(i===n){ if(maxUsed+1===k){ if(out.length>=cap){overflow=true;return;} const m={}; for(let j=0;j<n;j++) m[items[j]]=a[j]; out.push(m); } return; }
+    const top=Math.min(maxUsed+1, k-1);
+    for(let g=0; g<=top; g++){
+      const nm=Math.max(maxUsed,g);
+      if((k-1-nm) <= (n-1-i)){ a[i]=g; rec(i+1, nm); if(overflow) return; }
+    }
+  };
+  rec(0,-1);
+  return overflow ? null : out;
+}
+
+function groupSearch(){
+  if(!S.unit || !S.vents.length || S.sys==='heater') return null;
+  const zones=[...new Set(S.vents.map(v=>v.zone))];
+  const k=Math.min(S.takeoffs, MAX_BRANCH, zones.length);
+  if(k<2 || zones.length<=k) return null;                 // nothing to partition
+  const parts=enumSetPartitions(zones, k, GROUP_MAX_PARTS);
+  if(!parts || !parts.length) return null;                // too many zones — leave it to greedy
+  const unit={x:S.unit.x, y:S.unit.y}, rot0=S.rot, tk=S.takeoffs;
+  const u0=S.unit, r0=S.rot, tk0=S.takeoffs, routes0=S.routes, boxes0=S.boxes, pin0=S.groupPin;
+  const clone=o=>{try{return JSON.parse(JSON.stringify(o||{}));}catch(e){return {};}};
+  let best=null;
+  try{
+    /* Stage 0 — FAST prefilter. Real-routing every partition is the slow part; the FAST router is
+       ~25× cheaper and, while its bend metrics are rough, its planCost ranks the good groupings high
+       enough to shortlist. Route ALL partitions FAST, keep the best GROUP_PREFAST for the real pass.
+       Safe: the search is never-worse-than-greedy, so a partition the prefilter drops just means "no
+       improvement this run", never a worse plan. Skipped when there are few enough to route for real. */
+    let cand=parts;
+    if(parts.length > GROUP_PREFAST){
+      const wasF=FAST_ROUTE; FAST_ROUTE=true;
+      try{
+        const fr=parts.map(m=>{ GROUP_OVERRIDE=m; S.boxes={}; S.unit={x:unit.x,y:unit.y}; S.rot=rot0; S.takeoffs=tk; S.routes={};
+          let c; try{ c=planCost(diagnostics()); }catch(e){ c=Infinity; } return {m,c}; });
+        fr.sort((a,b)=>a.c-b.c);
+        cand=fr.slice(0, GROUP_PREFAST).map(s=>s.m);
+      } finally { GROUP_OVERRIDE=null; FAST_ROUTE=wasF; }
+    }
+    /* Stage 1 — real pre-refine planCost over the shortlist, to pick the finalists. */
+    const scored=[];
+    for(const m of cand){
+      GROUP_OVERRIDE=m; S.boxes={}; S.unit={x:unit.x,y:unit.y}; S.rot=rot0; S.takeoffs=tk; S.routes={};
+      let pre; try{ pre=planCost(diagnostics()); }catch(e){ continue; }
+      scored.push({m, pre});
+    }
+    GROUP_OVERRIDE=null;
+    scored.sort((a,b)=>a.pre-b.pre);
+    /* Stage 2 — full refine on the best few → true post-refine planCost. */
+    for(const s of scored.slice(0, GROUP_FACE_TOP)){
+      GROUP_OVERRIDE=s.m; S.boxes={}; S.unit={x:unit.x,y:unit.y}; S.rot=rot0; S.takeoffs=tk; S.routes={};
+      balance(); S.rot=bestUnitRot({x:unit.x,y:unit.y}); S.routes={};
+      refineUnitBends(); refineBoxBends();
+      const cost=planCost(diagnostics());
+      if(!best || cost<best.cost-1e-6)
+        best={map:{...s.m}, cost, unit:{x:S.unit.x, y:S.unit.y}, rot:S.rot, boxes:clone(S.boxes)};
+    }
+  } finally { GROUP_OVERRIDE=null; S.unit=u0; S.rot=r0; S.takeoffs=tk0; S.routes=routes0; S.boxes=boxes0; S.groupPin=pin0; }
+  return best;
+}
+
 function optimiseUnit(){
   if(!S.vents.length||!S.rooms.length) return null;
   const x1=Math.min(...S.rooms.map(r=>r.x))+0.5, x2=Math.max(...S.rooms.map(r=>r.x+r.w))-0.5;
@@ -3152,33 +3437,7 @@ function optimiseUnit(){
   const tk=S.sys==='heater'?1:S.takeoffs;
   /* Cheap crossing count on straight chords — good enough to steer the search,
      and a crossing costs the drawing more than a couple of metres of duct. */
-  const at=(p,rotDeg)=>{
-    const r=rotDeg*Math.PI/180;
-    const plan=supplyPlan(p,S.vents,tk,r);
-    const retSeg=S.ret ? [{a:S.ret, b:returnPort(p,r)}] : [];
-    const ret=S.ret ? dist(returnPort(p,r), S.ret)*1.4 : 0;
-    /* THE TRANSITION FACES ONE WAY, so the unit has to point at the rooms. Any
-       zone sitting BEHIND the supply face means a run that leaves the collar and
-       wraps back across the unit — the tangle. Price that heavily: it's what
-       turns the fan coil to face the house (and, with the guided flow, what a
-       fitter does by eye). */
-    const f=S.flip?-1:1, fn={x:-Math.sin(r)*f, y:Math.cos(r)*f};
-    let facePen=0;
-    plan.zoneNodes.forEach(zn=>{
-      const dx=zn.x-p.x, dy=zn.y-p.y, L=Math.hypot(dx,dy)||1;
-      const dot=(dx*fn.x+dy*fn.y)/L;               // +1 straight ahead, −1 behind
-      if(dot<0.25) facePen += (0.25-dot)*(zn.lps||100)*0.02;   // behind ⇒ costly
-    });
-    /* THE UNIT LIVES IN THE MIDDLE. A fitter drops the fan coil central so every
-       run is short and the return pulls evenly — so pull it toward the home's
-       centre, and hate any trunk that runs back OVER the unit body (that's the
-       "crossing over it" you keep seeing). */
-    const centrePen = Math.hypot(p.x-cx, p.y-cy) * 3.0;
-    // RULE: nothing runs back under the box. Near-hard cost so the placer sheds it.
-    const overUnit = runsUnderUnit(plan.segs, p, r) * 40;
-    return plan.len + ret + facePen + centrePen + overUnit
-         + 2.5*chordCrossings(plan.segs.concat(retSeg));
-  };
+  const at=(p,rotDeg)=>unitProxyCost(p,rotDeg,tk,cx,cy);   // shared proxy (see unitProxyCost)
   const bestRotAt=p=>{
     let br=0, bc=Infinity;
     ROTS.forEach(r=>{const c=at(p,r); if(c<bc){bc=c;br=r;}});
@@ -3251,7 +3510,13 @@ function refineUnitBends(){
   /* A kink dominates everything — one is worth 1000. Under that, prefer the plan with the
      rounder bends (bendCost), then the shortest supply, then the spot nearest the optimised
      centre. A crossing or a run under the box disqualifies a candidate. */
-  const key=(dg,x,y)=> ((dg.kinks||[]).length + dg.crossings + dg.underUnit)*1000 + bendCost(dg)
+  /* Use SUPPLY-only crossings to DISQUALIFY a spot: the return duct is placed AFTER the unit and
+     follows it, so a return crossing at a candidate spot is spurious and must not disqualify it. But
+     keep return crossings as a SOFT tiebreaker (rc) so, among supply-clean spots, one whose return
+     also runs clean wins — and only a fully-clean spot ends the search early. */
+  const xc=dg=>(dg.supCrossings!=null?dg.supCrossings:dg.crossings);
+  const rc=dg=>Math.max(0,(dg.crossings||0)-xc(dg));
+  const key=(dg,x,y)=> ((dg.kinks||[]).length + xc(dg) + dg.underUnit)*1000 + rc(dg)*40 + bendCost(dg)
                      + Math.max(0, dg.supplyM-baseLen)*2 + Math.hypot(x-u0.x,y-u0.y)*3;
   /* A fresh REAL route is ~230 ms (chain placement + every bend fitted) — too slow to scan
      wholesale. But a spot that clears the tight sweeps is almost always a short step from the
@@ -3269,20 +3534,26 @@ function refineUnitBends(){
   // "clean enough" = no kink, no crossing, no run under the box. Backing (a wide U-turn) is
   // structural on some plans — it stays a soft tiebreaker in the key, not a stop condition,
   // so we never wander the unit miles for it or grind the whole budget chasing it.
-  const goodEnough=dg=>!(dg.kinks.length || dg.crossings || dg.underUnit);
+  const goodEnough=dg=>!(dg.kinks.length || xc(dg) || rc(dg) || dg.underUnit);   // fully clean (incl. return)
+  /* Auto-return follows the unit: place a CANDIDATE return box at each trial spot (the same formula
+     return-air uses) so the return-vs-supply crossing (rc) is judged where the return will REALLY be,
+     not against the stale spot. Only when the return is auto-placed — a return you dropped stays put. */
+  const ret0=S.ret, autoRet=!(S.placed && S.placed.ret);
+  const placeRet=(x,y)=>{ if(!autoRet) return; const rr=(rot0||0)*Math.PI/180, port=returnPort({x,y},rr);
+    let dx=port.x-x, dy=port.y-y, m=Math.hypot(dx,dy)||1; S.ret={x:snap(port.x+dx/m*1.3), y:snap(port.y+dy/m*1.3)}; };
   let best={x:u0.x, y:u0.y, rot:rot0, k:key(base,u0.x,u0.y), ok:goodEnough(base)};
-  let budget=18;                                          // capped real routes
+  let budget=(typeof GP_REFINE_BUDGET==='number'?GP_REFINE_BUDGET:18);   // capped real routes (globalPlan lowers it while RANKING finalists)
   try{
     for(const p of pts){
       if(budget<=0) break;
-      S.unit={x:p.x,y:p.y}; S.rot=rot0; S.routes={}; budget--;
+      S.unit={x:p.x,y:p.y}; S.rot=rot0; placeRet(p.x,p.y); S.routes={}; budget--;
       const dg=diagnostics();
-      if(dg.crossings || dg.underUnit) continue;
+      if(xc(dg) || dg.underUnit) continue;
       const k=key(dg,p.x,p.y);
       if(k<best.k-1e-6) best={x:p.x,y:p.y,rot:rot0,k,ok:goodEnough(dg)};
       if(best.ok) break;                                  // got a spot with no kink/cross/under — take it
     }
-  } finally { S.routes=routes0; }
+  } finally { S.routes=routes0; if(autoRet) S.ret=ret0; }
   S.unit={x:best.x, y:best.y}; S.rot=best.rot; S.routes={};
 }
 /* PER-BDO NUDGE. Moving the unit gets backing down to what the GROUPING allows; the rest is
@@ -6645,6 +6916,25 @@ $('#btn-ai').onclick=()=>{
   p.onclick=()=>{ box.classList.remove('on'); startWizard(); };
   a.onclick=()=>{ box.classList.remove('on'); S.autoPickChosen=true; autoDesign(); };
 };
+/* CLEAN UP — opt-in grouping search for a messy plan. Auto-design gives a fast greedy layout; if it
+   still carries a kink or a crossing, this searches every outlet→take-off grouping for one that routes
+   clean and keeps it only if it beats what's there. Slow (~12–22 s), so it runs behind a spinner. */
+$('#btn-clean').onclick=async()=>{
+  if(!live().length){ flash('Trace a plan and Auto-design first'); return; }
+  if(!S.unit || !S.vents.length){ flash('Auto-design first, then Clean up'); return; }
+  if(S.sys==='heater'){ flash('A single-spigot heater has nothing to regroup'); return; }
+  const dg=diagnostics();
+  if(!((dg.kinks||[]).length || dg.crossings)){ flash('Already clean — no kinks or crossings to fix'); return; }
+  const zc=new Set(S.vents.map(v=>v.zone)).size;
+  busy('Cleaning up the layout', zc+' zones · trying take-off groupings to clear the kinks…', 40);
+  await wait(40);                              // let the spinner paint before the long synchronous search
+  let r='nochange';
+  try{ r=cleanupLayout(); } finally { unbusy(); }
+  flash(r==='clean'    ? 'Cleaned up — 0 kinks, 0 crossings'
+      : r==='improved' ? 'Improved as far as the grouping allows — tidy the rest by hand'
+      : r==='skip'     ? 'Already clean — nothing to fix'
+      :                  "Couldn't improve on this layout — try adding a BDO by hand");
+};
 
 /* GUIDED PLACEMENT.
    You place the outlets, then the app walks you through the gear one click at a
@@ -6765,6 +7055,43 @@ function wizFinish(){
     const steps=wizSteps(), st=steps[Math.min(S.wiz.i,steps.length-1)];
     if(st && st.auto){ st.auto(); wizAdvance(false); } }; }
 
+/* Auto-place the return box off the unit's return face, at the nearest spot whose run doesn't cross a
+   supply duct (crossing-aware; the plain 1.3 m straight-out is tried first, so a clean plan is
+   unchanged). Shared by Auto-design and Clean up. */
+function placeReturnAuto(){
+  if(!S.unit) return;
+  const rrot=(S.rot||0)*Math.PI/180, port=returnPort(S.unit, rrot);
+  let fx=port.x-S.unit.x, fy=port.y-S.unit.y, m=Math.hypot(fx,fy)||1; fx/=m; fy/=m;
+  const def={x:snap(port.x+fx*1.3), y:snap(port.y+fy*1.3)};
+  const cands=[];
+  for(let gx=-3;gx<=3;gx++) for(let gy=-3;gy<=3;gy++){ const x=snap(def.x+gx*0.6), y=snap(def.y+gy*0.6); cands.push({x,y,d:Math.hypot(x-def.x,y-def.y)}); }
+  cands.sort((a,b)=>a.d-b.d);
+  let bestRet=null, bestC=Infinity;
+  for(const c of cands){ S.ret={x:c.x,y:c.y}; S.routes={}; const cr=diagnostics().crossings; if(cr<bestC){ bestC=cr; bestRet=c; if(cr===0) break; } }
+  S.ret=bestRet||def; S.routes={};
+}
+
+/* CLEAN UP (the "Clean up" button). The opt-in grouping search on the CURRENT plan: keep the unit,
+   re-group the outlets onto take-offs to clear kinks/crossings, refine, re-place the auto return, and
+   keep the result only if it beats what's there (else revert exactly). Slow (~12–22 s) — the button
+   wraps it in a spinner. Returns 'clean' | 'improved' | 'nochange' | 'skip'. */
+function cleanupLayout(){
+  if(S.sys==='heater' || !S.unit || !S.vents.length) return 'skip';
+  const dgA=diagnostics();
+  if(!((dgA.kinks||[]).length || dgA.crossings)) return 'skip';   // already clean
+  const before=snapshot(), costA=planCost(dgA);
+  const g=groupSearch();
+  if(g && g.map){
+    S.groupPin=g.map; S.boxes={}; S.routes={};
+    balance(); if(!(S.placed&&S.placed.unit)) refineUnitBends(); refineBoxBends();
+    if(!(S.placed&&S.placed.ret)) placeReturnAuto();
+    const dgB=diagnostics();
+    if(planCost(dgB) < costA-1e-6){ commit(); return ((dgB.kinks||[]).length||dgB.crossings)?'improved':'clean'; }
+  }
+  restore(before);                                                // no gain → back exactly as we were
+  return 'nochange';
+}
+
 function autoDesign(){
   if(!live().length){ flash('No conditioned rooms — trace a plan or load the demo'); return; }
   pushHist();
@@ -6777,6 +7104,7 @@ function autoDesign(){
      YOURS to make first, and Auto-design only fills in what you left blank. */
   if(!S.placed.vents || !S.vents.length) placeOutlets();
   S.boxes={};
+  S.groupPin=null;             // a fresh auto-design re-decides the outlet→takeoff grouping
 
   const P = S.placed || (S.placed={});
 
@@ -6791,9 +7119,6 @@ function autoDesign(){
     S.unit={x:snap(sx/sw), y:snap(sy/sw)};        // load centroid as the starting guess
     const best=optimiseUnit();
     if(best){ S.unit={x:snap(best.x), y:snap(best.y)}; S.rot=best.rot;
-      /* optimiseUnit ranks with the fast route; lock the FACING in with the real
-         router so the picked rotation is the one that actually draws cleanest
-         (fewest crossings + nothing under the box). */
       S.rot=bestUnitRot(S.unit); }
   }
   S.routes={};
@@ -6811,17 +7136,10 @@ function autoDesign(){
      best facing) on the balanced job and keep the one with the fewest crossings /
      nothing under the box; tie → fewer takeoffs, then shorter total run. */
   if(S.sys!=='heater'){
-    /* The longest single TRUNK matters as much as crossings — a 10 m rigid run
-       reaching across the house to feed one far box is the "loop" nobody wants. So
-       score it in, and pay for the full takeoff sweep whenever the default draws
-       messy OR wears a long trunk. */
-    const longestTrunk=()=>{ let m=0; for(const d of ducts()){
-      if(d.kind==='return'||!d.a||!d.b) continue;
-      if(!(d.a.spigot||d.a.junction) || isOutletNode(d.b)) continue;   // trunk = box/spigot → box
-      m=Math.max(m, d.len||0); } return m; };
+    /* Pick the TAKEOFF COUNT that draws cleanest at the placed unit (2-way vs 3-way plenum). */
     const scoreOf=dg=>dg.crossings*100 + dg.underUnit*100 + dg.supplyM*0.01
-                     + Math.max(0, longestTrunk()-6)*4    // penalise cross-house trunks
-                     + bendCost(dg);                      // …and tight trunk sweeps
+                     + Math.max(0, longestTrunkLen()-6)*4    // penalise cross-house trunks
+                     + bendCost(dg);                         // …and tight trunk sweeps
     /* Pick the takeoff count DETERMINISTICALLY at the placed unit: a 2-way vs a 3-way plenum,
        lowest count winning ties. scoreOf weighs crossings, long cross-house trunks, tight
        sweeps and doubling back, so the cleaner plenum wins; the bend refine below then settles
@@ -6840,16 +7158,11 @@ function autoDesign(){
      spigot's fan slot gets one aimed at it. A unit you dropped yourself keeps its spot. */
   if(!P.unit){ refineUnitBends(); }
   refineBoxBends();   // then straighten any box still doubling back on its own feed
+  /* The GROUPING SEARCH (the "Clean up" button → cleanupLayout) is deliberately NOT run here — it
+     takes ~12–22 s. Auto-design stays fast greedy; Clean up re-groups a messy plan on demand. */
 
-  /* RETURN AIR — auto-place the return box just off the unit's return face and run
-     the return to it, so it appears on Auto-design (drawn as the v19 return box, its
-     collar aligned to the run). Manual placement with the Return tool still wins. */
-  if(!P.ret || !S.ret){
-    const rrot=(S.rot||0)*Math.PI/180, port=returnPort(S.unit, rrot);
-    let dx=port.x-S.unit.x, dy=port.y-S.unit.y, m=Math.hypot(dx,dy)||1;
-    S.ret={x:snap(port.x+dx/m*1.3), y:snap(port.y+dy/m*1.3)};   // clear of the unit body
-    S.routes={};
-  }
+  /* RETURN AIR — auto-place the return box just off the unit's return face. Manual placement wins. */
+  if(!P.ret || !S.ret) placeReturnAuto();
 
   const t=totals(), u=unitFor(t.design, t.design*LPS_PER_KW);
   S.unitPick=u?u.sku:null;

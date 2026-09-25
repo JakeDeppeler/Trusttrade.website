@@ -6930,10 +6930,12 @@ $('#btn-clean').onclick=async()=>{
   await wait(40);                              // let the spinner paint before the long synchronous search
   let r='nochange';
   try{ r=cleanupLayout(); } finally { unbusy(); }
-  flash(r==='clean'    ? 'Cleaned up — 0 kinks, 0 crossings'
-      : r==='improved' ? 'Improved as far as the grouping allows — tidy the rest by hand'
-      : r==='skip'     ? 'Already clean — nothing to fix'
-      :                  "Couldn't improve on this layout — try adding a BDO by hand");
+  flash(r==='clean'         ? 'Cleaned up — 0 kinks, 0 crossings'
+      : r==='improved'      ? 'Improved as far as the grouping allows — tidy the rest by hand'
+      : r==='moved-clean'   ? 'Moved the fan coil to clear the tangle — 0 kinks, 0 crossings. ⌘Z to keep your spot'
+      : r==='moved-improved'? 'Moved the fan coil to clear most of it — tidy the rest by hand. ⌘Z to keep your spot'
+      : r==='skip'          ? 'Already clean — nothing to fix'
+      :                       "Couldn't improve on this layout — try moving the fan coil or adding a BDO by hand");
 };
 
 /* GUIDED PLACEMENT.
@@ -7071,24 +7073,40 @@ function placeReturnAuto(){
   S.ret=bestRet||def; S.routes={};
 }
 
-/* CLEAN UP (the "Clean up" button). The opt-in grouping search on the CURRENT plan: keep the unit,
-   re-group the outlets onto take-offs to clear kinks/crossings, refine, re-place the auto return, and
-   keep the result only if it beats what's there (else revert exactly). Slow (~12–22 s) — the button
-   wraps it in a spinner. Returns 'clean' | 'improved' | 'nochange' | 'skip'. */
+/* CLEAN UP (the "Clean up" button). A deep tidy of a messy plan: it FREES the fan coil + return so the
+   unit can move to a clean spot (the position is usually the biggest cause of the tangle), re-runs the
+   greedy design, then the grouping search — keeping YOUR outlets and zones. Kept only if it beats what's
+   there (else reverted exactly). Slow (~12–22 s) — the button wraps it in a spinner.
+   Returns 'clean' | 'improved' | 'moved-clean' | 'moved-improved' | 'nochange' | 'skip'. */
+const CLEAN_MOVE_MARGIN=400;   // only re-place the fan coil if a freed one routes at least this much cheaper
 function cleanupLayout(){
-  if(S.sys==='heater' || !S.unit || !S.vents.length) return 'skip';
+  if(S.sys==='heater' || !S.vents.length || !S.unit) return 'skip';
   const dgA=diagnostics();
   if(!((dgA.kinks||[]).length || dgA.crossings)) return 'skip';   // already clean
   const before=snapshot(), costA=planCost(dgA);
+  const unit0={x:S.unit.x, y:S.unit.y};
+  /* Would a freed (re-placed) fan coil route much better? Do a fast greedy check with it freed. The
+     unit spot is often the biggest cause of the tangle, but we only MOVE gear you placed if it clearly
+     untangles the plan — otherwise we keep your spot and just fix the grouping. Keep your outlets/zones. */
+  S.placed = { ...(S.placed||{}), unit:false, ret:false };
+  S.unit=null; S.ret=null; S.groupPin=null; S.boxes={};
+  autoDesign();                                    // fresh greedy with an optimally-placed unit
+  if(!(planCost(diagnostics()) < costA - CLEAN_MOVE_MARGIN)) restore(before);   // not worth moving → keep your unit
+  /* Grouping search on the chosen base (moved unit, or your original). */
   const g=groupSearch();
   if(g && g.map){
     S.groupPin=g.map; S.boxes={}; S.routes={};
-    balance(); if(!(S.placed&&S.placed.unit)) refineUnitBends(); refineBoxBends();
+    balance(); refineUnitBends(); refineBoxBends();
     if(!(S.placed&&S.placed.ret)) placeReturnAuto();
-    const dgB=diagnostics();
-    if(planCost(dgB) < costA-1e-6){ commit(); return ((dgB.kinks||[]).length||dgB.crossings)?'improved':'clean'; }
   }
-  restore(before);                                                // no gain → back exactly as we were
+  const dgB=diagnostics();
+  if(planCost(dgB) < costA-1e-6){
+    commit();
+    const moved = Math.hypot(S.unit.x-unit0.x, S.unit.y-unit0.y)>0.6;
+    const clean = !((dgB.kinks||[]).length || dgB.crossings);
+    return moved ? (clean?'moved-clean':'moved-improved') : (clean?'clean':'improved');
+  }
+  restore(before);                                 // no gain → back exactly as we were
   return 'nochange';
 }
 

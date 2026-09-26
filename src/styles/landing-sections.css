@@ -323,6 +323,16 @@ section.block { padding: clamp(72px, 9vw, 130px) 0; position: relative; }
   .fcard.pos-tr, .fcard.pos-br { right: -2%; }
   .fr-visual { min-height: 480px; }
 }
+/* Gentle float on the decorative below-fold cards — brings the mockups to life
+   without any layout shift (transform-only, position untouched). Staggered so the
+   pair in each row doesn't bob in lockstep. Motion is opt-in via no-preference, so
+   reduced-motion users get them perfectly still. These sit below the hero → no LCP. */
+@keyframes tt-cardfloat { 0%, 100% { transform: translateY(0) rotate(-0.15deg); } 50% { transform: translateY(-7px) rotate(0.15deg); } }
+@media (prefers-reduced-motion: no-preference) {
+  .fcard, .tradies-visual .floater { animation: tt-cardfloat 6s ease-in-out infinite; will-change: transform; }
+  .fcard.pos-br, .fcard.pos-bl, .tradies-visual .floater.bottom-left { animation-duration: 7.4s; animation-delay: -3.1s; }
+  .fcard.pos-tr, .tradies-visual .floater.top-right { animation-delay: -1.4s; }
+}
 .ai-line { font-size: 13px; color: var(--ink-2); line-height: 1.4; max-width: 210px; }
 .ai-line .q { color: var(--ink); }
 .ai-line .a { color: var(--accent-ink); font-weight: 600; display: block; margin-top: 8px; }

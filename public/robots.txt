@@ -5,3 +5,4 @@ Disallow: /dashboard
 
 Sitemap: https://trusttrade.au/sitemap.xml
 Sitemap: https://trusttrade.au/sitemap-tradies.xml
+Sitemap: https://trusttrade.au/sitemap-guides.xml

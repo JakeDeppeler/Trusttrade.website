@@ -1,5 +1,5 @@
 {
-  "buildCommand": "node scripts/gen-tradie-pages.mjs && vite build && node scripts/prerender.mjs",
+  "buildCommand": "node scripts/gen-tradie-pages.mjs && node scripts/gen-guides.mjs && vite build && node scripts/prerender.mjs",
   "headers": [
     {
       "source": "/(duct-sizing|job-calculator|dashboard|admin|apply).html",

@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "node scripts/gen-tradie-pages.mjs && vite build && node scripts/prerender.mjs",
+    "build": "node scripts/gen-tradie-pages.mjs && node scripts/gen-guides.mjs && vite build && node scripts/prerender.mjs",
     "preview": "vite preview",
     "gen:tradies": "node scripts/gen-tradie-pages.mjs",
     "build:client": "vite build"

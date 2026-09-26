@@ -12,3 +12,7 @@ dist/
 public/tradie/
 public/sitemap-tradies.xml
 .ssr-build
+
+# generated guides SEO pages (built fresh each deploy)
+public/guides/
+public/sitemap-guides.xml

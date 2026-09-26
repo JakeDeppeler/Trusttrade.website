@@ -6,7 +6,6 @@ import { HREF_TO_ROUTE, resolveHref, APP_STORE_URL } from "../routes.js";
 
 export const PAGE_LINKS = [
   { label: "How it works", href: "How it works.html" },
-  { label: "Guides", href: "/guides/" },
   { label: "For tradies", href: "For Tradies.html" },
   { label: "Trade tools", href: "Tools.html" },
   { label: "Our story", href: "Our Story.html" },

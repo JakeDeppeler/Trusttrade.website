@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="en-AU">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Trust Trade Pro Privacy Policy</title>
+<meta name="description" content="How the Trust Trade Pro app handles your information: jobs stay on your phone, plan images go to Anthropic's Claude only when you choose to read a plan.">
+<link rel="icon" href="/favicon.ico">
+<link rel="canonical" href="https://trusttrade.au/pro/privacy">
+<style>
+  @font-face { font-family: "Archivo"; src: url("/fonts/archivo.woff2") format("woff2"); font-weight: 100 900; font-display: swap; }
+  :root { --ink:#101010; --muted:#5E5A52; --line:#DEDCD6; --bg:#F2F2F0; --card:#fff; --accent:#E9A21C; --accent-deep:#8A6A0B; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 16px/1.6 "Archivo", system-ui, -apple-system, sans-serif; }
+  main { max-width: 760px; margin: 0 auto; padding: 32px 16px 64px; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 20px; padding: 28px 24px; }
+  .eyebrow { color: var(--accent-deep); font-weight: 700; font-size: 13px; letter-spacing: .06em; text-transform: uppercase; }
+  h1 { font-size: 34px; line-height: 1.1; letter-spacing: -0.03em; margin: 6px 0 4px; }
+  .meta { color: var(--muted); font-size: 14px; margin: 0 0 20px; }
+  h2 { font-size: 19px; letter-spacing: -0.01em; margin: 28px 0 6px; }
+  p, li { color: #2a2824; }
+  ul { padding-left: 20px; }
+  a { color: var(--accent-deep); }
+  .top { display: flex; align-items: center; gap: 10px; margin-bottom: 18px; text-decoration: none; color: var(--ink); font-weight: 700; }
+  .dot { width: 12px; height: 12px; border-radius: 4px; background: var(--accent); display: inline-block; }
+  footer { color: var(--muted); font-size: 13px; margin-top: 18px; text-align: center; }
+</style>
+</head>
+<body>
+<main>
+  <a class="top" href="/pro"><span class="dot"></span>Trust Trade Pro</a>
+  <div class="card">
+    <div class="eyebrow">Trust Trade Pro app</div>
+    <h1>Privacy Policy</h1>
+    <p class="meta">Version 1.1 · Effective 26 September 2026</p>
+
+    <p>This policy explains how Deppeler Group Pty Ltd (ABN 40 873 784 535) trading as "TrustTrade" ("we", "us") handles personal information in the Trust Trade Pro iPhone app. We follow the Privacy Act 1988 (Cth) and the Australian Privacy Principles. If you sign in with a TrustTrade account, the TrustTrade Privacy Policy (in the TrustTrade app under Settings → Legal) also applies to that account.</p>
+
+    <h2>1. Your jobs stay on your phone</h2>
+    <p>Everything you put into a job stays on your iPhone. That includes customer names, phone numbers, emails and addresses, room scans, floor plans, 3D models, duct designs, reports and your business details. The app keeps it in its own storage, protected by iOS data protection. We don't receive a copy.</p>
+    <p>A job leaves your phone only if you:</p>
+    <ul>
+      <li>share a report, materials list or file yourself (for example by email, Messages or AirDrop), or</li>
+      <li>back up your iPhone, under your own Apple backup settings.</li>
+    </ul>
+
+    <h2>2. Camera, LiDAR and location</h2>
+    <p>Room scanning uses the camera and LiDAR sensor through Apple's RoomPlan, and runs on your phone. While you scan, the app uses your location and compass to find true north, so windows face the right way for sun. Your location isn't stored or sent anywhere. You can say no to location. The app then uses the magnetic compass, and you can adjust north yourself.</p>
+
+    <h2>3. Reading a floor plan (optional)</h2>
+    <p>If you choose to read a builder's plan, the app sends the plan image to TrustTrade's server, hosted by Supabase in Singapore. The server passes it to Anthropic's Claude AI (Anthropic, PBC, United States) to find the rooms. Nothing else from the job goes with it, and you don't need an account. The app asks your permission before the first plan is sent. We don't keep the image or the rooms read from it.</p>
+    <p>To keep plan reading fair and affordable, the server records each read with:</p>
+    <ul>
+      <li>a random ID the app makes for your installation. It isn't your device's identifier, and deleting the app resets it.</li>
+      <li>a one-way hash of your internet address. We can't turn it back into the address, and we clear it after two days.</li>
+      <li>when the plan was read, which AI model was used and how much text it produced. These details are deleted after 30 days.</li>
+    </ul>
+    <p>If you're signed in with a TrustTrade account, the read is recorded against that account instead. The server's host also keeps standard request logs (such as IP address and time) for a short time for security.</p>
+    <p>Under Anthropic's commercial terms, plans sent this way aren't used to train its models. Anthropic may keep them for a limited time for safety and abuse monitoring. Because Anthropic is in the United States, this is an overseas disclosure. Only send plans you're allowed to share, and crop out owners' names if you don't need them.</p>
+
+    <h2>4. Signing in to TrustTrade</h2>
+    <p>You don't need to sign in. The app only asks you to sign in if we pause plan reading for people without an account. Your email and password go to TrustTrade's sign-in service. The app never stores your password. It keeps a session token in the Keychain, and signing out removes the token and ends the session on our server.</p>
+
+    <h2>5. What we don't do</h2>
+    <p>Trust Trade Pro has no advertising, no tracking and no analytics tools. We don't sell personal information.</p>
+
+    <h2>6. Deleting your information</h2>
+    <ul>
+      <li>Delete a job in the app to remove it from your phone. Deleting the app removes all jobs.</li>
+      <li>Deleting your TrustTrade account (TrustTrade app → Settings → Delete account) also deletes the plan-reading records linked to it. You can also ask us by email.</li>
+    </ul>
+
+    <h2>7. Access, correction and complaints</h2>
+    <p>You can ask for the information we hold about you, ask us to correct it, or make a complaint, using the contact below. We'll respond within a reasonable time, and in any case within 30 days. If you're not satisfied, you can complain to the Office of the Australian Information Commissioner (oaic.gov.au, 1300 363 992).</p>
+
+    <h2>8. Children</h2>
+    <p>Trust Trade Pro is a trade tool for adults and isn't directed at children.</p>
+
+    <h2>9. Changes</h2>
+    <p>If this policy changes, we'll update this page and the version date above. For a material change, we'll tell you in the app.</p>
+
+    <h2>10. Contact</h2>
+    <p>Privacy Officer, Deppeler Group Pty Ltd, Harkaway, Victoria, Australia.<br>Email: <a href="mailto:jake@trusttrade.au?subject=Trust%20Trade%20Pro%20privacy">jake@trusttrade.au</a></p>
+  </div>
+  <footer>© 2026 Deppeler Group Pty Ltd · <a href="/pro">Trust Trade Pro support</a> · <a href="/">trusttrade.au</a></footer>
+</main>
+</body>
+</html>

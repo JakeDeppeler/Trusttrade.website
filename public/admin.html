@@ -501,7 +501,7 @@ async function delApplication(id,name,approved){
  }, true);
 }
 // Admin override: push a pending (docs-incomplete) listing live once you've sighted the cert/photos.
-async function goLiveListing(id,name){ask('Put '+name+' live?','Only do this once you have sighted their insurance certificate and enough work photos. This makes the profile public. Audited.','Note (optional)',async r=>{const {error}=await sb.from('listings').update({status:'approved',was_approved:true}).eq('id',id);if(error){toast(error.message);return;}await audit('listing_went_live','listing',id,r||'admin override go-live');closeM();toast('Live');go('tradies');});}
+async function goLiveListing(id,name){ask('Put '+name+' live?','Only do this once they have enough work photos. This makes the profile public. Audited.','Note (optional)',async r=>{const {error}=await sb.from('listings').update({status:'approved',was_approved:true}).eq('id',id);if(error){toast(error.message);return;}await audit('listing_went_live','listing',id,r||'admin override go-live');closeM();toast('Live');go('tradies');});}
 // Open the tradie's OWN dashboard in read-only preview (see exactly what they see).
 function previewDash(id){ window.open('/dashboard?preview='+encodeURIComponent(id),'_blank','noopener'); }
 function publicProfile(slug,status){ if(!slug){toast('No public profile — needs a slug');return;} if(status&&status!=='approved')toast('Heads up: profile is only public while approved'); window.open('/tradie/'+encodeURIComponent(slug),'_blank','noopener'); }
@@ -867,7 +867,7 @@ function trdRender(){
    if(TRDF.rating&&!(+t.rating>=TRDF.rating))return false;
    if(q){const hay=((t.name||'')+' '+(t.trade||'')+' '+(t.suburb||'')+' '+(t.postcode||'')).toLowerCase();if(!hay.includes(q))return false;}
    return true;});
- const tb=$('trd_rows');if(tb)tb.innerHTML=rows.map(t=>`<tr><td><input type="checkbox" class="selbox" value="${t.id}" onclick="selRow(this)"></td><td><b style="cursor:pointer;color:var(--goldd)" onclick="openTradie('${t.id}')">${esc(t.name)}</b>${t.is_demo?' <span class="pill b" title="Demo — hidden from the public site">Demo</span>':''}</td><td>${esc(t.trade||'—')}<br><span class="mut" style="font-size:12px">${esc(t.suburb||'')} ${esc(t.postcode||'')}</span></td><td>${t.rating?'<b>'+t.rating+'</b> <span class="mut">('+(t.review_count||0)+')</span>':'<span class="mut">—</span>'}</td><td class="mono">${t.stat_jobs_complete??0}</td><td>${t.status==='approved'?'<span class="pill g">Live</span>':t.status==='hidden'?'<span class="pill r">Hidden</span>':'<span class="pill n">'+esc(t.status||'—')+'</span>'}${t.insured?'':' <span class="pill a">no ins</span>'}</td><td class="right"><button class="btn w" onclick="previewDash('${t.id}')">Dashboard</button>${t.status==='approved'&&t.slug?` <button class="btn w" onclick="publicProfile('${esc(t.slug)}','${esc(t.status||'')}')">Public</button>`:''} ${t.status==='hidden'?`<button class="btn g" onclick="restoreListing('${t.id}','${esc(t.name)}')">Restore</button>`:t.status!=='approved'?`<button class="btn g" onclick="goLiveListing('${t.id}','${esc(t.name)}')">Go live</button>`:`<button class="btn r" onclick="hideListing('${t.id}','${esc(t.name)}')">Hide</button>`}</td></tr>`).join('')||'<tr><td colspan=7 class="empty">No tradies match these filters.</td></tr>';
+ const tb=$('trd_rows');if(tb)tb.innerHTML=rows.map(t=>`<tr><td><input type="checkbox" class="selbox" value="${t.id}" onclick="selRow(this)"></td><td><b style="cursor:pointer;color:var(--goldd)" onclick="openTradie('${t.id}')">${esc(t.name)}</b>${t.is_demo?' <span class="pill b" title="Demo — hidden from the public site">Demo</span>':''}</td><td>${esc(t.trade||'—')}<br><span class="mut" style="font-size:12px">${esc(t.suburb||'')} ${esc(t.postcode||'')}</span></td><td>${t.rating?'<b>'+t.rating+'</b> <span class="mut">('+(t.review_count||0)+')</span>':'<span class="mut">—</span>'}</td><td class="mono">${t.stat_jobs_complete??0}</td><td>${t.status==='approved'?'<span class="pill g">Live</span>':t.status==='hidden'?'<span class="pill r">Hidden</span>':'<span class="pill n">'+esc(t.status||'—')+'</span>'}</td><td class="right"><button class="btn w" onclick="previewDash('${t.id}')">Dashboard</button>${t.status==='approved'&&t.slug?` <button class="btn w" onclick="publicProfile('${esc(t.slug)}','${esc(t.status||'')}')">Public</button>`:''} ${t.status==='hidden'?`<button class="btn g" onclick="restoreListing('${t.id}','${esc(t.name)}')">Restore</button>`:t.status!=='approved'?`<button class="btn g" onclick="goLiveListing('${t.id}','${esc(t.name)}')">Go live</button>`:`<button class="btn r" onclick="hideListing('${t.id}','${esc(t.name)}')">Hide</button>`}</td></tr>`).join('')||'<tr><td colspan=7 class="empty">No tradies match these filters.</td></tr>';
  const c=$('trd_count');if(c)c.textContent=rows.length+' of '+TRD.length+' listings';}
 
 let APPTAB='submitted';
@@ -875,11 +875,9 @@ function appTab(t){APPTAB=t;pApps();}
 // A quick 0–100 confidence score from the checks we can see (mirrors the app's auto-score).
 function appScore(a){ let s=35;
  if(a.abn && a.abn!=='Not provided') s+=15;
- if(a.licence) s+=20;
- if(a.insured) s+=20;
+ if(a.licence) s+=40;   // insurance no longer collected (26 Sep 2026): the licence carries its points
  if(a.police_check_held) s+=6;
  if(a.wwcc_held) s+=2;
- if(a.insurance_doc_url) s+=2;
  return Math.min(100,s); }
 function scoreColor(n){ return n>=90?'var(--green)':n>=70?'var(--amber)':'var(--red)'; }
 function appTint(t){t=(t||'').toLowerCase();if(t.indexOf('elec')>=0)return '#F7E9C6';if(t.indexOf('plumb')>=0)return '#DCE7FF';if(t.indexOf('hvac')>=0||t.indexOf('air')>=0||t.indexOf('gas')>=0||t.indexOf('heat')>=0)return '#D9EEDE';if(t.indexOf('carp')>=0||t.indexOf('build')>=0)return '#F0E4D4';if(t.indexOf('paint')>=0)return '#F3DFE6';return '#EDE7DA';}
@@ -890,10 +888,10 @@ async function pApps(){loading('Applications');try{
  const rows=(data||[]).filter(a=>APPTAB==='all'?true:a.status===APPTAB);
  const tab=(k,lbl,n)=>`<div class="${APPTAB===k?'on':''}" onclick="appTab('${k}')">${lbl}${n!=null?` <span class="mut" style="font-weight:700">${n}</span>`:''}</div>`;
  const abnOk=a=>!!(a.abn && a.abn!=='Not provided');
- const card=a=>{ const nm=(a.business_name||a.full_name||'—'); const ini=(nm.split(/\s+/).map(w=>w[0]||'').join('').slice(0,2)||'?').toUpperCase(); const sc=appScore(a); const ok=a.insured&&a.licence;
+ const card=a=>{ const nm=(a.business_name||a.full_name||'—'); const ini=(nm.split(/\s+/).map(w=>w[0]||'').join('').slice(0,2)||'?').toUpperCase(); const sc=appScore(a); const ok=!!a.licence;
    const sub=[esc(a.full_name||''),esc(a.trade||''),esc(a.location||''),a.service_radius?esc(a.service_radius):''].filter(Boolean).join(' · ');
    const actions=(a.status==='submitted'||a.status==='info_requested')
-     ? `<button class="btn g" ${ok?'':'disabled title="needs licence + insurance" style="opacity:.5"'} onclick="approveApp('${a.id}','${esc(nm)}')">Approve &amp; go live</button> <button class="btn r" onclick="rejectApp('${a.id}','${esc(nm)}')">Reject</button> <button class="btn w" onclick="requestInfo('${a.id}','${esc(nm)}')">Request info</button>`
+     ? `<button class="btn g" ${ok?'':'disabled title="needs a licence" style="opacity:.5"'} onclick="approveApp('${a.id}','${esc(nm)}')">Approve &amp; go live</button> <button class="btn r" onclick="rejectApp('${a.id}','${esc(nm)}')">Reject</button> <button class="btn w" onclick="requestInfo('${a.id}','${esc(nm)}')">Request info</button>`
      : a.status==='rejected' ? `<button class="btn w" onclick="reopenApp('${a.id}','${esc(nm)}')">Re-open</button> <button class="btn r" onclick="delApplication('${a.id}','${esc(nm)}',false)">Delete</button>` : `<span class="pill g">Approved &amp; live</span> <button class="btn r" onclick="delApplication('${a.id}','${esc(nm)}',true)">Delete</button>`;
    return `<div class="appcard">
      <div class="appcard-head">
@@ -904,7 +902,7 @@ async function pApps(){loading('Applications');try{
      <div class="checkgrid">
        ${chkRow(abnOk(a),'ABN active', abnOk(a)?'Verified with ABR':'Not provided')}
        ${chkRow(!!a.licence,'Licence', a.licence?'Matches regulator':'Unverified')}
-       ${chkRow(!!a.insured,'Public liability', a.public_liability_amount?('$'+a.public_liability_amount+' cover'):'Not supplied')}
+       
        ${chkRow(!!a.police_check_held,'Police check', a.police_check_held?'Held · verified':'Not supplied')}
      </div>
      <div class="appcard-foot"><div class="af-actions">${actions}</div><button class="btn w" onclick="openApplication('${a.id}')">Full application</button></div>
@@ -915,14 +913,14 @@ async function pApps(){loading('Applications');try{
 }catch(e){$('main').innerHTML='<h2>Applications</h2>'+errBox(e);}}
 async function openApplication(id){loading('Application');try{
  const {data:a,error}=await sb.from('applications').select('*').eq('id',id).single();if(error)throw error;
- const nm=a.business_name||a.full_name||'—';const okApprove=a.insured&&a.licence;const sig=a.signature_image_url;const svc=Array.isArray(a.services)?a.services:[];
+ const nm=a.business_name||a.full_name||'—';const okApprove=!!a.licence;const sig=a.signature_image_url;const svc=Array.isArray(a.services)?a.services:[];
  const bh=(a.business_hours&&(a.business_hours.text||a.business_hours))||null;
  $('main').innerHTML=`<div style="margin-bottom:12px"><a class="mut" style="cursor:pointer" onclick="go('apps')">← Applications</a></div>
   <div style="display:flex;align-items:center;gap:12px;margin-bottom:8px;flex-wrap:wrap"><h2>${esc(nm)}</h2>
    ${a.status==='submitted'?'<span class="pill a">Pending</span>':a.status==='approved'?'<span class="pill g">Approved</span>':a.status==='rejected'?'<span class="pill r">Rejected</span>':a.status==='info_requested'?'<span class="pill a">Info needed</span>':'<span class="pill n">'+esc(a.status||'—')+'</span>'}
-   ${a.insured?'<span class="pill g">Insured</span>':'<span class="pill r">No insurance</span>'}${a.licence?'<span class="pill b">Licence</span>':'<span class="pill r">No licence</span>'}
+   ${a.licence?'<span class="pill b">Licence</span>':'<span class="pill r">No licence</span>'}
    <span style="margin-left:auto"></span>
-   ${(a.status==='submitted'||a.status==='info_requested')?`<button class="btn g" ${okApprove?'':'disabled title="needs licence + insurance" style="opacity:.5"'} onclick="approveApp('${a.id}','${esc(nm)}')">Approve</button> <button class="btn w" onclick="requestInfo('${a.id}','${esc(nm)}')">Request info</button> <button class="btn r" onclick="rejectApp('${a.id}','${esc(nm)}')">Reject</button>`:a.status==='rejected'?`<button class="btn w" onclick="reopenApp('${a.id}','${esc(nm)}')">Re-open</button> <button class="btn r" onclick="delApplication('${a.id}','${esc(nm)}',false)">Delete</button>`:`<button class="btn r" onclick="delApplication('${a.id}','${esc(nm)}',true)">Delete application</button>`}
+   ${(a.status==='submitted'||a.status==='info_requested')?`<button class="btn g" ${okApprove?'':'disabled title="needs a licence" style="opacity:.5"'} onclick="approveApp('${a.id}','${esc(nm)}')">Approve</button> <button class="btn w" onclick="requestInfo('${a.id}','${esc(nm)}')">Request info</button> <button class="btn r" onclick="rejectApp('${a.id}','${esc(nm)}')">Reject</button>`:a.status==='rejected'?`<button class="btn w" onclick="reopenApp('${a.id}','${esc(nm)}')">Re-open</button> <button class="btn r" onclick="delApplication('${a.id}','${esc(nm)}',false)">Delete</button>`:`<button class="btn r" onclick="delApplication('${a.id}','${esc(nm)}',true)">Delete application</button>`}
   </div>
   <div class="subt">${esc(a.trade||'—')} · ${esc(a.location||'')} · applied ${fmtDate(a.created_at)}</div>
   ${a.status==='rejected'&&a.rejection_reason?`<div class="card" style="border-color:rgba(232,69,60,.3)"><div class="ch">Rejection reason (shown to applicant)</div><div style="padding:12px 18px;font-size:13.5px;color:var(--ink2)">${esc(a.rejection_reason)}</div></div>`:''}
@@ -1124,7 +1122,7 @@ function setSettingsTab(t){SETTINGS_TAB=t;pSettings();}
 async function pSettings(){loading('Settings');try{
  const {data,error}=await sb.from('app_config').select('*').order('key');if(error)throw error;
  CFG={};(data||[]).forEach(r=>CFG[r.key]=r.value);
- const desc={sub_price:'What each tradie pays per month. Drives MRR on the Money page.',cap_default:'Default tradies allowed per trade in a suburb before it locks.',sla_hours:'Target hours to action a report (Apple review expects 24h).',auto_hide_expired:'When on, a listing auto-hides the day its insurance lapses.'};
+ const desc={sub_price:'What each tradie pays per month. Drives MRR on the Money page.',cap_default:'Default tradies allowed per trade in a suburb before it locks.',sla_hours:'Target hours to action a report (Apple review expects 24h).',auto_hide_expired:'When on, a listing auto-hides the day its licence lapses.'};
  const unit={sub_price:'$',sla_hours:'h'};
  const row=c=>{const isBool=/^(true|false)$/i.test(c.value||'');const on=/^true$/i.test(c.value||'');
    const disp=isBool?(on?'On':'Off'):((unit[c.key]==='$'?'$':'')+esc(c.value||'—')+(unit[c.key]==='h'?' h':''));
@@ -1535,7 +1533,7 @@ function renderTP(){const t=TP.t,bk=TP.bk,rev=TP.rev;
  ][TPTAB];
  $('main').innerHTML=`<div style="margin-bottom:12px"><a class="mut" style="cursor:pointer" onclick="go('tradies')">← Tradies</a></div>
   <div style="display:flex;align-items:center;gap:14px;margin-bottom:8px"><h2>${esc(t.name)}</h2>
-   ${t.status==='approved'?'<span class="pill g">Live</span>':t.status==='hidden'?'<span class="pill r">Hidden</span>':'<span class="pill n">'+esc(t.status||'')+'</span>'}${t.is_demo?'<span class="pill b" title="Demo — hidden from the public site">Demo</span>':''}${t.insured?'<span class="pill g">Insured</span>':'<span class="pill a">No insurance</span>'}${t.qualified?'<span class="pill b">Licensed</span>':''}
+   ${t.status==='approved'?'<span class="pill g">Live</span>':t.status==='hidden'?'<span class="pill r">Hidden</span>':'<span class="pill n">'+esc(t.status||'')+'</span>'}${t.is_demo?'<span class="pill b" title="Demo — hidden from the public site">Demo</span>':''}${t.qualified?'<span class="pill b">Licensed</span>':''}
    <span style="margin-left:auto"></span><button class="btn w" onclick="previewDash('${t.id}')">Dashboard</button> <button class="btn w" onclick="publicProfile('${esc(t.slug||'')}','${esc(t.status||'')}')">Public profile</button> <button class="btn w" onclick="editTradieForm()">Edit</button> ${t.status==='hidden'?`<button class="btn g" onclick="restoreListing('${t.id}','${esc(t.name)}')">Restore</button>`:`<button class="btn r" onclick="hideListing('${t.id}','${esc(t.name)}')">Hide</button>`} <button class="btn r" onclick="deleteListing('${t.id}','${esc(t.name)}')"><svg viewBox="0 0 24 24" style="width:13px;height:13px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round"><path d="M3 6h18M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>Delete</button></div>
   <div class="subt">${esc(t.trade||'')} · ${esc(t.suburb||t.location||'')} ${esc(t.postcode||'')} · ABN ${esc(t.abn||'—')}</div>
   <div class="kpis" style="margin:16px 0 6px">

@@ -752,19 +752,19 @@ function TrustStrip() {
         <div className="trust-strip-grid">
           <div className="trust-item">
             <div className="num">100<span className="sm">%</span></div>
-            <div className="lbl">Tradies verified before they land in front of you.</div>
+            <div className="lbl">Every tradie licence-checked and insured before you ever see them.</div>
           </div>
           <div className="trust-item">
             <div className="num"><span className="it">0</span></div>
-            <div className="lbl">Cold leads. Tradies get matched, not auctioned off.</div>
+            <div className="lbl">Cold leads or spam blasts. You're matched to a local, not auctioned off.</div>
           </div>
           <div className="trust-item">
-            <div className="num">3<span className="sm">min</span></div>
-            <div className="lbl">Average time from "I need help" to a quote in writing.</div>
+            <div className="num"><span className="it">Real</span></div>
+            <div className="lbl">Reviews only from real jobs booked and completed on the platform.</div>
           </div>
           <div className="trust-item">
             <div className="num"><span className="it">AU</span></div>
-            <div className="lbl">Built in Naarm/Melbourne. For Aussie homes, Aussie trades.</div>
+            <div className="lbl">Built in Melbourne, for Aussie homes and Aussie trades.</div>
           </div>
         </div>
       </div>
@@ -1375,6 +1375,7 @@ export default function LandingPage() {
       <PageHeader current="Trust Trade Landing.html" />
       <main className="tt-home">
         <BevelHero />
+        <TrustStrip />
         <Showcase />
         <WorksWith />
         <FeatureBreakdowns />

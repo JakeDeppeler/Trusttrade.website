@@ -1,131 +1,558 @@
 <!doctype html><html lang="en"><head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="robots" content="noindex, nofollow">
-<title>TrustTrade — Tradie Dashboard</title>
+<title>TrustTrade Tradie Dashboard</title>
+<link rel="icon" href="/favicon.ico">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 @font-face{font-family:"Archivo";font-style:normal;font-weight:100 900;font-display:swap;src:url(/fonts/archivo.woff2) format("woff2")}
 @font-face{font-family:"Archivo";font-style:italic;font-weight:100 900;font-display:swap;src:url(/fonts/archivo-italic.woff2) format("woff2")}
-:root{--bg:#f7f8fa;--panel:#ffffff;--cream:#f2f3f5;--line:#e6e8eb;--line2:#eef0f2;--ink:#1b1d21;--ink2:#4a4e57;--mut:#868b95;--gold:#1b1d21;--goldd:#1b1d21;--goldb:#eef0f2;--star:#e6a400;--green:#1f9d57;--greenb:#e9f7ef;--red:#d64545;--redb:#fbeaea;--amber:#b4740e;--amberb:#fbf1da;--blue:#3A6FF0;--blueb:#EAF0FE;--f:"Archivo",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;--sh:0 1px 2px rgba(20,22,26,.04),0 12px 34px -16px rgba(20,22,26,.13)}
-html[data-theme="dark"]{--bg:#15171c;--panel:#1c1e24;--cream:#23262d;--line:#2c2f38;--line2:#232630;--ink:#eceef2;--ink2:#aeb3bd;--mut:#7c818c;--gold:#eceef2;--goldd:#eceef2;--goldb:#262a31;--star:#f5be68;--greenb:#12231a;--redb:#2c1615;--amberb:#251c0d;--blueb:#141c2e;--sh:0 1px 2px rgba(0,0,0,.5),0 10px 30px -12px rgba(0,0,0,.6)}
+/* ===== TrustTrade tradie dashboard: the phone app's design language =====
+   The same palette, type and components as the tradie side of the app (and the
+   admin console): soft mesh background, white 24px cards, Archivo 800 titles and
+   numbers, fully rounded buttons, inputs and tags, amber primary actions, black
+   selected segments. Pages mirror the app's tabs: Dashboard, Jobs, Inbox, My profile. */
+:root{
+ --f:-apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif;
+ --fd:"Archivo",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+ --bg:#F2F2F0;
+ --mesh:radial-gradient(62% 46% at 14% 8%,rgba(208,226,245,.34) 0%,rgba(208,226,245,0) 70%),radial-gradient(58% 42% at 93% 15%,rgba(250,219,150,.30) 0%,rgba(250,219,150,0) 72%),radial-gradient(74% 48% at 82% 88%,rgba(214,234,221,.30) 0%,rgba(214,234,221,0) 70%),radial-gradient(54% 38% at 4% 76%,rgba(250,230,183,.24) 0%,rgba(250,230,183,0) 70%);
+ --panel:#FFFFFF;--panel2:#F7F6F3;--cream:#F4F2ED;--bar:#EFE7D6;
+ --line:#E6E3DC;--line2:#F0EEE9;
+ --ink:#101010;--body:#3E3A33;--ink2:#5E5A52;--mut:#716C63;--onink:#FAFAF8;
+ --gold:#E9A21C;--goldd:#8A6A0B;--goldb:#FBEAC4;--goldt:#6B5208;
+ --green:#1B6B45;--greenb:#E3F3E8;--greent:#3F6B53;
+ --red:#CC3328;--redt:#B3261E;--redb:#FDE3E0;
+ --blue:#2B5A8A;--blueb:#E8F0F8;
+ --sh:0 2px 14px rgba(16,16,16,.06);
+ --sh2:0 10px 30px rgba(16,16,16,.10);
+ --shb:0 2px 10px rgba(16,16,16,.09);
+ --sha:0 10px 26px -10px rgba(233,162,28,.95);
+ --ring:0 0 0 4px rgba(233,162,28,.22);
+ color-scheme:light;
+}
+html[data-theme="dark"]{
+ --bg:#121212;
+ --mesh:radial-gradient(56% 40% at 6% 0%,rgba(242,162,34,.13) 0%,rgba(242,162,34,0) 62%),radial-gradient(52% 36% at 98% 6%,rgba(110,132,235,.15) 0%,rgba(110,132,235,0) 60%),radial-gradient(58% 38% at 92% 64%,rgba(205,110,165,.09) 0%,rgba(205,110,165,0) 64%),radial-gradient(62% 42% at 0% 78%,rgba(56,180,148,.09) 0%,rgba(56,180,148,0) 64%);
+ --panel:#1C1C1F;--panel2:#242428;--cream:#2B2B30;--bar:#2F2B24;
+ --line:#36363C;--line2:#2A2A2F;
+ --ink:#F4F4F7;--body:#DADAE0;--ink2:#BEBEC8;--mut:#90909B;--onink:#121212;
+ --gold:#F2A222;--goldd:#F5BE68;--goldb:rgba(242,162,34,.17);--goldt:#F5BE68;
+ --green:#3DBE7B;--greenb:rgba(34,168,99,.17);--greent:#7FD9A6;
+ --red:#E8453C;--redt:#FF9B93;--redb:rgba(232,69,60,.17);
+ --blue:#8FB4F0;--blueb:rgba(58,111,240,.2);
+ --sh:0 8px 24px rgba(0,0,0,.28);
+ --sh2:0 16px 38px rgba(0,0,0,.42);
+ --shb:0 2px 10px rgba(0,0,0,.4);
+ --sha:0 10px 26px -12px rgba(242,162,34,.7);
+ --ring:0 0 0 4px rgba(242,162,34,.25);
+ color-scheme:dark;
+}
 *{box-sizing:border-box;margin:0;padding:0}
-body{font-family:var(--f);background:var(--bg);color:var(--ink);-webkit-font-smoothing:antialiased}
-button,input,select,textarea{font-family:inherit}
-/* login */
-.gate{min-height:100vh;display:grid;place-items:center;padding:24px}
-.lcard{background:var(--panel);border:1px solid var(--line);border-radius:20px;box-shadow:var(--sh);width:100%;max-width:400px;padding:30px}
-.brand{display:flex;align-items:center;gap:11px;margin-bottom:20px}
-.lg{width:36px;height:36px;border-radius:10px;background:var(--ink);display:grid;place-items:center;color:var(--panel)}
-.brand b{font-size:17px;font-weight:750}.brand span{display:block;font-size:11px;color:var(--mut);font-weight:600}
-.lcard label{display:block;font-size:12px;font-weight:650;color:var(--mut);margin:14px 0 5px}
-.lcard input{width:100%;padding:12px 13px;border:1px solid var(--line);border-radius:11px;font-size:14px;background:var(--bg);color:var(--ink)}
-.lcard input:focus{outline:none;border-color:var(--gold);box-shadow:0 0 0 3px var(--goldb)}
-.err{background:var(--redb);color:#9a2b22;padding:10px 13px;border-radius:10px;font-size:13px;margin-top:12px}
-html[data-theme="dark"] .err{color:#FF9B93}
-.btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;height:34px;padding:0 14px;border-radius:10px;background:var(--ink);color:var(--panel);font-size:13px;font-weight:650;border:0;cursor:pointer}
-.btn.gold{background:var(--ink);color:var(--panel);width:100%;height:44px;font-size:15px;margin-top:20px}
-.btn.w{background:var(--panel);color:var(--ink);border:1px solid var(--line)}
-.btn.g{background:var(--green);color:#fff}.btn.r{background:var(--redb);color:var(--red);border:1px solid rgba(224,72,58,.25)}
-/* app */
-.app{display:none;min-height:100vh}.app.on{display:flex}
-.side{width:236px;flex-shrink:0;background:var(--panel);border-right:1px solid var(--line);padding:18px 14px;display:flex;flex-direction:column;position:sticky;top:0;height:100vh;overflow:auto}
-.side .who{margin-top:6px;padding:12px;border-radius:13px;background:var(--bg);border:1px solid var(--line);margin-bottom:8px}
-.side .who b{font-size:13.5px;display:block}.side .who span{font-size:11.5px;color:var(--mut)}
-.nv{display:flex;align-items:center;gap:10px;padding:11px 13px;border-radius:11px;color:var(--ink2);cursor:pointer;font-weight:550;font-size:14.5px;margin-bottom:2px}
-.nv:hover{background:var(--bg)}.nv.on{background:var(--goldb);color:var(--goldd);font-weight:700}
-.nv .ct{margin-left:auto;font-size:11px;font-weight:800;padding:1px 8px;border-radius:99px;background:var(--line);color:var(--ink2)}
-.nv .ct.hot{background:var(--redb);color:var(--red)}
-.slbl{font-size:10px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--mut);padding:16px 12px 6px}
-.me{margin-top:auto;padding-top:12px;border-top:1px solid var(--line2);font-size:12px;color:var(--mut)}
-.me a{color:var(--red);cursor:pointer;font-weight:650;text-decoration:none}
-main{flex:1;padding:28px 32px 64px;max-width:1080px}
-h1{font-size:24px;font-weight:800;letter-spacing:-.03em}
-.subt{color:var(--mut);font-size:13.5px;margin:5px 0 20px}
-.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:18px}
-.kpi{background:var(--panel);border:1px solid var(--line);border-radius:15px;padding:16px 17px;box-shadow:var(--sh)}
-.kpi .k{font-size:10.5px;font-weight:750;color:var(--mut);text-transform:uppercase;letter-spacing:.04em}
-.kpi b{display:block;font-size:27px;font-weight:800;letter-spacing:-.04em;margin-top:8px}
-.kpi .d{font-size:11.5px;color:var(--mut);margin-top:5px;font-weight:600}
-.card{background:var(--panel);border:1px solid var(--line);border-radius:15px;box-shadow:var(--sh);overflow:hidden;margin-bottom:16px}
-.ch{padding:15px 18px;border-bottom:1px solid var(--line2);font-weight:700;font-size:14.5px;display:flex;align-items:center;gap:8px}
+html{background:var(--bg)}
+body{font-family:var(--f);font-size:14.5px;line-height:1.45;color:var(--ink);background:var(--bg);-webkit-font-smoothing:antialiased;min-height:100vh}
+body::before{content:"";position:fixed;inset:0;background:var(--mesh);pointer-events:none;z-index:0}
+.gate,.app{position:relative;z-index:1}
+button,input,select,textarea{font-family:inherit;color:inherit}
+::selection{background:rgba(233,162,28,.28)}
+.vh{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+svg.i{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0}
+
+/* ── sign in + two-factor (NewLogin) ── */
+.gate{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:48px 24px}
+.lcard{width:100%;max-width:420px;text-align:center}
+.lbrand{display:inline-flex;align-items:center;gap:10px;margin-bottom:38px}
+.lbrand img{width:40px;height:40px;border-radius:12px;box-shadow:var(--shb);display:block}
+.lbrand b{font-family:var(--fd);font-weight:800;font-size:19px;letter-spacing:-.035em}
+.lbrand span{font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--goldt);background:var(--goldb);padding:4px 9px;border-radius:999px}
+.lcard h1{font-family:var(--fd);font-size:46px;font-weight:800;letter-spacing:-.042em;line-height:.98;text-wrap:balance}
+.lcard p{font-size:17px;line-height:1.45;color:var(--ink2);margin:14px auto 0;max-width:360px;text-wrap:balance}
+.lform{margin-top:32px;display:flex;flex-direction:column;gap:12px}
+.lcard input{width:100%;height:62px;border:0;border-radius:999px;background:var(--panel);box-shadow:0 2px 12px rgba(16,16,16,.07);padding:0 26px;font-size:17px;color:var(--ink);outline:none;transition:box-shadow .15s}
+.lcard input::placeholder{color:#8C877D}
+.lcard input:focus{box-shadow:0 2px 12px rgba(16,16,16,.07),0 0 0 2px var(--gold)}
+.lcard input.code{text-align:center;font-family:var(--fd);font-size:26px;font-weight:800;letter-spacing:.42em;padding:0 0 0 .42em}
+.lcard button{width:100%;height:62px;margin-top:22px;border:0;border-radius:999px;background:var(--gold);color:#101010;font-size:17.5px;font-weight:700;cursor:pointer;box-shadow:var(--sha);transition:transform .12s,filter .12s}
+.lcard button:hover{filter:brightness(1.04)}
+.lcard button:active{transform:scale(.985)}
+.lcard button.ghost{width:auto;height:auto;margin:16px auto 0;padding:6px 8px;background:none;box-shadow:none;color:var(--ink);font-size:15px;font-weight:700;text-decoration:underline;text-underline-offset:3px}
+.lerr{color:var(--redt);font-size:14px;font-weight:600;margin-top:14px;min-height:20px}
+.lnote{font-size:13.5px;color:var(--ink2);margin-top:18px}
+
+/* ── shell: floating sidebar (the app's white nav bar) + content on the mesh ── */
+.app{display:none;min-height:100vh}.app.on{display:flex;align-items:flex-start}
+.side{position:sticky;top:16px;margin:16px 0 16px 16px;width:250px;flex-shrink:0;height:calc(100vh - 32px);background:var(--panel);border-radius:28px;box-shadow:var(--sh2);padding:18px 12px 12px;display:flex;flex-direction:column;overflow-y:auto;scrollbar-width:none}
+body.preview .side{top:62px;height:calc(100vh - 78px)}
+.side::-webkit-scrollbar{display:none}
+.brand{display:flex;align-items:center;gap:11px;padding:2px 8px 18px}
+.brand .lg{width:38px;height:38px;border-radius:11px;overflow:hidden;flex-shrink:0;box-shadow:var(--shb)}
+.brand .lg img{width:100%;height:100%;object-fit:cover;display:block}
+.brand b{display:block;font-family:var(--fd);font-weight:800;font-size:18.5px;letter-spacing:-.035em;line-height:1.05}
+.brand .sub{display:block;font-size:12.5px;font-weight:600;color:var(--ink2);margin-top:2px}
+.nv{display:flex;align-items:center;gap:12px;height:42px;padding:0 12px 0 14px;border-radius:999px;color:var(--body);font-size:14.5px;font-weight:600;cursor:pointer;margin-bottom:2px;user-select:none;transition:background .12s,color .12s;flex-shrink:0}
+.nv svg{width:19px;height:19px;flex-shrink:0;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;opacity:.75}
+.nv:hover{background:var(--panel2);color:var(--ink)}
+.nv.on{background:var(--goldb);color:var(--ink);font-weight:700}
+.nv.on svg{opacity:1;stroke-width:2}
+.nv .ct{margin-left:auto;min-width:22px;height:22px;padding:0 7px;border-radius:999px;background:var(--cream);color:var(--ink2);font-size:12px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;font-variant-numeric:tabular-nums}
+.nv .ct:empty{display:none}
+.nv .ct.hot{background:var(--red);color:#fff}
+.nv.on .ct{background:var(--panel)}
+.nv.on .ct.hot{background:var(--red)}
+.nvsep{height:1px;background:var(--line2);margin:10px 14px;flex-shrink:0}
+.usercard{margin-top:auto;padding:10px;border-radius:20px;flex-shrink:0}
+.uc-top{display:flex;align-items:center;gap:11px}
+.usercard .av{width:38px;height:38px;border-radius:50%;background:var(--ink);color:var(--onink);display:grid;place-items:center;font-family:var(--fd);font-weight:800;font-size:14px;flex-shrink:0;background-size:cover;background-position:center}
+.usercard .uc-t{flex:1;min-width:0}
+.usercard .un{font-size:14px;font-weight:700;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.usercard .ur{font-size:12px;color:var(--ink2);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.uc-acts{display:flex;gap:6px;margin-top:10px}
+.uc-acts button{flex:1;height:34px;border:0;border-radius:999px;background:var(--cream);color:var(--ink2);font-size:12.5px;font-weight:700;cursor:pointer}
+.uc-acts button:hover{color:var(--ink)}
+.uc-acts button.out{color:var(--redt)}
+.content{flex:1;min-width:0}
+main{padding:34px 44px 90px;max-width:1180px;width:100%}
+
+/* ── page headers ── */
+h2{font-family:var(--fd);font-size:40px;font-weight:800;letter-spacing:-.042em;line-height:1.02;color:var(--ink)}
+.subt{font-size:15.5px;line-height:1.45;color:var(--ink2);margin:8px 0 26px}
+.phead{display:flex;align-items:flex-end;gap:12px 18px;flex-wrap:wrap;margin-bottom:26px}
+.phead .pt{flex:1 1 360px;min-width:0}
+.phead .pt .subt{margin-bottom:0}
+.phead .pa{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.back{display:inline-flex;align-items:center;gap:11px;margin:0 0 18px;font-size:14.5px;font-weight:600;color:var(--ink2);cursor:pointer;text-decoration:none}
+.back .bk{width:40px;height:40px;border-radius:50%;background:var(--panel);box-shadow:var(--shb);display:grid;place-items:center;color:var(--ink);transition:transform .12s}
+.back .bk svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
+.back:hover{color:var(--ink)}.back:hover .bk{transform:translateX(-2px)}
+.h3{display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin:30px 4px 12px}
+.h3 h3{font-family:var(--fd);font-size:21px;font-weight:800;letter-spacing:-.03em}
+.h3 a{font-size:14px;font-weight:600;text-decoration:underline;text-underline-offset:3px;cursor:pointer;color:var(--ink)}
+.lbl{font-size:12.5px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--ink2);margin:26px 6px 10px}
+
+/* ── buttons ── */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:44px;padding:0 20px;border:0;border-radius:999px;background:var(--ink);color:var(--onink);font-size:14.5px;font-weight:700;line-height:1;white-space:nowrap;cursor:pointer;text-decoration:none;transition:transform .12s,filter .12s,background .12s}
+.btn:hover{filter:brightness(1.15)}
+.btn:active{transform:scale(.97)}
+.btn.g{background:var(--gold);color:#101010;box-shadow:var(--sha)}
+.btn.g:hover{filter:brightness(1.05)}
+.btn.w{background:var(--panel);color:var(--ink);box-shadow:var(--shb)}
+.btn.w:hover{background:var(--panel2);filter:none}
+.btn.r{background:var(--panel);color:var(--redt);box-shadow:var(--shb)}
+.btn.big{height:54px;padding:0 26px;font-size:16px}
+.btn.sm{height:36px;padding:0 15px;font-size:13.5px}
+.btn.block{width:100%}
+.btn[disabled]{opacity:.55;cursor:default;transform:none}
+.btn svg{width:17px;height:17px}
+
+/* ── segments (the app's tabs) ── */
+.tabs{display:flex;width:max-content;max-width:100%;gap:2px;padding:4px;margin:0 0 20px;background:var(--panel);border-radius:999px;box-shadow:var(--sh);overflow-x:auto;scrollbar-width:none}
+.tabs::-webkit-scrollbar{display:none}
+.tabs div{flex-shrink:0;height:40px;padding:0 20px;border-radius:999px;display:flex;align-items:center;font-size:14.5px;font-weight:600;color:var(--ink);cursor:pointer;white-space:nowrap;transition:background .12s,color .12s}
+.tabs div:hover{background:var(--panel2)}
+.tabs div.on{background:var(--ink);color:var(--onink);font-weight:700}
+.seg{display:inline-flex;gap:2px;padding:3px;background:var(--cream);border-radius:999px}
+.seg button{height:34px;padding:0 14px;border:0;border-radius:999px;background:transparent;color:var(--ink2);font-size:13px;font-weight:600;cursor:pointer}
+.seg button.on{background:var(--ink);color:var(--onink)}
+
+/* ── cards, stats ── */
+.card{background:var(--panel);border-radius:24px;box-shadow:var(--sh);margin-bottom:14px}
+.cpad{padding:20px 22px}
+.ch{display:flex;align-items:center;gap:10px;padding:20px 22px 6px;font-size:17px;font-weight:700;letter-spacing:-.012em}
+.ch .r{margin-left:auto}
+.kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;margin:0 0 16px}
+.kpi{background:var(--panel);border-radius:24px;box-shadow:var(--sh);padding:18px 20px;min-width:0}
+.kpi.tap{cursor:pointer}
+.kpi b{display:block;font-family:var(--fd);font-size:34px;font-weight:800;letter-spacing:-.045em;line-height:1;font-variant-numeric:tabular-nums}
+.kpi b.dn{color:var(--redt)}
+.kpi .k{font-size:13.5px;font-weight:600;color:var(--ink2);margin-top:8px}
+.grid2{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:16px;align-items:start}
+.grid2.wide{grid-template-columns:minmax(0,1.25fr) minmax(0,1fr)}
+.stack>*+*{margin-top:14px}
+
+/* ── tags (the app's green / amber / red / blue / grey) ── */
+.pill{display:inline-flex;align-items:center;gap:5px;height:26px;padding:0 11px;border-radius:999px;font-size:12.5px;font-weight:700;line-height:1;white-space:nowrap;background:#F2F0EB;color:#4E4A42;flex-shrink:0}
+.pill.g{background:var(--greenb);color:var(--green)}.pill.a{background:var(--goldb);color:var(--goldt)}.pill.r{background:var(--redb);color:var(--redt)}.pill.b{background:var(--blueb);color:var(--blue)}
+html[data-theme="dark"] .pill{background:var(--cream);color:var(--ink2)}
+html[data-theme="dark"] .pill.g{background:var(--greenb);color:var(--green)}html[data-theme="dark"] .pill.a{background:var(--goldb);color:var(--goldt)}html[data-theme="dark"] .pill.r{background:var(--redb);color:var(--redt)}html[data-theme="dark"] .pill.b{background:var(--blueb);color:var(--blue)}
+
+/* ── Dashboard: last 30 days (TDHome) ── */
+.tds{padding:22px 24px}
+.tds-top{display:flex;justify-content:space-between;align-items:center}
+.tds-top>span:first-child{font-size:15px;font-weight:600;color:var(--ink2)}
+.tds-big{display:flex;align-items:flex-end;justify-content:space-between;gap:18px;margin-top:8px}
+.tds-n b{display:block;font-family:var(--fd);font-size:76px;font-weight:800;letter-spacing:-.05em;line-height:.92}
+.tds-n>span{display:block;font-size:16px;font-weight:600;margin-top:6px}
+.tds-n em{font-style:normal;font-weight:700;color:var(--green)}
+.tds-n em.dn{color:var(--redt)}
+.bars{display:flex;align-items:flex-end;gap:6px;width:190px;height:70px}
+.bars i{flex:1;border-radius:7px;background:var(--bar)}
+.bars i.pk{background:var(--gold)}
+.tds-row{display:flex;margin-top:20px;padding-top:16px;border-top:1px solid var(--line2)}
+.tds-row>span{flex:1;display:flex;flex-direction:column;gap:3px;min-width:0}
+.tds-row>span+span{padding-left:18px;margin-left:18px;border-left:1px solid var(--line2)}
+.tds-row b{font-family:var(--fd);font-size:26px;font-weight:800;letter-spacing:-.035em}
+.tds-row small{font-size:13px;color:var(--ink2)}
+.needs{padding:2px 20px}
+.need{display:flex;align-items:center;gap:13px;padding:15px 0;border-bottom:1px solid var(--line2);cursor:pointer}
+.need:last-child{border-bottom:0}
+.need>i{width:10px;height:10px;border-radius:999px;background:#8C877D;flex-shrink:0}
+.need>i.a{background:var(--gold)}.need>i.b{background:var(--blue)}.need>i.g{background:var(--green)}
+.need .tx{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.need .tx b{font-size:15.5px;font-weight:700}
+.need .tx small{font-size:13px;color:var(--ink2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.chev{width:16px;height:16px;fill:none;stroke:#A8A398;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0}
+.need:hover .chev{stroke:var(--ink)}
+.allgood{padding:26px 22px;text-align:center;color:var(--ink2);font-size:14.5px}
+.allgood b{display:block;color:var(--ink);font-size:16px;margin-bottom:3px}
+.state{padding:22px 24px;margin-bottom:16px}
+.state h3{font-family:var(--fd);font-size:24px;font-weight:800;letter-spacing:-.035em;margin-top:12px}
+.state p{font-size:15px;color:var(--ink2);margin-top:6px;max-width:620px}
+
+/* ── Jobs: cards like the app's enquiry cards (TDEnquiries) ── */
+.banner{display:flex;align-items:center;gap:14px;padding:16px 20px;border-radius:22px;background:var(--goldb);cursor:pointer;margin-bottom:16px}
+.banner .bic{width:40px;height:40px;border-radius:12px;background:rgba(255,255,255,.55);display:grid;place-items:center;color:var(--goldd);flex-shrink:0}
+html[data-theme="dark"] .banner .bic{background:rgba(0,0,0,.2)}
+.banner b{display:block;font-size:15px;font-weight:700;color:var(--goldt)}
+.banner small{font-size:13px;color:var(--goldt);opacity:.85}
+.banner .chev{margin-left:auto;stroke:var(--goldd)}
+.banner .bic svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.lcards{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+.lc{background:var(--panel);border-radius:24px;box-shadow:var(--sh);padding:16px 18px;display:flex;flex-direction:column;gap:8px;cursor:pointer;transition:transform .12s,box-shadow .12s;min-width:0}
+.lc:hover{transform:translateY(-1px);box-shadow:var(--sh2)}
+.lc.new{box-shadow:0 0 0 2px var(--gold),var(--sh)}
+.lc-top{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
+.lc-who{display:flex;flex-direction:column;gap:1px;min-width:0}
+.lc-who b{font-size:16.5px;font-weight:700}
+.lc-who small{font-size:13px;color:var(--ink2)}
+.lc-pills{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
+.lc-msg{font-size:14.5px;line-height:1.45;color:var(--body);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;min-height:2.9em}
+.lc-go{display:flex;align-items:center;justify-content:space-between;font-size:13.5px;font-weight:700;color:var(--goldd);margin-top:auto}
+.lc-go .chev{stroke:var(--goldd)}
+.none{grid-column:1/-1;padding:40px 20px;text-align:center;color:var(--ink2);background:var(--panel);border-radius:24px;box-shadow:var(--sh)}
+.none b{display:block;font-size:16px;color:var(--ink);margin-bottom:4px}
+.note{display:flex;align-items:flex-start;gap:10px;margin:18px 6px 0;font-size:14px;line-height:1.45;color:var(--greent)}
+.note svg{width:18px;height:18px;margin-top:1px;fill:none;stroke:var(--green);stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0}
+.note.warn{color:var(--goldt)}.note.warn svg{stroke:var(--goldd)}
+
+/* ── An enquiry / a job (TDJob, TDJobDone) ── */
+.cust{display:flex;align-items:center;gap:14px}
+.cav{width:54px;height:54px;border-radius:999px;background:var(--goldb);color:var(--goldt);display:grid;place-items:center;font-family:var(--fd);font-size:20px;font-weight:800;flex-shrink:0;background-size:cover;background-position:center}
+.cav.g{background-color:var(--greenb);color:var(--green)}
+.cust .cn{flex:1;min-width:0}
+.cust .cn b{display:block;font-family:var(--fd);font-size:30px;font-weight:800;letter-spacing:-.04em;line-height:1.05}
+.cust .cn small{display:block;font-size:14px;color:var(--ink2);margin-top:4px}
+.steps{position:relative;display:flex;margin:22px 0 4px}
+.steps::before{content:"";position:absolute;left:12.5%;right:12.5%;top:11px;height:2px;background:var(--line)}
+.steps::after{content:"";position:absolute;left:12.5%;top:11px;height:2px;width:calc(75% * var(--p,0));background:var(--green)}
+.steps>span{flex:1;position:relative;z-index:1;display:flex;flex-direction:column;align-items:center;gap:7px}
+.steps i{width:24px;height:24px;border-radius:999px;background:var(--panel);border:2px solid #D5D1C8;display:grid;place-items:center}
+html[data-theme="dark"] .steps i{border-color:var(--line)}
+.steps span.on i{background:var(--green);border-color:var(--green)}
+.steps i svg{width:13px;height:13px;fill:none;stroke:#fff;stroke-width:3.2;stroke-linecap:round;stroke-linejoin:round}
+.steps b{font-size:12.5px;font-weight:500;color:var(--mut)}
+.steps span.on b{font-weight:700;color:var(--ink)}
+.job .cap{font-size:12px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--ink2)}
+.job .jt{font-size:18px;line-height:1.5;margin-top:6px;white-space:pre-line}
+.job .jm{font-size:15px;line-height:1.55;color:var(--ink2);margin-top:8px;white-space:pre-line}
+.job .amt{display:flex;align-items:baseline;gap:8px;margin-top:12px}
+.job .amt b{font-family:var(--fd);font-size:30px;font-weight:800;letter-spacing:-.04em}
+.job .amt small{font-size:13px;color:var(--ink2)}
+.job .where{display:block;margin-top:6px;font-size:14px;color:var(--ink2)}
+.photos{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-bottom:14px}
+.photos span{position:relative;height:120px;border-radius:18px;background:var(--cream) center/cover no-repeat;cursor:zoom-in;overflow:hidden}
+.photos span em{position:absolute;inset:0;display:grid;place-items:center;background:rgba(16,16,16,.45);color:#fff;font-style:normal;font-size:22px;font-weight:700}
+.nophoto{display:flex;align-items:center;gap:14px;padding:14px 18px;cursor:pointer}
+.nophoto .ic{width:42px;height:42px;border-radius:14px;background:var(--cream);display:grid;place-items:center;color:var(--ink2);flex-shrink:0}
+.nophoto .tx{flex:1;min-width:0}
+.nophoto b{display:block;font-size:15px}
+.nophoto small{font-size:13px;color:var(--ink2)}
+.facts{padding:4px 22px}
+.facts>div{display:flex;justify-content:space-between;gap:16px;padding:13px 0;border-bottom:1px solid var(--line2);font-size:15px}
+.facts>div:last-child{border-bottom:0}
+.facts>div>span{color:var(--ink2)}
+.facts>div>b{font-weight:600;text-align:right;overflow-wrap:anywhere}
+.facts a{color:inherit}
+.acts{display:flex;flex-direction:column;gap:10px;margin-top:16px}
+.acts .two{display:flex;gap:10px}
+.acts .two>*{flex:1}
+.ai{background:#FBF4E4;border-radius:24px;padding:16px 20px;margin-bottom:14px}
+html[data-theme="dark"] .ai{background:var(--goldb)}
+.ai .aih{display:flex;align-items:center;gap:7px;font-size:13.5px;font-weight:700;color:var(--goldd)}
+.ai p{font-size:14.5px;line-height:1.5;margin-top:6px;color:var(--body)}
+.qsum{display:flex;align-items:center;gap:14px;padding:16px 20px;cursor:default}
+.qsum .qi{width:42px;height:42px;border-radius:14px;background:var(--goldb);color:var(--goldd);display:grid;place-items:center;flex-shrink:0}
+.qsum .tx{flex:1;min-width:0}
+.qsum b{display:block;font-size:15.5px}
+.qsum small{font-size:13px;color:var(--ink2)}
+.qsum .v{font-family:var(--fd);font-size:22px;font-weight:800;letter-spacing:-.03em}
+.open-card{text-align:center;padding:24px}
+.open-card .oic{width:48px;height:48px;border-radius:999px;background:var(--goldb);color:var(--goldd);display:grid;place-items:center;margin:0 auto 10px}
+.open-card b{font-size:17px}
+.open-card p{font-size:14px;color:var(--ink2);margin-top:6px}
+
+/* ── Conversation (ChatThread) ── */
+.chat{display:flex;flex-direction:column;height:calc(100vh - 150px);min-height:420px;position:sticky;top:24px;margin-bottom:0}
+body.preview .chat{top:70px;height:calc(100vh - 196px)}
+.chat .ch{padding-bottom:12px;border-bottom:1px solid var(--line2)}
+.thread{flex:1;overflow-y:auto;padding:16px 18px;display:flex;flex-direction:column;gap:8px;background:var(--panel2)}
+.bub{max-width:80%;padding:11px 16px;font-size:15px;line-height:1.42;white-space:pre-line;overflow-wrap:anywhere}
+.bub.them{align-self:flex-start;background:var(--panel);box-shadow:0 1px 4px rgba(16,16,16,.06);border-radius:22px 22px 22px 6px}
+.bub.me{align-self:flex-end;background:var(--gold);color:#101010;border-radius:22px 22px 6px 22px}
+.aitag{font-size:11.5px;font-weight:600;color:var(--mut);margin:-2px 6px 2px}
+.aitag.r{align-self:flex-end}
+.day{align-self:center;font-size:12.5px;font-weight:600;color:var(--mut);margin:6px 0 2px}
+.compose{display:flex;gap:10px;align-items:flex-end;padding:12px 14px;border-top:1px solid var(--line2)}
+.compose textarea{flex:1;min-height:48px;max-height:180px;padding:13px 18px;border:0;border-radius:24px;background:var(--panel2);font-size:15px;line-height:1.4;color:var(--ink);resize:none;outline:none;box-shadow:inset 0 0 0 1px var(--line)}
+.compose textarea:focus{box-shadow:inset 0 0 0 2px var(--gold)}
+.compose .send{width:48px;height:48px;border:0;border-radius:999px;background:var(--gold);color:#101010;display:grid;place-items:center;cursor:pointer;flex-shrink:0}
+.compose .send svg{width:19px;height:19px;fill:none;stroke:currentColor;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round}
+.cerr{padding:0 18px 10px;font-size:13px;font-weight:600;color:var(--redt)}
+.cerr:empty{display:none}
+
+/* ── Inbox (NewInbox) ── */
+.msgs{display:flex;flex-direction:column;gap:10px;max-width:760px}
+.mrow{display:flex;align-items:flex-start;gap:14px;padding:16px 18px;background:var(--panel);border-radius:24px;box-shadow:var(--sh);cursor:pointer;transition:transform .12s,box-shadow .12s}
+.mrow:hover{transform:translateY(-1px);box-shadow:var(--sh2)}
+.mrow .cav{width:48px;height:48px;font-size:18px}
+.mrow .tx{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.mrow .top{display:flex;align-items:baseline;justify-content:space-between;gap:12px}
+.mrow .top b{font-size:16px;font-weight:600}
+.mrow.unread .top b{font-weight:800}
+.mrow .top span{font-size:13px;color:var(--ink2);flex-shrink:0}
+.mrow .jb{font-size:12.5px;font-weight:700;color:var(--goldd)}
+.mrow .pv{font-size:14.5px;color:var(--body);overflow:hidden;text-overflow:ellipsis;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+.mrow .dot{width:10px;height:10px;border-radius:999px;background:var(--gold);flex-shrink:0;margin-top:6px}
+
+/* ── lists (Settings / Account rows) ── */
+.rows{padding:0 20px}
+.row{display:flex;align-items:center;gap:14px;padding:14px 0;border-bottom:1px solid var(--line2)}
+.row:last-child{border-bottom:0}
+.row.tap{cursor:pointer}
+.row .ric{width:40px;height:40px;border-radius:12px;background:var(--cream);color:var(--ink2);display:grid;place-items:center;flex-shrink:0}
+.row .ric.a{background:var(--goldb);color:var(--goldd)}
+.row .rt{flex:1;min-width:0;display:flex;flex-direction:column;gap:1px}
+.row .rt small{font-size:13px;color:var(--ink2)}
+.row .rt b{font-size:15.5px;font-weight:700;overflow-wrap:anywhere}
+.row .rt b.mu{color:var(--mut)}
+.row .rv{font-size:14px;color:var(--ink2);text-align:right}
+
+/* ── My profile (TDProfile) ── */
+.hero{display:flex;align-items:center;gap:18px;padding:20px 22px}
+.hlogo{width:72px;height:72px;border-radius:999px;background:var(--goldb) center/cover no-repeat;display:grid;place-items:center;color:var(--goldd);font-family:var(--fd);font-size:26px;font-weight:800;flex-shrink:0}
+.hero .ht{flex:1;min-width:0}
+.hero .ht b{display:block;font-family:var(--fd);font-size:28px;font-weight:800;letter-spacing:-.04em;line-height:1.05}
+.hero .ht small{display:block;font-size:14.5px;color:var(--ink2);margin-top:4px}
+.hero .hr{display:flex;align-items:center;gap:6px;margin-top:8px;font-size:14px;font-weight:600}
+.hero .hr .st{color:var(--gold)}
+.ptext{padding:18px 22px}
+.ptext small{display:block;font-size:13px;color:var(--ink2)}
+.ptext p{font-size:15.5px;line-height:1.55;margin-top:5px;white-space:pre-line}
+.ptext p.mu{color:var(--mut)}
+.chips{display:flex;flex-wrap:wrap;gap:7px;margin-top:10px}
+.chips span{background:var(--goldb);color:var(--goldt);border-radius:999px;padding:7px 13px;font-size:13.5px;font-weight:700}
+.health{padding:20px 22px}
+.health .hh{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
+.health .hh b{display:block;font-size:17px;font-weight:700}
+.health .hh small{display:block;font-size:13px;color:var(--ink2);margin-top:3px}
+.health .hs{font-family:var(--fd);font-size:40px;font-weight:800;letter-spacing:-.045em;line-height:1}
+.health .hs small{font-family:var(--f);font-size:13px;font-weight:600;letter-spacing:0;color:var(--ink2)}
+.health .hbar{height:9px;border-radius:999px;background:var(--bar);overflow:hidden;margin:16px 0 8px}
+.health .hbar i{display:block;height:100%;border-radius:999px}
+.health .hg{font-size:13.5px;font-weight:700}
+.health .qw{font-size:12.5px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--ink2);margin:18px 0 2px}
+.hrow{display:flex;align-items:center;gap:12px;padding:12px 0;border-top:1px solid var(--line2)}
+.hrow.tap{cursor:pointer}
+.hrow .pts{min-width:46px;padding:5px 8px;border-radius:999px;background:var(--goldb);color:var(--goldt);font-size:12.5px;font-weight:800;text-align:center;flex-shrink:0}
+.hrow .tx{flex:1;min-width:0}
+.hrow .tx b{display:block;font-size:15px;font-weight:600}
+.hrow .tx small{font-size:12.5px;color:var(--ink2)}
+.hrow .app{font-size:12px;font-weight:700;color:var(--mut)}
+
+/* ── forms (TDProfileEdit) ── */
+.form{padding:22px}
+.field{display:block;margin-bottom:16px}
+.field>span{display:block;font-size:13.5px;font-weight:700;color:var(--ink2);margin:0 0 7px 4px}
+.field input,.field textarea,.field select{width:100%;height:52px;padding:0 20px;border:0;border-radius:999px;background:var(--panel2);box-shadow:inset 0 0 0 1px var(--line);font-size:15.5px;color:var(--ink);outline:none;transition:box-shadow .12s,background .12s}
+.field textarea{height:auto;min-height:120px;padding:15px 20px;border-radius:24px;line-height:1.5;resize:vertical}
+.field input:focus,.field textarea:focus,.field select:focus{background:var(--panel);box-shadow:inset 0 0 0 2px var(--gold)}
+.field input[readonly]{color:var(--ink2);background:var(--cream);box-shadow:none}
+.field .hint{display:block;font-size:13px;color:var(--ink2);margin:7px 4px 0}
+.fgrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0 14px}
+.fgrid3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:0 14px}
+.srow{display:grid;grid-template-columns:minmax(0,1.3fr) 130px minmax(0,1fr) 44px;gap:8px;margin-bottom:8px}
+.srow input{height:48px;padding:0 16px;border:0;border-radius:999px;background:var(--panel2);box-shadow:inset 0 0 0 1px var(--line);font-size:14.5px;color:var(--ink);outline:none;min-width:0}
+.srow input:focus{background:var(--panel);box-shadow:inset 0 0 0 2px var(--gold)}
+.rm{width:44px;height:48px;border:0;border-radius:999px;background:var(--redb);color:var(--redt);display:grid;place-items:center;cursor:pointer}
+.rm svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2.4;stroke-linecap:round}
+.addrow{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;height:48px;border:1.5px dashed var(--line);border-radius:999px;background:none;font-size:14.5px;font-weight:700;color:var(--ink);cursor:pointer}
+.addrow:hover{border-color:var(--gold)}
+.ferr{color:var(--redt);font-size:14px;font-weight:600;margin:4px 4px 12px}
+.ferr:empty{display:none}
+.fok{color:var(--green);font-size:14px;font-weight:700;margin:4px 4px 12px}
+.fok:empty{display:none}
+.fbar{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-top:6px}
+.qline{display:grid;grid-template-columns:minmax(0,1fr) 150px auto 44px;gap:8px;align-items:center;padding:10px;border-radius:22px;background:var(--panel2);margin-bottom:8px}
+.qline input{height:46px;padding:0 16px;border:0;border-radius:999px;background:var(--panel);box-shadow:inset 0 0 0 1px var(--line);font-size:14.5px;color:var(--ink);outline:none;min-width:0}
+.qline input:focus{box-shadow:inset 0 0 0 2px var(--gold)}
+.gst{height:40px;padding:0 14px;border:0;border-radius:999px;background:var(--panel);box-shadow:var(--shb);font-size:12.5px;font-weight:700;color:var(--ink2);cursor:pointer;white-space:nowrap}
+.gst.on{background:var(--goldb);color:var(--goldt);box-shadow:none}
+.totals{margin:18px 4px 6px}
+.totals>div{display:flex;justify-content:space-between;padding:4px 0;font-size:14.5px;color:var(--ink2)}
+.totals>div b{color:var(--ink);font-variant-numeric:tabular-nums}
+.totals>div.grand{margin-top:8px;padding-top:12px;border-top:1px solid var(--line2);color:var(--ink);font-weight:700;font-size:16px;align-items:baseline}
+.totals>div.grand b{font-family:var(--fd);font-size:34px;font-weight:800;letter-spacing:-.04em}
+
+/* ── hours ── */
+.dayrow{display:flex;align-items:center;gap:14px;padding:14px 0;border-bottom:1px solid var(--line2);flex-wrap:wrap}
+.dayrow:last-child{border-bottom:0}
+.dayrow>b{width:92px;font-size:15.5px}
+.dayrow .times{display:flex;align-items:center;gap:8px}
+.dayrow input[type=time]{height:44px;padding:0 14px;border:0;border-radius:999px;background:var(--panel2);box-shadow:inset 0 0 0 1px var(--line);font-size:14.5px;color:var(--ink);outline:none}
+html[data-theme="dark"] .dayrow input[type=time]::-webkit-calendar-picker-indicator{filter:invert(1) opacity(.7)}
+.dayrow .times span{color:var(--ink2);font-size:14px}
+.dayrow .em{font-size:14px;color:var(--ink2)}
+
+/* ── gallery, reviews, tables ── */
+.gal{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:12px;padding:20px}
+.gal span{aspect-ratio:1;border-radius:18px;background:var(--cream) center/cover no-repeat;cursor:zoom-in}
+.rsum{display:flex;align-items:center;gap:22px;padding:22px 24px}
+.rsum .big{font-family:var(--fd);font-size:60px;font-weight:800;letter-spacing:-.05em;line-height:1}
+.stars{display:inline-flex;gap:2px;vertical-align:middle}
+.stars svg{width:17px;height:17px;fill:#DCD7CC;stroke:none}
+.stars svg.on{fill:var(--gold)}
+html[data-theme="dark"] .stars svg{fill:#3A3A40}
+html[data-theme="dark"] .stars svg.on{fill:var(--gold)}
+.rev{padding:18px 22px}
+.rev .rh{display:flex;align-items:center;gap:12px}
+.rev .rh .cav{width:40px;height:40px;font-size:15px}
+.rev .rh .tx{flex:1;min-width:0}
+.rev .rh b{display:block;font-size:15.5px}
+.rev .rh small{font-size:13px;color:var(--ink2)}
+.rev p{font-size:15px;line-height:1.55;margin-top:10px;color:var(--body)}
+.reply{margin-top:12px;padding:12px 16px;border-radius:18px;background:var(--panel2);font-size:14px;line-height:1.5}
+.reply b{display:block;font-size:12.5px;color:var(--ink2);margin-bottom:2px}
+.rbox{margin-top:12px}
+.rbox textarea{display:block;width:100%;min-height:80px;padding:13px 18px;border:0;border-radius:20px;background:var(--panel2);box-shadow:inset 0 0 0 1px var(--line);font-size:14.5px;line-height:1.5;color:var(--ink);resize:vertical;outline:none}
+.rbox textarea:focus{box-shadow:inset 0 0 0 2px var(--gold)}
+.rbox .fbar{margin-top:10px}
+.torev{display:flex;align-items:center;gap:14px;padding:16px 20px;box-shadow:0 0 0 2px var(--gold),var(--sh)}
+.torev .tx{flex:1;min-width:0}
+.torev b{display:block;font-size:16px}
+.torev small{font-size:13px;color:var(--ink2)}
 table{width:100%;border-collapse:collapse}
-th{text-align:left;font-size:10px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--mut);padding:11px 18px;border-bottom:1px solid var(--line2)}
-td{padding:13px 18px;border-bottom:1px solid var(--line2);font-size:13.5px;vertical-align:middle}
-tr:last-child td{border-bottom:0}
-.pill{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:700;padding:3px 9px;border-radius:99px}
-.pill.g{background:var(--greenb);color:var(--green)}.pill.r{background:var(--redb);color:var(--red)}.pill.a{background:var(--amberb);color:var(--amber)}.pill.n{background:var(--line2);color:var(--ink2)}.pill.b{background:var(--blueb);color:var(--blue)}
-.mut{color:var(--mut)}.mono{font-variant-numeric:tabular-nums}.right{text-align:right}
-.empty{padding:26px 18px;color:var(--mut);font-size:13.5px;text-align:center}
-.tabs{display:flex;gap:2px;border-bottom:1px solid var(--line);margin-bottom:18px;overflow-x:auto}
-.tabs div{padding:11px 15px;font-size:13.5px;font-weight:650;color:var(--mut);cursor:pointer;border-bottom:2px solid transparent;white-space:nowrap}
-.tabs div.on{color:var(--ink);border-bottom-color:var(--gold)}
-.fld{display:block;margin-bottom:12px}.fld label{font-size:11px;font-weight:750;color:var(--mut);text-transform:uppercase;letter-spacing:.03em;display:block;margin-bottom:5px}
-.fld input,.fld textarea,.fld select{width:100%;padding:10px 12px;border:1px solid var(--line);border-radius:10px;font-size:14px;background:var(--bg);color:var(--ink)}
-.fld textarea{min-height:90px;resize:vertical}
-.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-.banner{background:linear-gradient(135deg,var(--goldb),transparent);border:1px solid var(--gold);border-radius:14px;padding:16px 18px;margin-bottom:18px}
-.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#14161B;color:#fff;padding:11px 18px;border-radius:12px;font-size:13px;font-weight:600;z-index:200;box-shadow:0 12px 30px rgba(0,0,0,.3)}
-.bub{max-width:74%;padding:9px 13px;border-radius:15px;font-size:13px;line-height:1.45;margin:5px 0}
-.bub.them{background:var(--line2)}.bub.me{margin-left:auto;background:var(--goldb)}
-@media(max-width:820px){.side{width:64px}.side .who,.nv span.lbl{display:none}main{padding:18px}}
-/* ===== design refresh (v1) — matches the admin console ===== */
-:root{--r:16px;--sh:0 1px 2px rgba(20,22,30,.05),0 10px 26px -14px rgba(20,22,30,.14)}
-main{padding:30px 38px 76px}
-h1{font-size:25px;letter-spacing:-.035em}
-.subt{margin:6px 0 22px}
-.card{border-radius:var(--r);box-shadow:var(--sh)}
-.ch{padding:16px 20px;font-weight:700;font-size:14.5px}
-th{padding:12px 20px}
-td{padding:14px 20px}
-tbody tr{transition:background .12s}
-tbody tr:hover td{background:var(--line2)}
-.kpi{border-radius:var(--r);padding:18px;transition:transform .12s,box-shadow .12s}
-.kpi:hover{transform:translateY(-1px);box-shadow:0 2px 6px rgba(20,22,30,.07),0 22px 46px -20px rgba(20,22,30,.26)}
-html[data-theme="dark"] .kpi:hover{box-shadow:0 2px 6px rgba(0,0,0,.5),0 22px 46px -18px rgba(0,0,0,.55)}
-.kpi b{font-size:30px}
-.kpis{gap:14px;margin-bottom:20px}
-.btn{border-radius:10px}
-.pill{padding:4px 10px;font-weight:700}
-.nv{border-radius:10px}
-.nv.on{position:relative}
-.nv.on::before{content:"";position:absolute;left:-8px;top:7px;bottom:7px;width:3px;border-radius:0 4px 4px 0;background:var(--gold)}
-@media(max-width:820px){main{padding:18px}}
+th{text-align:left;font-size:12px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--ink2);padding:14px 22px 10px;white-space:nowrap}
+td{padding:14px 22px;border-top:1px solid var(--line2);font-size:14.5px;vertical-align:middle}
+tbody tr.tap{cursor:pointer}
+tbody tr.tap:hover td{background:var(--panel2)}
+td.num{font-variant-numeric:tabular-nums;font-weight:700}
+.mut{color:var(--mut)}.sub2{color:var(--ink2)}
+.empty{padding:40px 22px;text-align:center;color:var(--ink2);font-size:14.5px}
+.shim{height:14px;margin:18px 22px;border-radius:999px;background:linear-gradient(90deg,var(--line2) 25%,var(--cream) 37%,var(--line2) 63%);background-size:400% 100%;animation:shim 1.3s ease infinite}
+@keyframes shim{0%{background-position:100% 0}100%{background-position:0 0}}
+.qr{background:#fff;border-radius:24px;box-shadow:var(--sh);padding:16px;display:grid;place-items:center;margin:20px auto 14px;width:max-content}
+.qr svg,.qr img{width:190px;height:190px;display:block}
+.secret{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:13px;font-weight:600;background:var(--panel2);border-radius:999px;padding:9px 16px;display:inline-block;word-break:break-all;letter-spacing:.04em}
+.codein{max-width:260px;margin:18px auto 0}
+.codein input{width:100%;height:58px;border:0;border-radius:999px;background:var(--panel2);box-shadow:inset 0 0 0 1px var(--line);text-align:center;font-family:var(--fd);font-size:24px;font-weight:800;letter-spacing:.4em;padding-left:.4em;color:var(--ink);outline:none}
+.codein input:focus{box-shadow:inset 0 0 0 2px var(--gold)}
+
+/* ── sheets (modals), toasts, photo viewer ── */
+.ov{position:fixed;inset:0;z-index:100;display:none;align-items:center;justify-content:center;padding:24px;background:rgba(16,16,16,.30);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px)}
+.ov.on{display:flex}
+.modal{width:100%;max-width:460px;max-height:calc(100vh - 48px);overflow:auto;background:var(--panel);border-radius:28px;box-shadow:0 30px 80px -20px rgba(16,16,16,.35);padding:28px}
+.modal h3{font-family:var(--fd);font-size:26px;font-weight:800;letter-spacing:-.035em;line-height:1.1}
+.modal p{font-size:15px;line-height:1.5;color:var(--ink2);margin-top:8px}
+.modal textarea{display:block;width:100%;min-height:90px;margin-top:16px;padding:14px 18px;border:0;border-radius:20px;background:var(--panel2);box-shadow:inset 0 0 0 1px var(--line);font-size:15px;line-height:1.5;color:var(--ink);resize:vertical;outline:none}
+.modal textarea:focus{box-shadow:inset 0 0 0 2px var(--gold)}
+.modal .mf{display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap;margin-top:22px}
+.reasons{display:flex;flex-direction:column;gap:8px;margin-top:18px}
+.reasons button{height:52px;border:0;border-radius:999px;background:var(--panel2);box-shadow:inset 0 0 0 1px var(--line);font-size:15px;font-weight:700;color:var(--ink);cursor:pointer;text-align:left;padding:0 22px}
+.reasons button:hover{box-shadow:inset 0 0 0 2px var(--gold)}
+.pickstars{display:flex;gap:6px;justify-content:center;margin:20px 0 4px}
+.pickstars svg{width:40px;height:40px;fill:#DCD7CC;cursor:pointer;transition:transform .1s}
+.pickstars svg.on{fill:var(--gold)}
+.pickstars svg:hover{transform:scale(1.08)}
+.toastx{position:fixed;left:50%;bottom:28px;transform:translateX(-50%);z-index:200;max-width:calc(100vw - 40px);background:rgba(255,255,255,.94);-webkit-backdrop-filter:blur(20px);backdrop-filter:blur(20px);color:#101010;border:1px solid rgba(16,16,16,.09);border-radius:999px;padding:13px 22px;font-size:14px;font-weight:600;box-shadow:0 14px 40px -6px rgba(16,16,16,.30)}
+html[data-theme="dark"] .toastx{background:rgba(44,44,46,.92);border-color:rgba(255,255,255,.08);color:#F4F4F7}
+.lbx{position:fixed;inset:0;z-index:9999;background:rgba(14,13,11,.92);display:flex;align-items:center;justify-content:center;padding:36px;cursor:zoom-out}
+.lbx img{max-width:94vw;max-height:92vh;border-radius:18px;box-shadow:0 24px 70px rgba(0,0,0,.6);object-fit:contain}
+.lbx .nx{position:absolute;top:50%;transform:translateY(-50%);width:52px;height:52px;border:0;border-radius:999px;background:rgba(255,255,255,.16);color:#fff;font-size:26px;cursor:pointer}
+.lbx .nx.l{left:22px}.lbx .nx.r{right:22px}
+.pvbar{position:sticky;top:0;z-index:60;display:flex;align-items:center;gap:12px;min-height:46px;padding:8px 20px;background:#101010;color:#fff;font-size:13.5px;font-weight:600}
+.pvbar .tag{background:var(--gold);color:#101010;font-size:11px;font-weight:800;letter-spacing:.06em;padding:4px 10px;border-radius:999px}
+.pvbar button{margin-left:auto;height:32px;padding:0 15px;border:0;border-radius:999px;background:#fff;color:#101010;font-size:13px;font-weight:700;cursor:pointer}
+
+/* ── narrower screens ── */
+@media (max-width:1100px){.grid2,.grid2.wide{grid-template-columns:1fr}.chat{position:static;height:560px}.kpis{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:900px){
+ .app.on{flex-direction:column;align-items:stretch}
+ .side{position:sticky;top:0;z-index:50;width:auto;height:auto;margin:0;border-radius:0 0 22px 22px;padding:10px 12px;flex-direction:row;align-items:center;gap:4px;overflow-x:auto;overflow-y:hidden;box-shadow:0 6px 22px rgba(16,16,16,.08)}
+ body.preview .side{top:46px;height:auto}
+ .brand{padding:0 6px 0 2px;flex-shrink:0}
+ .brand>div:last-child{display:none}
+ .nv{height:38px;margin:0;padding:0 14px}
+ .nvsep{display:none}
+ .usercard{margin:0 0 0 6px;padding:0;display:flex;align-items:center;gap:6px}
+ .usercard .uc-t{display:none}
+ .uc-acts{margin:0}
+ .uc-acts button{flex:none;padding:0 13px;white-space:nowrap}
+ main{padding:24px 16px 80px}
+ h2{font-size:34px}
+ .lcards{grid-template-columns:1fr}
+ .tds-n b{font-size:62px}
+ .bars{width:140px;height:56px}
+ .fgrid,.fgrid3{grid-template-columns:1fr}
+ .srow{grid-template-columns:1fr 110px 44px}
+ .srow input:nth-child(3){grid-column:1/3}
+ .qline{grid-template-columns:1fr 120px 44px}
+ .qline .gst{grid-column:1/3;justify-self:start}
+ .card{overflow-x:auto}
+ .card table{min-width:600px}
+ .photos span{height:96px}
+ .cust .cn b{font-size:26px}
+ .lcard h1{font-size:40px}
+}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 </style></head>
 <body>
-<!-- LOGIN -->
+<!-- SIGN IN (NewLogin) -->
 <div class="gate" id="gate">
- <div class="lcard">
-  <div class="brand"><div class="lg"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 2l8 3v6c0 5-3.4 9.4-8 11-4.6-1.6-8-6-8-11V5l8-3z"/><path d="M9 12l2 2 4-4"/></svg></div><div><b>TrustTrade</b><span>Tradie dashboard</span></div></div>
-  <label>Email</label><input id="em" type="email" autocomplete="username" placeholder="you@business.com.au">
-  <label>Password</label><input id="pw" type="password" autocomplete="current-password" placeholder="••••••••">
-  <div id="e-pw"></div>
-  <button class="btn gold" onclick="doPw()">Sign in</button>
-  <div class="mut" style="font-size:11.5px;margin-top:14px;text-align:center">Use the same login as the TrustTrade app.</div>
+ <div class="lcard" id="gcard">
+  <div class="lbrand"><img src="/icon-512.png" alt="" width="40" height="40"><b>TrustTrade</b><span>Tradie</span></div>
+  <h1>Welcome back.</h1><p>Sign in to your tradie dashboard. Use the same login as the TrustTrade app.</p>
+  <div class="lform">
+   <label class="vh" for="em">Email</label><input id="em" type="email" autocomplete="username" placeholder="Email">
+   <label class="vh" for="pw">Password</label><input id="pw" type="password" autocomplete="current-password" placeholder="Password" onkeydown="if(event.key==='Enter')doPw()">
+  </div>
+  <button onclick="doPw()">Continue</button>
+  <div class="lerr" id="e-pw"></div>
  </div>
 </div>
 <!-- APP -->
 <div class="app" id="app">
  <aside class="side">
-  <div class="brand" style="padding:2px 6px 6px"><div class="lg"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 2l8 3v6c0 5-3.4 9.4-8 11-4.6-1.6-8-6-8-11V5l8-3z"/><path d="M9 12l2 2 4-4"/></svg></div><div><b style="font-size:15px">TrustTrade</b><span style="font-size:10.5px;color:var(--mut)">Tradie</span></div></div>
-  <div class="who"><b id="w-name">—</b><span id="w-sub">—</span></div>
-  <div class="nv on" data-p="home" onclick="go('home')"><span class="lbl">Overview</span></div>
-  <div class="slbl">Work</div>
-  <div class="nv" data-p="leads" onclick="go('leads')"><span class="lbl">Leads</span><span class="ct" id="c-lead">–</span></div>
-  <div class="nv" data-p="quotes" onclick="go('quotes')"><span class="lbl">Quotes</span></div>
-  <div class="nv" data-p="jobs" onclick="go('jobs')"><span class="lbl">Jobs</span></div>
-  <div class="nv" data-p="invoices" onclick="go('invoices')"><span class="lbl">Invoices</span></div>
-  <div class="nv" data-p="reviews" onclick="go('reviews')"><span class="lbl">Reviews</span></div>
-  <div class="slbl">Your listing</div>
-  <div class="nv" data-p="profile" onclick="go('profile')"><span class="lbl">Profile & rates</span></div>
-  <div class="nv" data-p="hours" onclick="go('hours')"><span class="lbl">Availability</span></div>
-  <div class="nv" data-p="gallery" onclick="go('gallery')"><span class="lbl">Gallery</span></div>
-  <div class="slbl">Account</div>
-  <div class="nv" data-p="security" onclick="go('security')"><span class="lbl">Security (2FA)</span></div>
-  <div class="nv" data-p="billing" onclick="go('billing')"><span class="lbl">Billing</span></div>
-  <div class="me"><b id="w-email" style="color:var(--ink);display:block;font-size:12.5px">—</b><span id="w-theme" onclick="toggleTheme()" style="cursor:pointer">Dark mode</span> · <a onclick="signout()">Sign out</a></div>
+  <div class="brand"><div class="lg"><img src="/icon-512.png" alt="TrustTrade" width="38" height="38"></div><div><b>TrustTrade</b><span class="sub">Tradie dashboard</span></div></div>
+  <div class="nv on" data-p="home" onclick="go('home')"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1.6"/><rect x="14" y="3" width="7" height="7" rx="1.6"/><rect x="3" y="14" width="7" height="7" rx="1.6"/><rect x="14" y="14" width="7" height="7" rx="1.6"/></svg>Dashboard</div>
+  <div class="nv" data-p="jobs" onclick="go('jobs')"><svg viewBox="0 0 24 24"><path d="M3 12h5l2 3h4l2-3h5"/><path d="M5 5h14a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2z"/></svg>Jobs<span class="ct" id="c-jobs"></span></div>
+  <div class="nv" data-p="inbox" onclick="go('inbox')"><svg viewBox="0 0 24 24"><path d="M21 12a8 8 0 0 1-11.6 7.1L4 20l1-4.6A8 8 0 1 1 21 12z"/></svg>Inbox<span class="ct" id="c-inbox"></span></div>
+  <div class="nv" data-p="quotes" onclick="go('quotes')"><svg viewBox="0 0 24 24"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5M9 13h6M9 17h4"/></svg>Quotes</div>
+  <div class="nv" data-p="invoices" onclick="go('invoices')"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="3"/><path d="M3 10h18M7 15h4"/></svg>Invoices</div>
+  <div class="nv" data-p="reviews" onclick="go('reviews')"><svg viewBox="0 0 24 24"><path d="M12 3.6l2.6 5.4 5.9.8-4.3 4.1 1.1 5.9-5.3-2.9-5.3 2.9 1.1-5.9-4.3-4.1 5.9-.8z"/></svg>Reviews<span class="ct" id="c-rev"></span></div>
+  <div class="nvsep"></div>
+  <div class="nv" data-p="profile" onclick="go('profile')"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="3.6"/><path d="M5 20a7 7 0 0 1 14 0"/></svg>My profile</div>
+  <div class="nv" data-p="hours" onclick="go('hours')"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>Availability</div>
+  <div class="nv" data-p="gallery" onclick="go('gallery')"><svg viewBox="0 0 24 24"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg>Work photos</div>
+  <div class="nvsep"></div>
+  <div class="nv" data-p="security" onclick="go('security')"><svg viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="10" rx="2.5"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>Security</div>
+  <div class="nv" data-p="billing" onclick="go('billing')"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="3"/><path d="M3 10h18"/></svg>Billing</div>
+  <div class="usercard">
+   <div class="uc-top"><div class="av" id="w-av">T</div><div class="uc-t"><div class="un" id="w-name">Your business</div><div class="ur" id="w-email"></div></div></div>
+   <div class="uc-acts"><button id="w-theme" onclick="toggleTheme()">Dark mode</button><button class="out" onclick="signout()">Sign out</button></div>
+  </div>
  </aside>
- <main id="main"></main>
+ <div class="content"><main id="main"></main></div>
 </div>
+<div class="ov" id="ov" onclick="if(event.target.id==='ov')closeModal()"><div class="modal" id="modal"></div></div>
 <script>
 const SB_URL='https://pvcblfpxgrznzqgxbujy.supabase.co';
 const SB_KEY='sb_publishable_xXxZpIBsumD14mC4zn9qLQ_i4Su8yEN';
@@ -133,29 +560,46 @@ const sb=supabase.createClient(SB_URL,SB_KEY);
 const $=id=>document.getElementById(id);
 const esc=s=>(s==null?'':String(s)).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const val=id=>($(id)?$(id).value:'');
+const ICH='<svg class="chev" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg>';
+const ICK='<svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>';
+const IBADGE='<svg viewBox="0 0 24 24"><path d="M12 3l7 3v5c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6z"/><path d="M9 12l2 2 4-4"/></svg>';
+const ICAM='<svg class="i" viewBox="0 0 24 24"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg>';
 function fmtDate(d){if(!d)return '—';const x=new Date(d);return isNaN(x)?'—':x.toLocaleDateString('en-AU',{day:'numeric',month:'short',year:'numeric'});}
-function ago(d){if(!d)return '';const s=(Date.now()-new Date(d))/1000;if(s<60)return 'just now';if(s<3600)return Math.floor(s/60)+'m';if(s<86400)return Math.floor(s/3600)+'h';return Math.floor(s/86400)+'d';}
-const stars=r=>'★'.repeat(r||0)+'☆'.repeat(5-(r||0));
-function toast(m){const d=document.createElement('div');d.className='toast';d.textContent=m;document.body.appendChild(d);setTimeout(()=>d.remove(),2200);}
+function dayShort(d){const x=new Date(d);return isNaN(x)?'':x.toLocaleDateString('en-AU',{day:'numeric',month:'short'});}
+function dayLong(d){const x=new Date(d);return isNaN(x)?'':x.toLocaleDateString('en-AU',{day:'numeric',month:'long'});}
+function ago(d){if(!d)return '';const s=(Date.now()-new Date(d))/1000;if(s<60)return 'just now';if(s<3600)return Math.floor(s/60)+'m ago';if(s<86400)return Math.floor(s/3600)+'h ago';return Math.floor(s/86400)+'d ago';}
+function fmtT(d){return d.toLocaleTimeString('en-AU',{hour:'numeric',minute:'2-digit'}).replace(/\s/g,' ').toLowerCase();}
+function money(n){return '$'+Number(n||0).toLocaleString('en-AU',{maximumFractionDigits:2});}
+function kMoney(v){return v?('$'+(v/1000).toFixed(1).replace(/\.0$/,'')+'k'):'$0';}
+function shortName(n){const p=String(n||'').trim().split(/\s+/).filter(Boolean);return p.length?p[0]+(p[1]?' '+p[1][0].toUpperCase()+'.':''):'Customer';}
+function initial(n){return (String(n||'?').trim()[0]||'?').toUpperCase();}
+function stars(n){let h='<span class="stars">';for(let k=1;k<=5;k++)h+=`<svg viewBox="0 0 24 24" class="${k<=n?'on':''}"><path d="M12 3.6l2.6 5.4 5.9.8-4.3 4.1 1.1 5.9-5.3-2.9-5.3 2.9 1.1-5.9-4.3-4.1 5.9-.8z"/></svg>`;return h+'</span>';}
+// Only errors pop up (the app keeps pop-ups for things that went wrong).
+function toast(m){const d=document.createElement('div');d.className='toastx';d.textContent=m;document.body.appendChild(d);setTimeout(()=>d.remove(),3200);}
 function toggleTheme(){const h=document.documentElement,dark=h.getAttribute('data-theme')==='dark';h.setAttribute('data-theme',dark?'light':'dark');$('w-theme').textContent=dark?'Dark mode':'Light mode';try{localStorage.setItem('tt_td_theme',dark?'light':'dark');}catch(e){}}
-try{const t=localStorage.getItem('tt_td_theme');if(t==='dark'){document.documentElement.setAttribute('data-theme','dark');}}catch(e){}
+try{if(localStorage.getItem('tt_td_theme')==='dark'){document.documentElement.setAttribute('data-theme','dark');$('w-theme').textContent='Light mode';}}catch(e){}
+const backLink=(fn,l)=>`<a class="back" onclick="${fn}"><span class="bk"><svg viewBox="0 0 24 24"><path d="M15 6l-6 6 6 6"/></svg></span>${esc(l)}</a>`;
+function openModal(html){$('modal').innerHTML=html;$('ov').classList.add('on');}
+function closeModal(){$('ov').classList.remove('on');$('modal').innerHTML='';}
+let LB=[],LBI=0;
+function lightbox(i){LBI=i;const d=document.createElement('div');d.className='lbx';d.id='lbx';d.onclick=e=>{if(e.target===d)d.remove();};document.body.appendChild(d);lbPaint();}
+function lbPaint(){const d=$('lbx');if(!d)return;d.innerHTML=`<img src="${esc(LB[LBI])}" alt="">`+(LB.length>1?`<button class="nx l" onclick="LBI=(LBI+LB.length-1)%LB.length;lbPaint()" aria-label="Previous">‹</button><button class="nx r" onclick="LBI=(LBI+1)%LB.length;lbPaint()" aria-label="Next">›</button>`:'');}
+document.addEventListener('keydown',e=>{if(e.key==='Escape'){const l=$('lbx');if(l)l.remove();else closeModal();}});
 
-let ME=null,LST=null,PAGE='home';
-const DAYS=['mon','tue','wed','thu','fri','sat','sun'];
-function t12(h){const m=/^(\d{1,2}):(\d{2})/.exec(h||'');if(!m)return h||'';let x=+m[1];const ap=x>=12?'PM':'AM';x=x%12||12;return x+':'+m[2]+' '+ap;}
-function fmtHours(v){if(v==null)return '—';if(typeof v==='string')return v;if(typeof v==='object'){if(v.closed||v.mode==='closed')return 'Closed';if(v.mode==='emergency')return 'Emergency only';if(v.open&&v.close)return t12(v.open)+' – '+t12(v.close);}return '—';}
+let ME=null,LST=null,PAGE='home',PREVIEW=false;
+const DAYS=[['mon','Monday'],['tue','Tuesday'],['wed','Wednesday'],['thu','Thursday'],['fri','Friday'],['sat','Saturday'],['sun','Sunday']];
 
-async function doPw(){$('e-pw').innerHTML='';
+/* ═════ sign in, two-factor, admin hand-off ═════ */
+async function doPw(){$('e-pw').textContent='';
  const {error}=await sb.auth.signInWithPassword({email:val('em').trim(),password:val('pw')});
- if(error){$('e-pw').innerHTML='<div class="err">'+esc(error.message)+'</div>';return;}
+ if(error){$('e-pw').textContent=error.message;return;}
  if(await adminRedirect()) return;               // admins run the full admin console
  if(await mfaRequired()){ showMfaChallenge(); return; }
  route();}
 // This dashboard is the tradie side. Admins (profiles.role='admin') get sent to
 // the admin console, which controls everything and has its own 2FA gate.
 async function adminRedirect(){
- try{
-  const {data:{user}}=await sb.auth.getUser(); if(!user) return false;
+ try{const {data:{user}}=await sb.auth.getUser(); if(!user) return false;
   const {data}=await sb.from('profiles').select('role').eq('id',user.id).maybeSingle();
   if(data && data.role==='admin'){ location.replace('/admin'); return true; }
  }catch(e){}
@@ -163,154 +607,431 @@ async function adminRedirect(){
 }
 // True when the account has a verified 2FA factor but the session is still aal1.
 async function mfaRequired(){
- try{ const {data}=await sb.auth.mfa.getAuthenticatorAssuranceLevel();
-  return !!data && data.nextLevel==='aal2' && data.currentLevel!=='aal2'; }catch(e){ return false; }
+ try{const {data}=await sb.auth.mfa.getAuthenticatorAssuranceLevel();
+  return !!data && data.nextLevel==='aal2' && data.currentLevel!=='aal2';}catch(e){return false;}
 }
 function showMfaChallenge(){
- const c=document.querySelector('#gate .lcard'); if(!c) return;
- c.innerHTML=`<div class="brand"><div class="lg"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 2l8 3v6c0 5-3.4 9.4-8 11-4.6-1.6-8-6-8-11V5l8-3z"/><path d="M9 12l2 2 4-4"/></svg></div><div><b>TrustTrade</b><span>Two-factor authentication</span></div></div>
-  <label>6-digit code</label><input id="mfa_login" inputmode="numeric" autocomplete="one-time-code" placeholder="123456" onkeydown="if(event.key==='Enter')verifyMfaLogin()">
-  <div id="e-mfa"></div>
-  <button class="btn gold" onclick="verifyMfaLogin()">Verify</button>
-  <div class="mut" style="font-size:11.5px;margin-top:14px;text-align:center">Enter the code from your authenticator app.</div>`;
+ const c=$('gcard'); if(!c) return;
+ c.innerHTML=`<div class="lbrand"><img src="/icon-512.png" alt="" width="40" height="40"><b>TrustTrade</b><span>Tradie</span></div>
+  <h1>Enter your code.</h1><p>Open your authenticator app and type the 6-digit code.</p>
+  <div class="lform"><label class="vh" for="mfa_login">6-digit code</label><input id="mfa_login" class="code" inputmode="numeric" maxlength="6" autocomplete="one-time-code" placeholder="000000" onkeydown="if(event.key==='Enter')verifyMfaLogin()"></div>
+  <button onclick="verifyMfaLogin()">Verify</button>
+  <button class="ghost" onclick="signout()">Cancel</button>
+  <div class="lerr" id="e-mfa"></div>`;
  const i=$('mfa_login'); if(i) i.focus();
 }
-async function verifyMfaLogin(){$('e-mfa').innerHTML='';
+async function verifyMfaLogin(){$('e-mfa').textContent='';
  const code=(val('mfa_login')||'').replace(/\s/g,'');
- if(code.length<6){$('e-mfa').innerHTML='<div class="err">Enter the 6-digit code</div>';return;}
- try{
-  const {data:factors}=await sb.auth.mfa.listFactors();
+ if(code.length<6){$('e-mfa').textContent='Enter the 6-digit code';return;}
+ try{const {data:factors}=await sb.auth.mfa.listFactors();
   const f=(factors&&factors.totp||[])[0]; if(!f){route();return;}
   const {data:ch,error:ce}=await sb.auth.mfa.challenge({factorId:f.id});
-  if(ce){$('e-mfa').innerHTML='<div class="err">'+esc(ce.message)+'</div>';return;}
+  if(ce){$('e-mfa').textContent=ce.message;return;}
   const {error:ve}=await sb.auth.mfa.verify({factorId:f.id,challengeId:ch.id,code});
-  if(ve){$('e-mfa').innerHTML='<div class="err">'+esc(ve.message||'Wrong code, try again')+'</div>';return;}
+  if(ve){$('e-mfa').textContent=ve.message||'Wrong code, try again';return;}
   route();
- }catch(e){$('e-mfa').innerHTML='<div class="err">'+esc(e.message)+'</div>';}}
+ }catch(e){$('e-mfa').textContent=e.message;}}
 async function route(){
  const {data:{user}}=await sb.auth.getUser();ME=user;if(!user)return;
  const {data:list,error}=await sb.from('listings').select('*').eq('auth_user_id',user.id).order('joined_at',{ascending:false}).limit(1);
  $('gate').style.display='none';$('app').classList.add('on');
  $('w-email').textContent=user.email||'';
  if(error||!list||!list.length){noListing(user);return;}
- LST=list[0];
+ LST=list[0]; paintWho();
+ loadCounts();go(new URLSearchParams(location.search).get('p')||'home');
+}
+function paintWho(){
  $('w-name').textContent=LST.name||'Your business';
- $('w-sub').textContent=(LST.trade||'')+(LST.suburb?' · '+LST.suburb:'');
- loadCounts();go('home');
+ const av=$('w-av'), u=LST.chat_avatar_url||LST.photo;
+ if(av){ if(u){av.style.backgroundImage=`url('${String(u).replace(/'/g,'%27')}')`;av.textContent='';} else av.textContent=initial(LST.name); }
 }
 async function noListing(user){
- let app=null;try{const {data}=await sb.from('applications').select('status,business_name,created_at,rejection_reason').eq('auth_user_id',user.id).order('created_at',{ascending:false}).limit(1);app=data&&data[0];}catch(e){}
- $('w-name').textContent=(app&&app.business_name)||user.email;$('w-sub').textContent='No live listing yet';
- $('main').innerHTML=`<h1>Welcome</h1><div class="subt">We couldn't find a live listing on your account yet.</div>
-  <div class="card"><div style="padding:22px">${app?`Your application <b>${esc(app.business_name||'')}</b> is <span class="pill ${app.status==='approved'?'g':app.status==='rejected'?'r':'a'}">${esc(app.status||'pending')}</span>.${app.status==='rejected'&&app.rejection_reason?`<div style="margin-top:12px;padding:12px 14px;background:var(--redb);border-radius:10px;font-size:13.5px"><b>What to fix:</b> ${esc(app.rejection_reason)}</div>`:''}${app.status==='pending'?'<div class="mut" style="margin-top:10px;font-size:13px">We usually verify within a couple of business days. You will get a notification when you are live.</div>':''}`:'Once your application is approved and your listing goes live, your dashboard will appear here.'}</div></div>
-  <div class="me" style="border:0"><a onclick="signout()">Sign out</a></div>`;
+ let ap=null;try{const {data}=await sb.from('applications').select('status,business_name,created_at,rejection_reason').eq('auth_user_id',user.id).order('created_at',{ascending:false}).limit(1);ap=data&&data[0];}catch(e){}
+ $('w-name').textContent=(ap&&ap.business_name)||user.email;
+ const st=ap?String(ap.status||'pending'):'';
+ const pill=st==='approved'?'<span class="pill g">Approved</span>':st==='rejected'?'<span class="pill r">Not approved</span>':st==='info_requested'?'<span class="pill a">We need a bit more</span>':'<span class="pill a">Under review</span>';
+ $('main').innerHTML=`<h2>Welcome</h2><div class="subt">We couldn't find a live listing on this account yet.</div>
+  <div class="card state">${ap?pill:''}<h3>${ap?esc(ap.business_name||'Your application'):'No listing yet'}</h3>
+   <p>${ap?(st==='pending'||st==='submitted'?'A person is checking your details before customers can find you. We usually verify within a couple of business days, and we’ll let you know the moment you’re live.':st==='approved'?'You’re approved. Your listing appears here once it’s set up.':st==='rejected'?'Your application wasn’t approved this time.':'Your application is with us.'):'Once your application is approved and your listing goes live, your dashboard appears here.'}</p>
+   ${ap&&ap.rejection_reason?`<p style="margin-top:12px"><b style="color:var(--ink)">What to fix:</b> ${esc(ap.rejection_reason)}</p>`:''}
+  </div>`;
 }
 async function loadCounts(){
  try{const {count}=await sb.from('enquiries').select('*',{count:'exact',head:true}).eq('listing_id',LST.id).eq('status','new');
-  const el=$('c-lead');if(el){el.textContent=count??'–';el.classList.toggle('hot',(count||0)>0);}}catch(e){}
+  const el=$('c-jobs');if(el){el.textContent=count?String(count):'';el.classList.toggle('hot',(count||0)>0);}}catch(e){}
 }
-function signout(){sb.auth.signOut().then(()=>location.reload());}
-function go(p){PAGE=p;document.querySelectorAll('.nv').forEach(n=>n.classList.toggle('on',n.dataset.p===p||(p==='quoteNew'&&n.dataset.p==='leads')));
- // No listing on this account (e.g. admin/founder) → every tradie page needs
- // LST, so show the welcome/no-listing state instead of dereferencing null.
- // Security (2FA) is account-level, not listing-level, so it's always allowed.
+function signout(){sb.auth.signOut().then(()=>location.replace('/dashboard'));}
+function go(p,arg){
+ if(p==='leads') p='jobs';                      // the old name for the Jobs page
+ PAGE=p; window.scrollTo(0,0);
+ const nav={lead:'jobs',job:'jobs',quoteNew:'jobs',profileEdit:'profile'}[p]||p;
+ document.querySelectorAll('.nv').forEach(n=>n.classList.toggle('on',n.dataset.p===nav));
+ // No listing on this account: every tradie page needs one. Security (2FA) is account-level.
  if(!LST && p!=='security'){noListing(ME);return;}
- ({home:pHome,leads:pLeads,quoteNew:pQuoteNew,quotes:pQuotes,jobs:pJobs,invoices:pInvoices,reviews:pReviews,profile:pProfile,hours:pHours,gallery:pGallery,billing:pBilling,security:pSecurity}[p])();}
-function loading(t){$('main').innerHTML=`<h1>${t}</h1><div class="subt">Loading…</div>`;}
-function errBox(e){return `<div class="card"><div class="empty">Couldn't load — ${esc(e.message||e)}</div></div>`;}
-
-async function pHome(){loading('Overview');try{
- const t=LST;
- const [enq,bk,rev]=await Promise.all([
-  sb.from('enquiries').select('id,status,created_at').eq('listing_id',t.id),
-  sb.from('bookings').select('id,status').eq('listing_id',t.id),
-  sb.from('listing_reviews').select('rating').eq('listing_id',t.id)]);
- const newLeads=(enq.data||[]).filter(e=>e.status==='new').length;
- const done=(bk.data||[]).filter(b=>b.status==='completed').length;
- const live=t.status==='approved';
- $('main').innerHTML=`<div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap"><h1>${esc(t.name||'Your business')}</h1>${live?'<span class="pill g">Live</span>':t.status==='hidden'?'<span class="pill r">Hidden</span>':'<span class="pill a">'+esc(t.status||'')+'</span>'}${t.insured?'<span class="pill g">Insured</span>':'<span class="pill a">Insurance needed</span>'}</div>
-  <div class="subt">${esc(t.trade||'')} · ${esc(t.suburb||'')} ${esc(t.postcode||'')}</div>
-  ${newLeads?`<div class="banner"><b>You have ${newLeads} new ${newLeads===1?'lead':'leads'}.</b> <span class="mut">Reply fast — speed wins jobs.</span> <button class="btn gold" style="width:auto;height:34px;margin:8px 0 0" onclick="go('leads')">View leads</button></div>`:''}
-  <div class="kpis">
-   <div class="kpi"><div class="k">New leads</div><b style="${newLeads?'color:var(--gold)':''}">${newLeads}</b><div class="d">${(enq.data||[]).length} all time</div></div>
-   <div class="kpi"><div class="k">Jobs done</div><b>${done}</b></div>
-   <div class="kpi"><div class="k">Rating</div><b>${t.rating||'—'}</b><div class="d">${t.review_count||0} reviews</div></div>
-   <div class="kpi"><div class="k">Profile views</div><b>${t.stat_views||0}</b></div>
-  </div>
-  <div class="card"><div class="ch">Your listing at a glance</div><div style="padding:6px 18px">
-   ${kv('Trade',t.trade)}${kv('Area',(t.suburb||'')+' '+(t.postcode||''))}${kv('Hourly rate',t.hourly_rate?'$'+t.hourly_rate:'—')}${kv('Call-out fee',t.call_out_fee?'$'+t.call_out_fee:'—')}${kv('Service radius',t.service_radius_km?t.service_radius_km+' km':'—')}${kv('Phone',t.phone)}${kv('Email',t.email)}${kv('Website',t.website)}
-  </div></div>`;
-}catch(e){$('main').innerHTML='<h1>Overview</h1>'+errBox(e);}}
-const kv=(l,v)=>`<div style="display:flex;justify-content:space-between;gap:12px;padding:11px 0;border-bottom:1px solid var(--line2);font-size:13.5px"><span class="mut">${esc(l)}</span><b style="font-weight:600;text-align:right">${v==null||v===''?'<span class="mut">—</span>':esc(v)}</b></div>`;
-
-async function pLeads(){loading('Leads');try{
- const {data,error}=await sb.from('enquiries').select('*').eq('listing_id',LST.id).order('created_at',{ascending:false}).limit(200);if(error)throw error;
- $('main').innerHTML=`<h1>Leads</h1><div class="subt">${(data||[]).length} enquiries · one enquiry, one tradie — that's you</div>
-  <div class="card"><table><thead><tr><th>From</th><th>Area</th><th>Urgency</th><th>Message</th><th>Status</th><th>When</th></tr></thead><tbody>
-  ${(data||[]).map(e=>`<tr style="cursor:pointer" onclick="openLead('${e.id}')"><td><b>${esc(e.from_name||'—')}</b></td><td>${esc(e.from_town||'—')}</td><td>${e.urgency?'<span class="pill '+(/urgent|emerg/i.test(e.urgency)?'r':'n')+'">'+esc(e.urgency)+'</span>':'—'}</td><td class="mut" style="max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(e.message||'')}</td><td>${(()=>{const s=(e.status||'').toLowerCase();return s==='new'?'<span class="pill a">New</span>':s==='read'?'<span class="pill b">Read</span>':s==='replied'?'<span class="pill b">Replied</span>':s==='completed'?'<span class="pill g">Completed</span>':'<span class="pill n">'+esc(e.stage||e.status||'—')+'</span>';})()}</td><td class="mut">${ago(e.created_at)}</td></tr>`).join('')||'<tr><td colspan=6 class="empty">No leads yet — they land here the moment a homeowner messages you.</td></tr>'}
-  </tbody></table></div>`;
-}catch(e){$('main').innerHTML='<h1>Leads</h1>'+errBox(e);}}
-let LEAD=null;                 // the open enquiry (shared by reply + quote)
-function bubbleHtml(m){
- // App writes { body, fromUserId, createdAt }. Fall back to older shapes.
- const mine=m.fromUserId?(m.fromUserId===ME.id):/trad|pro|listing/.test((m.sender||m.from||m.role||'').toString().toLowerCase());
- const txt=esc(m.body||m.text||m.message||(typeof m==='string'?m:''));
- return `<div class="bub ${mine?'me':'them'}">${txt}</div>`;
+ const f={home:pHome,jobs:pJobs,lead:pLead,job:pJob,inbox:pInbox,quoteNew:pQuoteNew,quotes:pQuotes,invoices:pInvoices,reviews:pReviews,profile:pProfile,profileEdit:pProfileEdit,hours:pHours,gallery:pGallery,billing:pBilling,security:pSecurity}[p];
+ (f||pHome)(arg);
 }
-async function openLead(id){loading('Lead');try{
+function loading(t){$('main').innerHTML=`<h2>${esc(t)}</h2><div class="subt">Loading…</div><div class="card"><div class="shim"></div><div class="shim" style="width:70%"></div><div class="shim" style="width:45%"></div></div>`;}
+function errBox(e){return `<div class="card"><div class="empty">Couldn't load that. ${esc(e&&e.message||e)}</div></div>`;}
+
+/* ═════ shared: enquiries, jobs, quotes, invoices ═════ */
+// Everything the Dashboard and Jobs pages draw from, in one go.
+async function workData(){
+ const [er,br,qr,ir,cr]=await Promise.all([
+  sb.from('enquiries').select('*').eq('listing_id',LST.id).order('created_at',{ascending:false}).limit(300),
+  sb.from('bookings').select('*').eq('tradie_auth_id',ME.id).order('created_at',{ascending:false}).limit(300),
+  sb.from('quotes').select('*').eq('tradie_auth_user_id',ME.id).order('created_at',{ascending:false}).limit(300),
+  sb.from('invoices').select('*').eq('tradie_auth_id',ME.id).order('created_at',{ascending:false}).limit(300),
+  sb.from('customer_reviews').select('booking_id').eq('from_tradie_auth_id',ME.id)]);
+ if(er.error) throw er.error;
+ const E=er.data||[],B=br.data||[],Q=qr.data||[],I=ir.data||[],rated=new Set((cr.data||[]).map(r=>r.booking_id));
+ const ids=[...new Set(B.map(b=>b.customer_id).filter(Boolean))];
+ const P={}; if(ids.length){try{const {data}=await sb.from('profiles').select('id,name,suburb,profile_photo_url').in('id',ids);(data||[]).forEach(p=>P[p.id]=p);}catch(e){}}
+ const qById={};Q.forEach(q=>qById[q.id]=q);
+ // a job's own quote: linked since 27 Sep, older jobs by their enquiry
+ const qOf=b=>(b.quote_id&&qById[b.quote_id])||(b.enquiry_id&&Q.find(x=>x.enquiry_id===b.enquiry_id&&x.status==='accepted'))||null;
+ const whoOf=b=>{const n=(P[b.customer_id]||{}).name||(qOf(b)||{}).customer_name||(b.enquiry_id&&(E.find(x=>x.id===b.enquiry_id)||{}).from_name);return n?shortName(n):'Customer';};
+ return {E,B,Q,I,P,rated,qOf,whoOf};
+}
+function leadShortUrg(u){const v=String(u||'').toLowerCase();
+ if(!v) return null;
+ if(v==='emergency'||v==='today'||v==='high') return ['Emergency','r'];
+ if(/urgent|asap/.test(v)) return ['Urgent','r'];
+ if(/1.?2|few days/.test(v)) return ['1–2 days','a'];
+ if(/week/.test(v)) return ['This week','a'];
+ if(/month/.test(v)) return ['This month','a'];
+ if(/quote|no rush|low|future/.test(v)) return ['Flexible','n'];
+ if(v==='normal'||v==='flexible') return ['Flexible','n'];
+ return [String(u),'a'];}
+function urgText(u){const v=String(u||'').toLowerCase();return v==='emergency'?'Emergency, today':v==='high'?'Urgent':v==='normal'?'Flexible':v==='low'?'No rush':String(u||'');}
+let BOOKED_ENQ=new Set();
+function leadStatus(e){
+ if(e.stage==='declined') return ['Declined','n'];
+ if(e.status==='completed'||e.job_complete) return ['Done','g'];
+ if(BOOKED_ENQ.has(e.id)) return ['Booked','b'];
+ if(e.status==='new') return ['New','a'];
+ if(e.status==='replied'||e.first_response_at) return ['Replied','b'];
+ return ['Read','b'];}
+function whenLead(iso){const d=new Date(iso);if(isNaN(d))return '';const now=new Date();
+ const t=d.toLocaleTimeString('en-AU',{hour:'numeric',minute:'2-digit'}).replace(/\s/g,'').toLowerCase();
+ if(d.toDateString()===now.toDateString())return 'Today, '+t;
+ const y=new Date(now);y.setDate(now.getDate()-1);if(d.toDateString()===y.toDateString())return 'Yesterday';
+ return dayShort(d);}
+// "Needs you" reads like the app: the job in a few words, never a clipped sentence.
+function needJob(msg){const all=String(msg||'').replace(/\s+/g,' ').trim();if(!all)return '';
+ let t=all.split(/\s[—–-]\s|[.!?;:,](?:\s|$)/)[0].trim()||all;
+ if(t.length>40)t=t.slice(0,40).replace(/\s+\S*$/,'');
+ return t.replace(/[\s,;:.!?…—–-]+$/,'');}
+function deriveJobTitle(e){const all=String((e&&e.message)||'').replace(/\s+/g,' ').trim();if(!all)return '';
+ let t=all.split(/\s[—–-]\s|[.!?;:](?:\s|$)/)[0].trim()||all;
+ if(t.length>60)t=t.slice(0,60).replace(/\s+\S*$/,'');
+ return t.replace(/[\s,;:.!?…—–-]+$/,'');}
+function leadCard(e){
+ const st=leadStatus(e), ug=(st[0]==='Done'||st[0]==='Declined')?null:leadShortUrg(e.urgency);
+ return `<div class="lc${e.status==='new'&&e.stage!=='declined'?' new':''}" onclick="openLead('${e.id}')">
+  <div class="lc-top"><span class="lc-who"><b>${esc(shortName(e.from_name))}</b><small>${[whenLead(e.created_at),e.from_town].filter(Boolean).map(esc).join(' · ')}</small></span><span class="lc-pills">${ug?`<span class="pill ${ug[1]}">${esc(ug[0])}</span>`:''}<span class="pill ${st[1]}">${st[0]}</span></span></div>
+  <div class="lc-msg">${esc(e.message||'New enquiry')}</div>
+  <div class="lc-go"><span>${st[0]==='Done'?'View job':st[0]==='Booked'?'Open job':'Open enquiry'}</span>${ICH}</div></div>`;
+}
+function jobCard(b,done,W){
+ const q=W.qOf(b), amt=q&&q.total_inc_gst!=null?+q.total_inc_gst:null, sub=(W.P[b.customer_id]||{}).suburb||'';
+ const when=done?'Done '+dayShort(b.completed_at||b.slot_start||b.created_at):(b.slot_start?'Booked for '+dayShort(b.slot_start):'Booked '+dayShort(b.created_at));
+ return `<div class="lc" onclick="openJob('${b.id}')">
+  <div class="lc-top"><span class="lc-who"><b>${esc(W.whoOf(b))}</b><small>${[when,sub].filter(Boolean).map(esc).join(' · ')}</small></span><span class="lc-pills">${amt!=null?`<span class="pill">${money(amt)}</span>`:''}<span class="pill ${done?'g':'b'}">${done?'Done':'Booked'}</span></span></div>
+  <div class="lc-msg">${esc(b.job_title||'Job')}</div>
+  <div class="lc-go"><span>${done?'View job':'Open job'}</span>${ICH}</div></div>`;
+}
+
+/* ═════ DASHBOARD (TDHome) ═════ */
+async function pHome(){loading('Dashboard');try{
+ const t=LST, W=await workData(), {E,B}=W;
+ const now=Date.now(),D=864e5,ts=e=>Date.parse(e.created_at)||0;
+ const last30=E.filter(e=>now-ts(e)<30*D).length, prev30=E.filter(e=>now-ts(e)>=30*D&&now-ts(e)<60*D).length, dl=last30-prev30;
+ // 7 bars across the same 30 days as the number; the busiest (latest if tied) is amber
+ const bars=[0,0,0,0,0,0,0], from=now-30*D;
+ E.forEach(e=>{const x=ts(e);if(x>from&&x<=now)bars[Math.min(6,Math.floor((x-from)/(30*D/7)))]++;});
+ const max=Math.max(1,...bars), peak=bars.lastIndexOf(Math.max(...bars));
+ let stat=null; if(!PREVIEW){try{const {data}=await sb.rpc('my_listing_stats',{p_days:30});stat=(Array.isArray(data)?data[0]:data)||null;}catch(e){}}
+ const sv=k=>stat?Number(stat[k]||0).toLocaleString():'—';
+ // what needs you: new enquiries, customers waiting, today's jobs, customers to rate
+ const needs=[];
+ E.filter(e=>e.status==='new'&&e.stage!=='declined').slice(0,3).forEach(e=>needs.push({dot:'a',t:'New enquiry from '+shortName(e.from_name),s:[needJob(e.message),e.from_town].filter(Boolean).join(' · '),fn:`openLead('${e.id}')`}));
+ E.filter(e=>{if(e.status==='new'||e.stage==='declined'||e.status==='completed'||e.job_complete)return false;const M=Array.isArray(e.messages)?e.messages:[];const last=M[M.length-1];return last&&last.fromUserId&&last.fromUserId===e.user_id&&M.length>1;})
+  .slice(0,2).forEach(e=>needs.push({dot:'b',t:shortName(e.from_name)+' is waiting on you',s:[needJob(e.message),e.from_town].filter(Boolean).join(' · '),fn:`openLead('${e.id}',true)`}));
+ B.filter(b=>{const d=new Date(b.slot_start||0);return b.slot_start&&d.toDateString()===new Date().toDateString()&&b.status==='confirmed';})
+  .slice(0,2).forEach(b=>needs.push({dot:'g',t:'On today: '+(b.job_title||'booked job'),s:fmtT(new Date(b.slot_start))+' · '+W.whoOf(b),fn:`openJob('${b.id}')`}));
+ B.filter(b=>b.status==='completed'&&!W.rated.has(b.id)).slice(0,2).forEach(b=>needs.push({dot:'n',t:'Rate '+W.whoOf(b),s:'Reviews are open for '+(b.job_title||'their job'),fn:`rateCustomer('${b.id}')`}));
+ // this month: quotes sent, won, and the win rate of the ones decided (as the app's Insights)
+ const nowD=new Date(), inMonth=x=>{const d=new Date(x);return d.getMonth()===nowD.getMonth()&&d.getFullYear()===nowD.getFullYear();};
+ const mQ=W.Q.filter(q=>q.status!=='draft'&&inMonth(q.sent_at||q.created_at)).length, mWon=W.Q.filter(q=>q.status==='accepted'&&inMonth(q.accepted_at||q.updated_at||q.created_at)).length;
+ const decided=W.Q.filter(q=>q.status==='accepted'||q.status==='rejected').length, winRate=decided?Math.round(W.Q.filter(q=>q.status==='accepted').length/decided*100)+'%':'—';
+ const h=new Date().getHours(), first=String((ME&&ME.user_metadata&&ME.user_metadata.first_name)||'').trim();
+ $('main').innerHTML=`<div class="phead"><div class="pt"><h2>Dashboard</h2><div class="subt">${h<12?'Morning':h<17?'Afternoon':'Evening'}${first?', '+esc(first):''}. Here’s how the business is going.</div></div></div>
+  ${stateCard(t)}
+  <div class="grid2">
+   <div><div class="card tds">
+    <div class="tds-top"><span>Last 30 days</span>${t.status==='approved'?'<span class="pill g">&#9679; Live</span>':''}</div>
+    <div class="tds-big"><div class="tds-n"><b>${last30}</b><span>enquir${last30===1?'y':'ies'} ${dl?`<em class="${dl<0?'dn':''}">${dl>0?'+':''}${dl}</em>`:''}</span></div>
+     <div class="bars" aria-hidden="true">${bars.map((n,i)=>`<i style="height:${Math.max(16,Math.round(n/max*70))}px"${n&&i===peak?' class="pk"':''}></i>`).join('')}</div></div>
+    <div class="tds-row"><span><b>${sv('views')}</b><small>Profile views</small></span><span><b>${sv('calls')}</b><small>Calls</small></span><span><b>${sv('emails')}</b><small>Emails</small></span></div>
+   </div>
+   <div class="h3" style="margin-top:22px"><h3>This month</h3><a onclick="go('quotes')">Quotes</a></div>
+   <div class="card tds" style="padding:18px 24px"><div class="tds-row" style="margin:0;padding:0;border:0"><span><b>${mQ}</b><small>Quotes sent</small></span><span><b>${mWon}</b><small>Jobs won</small></span><span><b>${winRate}</b><small>Win rate</small></span></div></div></div>
+   <div>
+    <div class="h3" style="margin-top:4px"><h3>Needs you</h3><a onclick="go('jobs')">See all</a></div>
+    <div class="card needs">${needs.length?needs.slice(0,5).map(n=>`<div class="need" onclick="${n.fn}"><i class="${n.dot}"></i><span class="tx"><b>${esc(n.t)}</b>${n.s?`<small>${esc(n.s)}</small>`:''}</span>${ICH}</div>`).join(''):'<div class="allgood"><b>You’re all caught up.</b>New enquiries and customers waiting on you show here.</div>'}</div>
+   </div>
+  </div>`;
+}catch(e){$('main').innerHTML='<h2>Dashboard</h2>'+errBox(e);}}
+// TDSuspended / TDPending: a hidden listing says why and what to do; one awaiting review says so.
+function stateCard(l){
+ if(!l||l.status==='approved') return '';
+ const past=d=>d&&Date.parse(d)<Date.now();
+ if(l.status==='hidden'){const lic=past(l.licence_expiry_date);
+  return `<div class="card state"><span class="pill r">Listing paused</span><h3>${lic?'Your trade licence has expired.':'Your listing is paused.'}</h3><p>Customers can’t find you until it’s sorted. Your enquiries, reviews${l.suburb?' and spot in '+esc(l.suburb):''} are kept safe. ${lic?'Upload your new licence in the TrustTrade app, or':'To sort it out,'} email <a href="mailto:support@trusttrade.au">support@trusttrade.au</a> and we’ll help.</p></div>`;}
+ return `<div class="card state"><span class="pill a">Under review</span><h3>You’re nearly live.</h3><p>A person is checking your details before customers can find you. We’ll let you know the moment you’re live.</p></div>`;
+}
+
+/* ═════ JOBS: every enquiry, the new ones, booked jobs, done jobs (TDEnquiries) ═════ */
+let JSEG='all', JW=null;
+async function pJobs(){loading('Jobs');try{
+ const W=await workData(); JW=W;
+ const {E,B,Q,I}=W;
+ const booked=B.filter(b=>['requested','confirmed'].includes(b.status)), done=B.filter(b=>b.status==='completed');
+ BOOKED_ENQ=new Set(booked.map(b=>b.enquiry_id).filter(Boolean));
+ const pendingQ=Q.filter(q=>['sent','viewed'].includes(q.status)), unpaid=I.filter(i=>['sent','overdue'].includes(i.status));
+ const pipeline=pendingQ.reduce((a,q)=>a+ +(q.total_inc_gst||0),0)+booked.reduce((a,b)=>{const q=W.qOf(b);return a+(q?+q.total_inc_gst||0:0);},0);
+ const unpaidAmt=unpaid.reduce((a,i)=>a+ +(i.total||0),0);
+ $('main').innerHTML=`<div class="phead"><div class="pt"><h2>Jobs</h2><div class="subt">Every enquiry, the jobs you’ve booked and the ones you’ve finished.</div></div></div>
+  <div class="kpis"><div class="kpi tap" onclick="jobsTab('booked')"><b>${booked.length}</b><div class="k">Booked</div></div><div class="kpi tap" onclick="go('quotes')"><b>${pendingQ.length}</b><div class="k">Quoted</div></div><div class="kpi"><b>${kMoney(pipeline)}</b><div class="k">Pipeline</div></div><div class="kpi tap" onclick="go('invoices')"><b class="${unpaid.length?'dn':''}">${unpaid.length}</b><div class="k">Unpaid</div></div></div>
+  ${unpaid.length?`<div class="banner" onclick="go('invoices')"><span class="bic"><svg class="i" viewBox="0 0 24 24"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></span><span><b>${unpaid.length} invoice${unpaid.length>1?'s':''} unpaid, ${money(unpaidAmt)}</b><small>Chase them from Invoices</small></span>${ICH}</div>`:''}
+  <div class="tabs" id="jtabs"></div><div class="lcards" id="jlist"></div>
+  <p class="note">${IBADGE}<span>Every enquiry came to you alone. TrustTrade never sells the same enquiry twice, and declining costs you nothing.</span></p>`;
+ jobsTab(JSEG);
+}catch(e){$('main').innerHTML='<h2>Jobs</h2>'+errBox(e);}}
+function jobsTab(seg){
+ JSEG=seg||'all'; const W=JW; if(!W) return;
+ const {E,B}=W, isDone=e=>e.status==='completed'||!!e.job_complete, isNew=e=>e.status==='new'&&e.stage!=='declined';
+ const booked=B.filter(b=>['requested','confirmed'].includes(b.status)), done=B.filter(b=>b.status==='completed');
+ const doneEnqIds=new Set(done.map(b=>b.enquiry_id).filter(Boolean)), doneEnq=E.filter(e=>isDone(e)&&!doneEnqIds.has(e.id));
+ const t=(k,l)=>`<div class="${JSEG===k?'on':''}" onclick="jobsTab('${k}')">${l}</div>`;
+ $('jtabs').innerHTML=t('all','All · '+E.length)+t('new','New · '+E.filter(isNew).length)+t('booked','Booked · '+booked.length)+t('done','Done · '+(done.length+doneEnq.length));
+ const none=(b,s)=>`<div class="none"><b>${b}</b>${s}</div>`;
+ let html='';
+ if(JSEG==='booked') html=booked.map(b=>jobCard(b,false,W)).join('')||none('No booked jobs yet.','When a customer accepts your quote, the job is booked and lands here.');
+ else if(JSEG==='done') html=(done.map(b=>jobCard(b,true,W)).join('')+doneEnq.map(leadCard).join(''))||none('Nothing here.','Finished jobs show here.');
+ else { const L=JSEG==='new'?E.filter(isNew):E; html=L.length?L.map(leadCard).join(''):(E.length?none('Nothing here.','You’re on top of every new enquiry.'):none('No enquiries yet.','When a customer picks you, their enquiry lands here, and only you get it.')); }
+ $('jlist').innerHTML=html;
+}
+
+/* ═════ AN ENQUIRY (TDJob): the customer, the job, their photos, the chat ═════ */
+let LEAD=null;
+function openLead(id,chat){go('lead',{id,chat:!!chat});}
+async function enqPhotoSrcs(list){const out=[];
+ for(const p of (list||[])){const s=String(p||'');if(!s)continue;
+  if(/^https?:\/\//i.test(s)||s.startsWith('data:')){out.push(s);continue;}
+  try{const {data}=await sb.storage.from('enquiry-photos').createSignedUrl(s,600);if(data&&data.signedUrl)out.push(data.signedUrl);}catch(e){}}
+ return out;}
+function photoTiles(urls){LB=urls.slice();return urls.slice(0,3).map((u,i)=>`<span style="background-image:url('${esc(u)}')" onclick="LB=${esc(JSON.stringify(urls))};lightbox(${i})">${i===2&&urls.length>3?`<em>+${urls.length-3}</em>`:''}</span>`).join('');}
+// The enquiry is the first message in the chat, as in the app; older threads store {sender,text}.
+function withEnquiryFirst(e,msgs,tradieId){const cust=(e&&e.user_id)||null;
+ const norm=(msgs||[]).map(m=>{if(typeof m==='string')return {body:m,fromUserId:null,createdAt:null};
+  const who=String(m.sender||m.from||m.role||'').toLowerCase();
+  const from=m.fromUserId||(/trad|pro|listing/.test(who)?(tradieId||'tradie'):/cust|home|user|client/.test(who)?cust:null);
+  return {body:m.body!=null?m.body:(m.text||m.message||''),fromUserId:from,createdAt:m.createdAt||m.created_at||m.at||null,ai:m.ai};});
+ const t=String((e&&e.message)||'').trim();
+ if(!t||(norm[0]&&String(norm[0].body||'').trim()===t))return norm;
+ return [{body:t,fromUserId:cust,createdAt:e.created_at}].concat(norm);}
+function bubbles(e){const me=ME.id;let lastDay='';
+ return withEnquiryFirst(e,Array.isArray(e.messages)?e.messages:[],me).map(m=>{
+  const cls=m.fromUserId===me||(m.fromUserId==='tradie')?'me':'them';
+  const d=m.createdAt?new Date(m.createdAt):null, day=d&&!isNaN(d)?d.toDateString():'';
+  let sep='';if(day&&day!==lastDay){lastDay=day;sep=`<div class="day">${esc(d.toLocaleDateString('en-AU',{weekday:'short',day:'numeric',month:'long'}))}</div>`;}
+  return sep+`<div class="bub ${cls}">${esc(m.body||'')}</div>`+(m.ai?`<div class="aitag${cls==='me'?' r':''}">Auto-reply from TrustTrade</div>`:'');}).join('');}
+async function pLead(arg){loading('Enquiry');try{
+ const id=arg&&arg.id; if(!id){go('jobs');return;}
  const {data:e,error}=await sb.from('enquiries').select('*').eq('id',id).single();if(error)throw error;
  LEAD=e;
- const msgs=Array.isArray(e.messages)?e.messages:[];
- const bub=msgs.map(bubbleHtml).join('');
- $('main').innerHTML=`<div style="margin-bottom:10px"><a class="mut" style="cursor:pointer" onclick="go('leads')">← Leads</a></div>
-  <h1>${esc(e.from_name||'Lead')}</h1><div class="subt">${esc(e.from_town||'')} · ${esc(e.urgency||'')} · ${ago(e.created_at)}</div>
-  <div class="card"><div class="ch">Request</div><div style="padding:16px 18px;line-height:1.55">${esc(e.message||'—')}</div></div>
-  ${e.from_phone||e.from_email?`<div class="card"><div class="ch">Contact</div><div style="padding:6px 18px">${e.from_phone?kv('Phone',e.from_phone):''}${e.from_email?kv('Email',e.from_email):''}</div></div>`:''}
-  <div class="card"><div class="ch">Conversation</div><div style="padding:14px 18px" id="thread">${bub||'<div class="mut" style="font-size:13.5px">No messages yet — say hello and let them know you can help.</div>'}</div>
-   <div style="display:flex;gap:8px;padding:0 18px 16px"><textarea id="reply" placeholder="Write a reply…" style="flex:1;min-height:44px;padding:10px 12px;border:1px solid var(--line);border-radius:10px;font-size:14px;background:var(--bg);color:var(--ink);resize:vertical"></textarea><button class="btn gold" style="width:auto;height:44px;align-self:flex-end" onclick="sendReply()">Send</button></div>
+ const [bk,qs]=await Promise.all([
+  sb.from('bookings').select('id,status,quote_id,completed_at').eq('enquiry_id',e.id),
+  sb.from('quotes').select('id,job_title,total_inc_gst,status,created_at,sent_at').eq('enquiry_id',e.id).order('created_at',{ascending:false}).limit(1)]);
+ const B=bk.data||[], q=(qs.data||[])[0]||null;
+ const liveB=B.find(b=>['confirmed','requested'].includes(b.status))||null, doneB=B.find(b=>b.status==='completed')||null;
+ let doneJob=!!(e.job_complete||e.status==='completed'||doneB), reviewed=false;
+ if(B.length){try{const {data:rv}=await sb.from('listing_reviews').select('id').in('booking_id',B.map(b=>b.id)).limit(1);reviewed=!!(rv&&rv.length);}catch(x){}}
+ // Opening an enquiry is what "Opened" means to the customer: record it once
+ if(!e.tradie_first_viewed_at&&!PREVIEW){const upd={tradie_first_viewed_at:new Date().toISOString()};if(e.status==='new')upd.status='read';
+  try{const {error:ue}=await sb.from('enquiries').update(upd).eq('id',e.id);if(!ue){Object.assign(e,upd);loadCounts();}}catch(x){}}
+ const who=shortName(e.from_name), first=who.split(' ')[0];
+ const ug=leadShortUrg(e.urgency);
+ const pill=doneJob?'<span class="pill g">Done</span>':liveB?'<span class="pill b">Booked</span>':e.stage==='declined'?'<span class="pill">Declined</span>':ug?`<span class="pill ${ug[1]}">${esc(ug[0])}</span>`:'';
+ const steps=[['Received',true],['Opened',true],['Job done',doneJob],['Reviewed',reviewed]], reach=steps.filter(x=>x[1]).length;
+ const trade=LST.trade||'';
+ const tel=e.from_phone?String(e.from_phone).replace(/[^\d+]/g,''):'';
+ const open=e.stage!=='declined'&&!doneJob&&!liveB;
+ const main=liveB?`<button class="btn g big block" onclick="markComplete('${liveB.id}')">Mark job complete</button>`
+  :doneB?`<button class="btn g big block" onclick="openJob('${doneB.id}')">View job</button>`
+  :open?`<button class="btn g big block" onclick="go('quoteNew')">${q?'Send a new quote':'Send a quote'}</button>`:'';
+ const two=[tel?`<a class="btn w" href="tel:${esc(tel)}">Call ${esc(first)}</a>`:'',e.from_email?`<a class="btn w" href="mailto:${esc(String(e.from_email).trim())}">Email</a>`:'',open?`<button class="btn r" onclick="declineSheet()">Decline</button>`:'',liveB?`<button class="btn w" onclick="openJob('${liveB.id}')">Job details</button>`:''].filter(Boolean);
+ const qStatus=q?(q.status==='accepted'?'Accepted, the job is booked':q.status==='rejected'?'Declined by the customer':q.status==='viewed'?'Seen by '+first:'Sent '+dayShort(q.sent_at||q.created_at)):'';
+ $('main').innerHTML=`${backLink("go('jobs')",'Jobs')}
+  <div class="grid2 wide"><div>
+   <div class="cust"><span class="cav">${esc(initial(who))}</span><span class="cn"><b>${esc(who)}</b><small>${[e.from_town,whenLead(e.created_at)].filter(Boolean).map(esc).join(' · ')}</small></span>${pill}</div>
+   <div class="steps" style="--p:${(reach-1)/3}">${steps.map(x=>`<span class="${x[1]?'on':''}"><i>${x[1]?ICK:''}</i><b>${x[0]}</b></span>`).join('')}</div>
+   ${e.stage==='declined'?`<p class="note warn">${IBADGE}<span>You declined this${e.stage_notes?' ('+esc(String(e.stage_notes).toLowerCase())+')':''}. The customer has been told.</span></p>`:''}
+   <div class="card cpad job" style="margin-top:18px"><div class="cap">The job</div><div class="jt">${esc(e.message||'')}</div></div>
+   <div id="lphotos"></div>
+   <div class="card facts">${trade?`<div><span>Trade</span><b>${esc(trade)}</b></div>`:''}${e.urgency?`<div><span>Urgency</span><b>${esc(urgText(e.urgency))}</b></div>`:''}${e.from_town?`<div><span>Suburb</span><b>${esc(e.from_town)}</b></div>`:''}${e.from_phone?`<div><span>Mobile</span><b><a href="tel:${esc(tel)}">${esc(e.from_phone)}</a></b></div>`:''}${e.from_email?`<div><span>Email</span><b><a href="mailto:${esc(String(e.from_email).trim())}">${esc(e.from_email)}</a></b></div>`:''}</div>
+   ${q?`<div class="card qsum"><span class="qi"><svg class="i" viewBox="0 0 24 24"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5M9 13h6M9 17h4"/></svg></span><span class="tx"><b>${esc(q.job_title||'Your quote')}</b><small>Your quote · ${esc(qStatus)}</small></span><span class="v">${money(q.total_inc_gst)}</span></div>`:''}
+   <div class="acts">${main}${two.length?`<div class="two">${two.join('')}</div>`:''}</div>
   </div>
-  <div class="card"><div class="ch">Quote</div><div style="padding:16px 18px"><div class="mut" style="font-size:13.5px;margin-bottom:12px">Send ${esc((e.from_name||'this customer').split(' ')[0])} a fixed-price quote. GST is worked out for you.</div><button class="btn gold" style="width:auto;height:38px" onclick="go('quoteNew')">Build a quote →</button></div></div>`;
-}catch(e){$('main').innerHTML='<h1>Lead</h1>'+errBox(e);}}
+  ${chatCard(e)}
+  </div>`;
+ const th=$('thread'); if(th) th.scrollTop=th.scrollHeight;
+ if(arg.chat){const r=$('reply');if(r)r.focus();}
+ // the customer's photos always have a place (they're private: signed links)
+ const ph=$('lphotos'), P=Array.isArray(e.photos)?e.photos:[];
+ if(ph){ if(P.length){const urls=await enqPhotoSrcs(P);if(LEAD!==e)return;ph.innerHTML=urls.length?`<div class="photos">${photoTiles(urls)}</div>`:noPhotos(first);} else ph.innerHTML=noPhotos(first); }
+}catch(err){$('main').innerHTML=backLink("go('jobs')",'Jobs')+'<h2>Enquiry</h2>'+errBox(err);}}
+function chatCard(e){const first=shortName(e.from_name).split(' ')[0];
+ return `<div class="card chat"><div class="ch">Messages with ${esc(first)}</div><div class="thread" id="thread">${bubbles(e)}</div><div class="cerr" id="cerr"></div>
+   ${PREVIEW?'<div class="compose" style="justify-content:center;color:var(--ink2);font-size:13.5px;font-weight:600">Admin preview: read-only</div>':`<div class="compose"><textarea id="reply" rows="1" placeholder="Message ${esc(first)}" oninput="this.style.height='auto';this.style.height=Math.min(180,this.scrollHeight)+'px'" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendReply()}"></textarea><button class="send" onclick="sendReply()" aria-label="Send"><svg viewBox="0 0 24 24"><path d="M12 19V5M5 12l7-7 7 7"/></svg></button></div>`}</div>`;}
+function noPhotos(first){return `<div class="card nophoto" onclick="askPhotos()"><span class="ic">${ICAM}</span><span class="tx"><b>No photos with this enquiry</b><small>Ask ${esc(first)} to send one of the job</small></span>${ICH}</div>`;}
+function askPhotos(){const r=$('reply');if(!r)return;if(!r.value)r.value='Could you send a photo or two of the job? It helps me price it properly.';r.focus();}
+// Replies go through the same server function as the app: it appends the one message
+// (writing the whole thread back could lose the customer's latest message).
 async function sendReply(){
  if(!LEAD)return;const ta=$('reply');const txt=(ta.value||'').trim();if(!txt)return;
- ta.disabled=true;
- const msg={id:(crypto.randomUUID?crypto.randomUUID():'m'+Date.now()),body:txt,fromUserId:ME.id,createdAt:new Date().toISOString()};
- const msgs=(Array.isArray(LEAD.messages)?LEAD.messages:[]).concat([msg]);
- const {error}=await sb.from('enquiries').update({messages:msgs}).eq('id',LEAD.id);
+ $('cerr').textContent=''; ta.disabled=true;
+ const {data:saved,error}=await sb.rpc('append_enquiry_message',{p_enquiry:LEAD.id,p_body:txt});
  ta.disabled=false;
- if(error){toast(error.message);return;}
- LEAD.messages=msgs;ta.value='';
- const th=$('thread');if(th){if(th.querySelector('.mut'))th.innerHTML='';th.insertAdjacentHTML('beforeend',bubbleHtml(msg));}
- toast('Reply sent');
+ if(error){$('cerr').textContent='That didn’t send. Check your connection and try again.';return;}
+ const msg=saved||{body:txt,fromUserId:ME.id,createdAt:new Date().toISOString()};
+ LEAD.messages=(Array.isArray(LEAD.messages)?LEAD.messages:[]).concat([msg]);
+ ta.value='';ta.style.height='';
+ const th=$('thread');if(th){th.innerHTML=bubbles(LEAD);th.scrollTop=th.scrollHeight;}
+}
+const DECLINE_MSG={
+ 'Too far':"Thanks for thinking of me. You're outside the area I cover, so I can't take this one on. You can send it to another tradie from your Jobs tab.",
+ 'Booked out':"Thanks for the enquiry. I'm booked out at the moment, so I can't take this one on. You can send it to another tradie from your Jobs tab.",
+ 'Not my trade':"Thanks for the enquiry. This isn't the kind of work I do, so I can't take it on. You can send it to another tradie from your Jobs tab.",
+ 'Too small':"Thanks for the enquiry. Unfortunately it's too small a job for me to take on. You can send it to another tradie from your Jobs tab."};
+function declineSheet(){openModal(`<h3>Can’t take this one?</h3><p>We’ll let ${esc(shortName(LEAD.from_name).split(' ')[0])} know in the chat so they can send it to someone else. Declining costs you nothing.</p><div class="reasons">${Object.keys(DECLINE_MSG).map(r=>`<button onclick="declineLead('${r}')">${r}</button>`).join('')}</div><div class="mf"><button class="btn w" onclick="closeModal()">Cancel</button></div>`);}
+async function declineLead(r){
+ const e=LEAD;closeModal();if(!e)return;
+ const {error:me}=await sb.rpc('append_enquiry_message',{p_enquiry:e.id,p_body:DECLINE_MSG[r]});
+ const {error:ue}=await sb.from('enquiries').update({stage:'declined',stage_notes:r,stage_updated_at:new Date().toISOString()}).eq('id',e.id);
+ if(me&&ue){toast('That didn’t go through. Check your connection and try again.');return;}
+ openLead(e.id);
 }
 
-// ── QUOTE BUILDER (same fixed-price + GST model as the app) ──────────
+/* ═════ A BOOKED OR DONE JOB (TDJob / TDJobDone) ═════ */
+function openJob(id){go('job',{id});}
+async function pJob(arg){loading('Job');try{
+ const id=arg&&arg.id;const {data:b,error}=await sb.from('bookings').select('*').eq('id',id).single();if(error)throw error;
+ const [pr,ad,qs,rv,cr,en]=await Promise.all([
+  sb.from('profiles').select('name,suburb').eq('id',b.customer_id).maybeSingle(),
+  sb.from('customer_addresses').select('*').eq('user_id',b.customer_id).maybeSingle(),
+  sb.from('quotes').select('id,enquiry_id,status,total_inc_gst,customer_name,job_title').eq('tradie_auth_user_id',ME.id).eq('customer_id',b.customer_id),
+  sb.from('listing_reviews').select('id,rating,review_text').eq('booking_id',b.id).limit(1),
+  sb.from('customer_reviews').select('id').eq('booking_id',b.id).eq('from_tradie_auth_id',ME.id).limit(1),
+  b.enquiry_id?sb.from('enquiries').select('*').eq('id',b.enquiry_id).maybeSingle():Promise.resolve({data:null})]);
+ const Q=qs.data||[], q0=Q.find(x=>b.quote_id&&x.id===b.quote_id)||Q.find(x=>b.enquiry_id&&x.enquiry_id===b.enquiry_id)||null;
+ const prof=pr.data, addr=ad.data, enq=en.data, rev=(rv.data||[])[0]||null, rated=!!((cr.data||[]).length);
+ const who=shortName((prof&&prof.name)||(q0&&q0.customer_name)||(enq&&enq.from_name)||'Customer'), first=who.split(' ')[0];
+ const done=b.status==='completed';
+ const addrTxt=addr?[addr.line1,addr.suburb,addr.state,addr.postcode].filter(Boolean).join(', '):((prof&&prof.suburb)||'');
+ const when=done?'Completed '+dayLong(b.completed_at||b.slot_start||b.created_at):(b.slot_start?'Booked for '+dayShort(b.slot_start)+', '+fmtT(new Date(b.slot_start)):'Booked '+dayLong(b.created_at));
+ const steps=[['Quoted',!!q0],['Booked',true],['Job done',done],['Reviewed',!!rev]], reach=steps.filter(x=>x[1]).length;
+ const msg=enq&&String(enq.message||'').trim();
+ const acts=done
+  ?(rated?'':`<button class="btn g big block" onclick="rateCustomer('${b.id}')">Rate ${esc(first)}</button>`)
+  :`<button class="btn g big block" onclick="markComplete('${b.id}')">Mark job complete</button>`;
+ const two=[b.enquiry_id?`<button class="btn w" onclick="openLead('${b.enquiry_id}')">View the enquiry</button>`:'',addrTxt?`<a class="btn w" target="_blank" rel="noopener" href="https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(addrTxt)}">Directions</a>`:''].filter(Boolean);
+ $('main').innerHTML=`${backLink("go('jobs')",'Jobs')}
+  <div class="${enq?'grid2 wide':''}" style="${enq?'':'max-width:720px'}"><div>
+   <div class="cust"><span class="cav${done?' g':''}">${esc(initial(who))}</span><span class="cn"><b>${esc(who)}</b><small>${[prof&&prof.suburb,when].filter(Boolean).map(esc).join(' · ')}</small></span><span class="pill ${done?'g':'b'}">${done?'Done':'Booked'}</span></div>
+   <div class="steps" style="--p:${(reach-1)/3}">${steps.map(x=>`<span class="${x[1]?'on':''}"><i>${x[1]?ICK:''}</i><b>${x[0]}</b></span>`).join('')}</div>
+   <div class="card cpad job" style="margin-top:18px"><div class="cap">The job</div><div class="jt">${esc(b.job_title||(q0&&q0.job_title)||'Job')}</div>${msg&&msg!==b.job_title?`<div class="jm">${esc(msg)}</div>`:''}
+    ${q0&&q0.total_inc_gst!=null?`<div class="amt"><b>${money(q0.total_inc_gst)}</b><small>inc GST · you keep all of it</small></div>`:''}
+    ${addrTxt?`<span class="where">${esc(addrTxt)}</span>`:''}</div>
+   <div id="jphotos"></div>
+   ${done?`<div class="card open-card"><div class="oic"><svg class="i" viewBox="0 0 24 24"><path d="M12 3.6l2.6 5.4 5.9.8-4.3 4.1 1.1 5.9-5.3-2.9-5.3 2.9 1.1-5.9-4.3-4.1 5.9-.8z"/></svg></div><b>${rev?esc(first)+' has reviewed you':'Reviews are open'}</b><p>${rev?'It’s on your profile now. You can reply to it from Reviews.':'You and '+esc(first)+' can review each other now the job is marked complete.'}</p></div>`
+    :`<p class="note">${IBADGE}<span>${b.slot_start?'':'You and '+esc(first)+' sort the time out between you. '}When you finish, mark the job complete so you can review each other.</span></p>`}
+   <div class="acts">${acts}${two.length?`<div class="two">${two.join('')}</div>`:''}</div>
+  </div>${enq?chatCard(enq):''}</div>`;
+ if(enq){LEAD=enq;const th=$('thread');if(th)th.scrollTop=th.scrollHeight;}
+ const P=(enq&&Array.isArray(enq.photos))?enq.photos:[];
+ if(P.length){const urls=await enqPhotoSrcs(P);const ph=$('jphotos');if(ph&&urls.length)ph.innerHTML=`<div class="photos" style="margin-top:0">${photoTiles(urls)}</div>`;}
+}catch(err){$('main').innerHTML=backLink("go('jobs')",'Jobs')+'<h2>Job</h2>'+errBox(err);}}
+// Mark a booked job complete: reviews open both ways. (The app's version also takes the job photos.)
+function markComplete(bid){openModal(`<h3>Mark the job complete?</h3><p>The customer sees it straight away, and you can review each other.</p><textarea id="mc_note" placeholder="A line about what you did (optional). The customer sees this."></textarea><div class="ferr" id="mc_err" style="margin-top:10px"></div><div class="mf"><button class="btn w" onclick="closeModal()">Not yet</button><button class="btn g" onclick="doComplete('${bid}')">Mark complete</button></div>`);}
+async function doComplete(bid){
+ const note=(val('mc_note')||'').trim();
+ const {error}=await sb.from('bookings').update({status:'completed',completed_at:new Date().toISOString(),report_note:note||null}).eq('id',bid);
+ if(error){$('mc_err').textContent=error.message||'That didn’t save. Try again.';return;}
+ closeModal(); openJob(bid);
+}
+// Rate a customer after a completed job (TDReviewCustomer). Only you and they can see it.
+let RATE=0;
+async function rateCustomer(bid){
+ RATE=0;
+ openModal(`<h3>How was the job?</h3><p>Rate the customer. Only you, them and TrustTrade can see it.</p><div class="pickstars" id="rs">${[1,2,3,4,5].map(n=>`<svg viewBox="0 0 24 24" onclick="pickRate(${n})"><path d="M12 3.6l2.6 5.4 5.9.8-4.3 4.1 1.1 5.9-5.3-2.9-5.3 2.9 1.1-5.9-4.3-4.1 5.9-.8z"/></svg>`).join('')}</div><textarea id="rc_text" placeholder="Anything worth knowing? (optional)"></textarea><div class="ferr" id="rc_err" style="margin-top:10px"></div><div class="mf"><button class="btn w" onclick="closeModal()">Cancel</button><button class="btn g" onclick="saveRate('${bid}')">Post rating</button></div>`);
+}
+function pickRate(n){RATE=n;document.querySelectorAll('#rs svg').forEach((s,i)=>s.classList.toggle('on',i<n));}
+async function saveRate(bid){
+ if(!RATE){$('rc_err').textContent='Pick a star rating first.';return;}
+ const {data:b}=await sb.from('bookings').select('customer_id').eq('id',bid).maybeSingle();
+ if(!b){$('rc_err').textContent='That job could not be found.';return;}
+ const {error}=await sb.from('customer_reviews').insert({from_tradie_auth_id:ME.id,customer_id:b.customer_id,booking_id:bid,rating:RATE,review_text:(val('rc_text')||'').trim()||null});
+ if(error){$('rc_err').textContent=error.message||'That didn’t save. Try again.';return;}
+ closeModal(); go(PAGE,PAGE==='job'?{id:bid}:undefined);
+}
+
+/* ═════ INBOX (NewInbox, tradie side) ═════ */
+async function pInbox(){loading('Inbox');try{
+ const {data,error}=await sb.from('enquiries').select('*').eq('listing_id',LST.id).order('created_at',{ascending:false}).limit(300);if(error)throw error;
+ const E=data||[];
+ const qBy={};try{const {data:qs}=await sb.from('quotes').select('enquiry_id,job_title,created_at').eq('tradie_auth_user_id',ME.id).order('created_at',{ascending:false});(qs||[]).forEach(q=>{if(q.enquiry_id&&!qBy[q.enquiry_id])qBy[q.enquiry_id]=q;});}catch(e){}
+ const rows=E.map(e=>{const M=withEnquiryFirst(e,Array.isArray(e.messages)?e.messages:[],ME.id);const last=M[M.length-1]||null;
+  const mine=last?(last.fromUserId===ME.id||last.fromUserId==='tradie'):false;const t=(last&&last.createdAt)||e.created_at;
+  return {e,last,mine,t,unread:!!last&&!mine&&M.length>1};}).sort((a,b)=>Date.parse(b.t)-Date.parse(a.t));
+ const unread=rows.filter(r=>r.unread).length; const c=$('c-inbox'); if(c){c.textContent=unread?String(unread):'';c.classList.toggle('hot',unread>0);}
+ $('main').innerHTML=`<div class="phead"><div class="pt"><h2>Inbox</h2><div class="subt">Every chat with a customer. Only you and that customer are in it.</div></div></div>
+  ${rows.length?`<div class="msgs">${rows.map(r=>`<div class="mrow${r.unread?' unread':''}" onclick="openLead('${r.e.id}',true)"><span class="cav">${esc(initial(r.e.from_name))}</span><span class="tx"><span class="top"><b>${esc(shortName(r.e.from_name))}</b><span>${esc(whenLead(r.t))}</span></span><span class="jb">${esc((qBy[r.e.id]&&qBy[r.e.id].job_title)||needJob(r.e.message)||'Enquiry')}</span><span class="pv">${r.mine?'You: ':''}${esc((r.last&&r.last.body)||'')}</span></span>${r.unread?'<span class="dot"></span>':''}</div>`).join('')}</div>`
+   :`<div class="card empty"><b style="display:block;color:var(--ink);font-size:16px;margin-bottom:4px">No messages yet.</b>When a customer sends you an enquiry, the chat opens here.</div>`}`;
+}catch(e){$('main').innerHTML='<h2>Inbox</h2>'+errBox(e);}}
+
+/* ═════ QUOTE BUILDER (same fixed-price + GST model as the app) ═════ */
 let QLINES=[];
 function qSum(){let sub=0,gst=0;QLINES.forEach(l=>{const p=parseFloat(String(l[1]).replace(/[^0-9.]/g,''))||0;if(!p)return;if(l[3]){const base=Math.round(p/1.1*100)/100;sub+=base;gst+=(p-base);}else{sub+=p;gst+=p*0.1;}});sub=Math.round(sub*100)/100;gst=Math.round(gst*100)/100;return{sub,gst,tot:Math.round((sub+gst)*100)/100};}
-function qRenderLines(){const host=$('qlines');if(!host)return;host.innerHTML=QLINES.map((l,i)=>`<div style="border:1px solid var(--line2);border-radius:10px;padding:10px;margin-bottom:8px"><div style="display:grid;grid-template-columns:1fr 120px auto;gap:8px;align-items:center"><input placeholder="Description" value="${esc(l[0])}" oninput="QLINES[${i}][0]=this.value"><input placeholder="$ price" inputmode="decimal" value="${esc(l[1])}" oninput="QLINES[${i}][1]=this.value;qTot()"><button class="btn r" style="height:36px" onclick="QLINES.splice(${i},1);qRenderLines();qTot()">✕</button></div><label style="font-size:12px;color:var(--mut);display:flex;gap:6px;align-items:center;margin-top:7px"><input type="checkbox" ${l[3]?'checked':''} onchange="QLINES[${i}][3]=this.checked;qTot()"> price already includes GST</label></div>`).join('');}
-function qAddLine(){QLINES.push(['','','',false]);qRenderLines();}
-function qTot(){const t=$('qtot');if(!t)return;const {sub,gst,tot}=qSum();t.innerHTML=`<div style="display:flex;justify-content:space-between;padding:4px 0"><span class="mut">Subtotal (ex GST)</span><b class="mono">$${sub.toFixed(2)}</b></div><div style="display:flex;justify-content:space-between;padding:4px 0"><span class="mut">GST (10%)</span><b class="mono">$${gst.toFixed(2)}</b></div><div style="display:flex;justify-content:space-between;padding:9px 0 2px;border-top:1px solid var(--line2);font-size:16px"><b>Total inc GST</b><b class="mono">$${tot.toFixed(2)}</b></div>`;}
+function qRenderLines(){const host=$('qlines');if(!host)return;host.innerHTML=QLINES.map((l,i)=>`<div class="qline"><input placeholder="Line item, e.g. Supply &amp; install" value="${esc(l[0])}" oninput="QLINES[${i}][0]=this.value"><input placeholder="$ price" inputmode="decimal" value="${esc(l[1])}" oninput="QLINES[${i}][1]=this.value;qTot()"><button class="gst${l[3]?' on':''}" onclick="QLINES[${i}][3]=!QLINES[${i}][3];qRenderLines();qTot()">${l[3]?'inc GST':'+ GST'}</button><button class="rm" onclick="QLINES.splice(${i},1);qRenderLines();qTot()" aria-label="Remove line"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>`).join('');}
+function qAddLine(){QLINES.push(['','','',false]);qRenderLines();const ins=document.querySelectorAll('#qlines .qline:last-child input');if(ins[0])ins[0].focus();}
+function qTot(){const t=$('qtot');if(!t)return;const {sub,gst,tot}=qSum();t.innerHTML=`<div><span>Subtotal (ex GST)</span><b>${money(sub)}</b></div><div><span>GST (10%)</span><b>${money(gst)}</b></div><div class="grand"><span>Total (inc GST)</span><b>${money(tot)}</b></div>`;}
 function pQuoteNew(){
- if(!LEAD){go('leads');return;}
+ if(!LEAD){go('jobs');return;}
  QLINES=[['Labour','','',false],['Supply & materials','','',false]];
- $('main').innerHTML=`<div style="margin-bottom:10px"><a class="mut" style="cursor:pointer" onclick="openLead('${LEAD.id}')">← Back to lead</a></div>
-  <h1>New quote</h1><div class="subt">For ${esc(LEAD.from_name||'customer')}${LEAD.from_town?' · '+esc(LEAD.from_town):''}</div>
-  <div class="card"><div style="padding:18px">
-   <div class="fld"><label>Job title</label><input id="q_title" placeholder="e.g. Replace hot water system"></div>
-   <label style="font-size:11px;font-weight:750;color:var(--mut);text-transform:uppercase;letter-spacing:.03em">Line items</label>
-   <div id="qlines" style="margin:8px 0 6px"></div>
-   <button class="btn w" style="height:34px" onclick="qAddLine()">+ Add line</button>
-   <div style="margin:16px 0" id="qtot"></div>
-   <div class="grid2"><div class="fld"><label>Can start</label><input id="q_start" placeholder="e.g. Next week"></div><div class="fld"><label>Valid for (days)</label><input id="q_valid" value="7" inputmode="numeric"></div></div>
-   <div class="fld"><label>Warranty</label><input id="q_warranty" placeholder="e.g. 12 months on workmanship"></div>
-   <button class="btn gold" style="width:auto;height:42px" onclick="sendQuote()">Send quote</button>
+ const first=shortName(LEAD.from_name).split(' ')[0];
+ $('main').innerHTML=`${backLink(`openLead('${LEAD.id}')`,'Back to the enquiry')}
+  <div class="phead"><div class="pt"><h2>Build a quote</h2><div class="subt">For ${esc(shortName(LEAD.from_name))}${LEAD.from_town?' · '+esc(LEAD.from_town):''}. TrustTrade takes no commission: you keep the full amount.</div></div></div>
+  <div class="grid2 wide"><div class="card form">
+   <label class="field"><span>Job</span><input id="q_title" placeholder="What’s the job?" value="${esc(deriveJobTitle(LEAD))}"></label>
+   <div class="field"><span>Line items</span><div id="qlines"></div><button class="addrow" onclick="qAddLine()">+ Add line item</button></div>
+   <div class="totals" id="qtot"></div>
+  </div><div class="card form">
+   <label class="field"><span>Can start</span><input id="q_start" placeholder="e.g. Next week"></label>
+   <label class="field"><span>Valid for (days)</span><input id="q_valid" value="7" inputmode="numeric"></label>
+   <label class="field"><span>Warranty</span><input id="q_warranty" placeholder="e.g. 12 months on workmanship"></label>
+   <p class="sub2" style="font-size:13.5px;margin:0 4px 16px">Lines you mark inc GST already include the 10%. The rest have GST added. ${esc(first)} sees the quote in the app and can accept it there, which books the job.</p>
+   <div class="ferr" id="q_err"></div>
+   <button class="btn g big block" onclick="sendQuote()">Send quote</button>
   </div></div>`;
  qRenderLines();qTot();
 }
 async function sendQuote(){
- if(!LEAD)return;
- const title=(val('q_title')||'').trim();if(!title){toast('Add a job title');return;}
- const {sub,gst,tot}=qSum();if(tot<=0){toast('Add at least one priced line');return;}
+ if(!LEAD)return;const err=$('q_err');err.textContent='';
+ const title=(val('q_title')||'').trim();if(!title){err.textContent='Add a job title.';return;}
+ const {sub,gst,tot}=qSum();if(tot<=0){err.textContent='Add at least one priced line.';return;}
  const startTxt=(val('q_start')||'').trim(),warranty=(val('q_warranty')||'').trim();
  const validDays=parseInt(String(val('q_valid')||'').replace(/[^0-9]/g,''),10)||7;
  const scopeLines=QLINES.filter(l=>String(l[0]).trim()).map(l=>{const p=parseFloat(String(l[1]).replace(/[^0-9.]/g,''))||0;return '• '+String(l[0]).trim()+(p?(' ($'+p.toLocaleString()+(l[3]?' inc GST':'')+')'):'');});
@@ -322,232 +1043,326 @@ async function sendQuote(){
   quote_number:'Q-'+Date.now().toString(36).toUpperCase(),job_title:title,pricing_mode:'fixed',
   fixed_price:tot,subtotal_ex_gst:sub,gst_amount:gst,total_inc_gst:tot,scope_of_work:scope,
   status:'sent',sent_at:new Date().toISOString(),valid_until:new Date(Date.now()+validDays*864e5).toISOString().slice(0,10)});
- if(error){toast((error.message||'').includes('rate_limit')?"You've sent a lot of quotes recently — try again shortly.":error.message);return;}
- toast('Quote sent — $'+tot.toLocaleString());go('quotes');
+ if(error){err.textContent=(error.message||'').includes('rate_limit')?'You’ve sent a lot of quotes recently. Try again shortly.':(error.message||'That didn’t send. Try again.');return;}
+ openLead(LEAD.id);   // the enquiry now shows "Your quote"
 }
 
+/* ═════ QUOTES ═════ */
 async function pQuotes(){loading('Quotes');try{
- const {data,error}=await sb.from('quotes').select('*').eq('tradie_listing_id',LST.id).order('created_at',{ascending:false}).limit(100);if(error)throw error;
- $('main').innerHTML=`<h1>Quotes</h1><div class="subt">${(data||[]).length} quotes</div>
-  <div class="card"><table><thead><tr><th>Quote</th><th>Job</th><th>Customer</th><th>Total</th><th>Status</th><th>When</th></tr></thead><tbody>
-  ${(data||[]).map(q=>`<tr><td class="mono">${esc(q.quote_number||'—')}</td><td>${esc(q.job_title||'—')}</td><td>${esc(q.customer_name||'—')}</td><td class="mono">$${q.total_inc_gst||0}</td><td>${q.status==='accepted'?'<span class="pill g">Accepted</span>':q.status==='rejected'?'<span class="pill r">Declined</span>':'<span class="pill a">'+esc(q.status||'sent')+'</span>'}</td><td class="mut">${ago(q.created_at)}</td></tr>`).join('')||'<tr><td colspan=6 class="empty">No quotes yet. Send your first from the app.</td></tr>'}
-  </tbody></table></div>`;
-}catch(e){$('main').innerHTML='<h1>Quotes</h1>'+errBox(e);}}
+ const {data,error}=await sb.from('quotes').select('*').eq('tradie_listing_id',LST.id).order('created_at',{ascending:false}).limit(200);if(error)throw error;
+ const Q=data||[];
+ const pill=q=>q.status==='accepted'?'<span class="pill g">Accepted</span>':q.status==='rejected'?'<span class="pill">Declined</span>':q.status==='viewed'?'<span class="pill b">Seen</span>':q.status==='draft'?'<span class="pill">Draft</span>':'<span class="pill a">Sent</span>';
+ $('main').innerHTML=`<div class="phead"><div class="pt"><h2>Quotes</h2><div class="subt">${Q.length} quote${Q.length===1?'':'s'}. When a customer accepts one, the job is booked.</div></div></div>
+  <div class="card">${Q.length?`<table><thead><tr><th>Job</th><th>Customer</th><th>Total</th><th>Status</th><th>Sent</th></tr></thead><tbody>
+  ${Q.map(q=>`<tr class="${q.enquiry_id?'tap':''}" ${q.enquiry_id?`onclick="openLead('${q.enquiry_id}')"`:''}><td><b>${esc(q.job_title||'Job')}</b><div class="mut" style="font-size:12.5px">${esc(q.quote_number||'')}</div></td><td>${esc(shortName(q.customer_name))}</td><td class="num">${money(q.total_inc_gst)}</td><td>${pill(q)}</td><td class="sub2">${esc(dayShort(q.sent_at||q.created_at))}</td></tr>`).join('')}
+  </tbody></table>`:'<div class="empty">No quotes yet. Open an enquiry and send one.</div>'}</div>`;
+}catch(e){$('main').innerHTML='<h2>Quotes</h2>'+errBox(e);}}
 
-async function pJobs(){loading('Jobs');try{
- const {data,error}=await sb.from('bookings').select('*').eq('listing_id',LST.id).order('created_at',{ascending:false}).limit(100);if(error)throw error;
- $('main').innerHTML=`<h1>Jobs</h1><div class="subt">${(data||[]).length} bookings</div>
-  <div class="card"><table><thead><tr><th>Job</th><th>Status</th><th>Scheduled</th></tr></thead><tbody>
-  ${(data||[]).map(b=>`<tr><td><b>${esc(b.job_title||'Job')}</b></td><td>${b.status==='completed'?'<span class="pill g">Completed</span>':b.status==='disputed'?'<span class="pill r">Disputed</span>':'<span class="pill b">'+esc(b.status||'')+'</span>'}</td><td class="mut">${fmtDate(b.slot_start||b.created_at)}</td></tr>`).join('')||'<tr><td colspan=3 class="empty">No jobs yet — a job is created when a homeowner books you.</td></tr>'}
-  </tbody></table></div>`;
-}catch(e){$('main').innerHTML='<h1>Jobs</h1>'+errBox(e);}}
-
+/* ═════ INVOICES ═════ */
 async function pInvoices(){loading('Invoices');try{
  const [invRes,qRes]=await Promise.all([
   sb.from('invoices').select('*').eq('tradie_auth_id',ME.id).order('created_at',{ascending:false}).limit(200),
-  sb.from('quotes').select('id,job_title,customer_name,customer_id,subtotal_ex_gst,gst_amount,total_inc_gst,status').eq('tradie_auth_user_id',ME.id).eq('status','accepted').limit(100)
- ]);
+  sb.from('quotes').select('id,job_title,customer_name,customer_id,subtotal_ex_gst,gst_amount,total_inc_gst,status').eq('tradie_auth_user_id',ME.id).eq('status','accepted').limit(100)]);
  if(invRes.error)throw invRes.error;
  const invs=invRes.data||[], acc=qRes.data||[];
- const paid=invs.filter(i=>i.status==='paid');
- const earned=paid.reduce((a,i)=>a+(+i.total||0),0);
- const outstanding=invs.filter(i=>i.status==='sent'||i.status==='overdue').reduce((a,i)=>a+(+i.total||0),0);
- const invoicedQ=new Set(invs.map(i=>i.quote_id).filter(Boolean));
- const toInvoice=acc.filter(q=>!invoicedQ.has(q.id));
- $('main').innerHTML=`<h1>Invoices</h1><div class="subt">Invoice accepted quotes and track what you're owed</div>
-  <div class="kpis"><div class="kpi"><div class="k">Earned (paid)</div><b>$${earned.toLocaleString()}</b><div class="d">${paid.length} paid</div></div><div class="kpi"><div class="k">Outstanding</div><b>$${outstanding.toLocaleString()}</b><div class="d">${invs.length-paid.length} unpaid</div></div><div class="kpi"><div class="k">Ready to invoice</div><b style="${toInvoice.length?'color:var(--gold)':''}">${toInvoice.length}</b><div class="d">accepted quotes</div></div></div>
-  ${toInvoice.length?`<div class="card"><div class="ch">Accepted quotes ready to invoice</div><table><tbody>${toInvoice.map(q=>`<tr><td><b>${esc(q.job_title||'Job')}</b><div class="mut" style="font-size:12px">${esc(q.customer_name||'')}</div></td><td class="mono">$${(+q.total_inc_gst||0).toLocaleString()}</td><td class="right"><button class="btn gold" style="width:auto;height:32px" onclick="createInvoiceFromQuote('${q.id}')">Create invoice</button></td></tr>`).join('')}</tbody></table></div>`:''}
-  <div class="card"><div class="ch">Invoices</div><table><thead><tr><th>Invoice</th><th>Total</th><th>Status</th><th>Due</th></tr></thead><tbody>
-  ${invs.map(i=>`<tr><td class="mono">${esc(i.number||'—')}</td><td class="mono">$${(+i.total||0).toLocaleString()}</td><td>${i.status==='paid'?'<span class="pill g">Paid</span>':i.status==='overdue'?'<span class="pill r">Overdue</span>':'<span class="pill a">'+esc(i.status||'sent')+'</span>'}</td><td class="mut">${fmtDate(i.due_at)}</td></tr>`).join('')||'<tr><td colspan=4 class="empty">No invoices yet. Create one from an accepted quote above.</td></tr>'}
-  </tbody></table></div>`;
-}catch(e){$('main').innerHTML='<h1>Invoices</h1>'+errBox(e);}}
-async function createInvoiceFromQuote(qid){try{
+ const paid=invs.filter(i=>i.status==='paid'), earned=paid.reduce((a,i)=>a+(+i.total||0),0);
+ const owing=invs.filter(i=>i.status==='sent'||i.status==='overdue'), outstanding=owing.reduce((a,i)=>a+(+i.total||0),0);
+ const invoicedQ=new Set(invs.map(i=>i.quote_id).filter(Boolean)), toInvoice=acc.filter(q=>!invoicedQ.has(q.id));
+ $('main').innerHTML=`<div class="phead"><div class="pt"><h2>Invoices</h2><div class="subt">Invoice accepted quotes and keep track of what you’re owed. Customers pay you direct.</div></div></div>
+  <div class="kpis" style="grid-template-columns:repeat(3,minmax(0,1fr))"><div class="kpi"><b>${money(earned)}</b><div class="k">Paid · ${paid.length}</div></div><div class="kpi"><b class="${owing.length?'dn':''}">${money(outstanding)}</b><div class="k">Owed · ${owing.length}</div></div><div class="kpi"><b>${toInvoice.length}</b><div class="k">Ready to invoice</div></div></div>
+  ${toInvoice.length?`<div class="h3"><h3>Ready to invoice</h3></div><div class="card"><table><tbody>${toInvoice.map(q=>`<tr><td><b>${esc(q.job_title||'Job')}</b><div class="mut" style="font-size:12.5px">${esc(shortName(q.customer_name))}</div></td><td class="num">${money(q.total_inc_gst)}</td><td style="text-align:right"><button class="btn g sm" onclick="createInvoiceFromQuote('${q.id}',this)">Create invoice</button></td></tr>`).join('')}</tbody></table></div>`:''}
+  <div class="h3"><h3>Invoices</h3></div>
+  <div class="card">${invs.length?`<table><thead><tr><th>Invoice</th><th>Total</th><th>Status</th><th>Due</th></tr></thead><tbody>${invs.map(i=>`<tr><td><b>${esc(i.number||'Invoice')}</b></td><td class="num">${money(i.total)}</td><td>${i.status==='paid'?'<span class="pill g">Paid</span>':i.status==='overdue'?'<span class="pill r">Overdue</span>':i.status==='draft'?'<span class="pill">Draft</span>':'<span class="pill a">Sent</span>'}</td><td class="sub2">${esc(fmtDate(i.due_at))}</td></tr>`).join('')}</tbody></table>`:'<div class="empty">No invoices yet. Create one from an accepted quote above.</div>'}</div>`;
+}catch(e){$('main').innerHTML='<h2>Invoices</h2>'+errBox(e);}}
+async function createInvoiceFromQuote(qid,btn){try{
  const {data:q,error}=await sb.from('quotes').select('*').eq('id',qid).single();if(error)throw error;
- if(!q.customer_id){toast('This quote has no linked customer account — invoice it from the app.');return;}
+ if(!q.customer_id){toast('This quote has no linked customer account. Invoice it from the app.');return;}
+ if(btn){btn.disabled=true;}
  const number='INV-'+Date.now().toString(36).toUpperCase();
  const {data:inv,error:ie}=await sb.from('invoices').insert({customer_id:q.customer_id,tradie_auth_id:ME.id,listing_id:q.tradie_listing_id||null,quote_id:q.id,number,subtotal:+q.subtotal_ex_gst||0,gst:+q.gst_amount||0,total:+q.total_inc_gst||0,status:'sent',due_at:new Date(Date.now()+7*864e5).toISOString()}).select('id').maybeSingle();
- if(ie){toast(ie.message);return;}
+ if(ie){toast(ie.message);if(btn)btn.disabled=false;return;}
  if(inv&&inv.id){await sb.from('invoice_line_items').insert([{invoice_id:inv.id,description:q.job_title||'Job',qty:1,unit_price:+q.total_inc_gst||0,amount:+q.total_inc_gst||0,sort:0}]);}
- toast('Invoice created · '+number);pInvoices();
-}catch(e){toast(e.message||'Could not create invoice');}}
+ pInvoices();
+}catch(e){toast(e.message||'Could not create the invoice');}}
 
+/* ═════ REVIEWS (TDReviews) ═════ */
 async function pReviews(){loading('Reviews');try{
- const {data,error}=await sb.from('listing_reviews').select('*').eq('listing_id',LST.id).order('created_at',{ascending:false}).limit(100);if(error)throw error;
- $('main').innerHTML=`<h1>Reviews</h1><div class="subt">${LST.rating||'—'} average · ${(data||[]).length} shown</div>
-  <div class="card"><div style="padding:6px 18px">
-  ${(data||[]).map(r=>`<div style="padding:14px 0;border-bottom:1px solid var(--line2)"><div style="display:flex;align-items:center;gap:8px"><b>${esc(r.from_name||'—')}</b><span style="color:var(--star)">${stars(r.rating)}</span><span class="pill ${r.source==='google'?'n':'g'}" style="margin-left:auto">${esc(r.source||'trusttrade')}</span></div><div style="font-size:13.5px;color:var(--ink2);margin-top:6px">${esc(r.review_text||'')}</div>${r.reply_text?`<div style="margin-top:8px;padding:9px 12px;background:var(--bg);border-radius:9px;font-size:12.5px"><b>Your reply:</b> ${esc(r.reply_text)}</div>`:''}</div>`).join('')||'<div class="empty">No reviews yet — customers leave these after a completed job.</div>'}
+ const [rv,bk,cr]=await Promise.all([
+  sb.from('listing_reviews').select('*').eq('listing_id',LST.id).order('created_at',{ascending:false}).limit(200),
+  sb.from('bookings').select('id,customer_id,job_title,completed_at,slot_start,quote_id,enquiry_id').eq('tradie_auth_id',ME.id).eq('status','completed'),
+  sb.from('customer_reviews').select('booking_id').eq('from_tradie_auth_id',ME.id)]);
+ if(rv.error)throw rv.error;
+ const R=(rv.data||[]).filter(r=>!r.hidden), rated=new Set((cr.data||[]).map(r=>r.booking_id)), toRate=(bk.data||[]).filter(b=>!rated.has(b.id));
+ const avg=R.length?R.reduce((a,r)=>a+(+r.rating||0),0)/R.length:null;
+ const names={};if(toRate.length){try{const {data:ps}=await sb.from('profiles').select('id,name').in('id',[...new Set(toRate.map(b=>b.customer_id))]);(ps||[]).forEach(p=>names[p.id]=p.name);}catch(e){}}
+ const toReply=R.filter(r=>!r.reply_text&&r.source!=='google').length; const c=$('c-rev'); if(c){c.textContent=toReply?String(toReply):'';}
+ $('main').innerHTML=`<div class="phead"><div class="pt"><h2>Reviews</h2><div class="subt">Reviews only come from booked jobs. Both sides can review once a job is complete.</div></div></div>
+  <div class="grid2"><div>
+   <div class="card rsum"><span class="big">${avg!=null?avg.toFixed(1):'—'}</span><span><span>${stars(Math.round(avg||0))}</span><span class="sub2" style="display:block;margin-top:6px">${R.length} review${R.length===1?'':'s'}</span></span></div>
+   ${toRate.length?`<div class="lbl" style="color:var(--goldd)">Ready to review</div>${toRate.map(b=>`<div class="card torev"><span class="tx"><b>${esc(shortName(names[b.customer_id]||'Your customer'))}</b><small>${esc(b.job_title||'Job')} · ${esc(dayShort(b.completed_at||b.slot_start))}</small></span><button class="btn g sm" onclick="rateCustomer('${b.id}')">Rate</button></div>`).join('')}`:''}
+  </div><div>
+   <div class="lbl" style="margin-top:0">Reviews about you</div>
+   ${R.length?R.map(r=>`<div class="card rev"><div class="rh"><span class="cav">${esc(initial(r.from_name))}</span><span class="tx"><b>${esc(r.from_name||'Customer')}</b><small>${esc(dayShort(r.created_at))}${r.source==='google'?' · Google':''}</small></span>${stars(Math.round(+r.rating||0))}</div>${r.review_text?`<p>${esc(r.review_text)}</p>`:''}
+    ${r.reply_text?`<div class="reply"><b>Your reply</b>${esc(r.reply_text)}</div>`:(r.source!=='google'?`<div class="rbox" id="rb_${r.id}"><button class="btn w sm" onclick="replyBox('${r.id}')">Reply</button></div>`:'')}</div>`).join('')
+    :'<div class="card empty">No reviews yet. Customers leave these after a completed job.</div>'}
   </div></div>`;
-}catch(e){$('main').innerHTML='<h1>Reviews</h1>'+errBox(e);}}
+}catch(e){$('main').innerHTML='<h2>Reviews</h2>'+errBox(e);}}
+function replyBox(id){const b=$('rb_'+id);if(!b)return;b.innerHTML=`<textarea id="rt_${id}" placeholder="Say thanks, or give your side. You can reply once, and it shows on your profile."></textarea><div class="ferr" id="re_${id}" style="margin-top:8px"></div><div class="fbar"><button class="btn g sm" onclick="postReply('${id}')">Post reply</button><button class="btn w sm" onclick="pReviews()">Cancel</button></div>`;const t=$('rt_'+id);if(t)t.focus();}
+async function postReply(id){const txt=(val('rt_'+id)||'').trim();if(!txt){$('re_'+id).textContent='Write a reply first.';return;}
+ const {error}=await sb.rpc('reply_to_review',{p_review:id,p_text:txt});
+ if(error){$('re_'+id).textContent=error.message||'That didn’t post. Try again.';return;}
+ pReviews();}
 
-function pProfile(){const t=LST;
- const svcText=(Array.isArray(t.priced_services)?t.priced_services:[]).map(s=>`${s.name||s.title||''} | ${s.detail||''} | ${s.price!=null?s.price:(s.amount||'')}`).join('\n');
- $('main').innerHTML=`<h1>Profile &amp; rates</h1><div class="subt">This is what homeowners see. ABN, licence and insurance are verified by TrustTrade and can't be edited here.</div>
-  <div class="card"><div style="padding:18px">
-   <div class="fld"><label>Business name</label><input id="p_name" value="${esc(t.name||'')}"></div>
-   <div class="grid2"><div class="fld"><label>Trade</label><input id="p_trade" value="${esc(t.trade||'')}"></div><div class="fld"><label>Phone</label><input id="p_phone" value="${esc(t.phone||'')}"></div></div>
-   <div class="fld"><label>Email</label><input id="p_email" value="${esc(t.email||'')}"></div>
-   <div class="grid2"><div class="fld"><label>Suburb</label><input id="p_suburb" value="${esc(t.suburb||'')}"></div><div class="fld"><label>Postcode</label><input id="p_pc" value="${esc(t.postcode||'')}"></div></div>
-   <div class="grid2"><div class="fld"><label>Hourly rate ($)</label><input id="p_rate" value="${t.hourly_rate??''}"></div><div class="fld"><label>Call-out fee ($)</label><input id="p_call" value="${t.call_out_fee??''}"></div></div>
-   <div class="grid2"><div class="fld"><label>Service radius (km)</label><input id="p_rad" value="${t.service_radius_km??''}"></div><div class="fld"><label>Website</label><input id="p_web" value="${esc(t.website||'')}"></div></div>
-   <div class="fld"><label>About your business</label><textarea id="p_desc">${esc(t.description||'')}</textarea></div>
-   <div class="fld"><label>Services — one per line: name | detail | price</label><textarea id="p_svc" style="min-height:110px">${esc(svcText)}</textarea></div>
-   <button class="btn gold" style="width:auto;height:40px" onclick="saveProfile()">Save changes</button>
+/* ═════ MY PROFILE (TDProfile) ═════ */
+const STOCK=/(^|\/\/)([a-z0-9-]+\.)*(unsplash\.com|pexels\.com|pixabay\.com|istockphoto\.com|shutterstock\.com|gettyimages\.)/i;
+const listingPhotos=l=>(Array.isArray(l.photos)?l.photos:[]).filter(u=>u&&!STOCK.test(String(u)));
+// priced_services comes in two shapes: [{name,items:[…]}] sections, or flat [{name,unit,price}].
+function pricedRows(l){const out=[];(Array.isArray(l.priced_services)?l.priced_services:[]).forEach(x=>{
+  if(x&&Array.isArray(x.items))x.items.forEach(it=>out.push({name:it.name||x.name,desc:it.desc||it.detail||'',price:it.price}));
+  else if(x&&x.name)out.push({name:x.name,desc:x.desc||x.detail||'',price:x.price});});
+ const seen=new Set(out.map(r=>String(r.name).toLowerCase()));
+ (Array.isArray(l.services)?l.services:[]).forEach(s=>{const n=String(s||'').trim();if(n&&!seen.has(n.toLowerCase())){out.push({name:n,desc:'',price:null});seen.add(n.toLowerCase());}});
+ return out.filter(r=>r.name);}
+function hoursWords(l){
+ const h=(l.business_hours&&typeof l.business_hours==='object'&&Object.keys(l.business_hours).length)?l.business_hours:l.opening_hours;
+ if(!h||typeof h!=='object')return [];
+ const order=['mon','tue','wed','thu','fri','sat','sun'],lbl={mon:'Mon',tue:'Tue',wed:'Wed',thu:'Thu',fri:'Fri',sat:'Sat',sun:'Sun'};
+ const t=x=>{const m=String(x||'').match(/^(\d{1,2}):(\d{2})\s*(am|pm)?/i);if(!m)return String(x||'');let hh=+m[1];if(m[3]){if(/pm/i.test(m[3])&&hh<12)hh+=12;if(/am/i.test(m[3])&&hh===12)hh=0;}return (((hh+11)%12)+1)+(+m[2]?':'+m[2]:'')+(hh<12?'am':'pm');};
+ const day=d=>{const v=h[d];if(!v)return 'closed';if(Array.isArray(v))return (v[0]||v[1])?t(v[0])+' to '+t(v[1]):'closed';
+  if(v.mode==='closed')return 'closed';if(v.mode==='emergency'||v.emergencyOnly)return 'emergencies only';
+  if(v.open||v.close){if(v.open==='00:00'&&/^(23:59|24:00)/.test(v.close||''))return 'open 24 hours';return t(v.open)+' to '+t(v.close);}return 'closed';};
+ const vals=order.map(day);if(vals.every(v=>v==='open 24 hours'))return ['Open 24/7'];
+ const parts=[];let i=0;while(i<7){let j=i;while(j+1<7&&vals[j+1]===vals[i])j++;if(vals[i]!=='closed')parts.push((i===j?lbl[order[i]]:lbl[order[i]]+' to '+lbl[order[j]])+(i===j?' ':', ')+vals[i]);i=j+1;}
+ return parts;}
+// The app's account health score (same items and points)
+function healthHTML(l,reviewCount){
+ const photoN=listingPhotos(l).length, priced=pricedRows(l).filter(r=>r.price!=null&&r.price!=='').length, hasHours=hoursWords(l).length>0;
+ const items=[
+  {ok:!!(l.description&&l.description.trim().length>20),pts:15,label:'Write your bio',sub:'Tell customers who you are',fn:"go('profileEdit')"},
+  {ok:photoN>=3,pts:20,label:'Add work photos',sub:'At least 3, from real jobs',fn:"go('gallery')"},
+  {ok:priced>=1,pts:20,label:'Publish a starting price',sub:'Priced listings get more enquiries',fn:"go('profileEdit')"},
+  {ok:hasHours,pts:12,label:'Set your availability',sub:'Drives your “Open now” badge',fn:"go('hours')"},
+  {ok:!!l.licence,pts:18,label:'Finish verification',sub:'Your trade licence',fn:null},
+  {ok:!!(l.stripe_charges_enabled||l.pay_link||l.pay_details),pts:8,label:'Set up how you get paid',sub:'So your invoices can be paid',fn:null},
+  {ok:reviewCount>0,pts:7,label:'Earn your first review',sub:'Reviews come from completed jobs',fn:null}];
+ const score=items.reduce((a,i)=>a+(i.ok?i.pts:0),0);
+ const grade=score>=85?'Excellent':score>=65?'Strong':score>=40?'Getting there':'Needs work';
+ const col=score>=85?'var(--green)':score>=65?'var(--gold)':score>=40?'var(--goldd)':'var(--red)';
+ const todo=items.filter(i=>!i.ok).sort((a,b)=>b.pts-a.pts).slice(0,3);
+ return `<div class="card health"><div class="hh"><div><b>Account health</b><small>The higher your score, the more likely you get hired.</small></div><div class="hs" style="color:${col}">${score}<small>/100</small></div></div>
+  <div class="hbar"><i style="width:${score}%;background:${col}"></i></div><div class="hg" style="color:${col}">${grade}</div>
+  ${todo.length?`<div class="qw">Quick wins</div>${todo.map(i=>`<div class="hrow${i.fn?' tap':''}"${i.fn?` onclick="${i.fn}"`:''}><span class="pts">+${i.pts}</span><span class="tx"><b>${i.label}</b><small>${i.sub}</small></span>${i.fn?ICH:'<span class="app">In the app</span>'}</div>`).join('')}`:'<p class="sub2" style="margin-top:12px">Your profile is complete. Nicely done.</p>'}</div>`;
+}
+async function pProfile(){loading('My profile');try{
+ const {data:l}=await sb.from('listings').select('*').eq('id',LST.id).maybeSingle(); if(l){LST=l;paintWho();}
+ const t=LST;
+ const {data:revs}=await sb.from('listing_reviews').select('rating,hidden').eq('listing_id',t.id);
+ const R=(revs||[]).filter(r=>!r.hidden), avg=R.length?R.reduce((a,r)=>a+(+r.rating||0),0)/R.length:null;
+ const logo=t.chat_avatar_url||t.photo;
+ const row=(ic,k,v,href)=>`<div class="row"><span class="ric a">${ic}</span><span class="rt"><small>${k}</small><b class="${v?'':'mu'}">${v?(href?`<a href="${esc(href)}" style="color:inherit">${esc(v)}</a>`:esc(v)):'Not set'}</b></span></div>`;
+ const svcs=pricedRows(t), hrs=hoursWords(t);
+ const status=t.status==='approved'?'<span class="pill g">Live</span>':t.status==='hidden'?'<span class="pill r">Paused</span>':'<span class="pill a">Under review</span>';
+ const web=t.website?(/^https?:\/\//i.test(t.website)?t.website:'https://'+t.website):'';
+ $('main').innerHTML=`<div class="phead"><div class="pt"><h2>My profile</h2><div class="subt">What customers see when they find you.</div></div><div class="pa">${t.slug&&t.status==='approved'?`<a class="btn w" target="_blank" rel="noopener" href="/tradie/${encodeURIComponent(t.slug)}">See it as customers do</a>`:''}<button class="btn" onclick="go('profileEdit')">Edit profile</button></div></div>
+  <div class="card hero"><span class="hlogo"${logo?` style="background-image:url('${esc(logo)}')"`:''}>${logo?'':esc(initial(t.name))}</span><span class="ht"><b>${esc(t.name||'Your business')}</b><small>${[t.trade,t.suburb].filter(Boolean).map(esc).join(' · ')}</small><span class="hr">${avg!=null?`<span class="st">&#9733;</span>${avg.toFixed(1)} <span class="sub2" style="font-weight:500">· ${R.length} review${R.length===1?'':'s'}</span>`:'<span class="sub2" style="font-weight:500">No reviews yet</span>'}</span></span>${status}</div>
+  ${stateCard(t)}
+  <div class="grid2"><div>
+   <div class="card rows">${row('<svg class="i" viewBox="0 0 24 24"><path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2"/></svg>','Phone',t.phone,t.phone?'tel:'+String(t.phone).replace(/[^\d+]/g,''):'')}${row('<svg class="i" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="3"/><path d="M3 7l9 6 9-6"/></svg>','Email',t.email,t.email?'mailto:'+t.email:'')}${row('<svg class="i" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/></svg>','Website',t.website?String(t.website).replace(/^https?:\/\//i,'').replace(/\/$/,''):'',web)}</div>
+   <div class="card ptext"><small>About</small><p class="${t.description?'':'mu'}">${t.description?esc(t.description):'Add a few lines about your business.'}</p></div>
+   <div class="card ptext"><small>Services</small>${svcs.length?`<div class="chips">${svcs.map(s=>`<span>${esc(s.name)}${s.price!=null&&s.price!==''?' · from $'+esc(Number(s.price).toLocaleString()):''}</span>`).join('')}</div>`:'<p class="mu">Add the jobs you take on.</p>'}</div>
+  </div><div>
+   ${healthHTML(t,R.length)}
+   <div class="card rows">
+    <div class="row"><span class="rt"><small>Hourly rate</small><b class="${t.hourly_rate?'':'mu'}">${t.hourly_rate?money(t.hourly_rate)+' / hr':'Not set'}</b></span></div>
+    <div class="row"><span class="rt"><small>Call-out fee</small><b class="${t.call_out_fee?'':'mu'}">${t.call_out_fee?money(t.call_out_fee):'Not set'}</b></span></div>
+    <div class="row"><span class="rt"><small>Hours</small><b class="${hrs.length?'':'mu'}">${hrs.length?hrs.map(esc).join('<br>'):'Not set'}</b></span><button class="btn w sm" onclick="go('hours')">Edit</button></div>
+   </div>
   </div></div>`;
+}catch(e){$('main').innerHTML='<h2>My profile</h2>'+errBox(e);}}
+
+/* ═════ EDIT PROFILE (TDProfileEdit) ═════ */
+let SVC=[];
+function svcRender(){const h=$('svcRows');if(!h)return;h.innerHTML=SVC.map((r,i)=>`<div class="srow"><input placeholder="Service, e.g. Hot water repairs" value="${esc(r.name)}" oninput="SVC[${i}].name=this.value"><input placeholder="From $" inputmode="decimal" value="${r.price!=null?esc(r.price):''}" oninput="SVC[${i}].price=this.value"><input placeholder="Short detail (optional)" value="${esc(r.desc||'')}" oninput="SVC[${i}].desc=this.value"><button class="rm" onclick="SVC.splice(${i},1);svcRender()" aria-label="Remove"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>`).join('');}
+function svcAdd(){SVC.push({name:'',price:null,desc:''});svcRender();const ins=document.querySelectorAll('#svcRows .srow:last-child input');if(ins[0])ins[0].focus();}
+function pProfileEdit(){const t=LST;
+ SVC=pricedRows(t).map(r=>({name:r.name,price:r.price,desc:r.desc}));
+ $('main').innerHTML=`${backLink("go('profile')",'My profile')}
+  <div class="phead"><div class="pt"><h2>Edit profile</h2><div class="subt">This is what customers see. Your licence, ABN and checks are set by TrustTrade.</div></div></div>
+  <div class="grid2"><div class="card form">
+   <label class="field"><span>Business name</span><input id="p_name" value="${esc(t.name||'')}"></label>
+   <div class="fgrid"><label class="field"><span>Phone</span><input id="p_phone" value="${esc(t.phone||'')}" inputmode="tel"></label><label class="field"><span>Email</span><input id="p_email" value="${esc(t.email||'')}" type="email"></label></div>
+   <label class="field"><span>Website</span><input id="p_web" value="${esc(t.website||'')}" placeholder="yourbusiness.com.au"></label>
+   <label class="field"><span>About</span><textarea id="p_desc" placeholder="Who you are, what you do best, and the area you cover.">${esc(t.description||'')}</textarea></label>
+   <div class="fgrid3"><label class="field"><span>Hourly rate ($)</span><input id="p_rate" value="${t.hourly_rate??''}" inputmode="decimal"></label><label class="field"><span>Call-out fee ($)</span><input id="p_call" value="${t.call_out_fee??''}" inputmode="decimal"></label><label class="field"><span>Travel (km)</span><input id="p_rad" value="${t.service_radius_km??''}" inputmode="numeric"></label></div>
+  </div><div>
+   <div class="card form"><div class="field" style="margin-bottom:0"><span>Services &amp; starting prices</span><div id="svcRows"></div><button class="addrow" onclick="svcAdd()">+ Add a service</button><small class="hint">The same list as Services &amp; pricing in the app. Leave the price blank if you’d rather quote.</small></div></div>
+   <div class="card form"><div class="fgrid"><label class="field"><span>Trade</span><input value="${esc(t.trade||'')}" readonly></label><label class="field"><span>Base suburb</span><input value="${esc([t.suburb,t.postcode].filter(Boolean).join(' '))}" readonly></label></div><small class="hint" style="margin-top:-6px">Your trade and base area are set when TrustTrade checks your licence. Email <a href="mailto:support@trusttrade.au" style="color:inherit">support@trusttrade.au</a> to change them.</small></div>
+   <div class="ferr" id="p_err"></div><div class="fok" id="p_ok"></div>
+   <div class="fbar"><button class="btn g big" id="p_save" onclick="saveProfile()">Save changes</button><button class="btn w big" onclick="go('profile')">Cancel</button></div>
+  </div></div>`;
+ svcRender();
 }
 async function saveProfile(){
- const svc=val('p_svc').split('\n').map(l=>l.split('|').map(x=>x.trim())).filter(a=>a[0]).map(a=>({name:a[0],detail:a[1]||'',price:isNaN(+a[2])?(a[2]||''):+a[2]}));
- const upd={name:val('p_name'),trade:val('p_trade'),phone:val('p_phone'),email:val('p_email'),suburb:val('p_suburb'),postcode:val('p_pc'),website:val('p_web'),description:val('p_desc'),priced_services:svc};
- const hr=parseFloat(val('p_rate'));if(!isNaN(hr))upd.hourly_rate=hr;
- const cf=parseFloat(val('p_call'));if(!isNaN(cf))upd.call_out_fee=cf;
- const rr=parseFloat(val('p_rad'));if(!isNaN(rr))upd.service_radius_km=rr;
+ const err=$('p_err'),ok=$('p_ok');err.textContent='';ok.textContent='';
+ const name=val('p_name').trim(), email=val('p_email').trim(), phone=val('p_phone').trim();
+ if(!name){err.textContent='Add your business name.';return;}
+ if(email&&!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){err.textContent='That email doesn’t look right.';return;}
+ if(phone&&phone.replace(/\D/g,'').length<8){err.textContent='That phone number looks too short.';return;}
+ const num=id=>{const v=parseFloat(String(val(id)).replace(/[^0-9.]/g,''));return Number.isFinite(v)?v:null;};
+ // services + starting prices: the same shape the app's Services & pricing screen saves
+ const rows=SVC.filter(r=>String(r.name||'').trim());
+ const items=rows.map(r=>{const raw=String(r.price==null?'':r.price).trim(),n=parseFloat(raw.replace(/[^0-9.]/g,''));return {from:true,name:String(r.name).trim(),price:raw&&Number.isFinite(n)?n:null,desc:String(r.desc||'').trim()};});
+ const upd={name,phone:phone||null,email:email||null,website:val('p_web').trim()||null,description:val('p_desc').trim()||null,
+  services:items.map(i=>i.name),priced_services:items.length?[{name:'Services',items}]:[],
+  hourly_rate:num('p_rate'),call_out_fee:num('p_call'),service_radius_km:num('p_rad')!=null?Math.round(num('p_rad')):null};
+ const btn=$('p_save');btn.disabled=true;
  const {error}=await sb.from('listings').update(upd).eq('id',LST.id);
- if(error){toast(error.message);return;}
- Object.assign(LST,upd);$('w-name').textContent=LST.name;toast('Profile saved');
+ btn.disabled=false;
+ if(error){err.textContent=error.message||'That didn’t save. Try again.';return;}
+ Object.assign(LST,upd);paintWho();ok.textContent='Saved. Customers see the changes straight away.';
 }
 
-function pHours(){const t=LST;const bh=(t.business_hours&&typeof t.business_hours==='object'&&!Array.isArray(t.business_hours))?t.business_hours:{};
- const rows=DAYS.map(d=>{const v=bh[d]||bh[d[0].toUpperCase()+d.slice(1)]||{};const closed=!!(v.closed||v.mode==='closed');const open=v.open||'07:00',close=v.close||'17:00';const lbl=d[0].toUpperCase()+d.slice(1);
-  return `<div style="display:flex;align-items:center;gap:12px;padding:11px 0;border-bottom:1px solid var(--line2)"><b style="width:52px">${lbl}</b><label style="display:flex;align-items:center;gap:6px;font-size:13px;color:var(--mut)"><input type="checkbox" id="h_${d}_cl" ${closed?'checked':''} onchange="hRow('${d}')"> Closed</label><input id="h_${d}_o" type="time" value="${esc(open)}" ${closed?'disabled':''} style="width:auto;padding:7px 9px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink)"><span class="mut">to</span><input id="h_${d}_c" type="time" value="${esc(close)}" ${closed?'disabled':''} style="width:auto;padding:7px 9px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink)"></div>`;}).join('');
- $('main').innerHTML=`<h1>Availability</h1><div class="subt">Set your standard opening hours — homeowners see these on your profile.</div>
-  <div class="card"><div style="padding:16px 18px">${rows}<button class="btn gold" style="width:auto;height:40px;margin-top:16px" onclick="saveHours()">Save hours</button></div></div>`;
+/* ═════ AVAILABILITY ═════ */
+// Hours live in business_hours (what customers see): {open:'07:00',close:'17:00'}, or
+// {mode:'emergency'} for emergencies only, or {mode:'closed'}.
+let HRS={};
+function dayState(v){if(!v)return {m:'closed',o:'07:00',c:'17:00'};
+ const to24=x=>{const m=String(x||'').match(/^(\d{1,2}):(\d{2})\s*(am|pm)?/i);if(!m)return '';let hh=+m[1];if(m[3]){if(/pm/i.test(m[3])&&hh<12)hh+=12;if(/am/i.test(m[3])&&hh===12)hh=0;}return String(hh).padStart(2,'0')+':'+m[2];};
+ if(Array.isArray(v))return (v[0]||v[1])?{m:'open',o:to24(v[0])||'07:00',c:to24(v[1])||'17:00'}:{m:'closed',o:'07:00',c:'17:00'};
+ if(v.mode==='emergency'||v.emergencyOnly)return {m:'emergency',o:'07:00',c:'17:00'};
+ if(v.mode==='closed'||v.closed)return {m:'closed',o:'07:00',c:'17:00'};
+ if(v.open||v.close)return {m:'open',o:to24(v.open)||'07:00',c:to24(v.close)||'17:00'};
+ return {m:'closed',o:'07:00',c:'17:00'};}
+function pHours(){const t=LST;
+ const src=(t.business_hours&&typeof t.business_hours==='object'&&Object.keys(t.business_hours).length)?t.business_hours:(t.opening_hours||{});
+ HRS={};DAYS.forEach(([k])=>{HRS[k]=dayState(src[k]||src[k[0].toUpperCase()+k.slice(1)]);});
+ $('main').innerHTML=`<div class="phead"><div class="pt"><h2>Availability</h2><div class="subt">Your usual hours. Customers see these on your profile, and they drive your “Open now” badge.</div></div></div>
+  <div class="card cpad" style="max-width:820px"><div id="hrows"></div><div class="ferr" id="h_err" style="margin-top:12px"></div><div class="fok" id="h_ok" style="margin-top:12px"></div><div class="fbar" style="margin-top:14px"><button class="btn g big" id="h_save" onclick="saveHours()">Save hours</button></div></div>`;
+ hPaint();
 }
-function hRow(d){const cl=$('h_'+d+'_cl').checked;$('h_'+d+'_o').disabled=cl;$('h_'+d+'_c').disabled=cl;}
-async function saveHours(){const bh={};DAYS.forEach(d=>{if($('h_'+d+'_cl').checked)bh[d]={closed:true};else bh[d]={open:val('h_'+d+'_o'),close:val('h_'+d+'_c')};});
- const {error}=await sb.from('listings').update({business_hours:bh}).eq('id',LST.id);if(error){toast(error.message);return;}LST.business_hours=bh;toast('Hours saved');}
+function hPaint(){$('hrows').innerHTML=DAYS.map(([k,l])=>{const d=HRS[k];const b=(m,t)=>`<button class="${d.m===m?'on':''}" onclick="HRS.${k}.m='${m}';hPaint()">${t}</button>`;
+ return `<div class="dayrow"><b>${l}</b><span class="seg">${b('open','Open')}${b('emergency','Emergencies')}${b('closed','Closed')}</span>${d.m==='open'?`<span class="times"><input type="time" value="${esc(d.o)}" onchange="HRS.${k}.o=this.value"><span>to</span><input type="time" value="${esc(d.c)}" onchange="HRS.${k}.c=this.value"></span>`:d.m==='emergency'?'<span class="em">Emergency call-outs only</span>':''}</div>`;}).join('');}
+async function saveHours(){
+ const err=$('h_err'),ok=$('h_ok');err.textContent='';ok.textContent='';
+ const bh={};
+ for(const [k,l] of DAYS){const d=HRS[k];
+  if(d.m==='open'){if(!d.o||!d.c){err.textContent='Set both times for '+l+'.';return;}bh[k]={open:d.o,close:d.c};}
+  else bh[k]={mode:d.m};}
+ const btn=$('h_save');btn.disabled=true;
+ const {error}=await sb.from('listings').update({business_hours:bh}).eq('id',LST.id);
+ btn.disabled=false;
+ if(error){err.textContent=error.message||'That didn’t save. Try again.';return;}
+ LST.business_hours=bh;ok.textContent='Saved. Customers see your new hours straight away.';
+}
 
-async function pGallery(){loading('Gallery');try{
- const {data,error}=await sb.from('gallery_images').select('*').eq('listing_id',LST.id).order('sort_order');if(error)throw error;
- const imgs=(data||[]).filter(g=>!g.hidden);
- $('main').innerHTML=`<h1>Gallery</h1><div class="subt">${imgs.length} work photos on your profile</div>
-  <div class="card"><div style="padding:16px 18px;display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px">
-  ${imgs.map(g=>`<div style="border:1px solid var(--line2);border-radius:12px;overflow:hidden"><div style="aspect-ratio:1;background:#e9e9ec url('${esc(g.image_url||'')}') center/cover"></div>${g.caption?`<div style="padding:8px 10px;font-size:12px">${esc(g.caption)}</div>`:''}</div>`).join('')||'<div class="empty">No photos yet. Add work photos from the app to show off your jobs.</div>'}
-  </div></div>`;
-}catch(e){$('main').innerHTML='<h1>Gallery</h1>'+errBox(e);}}
+/* ═════ WORK PHOTOS ═════ */
+function pGallery(){const P=listingPhotos(LST);LB=P.slice();
+ $('main').innerHTML=`<div class="phead"><div class="pt"><h2>Work photos</h2><div class="subt">${P.length} photo${P.length===1?'':'s'} on your profile. Add or remove them in the TrustTrade app, straight from the job.</div></div></div>
+  <div class="card">${P.length?`<div class="gal">${P.map((u,i)=>`<span style="background-image:url('${esc(u)}')" onclick="LB=listingPhotos(LST);lightbox(${i})"></span>`).join('')}</div>`:'<div class="empty">No photos yet. Photos of your real jobs are what turn browsers into enquiries.</div>'}</div>`;
+}
 
-// ── SECURITY / 2FA (Supabase TOTP MFA) ──────────────────────────────
+/* ═════ SECURITY / 2FA (Supabase TOTP MFA) ═════ */
 let MFA_ENROLL=null;
 async function pSecurity(){loading('Security');
  let totp=[];
  try{const {data}=await sb.auth.mfa.listFactors();totp=((data&&data.totp)||[]).filter(f=>f.status==='verified');}catch(e){}
  if(totp.length){
-  $('main').innerHTML=`<h1>Security</h1><div class="subt">Two-factor authentication keeps your account safe.</div>
-   <div class="card"><div style="padding:20px">
-    <div style="display:flex;align-items:center;gap:10px"><span class="pill g">2FA is on</span><span class="mut">Authenticator app</span></div>
-    <p class="mut" style="font-size:13.5px;margin:12px 0">You'll be asked for a 6-digit code from your authenticator app each time you sign in.</p>
-    <button class="btn r" onclick="removeMfa('${totp[0].id}')">Turn off 2FA</button>
-   </div></div>`;
-  return;
- }
- $('main').innerHTML=`<h1>Security</h1><div class="subt">Add two-factor authentication (2FA) for an extra layer of security.</div>
-  <div class="card"><div style="padding:20px">
-   <p style="font-size:14px;margin-bottom:6px">Protect your account with a 6-digit code from an authenticator app.</p>
-   <p class="mut" style="font-size:13px;margin-bottom:16px">Works with Google Authenticator, Authy, 1Password, Microsoft Authenticator and more.</p>
-   <button class="btn gold" style="width:auto;height:40px" onclick="startMfa()">Set up 2FA</button>
-  </div></div>`;
+  $('main').innerHTML=`<div class="phead"><div class="pt"><h2>Security</h2><div class="subt">Two-factor authentication keeps your account safe.</div></div></div>
+   <div class="card cpad" style="max-width:640px"><span class="pill g">Two-factor is on</span><p class="sub2" style="font-size:15px;margin:12px 0 18px">You’ll be asked for a 6-digit code from your authenticator app each time you sign in on the web.</p><button class="btn r" onclick="removeMfa('${totp[0].id}')">Turn off two-factor</button></div>`;
+  return;}
+ $('main').innerHTML=`<div class="phead"><div class="pt"><h2>Security</h2><div class="subt">Add two-factor authentication for an extra layer of security.</div></div></div>
+  <div class="card cpad" style="max-width:640px"><p style="font-size:16px;font-weight:600">Protect your account with a 6-digit code from an authenticator app.</p><p class="sub2" style="font-size:14.5px;margin:6px 0 18px">Works with Google Authenticator, Authy, 1Password, Microsoft Authenticator and more.</p><button class="btn g" onclick="startMfa()">Set up two-factor</button></div>`;
 }
 async function startMfa(){
- try{
-  const {data,error}=await sb.auth.mfa.enroll({factorType:'totp',friendlyName:'TrustTrade '+new Date().toISOString().slice(0,10)});
+ try{const {data,error}=await sb.auth.mfa.enroll({factorType:'totp',friendlyName:'TrustTrade '+new Date().toISOString().slice(0,10)});
   if(error){toast(error.message);return;}
   MFA_ENROLL=data;
   const qr=(data.totp&&data.totp.qr_code)||'';
-  const img=/^data:/.test(qr)?`<img src="${qr}" alt="2FA QR code" style="width:190px;height:190px">`:(qr.indexOf('<svg')>=0?`<div style="width:190px;height:190px">${qr}</div>`:'');
-  $('main').innerHTML=`<h1>Set up 2FA</h1><div class="subt">Scan the QR with your authenticator app, then enter the 6-digit code it shows.</div>
-   <div class="card"><div style="padding:22px;text-align:center">
-    <div style="display:inline-block;background:#fff;padding:10px;border-radius:12px;border:1px solid var(--line)">${img||'<div class="mut" style="padding:20px">Use the key below</div>'}</div>
-    <div class="mut" style="font-size:12px;margin:14px 0 4px">Can't scan? Enter this key manually:</div>
-    <div class="mono" style="font-weight:700;letter-spacing:2px;user-select:all;word-break:break-all">${esc((data.totp&&data.totp.secret)||'')}</div>
-    <div style="max-width:220px;margin:20px auto 0"><input id="mfa_code" inputmode="numeric" autocomplete="one-time-code" placeholder="123456" onkeydown="if(event.key==='Enter')confirmMfa()" style="text-align:center;font-size:20px;letter-spacing:6px;padding:12px;border:1px solid var(--line);border-radius:11px;background:var(--bg);color:var(--ink);width:100%"></div>
-    <div id="e-mfaset"></div>
-    <button class="btn gold" style="width:auto;height:42px;margin-top:14px" onclick="confirmMfa()">Verify &amp; turn on</button>
-    <div><a class="mut" style="cursor:pointer;font-size:13px;display:inline-block;margin-top:12px" onclick="go('security')">Cancel</a></div>
-   </div></div>`;
- }catch(e){toast(e.message||'Could not start 2FA setup');}
+  const img=/^data:/.test(qr)?`<img src="${qr}" alt="Two-factor QR code">`:(qr.indexOf('<svg')>=0?qr:'');
+  $('main').innerHTML=`<div class="phead"><div class="pt"><h2>Set up two-factor</h2><div class="subt">Scan the code with your authenticator app, then enter the 6-digit code it shows.</div></div></div>
+   <div class="card cpad" style="max-width:640px;text-align:center">
+    ${img?`<div class="qr">${img}</div>`:''}
+    <div class="sub2" style="font-size:13px;margin:4px 0 8px">Can’t scan it? Enter this key instead:</div>
+    <div class="secret">${esc((data.totp&&data.totp.secret)||'')}</div>
+    <div class="codein"><input id="mfa_code" inputmode="numeric" maxlength="6" autocomplete="one-time-code" placeholder="000000" onkeydown="if(event.key==='Enter')confirmMfa()"></div>
+    <div class="ferr" id="e-mfaset" style="margin-top:12px"></div>
+    <div class="fbar" style="justify-content:center;margin-top:16px"><button class="btn g" onclick="confirmMfa()">Verify and turn on</button><button class="btn w" onclick="go('security')">Cancel</button></div>
+   </div>`;
+ }catch(e){toast(e.message||'Could not start two-factor setup');}
 }
 async function confirmMfa(){
- if(!MFA_ENROLL)return;
- const box=$('e-mfaset');if(box)box.innerHTML='';
+ if(!MFA_ENROLL)return;const box=$('e-mfaset');box.textContent='';
  const code=(val('mfa_code')||'').replace(/\s/g,'');
- if(code.length<6){if(box)box.innerHTML='<div class="err">Enter the 6-digit code</div>';return;}
- try{
-  const {data:ch,error:ce}=await sb.auth.mfa.challenge({factorId:MFA_ENROLL.id});
-  if(ce){if(box)box.innerHTML='<div class="err">'+esc(ce.message)+'</div>';return;}
+ if(code.length<6){box.textContent='Enter the 6-digit code';return;}
+ try{const {data:ch,error:ce}=await sb.auth.mfa.challenge({factorId:MFA_ENROLL.id});
+  if(ce){box.textContent=ce.message;return;}
   const {error:ve}=await sb.auth.mfa.verify({factorId:MFA_ENROLL.id,challengeId:ch.id,code});
-  if(ve){if(box)box.innerHTML='<div class="err">'+esc(ve.message||'Wrong code, try again')+'</div>';return;}
-  MFA_ENROLL=null;toast('2FA is on');go('security');
- }catch(e){if(box)box.innerHTML='<div class="err">'+esc(e.message)+'</div>';}
+  if(ve){box.textContent=ve.message||'Wrong code, try again';return;}
+  MFA_ENROLL=null;go('security');
+ }catch(e){box.textContent=e.message;}
 }
 async function removeMfa(id){
- if(!confirm('Turn off 2FA? Your account will no longer ask for a code at sign-in.'))return;
- try{const {error}=await sb.auth.mfa.unenroll({factorId:id});if(error){toast(error.message);return;}toast('2FA turned off');go('security');}catch(e){toast(e.message);}
+ if(!confirm('Turn off two-factor? Your account will no longer ask for a code at sign-in.'))return;
+ try{const {error}=await sb.auth.mfa.unenroll({factorId:id});if(error){toast(error.message);return;}go('security');}catch(e){toast(e.message);}
 }
 
+/* ═════ BILLING ═════ */
 async function pBilling(){loading('Billing');try{
  let sub=null;try{const {data}=await sb.from('subscriptions').select('*').eq('listing_id',LST.id).limit(1);sub=data&&data[0];}catch(e){}
- $('main').innerHTML=`<h1>Billing</h1><div class="subt">Your TrustTrade membership</div>
-  <div class="banner"><b>Free while we grow — $0/month.</b><div class="mut" style="margin-top:4px;font-size:13px">We're not charging tradies yet. When paid plans start, it'll be a flat monthly membership — no lead fees and no commission, ever. Customers always pay you direct.</div></div>
-  <div class="card"><div class="ch">Membership</div><div style="padding:6px 18px">
-   ${kv('Plan','Free plan')}${kv('Price','$0 / month')}${kv('Lead fees','$0 — always')}${kv('Commission on jobs','$0 — you keep 100%')}${kv('Status',sub?(sub.status||'—'):'Active (free)')}
-  </div></div>
-  <div class="card"><div style="padding:16px 18px" class="mut">Homeowners pay you directly for the work. TrustTrade never touches your job money.</div></div>`;
-}catch(e){$('main').innerHTML='<h1>Billing</h1>'+errBox(e);}}
+ $('main').innerHTML=`<div class="phead"><div class="pt"><h2>Billing</h2><div class="subt">Your TrustTrade membership.</div></div></div>
+  <div class="banner" style="cursor:default;max-width:820px"><span class="bic">${IBADGE}</span><span><b>Free while we grow: $0 a month.</b><small>We’re not charging tradies yet. When paid plans start, it’ll be a flat monthly membership, with no lead fees and no commission, ever.</small></span></div>
+  <div class="card facts" style="max-width:820px"><div><span>Plan</span><b>Free</b></div><div><span>Price</span><b>$0 a month</b></div><div><span>Lead fees</span><b>$0, always</b></div><div><span>Commission on jobs</span><b>$0, you keep 100%</b></div><div><span>Status</span><b>${sub?esc(sub.status||'Active'):'Active (free)'}</b></div></div>
+  <p class="note" style="max-width:820px">${IBADGE}<span>Customers pay you directly for the work. TrustTrade never touches your job money.</span></p>`;
+}catch(e){$('main').innerHTML='<h2>Billing</h2>'+errBox(e);}}
 
-// ===== Admin preview mode =====
-// An admin can open /dashboard?preview=<listing_id> to see any tradie's dashboard
-// exactly as they'd see it — READ-ONLY. Reads run under the admin's session (admin
-// RLS allows reading listings/enquiries/quotes/bookings/invoices/reviews/gallery);
-// every write is neutered so a preview can never mutate the tradie's data.
-let PREVIEW=false;
+/* ═════ Admin preview mode ═════
+   An admin can open /dashboard?preview=<listing_id> to see any tradie's dashboard as
+   they'd see it, READ-ONLY. Reads run under the admin's session (admin RLS can read
+   listings, enquiries, quotes, bookings, invoices, reviews); every write is neutered
+   so a preview can never change the tradie's data. */
 async function isAdmin(){
- try{ const {data:{user}}=await sb.auth.getUser(); if(!user) return false;
+ try{const {data:{user}}=await sb.auth.getUser();if(!user)return false;
   const {data}=await sb.from('profiles').select('role').eq('id',user.id).maybeSingle();
-  return !!(data&&data.role==='admin'); }catch(e){ return false; }
+  return !!(data&&data.role==='admin');}catch(e){return false;}
 }
 // A chainable no-op: any method returns another no-op; awaiting resolves to {data:null,error:null}.
-function roNoop(){ const p=Promise.resolve({data:null,error:null});
- const h={get:(_t,k)=> k==='then'?p.then.bind(p): k==='catch'?p.catch.bind(p): k==='finally'?p.finally.bind(p): ()=>new Proxy({},h)};
- return new Proxy({},h); }
+function roNoop(){const p=Promise.resolve({data:null,error:null});
+ const h={get:(_t,k)=>k==='then'?p.then.bind(p):k==='catch'?p.catch.bind(p):k==='finally'?p.finally.bind(p):()=>new Proxy({},h)};
+ return new Proxy({},h);}
 function installReadOnly(){
  const from0=sb.from.bind(sb);
- sb.from=(t)=>{ const q=from0(t); ['insert','update','upsert','delete'].forEach(m=>{ q[m]=()=>roNoop(); }); return q; };
+ sb.from=(t)=>{const q=from0(t);['insert','update','upsert','delete'].forEach(m=>{q[m]=()=>roNoop();});return q;};
  const store0=sb.storage.from.bind(sb.storage);
- sb.storage.from=(b)=>{ const s=store0(b); s.upload=()=>Promise.resolve({data:null,error:{message:'Preview is read-only'}}); s.remove=()=>Promise.resolve({data:null,error:null}); return s; };
- sb.rpc=()=>Promise.resolve({data:null,error:null});
- if(sb.functions) sb.functions.invoke=()=>Promise.resolve({data:null,error:null});
+ sb.storage.from=(b)=>{const s=store0(b);s.upload=()=>Promise.resolve({data:null,error:{message:'Preview is read-only'}});s.remove=()=>Promise.resolve({data:null,error:null});return s;};
+ sb.rpc=()=>Promise.resolve({data:null,error:{message:'Preview is read-only'}});
+ if(sb.functions)sb.functions.invoke=()=>Promise.resolve({data:null,error:null});
 }
 function showPreviewBanner(name){
- if(document.getElementById('pvBanner')) return;
+ if($('pvBanner'))return;
  document.body.classList.add('preview');
- if(!document.getElementById('pvStyle')){const st=document.createElement('style');st.id='pvStyle';
-  st.textContent='body.preview .side{top:46px;height:calc(100vh - 46px)}';document.head.appendChild(st);}
- const b=document.createElement('div'); b.id='pvBanner';
- b.style.cssText='position:sticky;top:0;z-index:200;display:flex;align-items:center;gap:12px;height:46px;padding:0 20px;background:#1b1d21;color:#fff;font-size:13.5px;font-weight:600;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif';
- b.innerHTML='<span style="background:#f2f3f5;color:#1b1d21;font-size:10px;font-weight:800;letter-spacing:.06em;padding:3px 9px;border-radius:99px">ADMIN PREVIEW</span>'
-  +'<span style="color:rgba(255,255,255,.78)">Viewing <b style="color:#fff">'+esc(name||'this tradie')+'</b> — read-only</span>'
-  +'<button onclick="location.replace(\'/admin\')" style="margin-left:auto;display:inline-flex;align-items:center;gap:6px;height:32px;padding:0 15px;border-radius:9px;background:#fff;color:#1b1d21;border:0;font-family:inherit;font-size:13px;font-weight:750;cursor:pointer">← Back to admin</button>';
- document.body.insertBefore(b, document.getElementById('app'));
+ const b=document.createElement('div');b.id='pvBanner';b.className='pvbar';
+ b.innerHTML='<span class="tag">ADMIN PREVIEW</span><span style="color:rgba(255,255,255,.8)">Viewing <b style="color:#fff">'+esc(name||'this tradie')+'</b>, read-only</span><button onclick="location.replace(\'/admin\')">Back to admin</button>';
+ document.body.insertBefore(b,$('app'));
 }
 async function enterPreview(listingId){
- PREVIEW=true; installReadOnly();
+ PREVIEW=true;installReadOnly();
  const {data:list}=await sb.from('listings').select('*').eq('id',listingId).limit(1);
- $('gate').style.display='none'; $('app').classList.add('on');
- if(!list||!list.length){ $('main').innerHTML='<h1>Preview</h1><div class="card"><div class="empty">Listing not found, or not readable.</div></div>'; return; }
- LST=list[0]; ME={id:LST.auth_user_id, email:LST.email||''};
- $('w-name').textContent=LST.name||'Business';
- $('w-sub').textContent=(LST.trade||'')+(LST.suburb?' · '+LST.suburb:'');
- const we=$('w-email'); if(we) we.textContent=(LST.email||'')+' · preview';
- // 2FA/billing are the admin's own, not the tradie's — hide them in a preview.
- document.querySelectorAll('.nv[data-p="security"],.nv[data-p="billing"]').forEach(n=>n.style.display='none');
+ $('gate').style.display='none';$('app').classList.add('on');
+ if(!list||!list.length){$('main').innerHTML='<h2>Preview</h2><div class="card empty">Listing not found, or not readable.</div>';return;}
+ LST=list[0];ME={id:LST.auth_user_id,email:LST.email||''};
+ paintWho();$('w-email').textContent=(LST.email||'')+' · preview';
+ // two-factor and billing are the admin's own, not the tradie's: hidden in a preview
+ document.querySelectorAll('.nv[data-p="security"],.nv[data-p="billing"],.uc-acts').forEach(n=>n.style.display='none');
  showPreviewBanner(LST.name);
  try{loadCounts();}catch(e){}
  go('home');
 }
-// boot: resume session if present
+// boot: resume a session if there is one
 (async()=>{const {data}=await sb.auth.getSession();if(data&&data.session){
   const pv=new URLSearchParams(location.search).get('preview');
-  if(pv && await isAdmin()){ enterPreview(pv); return; }
-  if(await adminRedirect()) return;
-  if(await mfaRequired()){ $('gate').style.display=''; $('app').classList.remove('on'); showMfaChallenge(); return; }
+  if(pv&&await isAdmin()){enterPreview(pv);return;}
+  if(await adminRedirect())return;
+  if(await mfaRequired()){$('gate').style.display='';$('app').classList.remove('on');showMfaChallenge();return;}
   route();
 }})();
 </script>

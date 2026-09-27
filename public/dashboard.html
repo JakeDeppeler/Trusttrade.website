@@ -546,6 +546,66 @@ body.preview main.full{height:calc(100vh - 46px)}
 .conv .thread{flex:1;min-height:0}
 @media (max-width:1100px){.kgrid{grid-template-columns:repeat(2,minmax(0,1fr))}.dgrid,.dgrid2{grid-template-columns:1fr}}
 
+/* ── Jobs as a full-width list; Inbox tags, tabs and the job beside the chat ── */
+.pill.q{background:var(--panel);box-shadow:inset 0 0 0 1.5px var(--gold);color:var(--goldt)}
+.jbar{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:14px}
+.jbar .tabs{margin:0}
+.jsearch{flex:1 1 260px;max-width:440px;margin-left:auto}
+.jsearch input{height:48px;background:var(--panel);box-shadow:var(--sh)}
+.jtable{overflow:hidden}
+.jtable th{padding:16px 18px 10px}
+.jtable td{padding:14px 18px}
+.jtable th.r,.jtable td.r{text-align:right}
+.jtable .who{display:flex;align-items:center;gap:12px;min-width:170px}
+.jtable .who .cav{width:40px;height:40px;font-size:15px}
+.jtable .who b{display:block;font-size:15px;white-space:nowrap}
+.jtable .who small{display:block;font-size:12.5px;color:var(--ink2)}
+.jtable tr.unread .who b::after{content:"";display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--gold);margin-left:7px;vertical-align:2px}
+.jline{font-size:14.5px;line-height:1.45;color:var(--body);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;max-width:560px}
+.jtable td.nw{white-space:nowrap}
+.jtable td.cc{width:44px;text-align:right}
+.jtable tbody tr.tap:hover .chev{stroke:var(--ink)}
+.fchips{display:flex;flex-wrap:wrap;gap:5px}
+.split.inbox{grid-template-columns:372px minmax(0,1fr)}
+.fchips button{display:inline-flex;align-items:center;gap:5px;height:32px;padding:0 9px;border:0;border-radius:999px;background:var(--cream);font-size:12.5px;font-weight:600;color:var(--ink);cursor:pointer}
+.fchips button span{font-size:12px;font-weight:700;color:var(--ink2)}
+.fchips button.on{background:var(--ink);color:var(--onink)}
+.fchips button.on span{color:var(--onink);opacity:.7}
+.ili-mid{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:2px;min-width:0}
+.ili-mid .pill{height:20px;padding:0 8px;font-size:11px}
+.ili-mid .ijob,.ili-mid .jb{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.conv-b{flex:1;min-height:0;display:grid;grid-template-columns:minmax(0,1fr) 330px}
+.conv-chat{display:flex;flex-direction:column;min-height:0;min-width:0}
+.conv-chat .thread{flex:1;min-height:0}
+.jinfo{border-left:1px solid var(--line2);overflow-y:auto;padding:18px 18px 22px}
+.jinfo.insheet{border:0;padding:0;overflow:visible}
+.jibtn{display:none}
+.ji-st{display:flex;flex-direction:column;align-items:flex-start;gap:7px;padding-bottom:14px;border-bottom:1px solid var(--line2)}
+.ji-st small{font-size:13.5px;color:var(--ink2)}
+.ji-cap{font-size:12px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--ink2);margin:14px 0 6px}
+.ji-job{font-size:15px;line-height:1.5;white-space:pre-line}
+.iph{margin-top:10px}
+.iph .photos{gap:6px;margin:0}
+.iph .photos span{height:74px;border-radius:12px}
+.ji-none{font-size:13.5px;color:var(--ink2)}
+.ji-none a{color:var(--ink);font-weight:700;text-decoration:underline;text-underline-offset:3px;cursor:pointer}
+.ji-facts{margin-top:12px;border-top:1px solid var(--line2)}
+.ji-facts>div{display:flex;justify-content:space-between;gap:12px;padding:10px 0;border-bottom:1px solid var(--line2);font-size:14px}
+.ji-facts span{color:var(--ink2)}
+.ji-facts b{font-weight:600;text-align:right;overflow-wrap:anywhere}
+.ji-facts a{color:inherit}
+.ji-q{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:12px;padding:12px 14px;border-radius:16px;background:var(--panel2)}
+.ji-q b{display:block;font-size:14.5px}
+.ji-q small{display:block;font-size:12.5px;color:var(--ink2);margin-top:1px}
+.ji-q .v{font-family:var(--fd);font-size:20px;font-weight:800;letter-spacing:-.03em;flex-shrink:0}
+.ji-acts{display:flex;flex-direction:column;gap:8px;margin-top:16px}
+.ji-acts .two{display:flex;gap:8px}
+.ji-acts .two>*{flex:1}
+.ji-acts .btn{height:44px}
+.ji-acts .btn.sm{height:40px}
+.mrow .ili-mid .pill{margin-left:auto}
+@media (max-width:1360px){.conv-b{grid-template-columns:minmax(0,1fr)}.conv-b .jinfo{display:none}.jibtn{display:inline-flex}}
+
 /* ── narrower screens ── */
 @media (max-width:1100px){.grid2,.grid2.wide{grid-template-columns:1fr}.chat{position:static;height:560px}.kpis{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media (max-width:900px){
@@ -726,6 +786,7 @@ function signout(){sb.auth.signOut().then(()=>location.replace('/dashboard'));}
 function go(p,arg){
  if(p==='leads') p='jobs';                      // the old name for the Jobs page
  PAGE=p; window.scrollTo(0,0); $('main').classList.remove('full');
+ if(['home','jobs','inbox','quotes','reviews','invoices'].includes(p)) LASTLIST=p;   // where a job's back button returns to
  const nav={lead:'jobs',job:'jobs',quoteNew:'jobs',profileEdit:'profile'}[p]||p;
  document.querySelectorAll('.nv').forEach(n=>n.classList.toggle('on',n.dataset.p===nav));
  // No listing on this account: every tradie page needs one. Security (2FA) is account-level.
@@ -865,10 +926,10 @@ function stateCard(l){
 }
 
 /* ═════ JOBS: every enquiry, the new ones, booked jobs, done jobs ═════
-   On a desktop it's the list and the open job side by side, like a mail app: pick one
-   on the left and its details, photos, quote and chat open on the right. In a narrow
-   window it's the app's cards (TDEnquiries), and a card opens its own page. */
-let JSEG='all', JW=null, JSEL=null, JQ='';
+   On a desktop, one full-width list (customer, job, date, urgency, status, price); a row
+   opens the job on its own full-screen page with the chat beside it. In a narrow window
+   it's the app's cards (TDEnquiries), each opening the same page. */
+let JSEG='all', JW=null, JQ='', LASTLIST='jobs';
 const DESK=()=>window.innerWidth>=1100;
 const ISEARCH='<svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>';
 function jobsFigures(W){
@@ -877,27 +938,40 @@ function jobsFigures(W){
  const pipeline=pendingQ.reduce((a,q)=>a+ +(q.total_inc_gst||0),0)+booked.reduce((a,b)=>{const q=W.qOf(b);return a+(q?+q.total_inc_gst||0:0);},0);
  return {booked,pendingQ,unpaid,pipeline,unpaidAmt:unpaid.reduce((a,i)=>a+ +(i.total||0),0)};
 }
+// One status for a job, the same on the Jobs list and in the Inbox.
+function jobStatus(e,q,bk){
+ if(e.stage==='declined') return ['Declined','n','declined'];
+ if((bk&&bk.status==='completed')||e.status==='completed'||e.job_complete) return ['Done','g','done'];
+ if((bk&&['confirmed','requested'].includes(bk.status))||(q&&q.status==='accepted')) return ['Booked','b','booked'];
+ if(q&&['sent','viewed'].includes(q.status)) return ['Quoted','q','quoted'];
+ if(e.status==='new') return ['New','a','new'];
+ if(e.status==='replied'||e.first_response_at) return ['Replied','n','replied'];
+ return ['Read','n','read'];
+}
+// The latest quote and the live (or finished) booking for each enquiry. Quotes come newest first.
+function enqLinks(Q,B){
+ const q={}, b={};
+ (Q||[]).forEach(x=>{ if(x.enquiry_id&&x.status!=='draft'&&!q[x.enquiry_id]) q[x.enquiry_id]=x; });
+ (B||[]).forEach(x=>{ if(!x.enquiry_id||x.status==='cancelled') return; const cur=b[x.enquiry_id];
+  if(!cur||(x.status==='completed'&&cur.status!=='completed')||(['confirmed','requested'].includes(x.status)&&!['confirmed','requested','completed'].includes(cur.status))) b[x.enquiry_id]=x; });
+ return {q,b};
+}
 async function pJobs(arg){
  if(arg&&arg.tab) JSEG=arg.tab;
- if(arg&&arg.sel) JSEL=arg.sel;
  if(!DESK()) return pJobsCards();
- const main=$('main'); main.classList.add('full');
- main.innerHTML=`<div class="fhead"><div class="ft"><h2>Jobs</h2><div class="subt">Every enquiry, the jobs you’ve booked and the ones you’ve finished.</div></div><div class="hstats" id="jstats"></div></div>
-  <div class="split"><div class="pane"><div class="pane-h"><div class="tabs sm" id="jtabs"></div><label class="search">${ISEARCH}<input id="jq" placeholder="Search names, suburbs and jobs" value="${esc(JQ)}" oninput="JQ=this.value;jobsList()"></label></div><div class="pane-b" id="jlist"><div class="shim"></div><div class="shim" style="width:70%"></div><div class="shim" style="width:50%"></div></div></div>
-  <div class="pane"><div class="pane-b" id="jdet"><div class="det"><div class="shim"></div><div class="shim" style="width:60%"></div></div></div></div></div>`;
- try{ JW=await workData(); }catch(e){ $('jlist').innerHTML=`<div class="li-none">${esc(e.message||e)}</div>`; return; }
- if(PAGE!=='jobs') return;
- const W=JW, F=jobsFigures(W);
+ loading('Jobs');
+ try{
+ const W=await workData(); JW=W; if(PAGE!=='jobs') return;
+ const F=jobsFigures(W); W.L=enqLinks(W.Q,W.B);
  BOOKED_ENQ=new Set(F.booked.map(b=>b.enquiry_id).filter(Boolean));
- $('jstats').innerHTML=`<div class="hstat tap" onclick="jobsTab('booked')"><b>${F.booked.length}</b><small>Booked</small></div><div class="hstat tap" onclick="go('quotes')"><b>${F.pendingQ.length}</b><small>Quoted</small></div><div class="hstat"><b>${kMoney(F.pipeline)}</b><small>Pipeline</small></div><div class="hstat tap" onclick="go('invoices')"><b class="${F.unpaid.length?'dn':''}">${F.unpaid.length}</b><small>Unpaid${F.unpaid.length?' · '+money(F.unpaidAmt):''}</small></div>`;
- // open the one asked for, on the tab it lives on
- if(JSEL&&!jobsItems(W,JSEG).some(it=>it.k===JSEL)){const t=tabFor(JSEL,W);if(t)JSEG=t;}
- jobsTab(JSEG,true);
+ $('main').innerHTML=`<div class="fhead"><div class="ft"><h2>Jobs</h2><div class="subt">Every enquiry, the jobs you’ve booked and the ones you’ve finished.</div></div>
+   <div class="hstats"><div class="hstat tap" onclick="jobsTab('booked')"><b>${F.booked.length}</b><small>Booked</small></div><div class="hstat tap" onclick="go('quotes')"><b>${F.pendingQ.length}</b><small>Quoted</small></div><div class="hstat"><b>${kMoney(F.pipeline)}</b><small>Pipeline</small></div><div class="hstat tap" onclick="go('invoices')"><b class="${F.unpaid.length?'dn':''}">${F.unpaid.length}</b><small>Unpaid${F.unpaid.length?' · '+money(F.unpaidAmt):''}</small></div></div></div>
+  <div class="jbar"><div class="tabs" id="jtabs"></div><label class="search jsearch">${ISEARCH}<input id="jq" placeholder="Search names, suburbs and jobs" value="${esc(JQ)}" oninput="JQ=this.value;jobsRows()"></label></div>
+  <div class="card jtable"><table><thead><tr><th>Customer</th><th>Job</th><th>Date</th><th>Urgency</th><th>Status</th><th class="r">Price</th><th></th></tr></thead><tbody id="jrows"></tbody></table></div>
+  <p class="note">${IBADGE}<span>Every enquiry came to you alone. TrustTrade never sells the same enquiry twice, and declining costs you nothing.</span></p>`;
+ jobsTab(JSEG);
+ }catch(e){$('main').innerHTML='<h2>Jobs</h2>'+errBox(e);}
 }
-function tabFor(k,W){const [kind,id]=String(k).split(':');
- if(kind==='b'){const b=W.B.find(x=>x.id===id);return b?(b.status==='completed'?'done':'booked'):null;}
- const e=W.E.find(x=>x.id===id);if(!e)return null;
- return (e.status==='completed'||e.job_complete)&&!BOOKED_ENQ.has(e.id)?'all':'all';}
 function jobsItems(W,seg){
  const {E,B}=W, isDone=e=>e.status==='completed'||!!e.job_complete, isNew=e=>e.status==='new'&&e.stage!=='declined';
  const booked=B.filter(b=>['requested','confirmed'].includes(b.status)), done=B.filter(b=>b.status==='completed');
@@ -908,37 +982,29 @@ function jobsItems(W,seg){
 }
 function jobsCounts(W){return {all:W.E.length,new:jobsItems(W,'new').length,booked:jobsItems(W,'booked').length,done:jobsItems(W,'done').length};}
 function jobText(it,W){return it.e?[it.e.from_name,it.e.from_town,it.e.message].join(' ').toLowerCase():[W.whoOf(it.b),it.b.job_title,(W.P[it.b.customer_id]||{}).suburb].join(' ').toLowerCase();}
-function rowHTML(it,W){
- if(it.e){const e=it.e, st=leadStatus(e), ug=(st[0]==='Done'||st[0]==='Declined')?null:leadShortUrg(e.urgency);
-  return `<div class="li${JSEL===it.k?' on':''}${e.status==='new'&&e.stage!=='declined'?' unread':''}" data-k="${it.k}" onclick="jobsSelect('${it.k}')"><div class="li-top"><b>${esc(shortName(e.from_name))}</b><span>${esc(whenLead(e.created_at))}</span></div><div class="li-msg">${esc(e.message||'New enquiry')}</div><div class="li-meta"><span>${esc(e.from_town||'')}</span><span class="li-pills">${ug?`<span class="pill ${ug[1]}">${esc(ug[0])}</span>`:''}<span class="pill ${st[1]}">${st[0]}</span></span></div></div>`;}
- const b=it.b, done=b.status==='completed', q=W.qOf(b), amt=q&&q.total_inc_gst!=null?+q.total_inc_gst:null;
- const when=done?'Done '+dayShort(b.completed_at||b.slot_start||b.created_at):(b.slot_start?'For '+dayShort(b.slot_start):'Booked '+dayShort(b.created_at));
- return `<div class="li${JSEL===it.k?' on':''}" data-k="${it.k}" onclick="jobsSelect('${it.k}')"><div class="li-top"><b>${esc(W.whoOf(b))}</b><span>${esc(when)}</span></div><div class="li-msg">${esc(b.job_title||'Job')}</div><div class="li-meta"><span>${esc((W.P[b.customer_id]||{}).suburb||'')}</span><span class="li-pills">${amt!=null?`<span class="pill">${money(amt)}</span>`:''}<span class="pill ${done?'g':'b'}">${done?'Done':'Booked'}</span></span></div></div>`;
-}
-function jobsTab(seg,keep){
+function jobsTab(seg){
  JSEG=seg||'all'; const W=JW; if(!W||!$('jtabs')) return;
  const c=jobsCounts(W), t=(k,l)=>`<div class="${JSEG===k?'on':''}" onclick="jobsTab('${k}')">${l} · ${c[k]}</div>`;
  $('jtabs').innerHTML=t('all','All')+t('new','New')+t('booked','Booked')+t('done','Done');
- const items=jobsItems(W,JSEG);
- if(!keep||!JSEL) JSEL=(items.some(it=>it.k===JSEL)?JSEL:(items[0]&&items[0].k))||null;
- jobsList();
- if(JSEL) jobsSelect(JSEL);
- else $('jdet').innerHTML=`<div class="li-none" style="padding-top:140px"><b>${W.E.length?'Nothing here.':'No enquiries yet.'}</b>${W.E.length?'Pick another tab, or a job on the left.':'When a customer picks you, their enquiry lands here, and only you get it.'}</div>`;
+ jobsRows();
 }
-function jobsList(){
- const W=JW, host=$('jlist'); if(!W||!host) return;
+function jobsRows(){
+ const W=JW, host=$('jrows'); if(!W||!host) return;
  let items=jobsItems(W,JSEG); const q=JQ.trim().toLowerCase();
  if(q) items=items.filter(it=>jobText(it,W).includes(q));
- const none={all:['No enquiries yet.','When a customer picks you, their enquiry lands here.'],new:['Nothing new.','You’re on top of every new enquiry.'],booked:['No booked jobs.','When a customer accepts your quote, the job is booked and lands here.'],done:['Nothing done yet.','Finished jobs show here.']}[JSEG];
- host.innerHTML=items.length?items.map(it=>rowHTML(it,W)).join(''):`<div class="li-none"><b>${q?'Nothing matches.':none[0]}</b>${q?'Try a name, suburb or job.':none[1]}</div>`;
+ const none={all:['No enquiries yet.','When a customer picks you, their enquiry lands here, and only you get it.'],new:['Nothing new.','You’re on top of every new enquiry.'],booked:['No booked jobs.','When a customer accepts your quote, the job is booked and lands here.'],done:['Nothing done yet.','Finished jobs show here.']}[JSEG];
+ host.innerHTML=items.length?items.map(it=>jobRow(it,W)).join(''):`<tr><td colspan="7"><div class="li-none"><b>${q?'Nothing matches.':none[0]}</b>${q?'Try a name, suburb or job.':none[1]}</div></td></tr>`;
 }
-function jobsSelect(k){
- JSEL=k; document.querySelectorAll('#jlist .li').forEach(r=>r.classList.toggle('on',r.dataset.k===k));
- { const row=document.querySelector('#jlist .li.on'); if(row) row.scrollIntoView({block:'nearest'}); }
- const host=$('jdet'); if(!host) return; host.scrollTop=0;
- const [kind,id]=k.split(':');
- if(kind==='e') leadView(id,host,'pane'); else jobView(id,host,'pane');
+function jobRow(it,W){
+ if(it.e){const e=it.e, q=W.L.q[e.id]||null, bk=W.L.b[e.id]||null, st=jobStatus(e,q,bk), isNew=e.status==='new'&&e.stage!=='declined';
+  const ug=['done','declined'].includes(st[2])?null:leadShortUrg(e.urgency);
+  return `<tr class="tap${isNew?' unread':''}" onclick="openLead('${e.id}')"><td><div class="who"><span class="cav">${esc(initial(e.from_name))}</span><span><b>${esc(shortName(e.from_name))}</b><small>${esc(e.from_town||'')}</small></span></div></td><td><div class="jline">${esc(e.message||'New enquiry')}</div></td><td class="sub2 nw">${esc(whenLead(e.created_at))}</td><td>${ug?`<span class="pill ${ug[1]}">${esc(ug[0])}</span>`:''}</td><td><span class="pill ${st[1]}">${st[0]}</span></td><td class="num r">${q&&q.total_inc_gst!=null?money(q.total_inc_gst):''}</td><td class="cc">${ICH}</td></tr>`;}
+ const b=it.b, done=b.status==='completed', q=W.qOf(b), who=W.whoOf(b);
+ const when=done?'Done '+dayShort(b.completed_at||b.slot_start||b.created_at):(b.slot_start?'For '+dayShort(b.slot_start):'Booked '+dayShort(b.created_at));
+ return `<tr class="tap" onclick="openJob('${b.id}')"><td><div class="who"><span class="cav${done?' g':''}">${esc(initial(who))}</span><span><b>${esc(who)}</b><small>${esc((W.P[b.customer_id]||{}).suburb||'')}</small></span></div></td><td><div class="jline">${esc(b.job_title||'Job')}</div></td><td class="sub2 nw">${esc(when)}</td><td></td><td><span class="pill ${done?'g':'b'}">${done?'Done':'Booked'}</span></td><td class="num r">${q&&q.total_inc_gst!=null?money(q.total_inc_gst):''}</td><td class="cc">${ICH}</td></tr>`;
 }
+// Back from a job to the list it was opened from.
+function listBack(){const l={home:'Dashboard',jobs:'Jobs',inbox:'Inbox',quotes:'Quotes',reviews:'Reviews',invoices:'Invoices'}[LASTLIST]||'Jobs';return backLink(`go('${LASTLIST}')`,l);}
 // Narrow windows: the app's cards, each opening its own page.
 async function pJobsCards(){loading('Jobs');try{
  const W=await workData(); JW=W; const F=jobsFigures(W);
@@ -960,11 +1026,7 @@ function cardsTab(seg){
 
 /* ═════ AN ENQUIRY (TDJob): the customer, the job, their photos, the chat ═════ */
 let LEAD=null, VTOK=0;
-function openLead(id,chat){
- if(DESK()){ if(PAGE==='jobs'&&JW&&$('jlist')&&JW.E.some(x=>x.id===id)){ if(!jobsItems(JW,JSEG).some(it=>it.k==='e:'+id)){JSEL='e:'+id;jobsTab('all',true);} else jobsSelect('e:'+id); return; }
-  go('jobs',{sel:'e:'+id}); return; }
- go('lead',{id,chat:!!chat});
-}
+function openLead(id,chat){go('lead',{id,chat:!!chat});}
 async function enqPhotoSrcs(list){const out=[];
  for(const p of (list||[])){const s=String(p||'');if(!s)continue;
   if(/^https?:\/\//i.test(s)||s.startsWith('data:')){out.push(s);continue;}
@@ -989,7 +1051,7 @@ function bubbles(e){const me=ME.id;let lastDay='';
 // Draw an enquiry into a page ('page', with the chat beside it) or the Jobs split view ('pane').
 async function leadView(id,host,mode,focusChat){
  const tok=++VTOK, pane=mode==='pane';
- host.innerHTML=pane?'<div class="det"><div class="shim"></div><div class="shim" style="width:60%"></div><div class="shim" style="width:40%"></div></div>':`${backLink("go('jobs')",'Jobs')}<div class="card"><div class="shim"></div><div class="shim" style="width:60%"></div></div>`;
+ host.innerHTML=pane?'<div class="det"><div class="shim"></div><div class="shim" style="width:60%"></div><div class="shim" style="width:40%"></div></div>':`${listBack()}<div class="card"><div class="shim"></div><div class="shim" style="width:60%"></div></div>`;
  try{
  const {data:e,error}=await sb.from('enquiries').select('*').eq('id',id).single();if(error)throw error;
  const [bk,qs]=await Promise.all([
@@ -1024,13 +1086,13 @@ async function leadView(id,host,mode,focusChat){
    ${q?`<div class="card qsum"><span class="qi"><svg class="i" viewBox="0 0 24 24"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5M9 13h6M9 17h4"/></svg></span><span class="tx"><b>${esc(q.job_title||'Your quote')}</b><small>Your quote · ${esc(qStatus)}</small></span><span class="v">${money(q.total_inc_gst)}</span></div>`:''}
    <div class="acts">${main}${two.length?`<div class="two">${two.join('')}</div>`:''}</div>`;
  host.innerHTML=pane?`<div class="det"><div class="det-grid"><div>${details}</div>${chatCard(e,true)}</div></div>`
-  :`${backLink("go('jobs')",'Jobs')}<div class="grid2 wide"><div>${details}</div>${chatCard(e)}</div>`;
+  :`${listBack()}<div class="grid2 wide"><div>${details}</div>${chatCard(e)}</div>`;
  const th=$('thread'); if(th) th.scrollTop=th.scrollHeight;
  if(focusChat){const r=$('reply');if(r)r.focus();}
  // the customer's photos always have a place (they're private: signed links)
  const ph=$('lphotos'), P=Array.isArray(e.photos)?e.photos:[];
  if(ph){ if(P.length){const urls=await enqPhotoSrcs(P);if(tok!==VTOK)return;ph.innerHTML=urls.length?`<div class="photos">${photoTiles(urls)}</div>`:noPhotos(first);} else ph.innerHTML=noPhotos(first); }
- }catch(err){ if(tok===VTOK) host.innerHTML=(pane?'<div class="det">':backLink("go('jobs')",'Jobs'))+errBox(err)+(pane?'</div>':''); }
+ }catch(err){ if(tok===VTOK) host.innerHTML=(pane?'<div class="det">':listBack())+errBox(err)+(pane?'</div>':''); }
 }
 async function pLead(arg){const id=arg&&arg.id;if(!id){go('jobs');return;}await leadView(id,$('main'),'page',arg.chat);}
 function composerHTML(first){return PREVIEW?'<div class="compose" style="justify-content:center;color:var(--ink2);font-size:13.5px;font-weight:600">Admin preview: read-only</div>':`<div class="compose"><textarea id="reply" rows="1" placeholder="Message ${esc(first)}" oninput="this.style.height='auto';this.style.height=Math.min(180,this.scrollHeight)+'px'" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendReply()}"></textarea><button class="send" onclick="sendReply()" aria-label="Send"><svg viewBox="0 0 24 24"><path d="M12 19V5M5 12l7-7 7 7"/></svg></button></div>`;}
@@ -1065,20 +1127,16 @@ async function declineLead(r){
  if(me&&ue){toast('That didn’t go through. Check your connection and try again.');return;}
  reopen('e:'+e.id);
 }
-// After a change, draw the job again from fresh data (in the split view, or on its page).
+// After a change, draw it again from fresh data: the Inbox if it came from there, else the job's page.
 function reopen(k){const [kind,id]=k.split(':');
- if(DESK()){go('jobs',{sel:k});return;}
+ if(PAGE==='inbox'){go('inbox',{sel:ISEL});return;}
  if(kind==='e') go('lead',{id}); else go('job',{id});}
 
 /* ═════ A BOOKED OR DONE JOB (TDJob / TDJobDone) ═════ */
-function openJob(id){
- if(DESK()){ if(PAGE==='jobs'&&JW&&$('jlist')&&JW.B.some(x=>x.id===id)){const k='b:'+id;if(!jobsItems(JW,JSEG).some(it=>it.k===k)){JSEL=k;jobsTab(tabFor(k,JW)||'booked',true);} else jobsSelect(k); return;}
-  go('jobs',{sel:'b:'+id}); return; }
- go('job',{id});
-}
+function openJob(id){go('job',{id});}
 async function jobView(id,host,mode){
  const tok=++VTOK, pane=mode==='pane';
- host.innerHTML=pane?'<div class="det"><div class="shim"></div><div class="shim" style="width:60%"></div></div>':`${backLink("go('jobs')",'Jobs')}<div class="card"><div class="shim"></div></div>`;
+ host.innerHTML=pane?'<div class="det"><div class="shim"></div><div class="shim" style="width:60%"></div></div>':`${listBack()}<div class="card"><div class="shim"></div></div>`;
  try{
  const {data:b,error}=await sb.from('bookings').select('*').eq('id',id).single();if(error)throw error;
  const [pr,ad,qs,rv,cr,en]=await Promise.all([
@@ -1110,11 +1168,11 @@ async function jobView(id,host,mode){
    <div class="acts">${acts}${two.length?`<div class="two">${two.join('')}</div>`:''}</div>`;
  if(enq) LEAD=enq;
  host.innerHTML=pane?`<div class="det">${enq?`<div class="det-grid"><div>${details}</div>${chatCard(enq,true)}</div>`:`<div style="max-width:560px">${details}</div>`}</div>`
-  :`${backLink("go('jobs')",'Jobs')}<div class="${enq?'grid2 wide':''}" style="${enq?'':'max-width:720px'}"><div>${details}</div>${enq?chatCard(enq):''}</div>`;
+  :`${listBack()}<div class="${enq?'grid2 wide':''}" style="${enq?'':'max-width:720px'}"><div>${details}</div>${enq?chatCard(enq):''}</div>`;
  const th=$('thread'); if(th) th.scrollTop=th.scrollHeight;
  const P=(enq&&Array.isArray(enq.photos))?enq.photos:[];
  if(P.length){const urls=await enqPhotoSrcs(P);if(tok!==VTOK)return;const ph=$('jphotos');if(ph&&urls.length)ph.innerHTML=`<div class="photos">${photoTiles(urls)}</div>`;}
- }catch(err){ if(tok===VTOK) host.innerHTML=(pane?'<div class="det">':backLink("go('jobs')",'Jobs'))+errBox(err)+(pane?'</div>':''); }
+ }catch(err){ if(tok===VTOK) host.innerHTML=(pane?'<div class="det">':listBack())+errBox(err)+(pane?'</div>':''); }
 }
 async function pJob(arg){const id=arg&&arg.id;if(!id){go('jobs');return;}await jobView(id,$('main'),'page');}
 // Mark a booked job complete: reviews open both ways. (The app's version also takes the job photos.)
@@ -1143,39 +1201,52 @@ async function saveRate(bid){
 }
 
 /* ═════ INBOX (NewInbox, tradie side) ═════
-   On a desktop, conversations on the left and the open chat on the right. */
-let ISEL=null, IQ='', IROWS=[];
+   Every conversation carries its job's status as a tag, with tabs to filter by it. On a
+   desktop the open conversation sits beside everything about the job: status, what they
+   asked, photos, contact details, the quote, the booking and what to do next. */
+let ISEL=null, IQ='', IROWS=[], ITAB='all';
+const ITABS=[['all','All'],['new','New'],['quoted','Quoted'],['booked','Booked'],['done','Done']];
 async function pInbox(arg){
  if(arg&&arg.sel) ISEL=arg.sel;
  const desk=DESK(), main=$('main');
+ const head=`<div class="ft"><h2>Inbox</h2><div class="subt">Every chat with a customer, with the job beside it. Only you and that customer are in it.</div></div>`;
  if(desk){ main.classList.add('full');
-  main.innerHTML=`<div class="fhead"><div class="ft"><h2>Inbox</h2><div class="subt">Every chat with a customer. Only you and that customer are in it.</div></div></div>
-   <div class="split"><div class="pane"><div class="pane-h"><label class="search">${ISEARCH}<input id="iq" placeholder="Search messages" value="${esc(IQ)}" oninput="IQ=this.value;inboxList()"></label></div><div class="pane-b" id="ilist"><div class="shim"></div><div class="shim" style="width:70%"></div></div></div><div class="pane" id="iconv"><div class="det"><div class="shim"></div></div></div></div>`; }
+  main.innerHTML=`<div class="fhead">${head}</div>
+   <div class="split inbox"><div class="pane"><div class="pane-h"><div class="fchips" id="itabs"></div><label class="search">${ISEARCH}<input id="iq" placeholder="Search messages" value="${esc(IQ)}" oninput="IQ=this.value;inboxList()"></label></div><div class="pane-b" id="ilist"><div class="shim"></div><div class="shim" style="width:70%"></div></div></div><div class="pane" id="iconv"><div class="det"><div class="shim"></div></div></div></div>`; }
  else loading('Inbox');
  try{
- const {data,error}=await sb.from('enquiries').select('*').eq('listing_id',LST.id).order('created_at',{ascending:false}).limit(300);if(error)throw error;
- const qBy={};try{const {data:qs}=await sb.from('quotes').select('enquiry_id,job_title,created_at').eq('tradie_auth_user_id',ME.id).order('created_at',{ascending:false});(qs||[]).forEach(q=>{if(q.enquiry_id&&!qBy[q.enquiry_id])qBy[q.enquiry_id]=q;});}catch(e){}
+ const [er,qr,br]=await Promise.all([
+  sb.from('enquiries').select('*').eq('listing_id',LST.id).order('created_at',{ascending:false}).limit(300),
+  sb.from('quotes').select('id,enquiry_id,job_title,total_inc_gst,status,created_at,sent_at').eq('tradie_auth_user_id',ME.id).order('created_at',{ascending:false}),
+  sb.from('bookings').select('id,enquiry_id,status,quote_id,created_at,completed_at,slot_start').eq('tradie_auth_id',ME.id)]);
+ if(er.error) throw er.error;
  if(PAGE!=='inbox') return;
- IROWS=(data||[]).map(e=>{const M=withEnquiryFirst(e,Array.isArray(e.messages)?e.messages:[],ME.id);const last=M[M.length-1]||null;
-  const mine=last?(last.fromUserId===ME.id||last.fromUserId==='tradie'):false;
-  return {e,last,mine,t:(last&&last.createdAt)||e.created_at,unread:!!last&&!mine&&M.length>1,job:(qBy[e.id]&&qBy[e.id].job_title)||needJob(e.message)||'Enquiry'};}).sort((a,b)=>Date.parse(b.t)-Date.parse(a.t));
+ const L=enqLinks(qr.data,br.data);
+ IROWS=(er.data||[]).map(e=>{const M=withEnquiryFirst(e,Array.isArray(e.messages)?e.messages:[],ME.id);const last=M[M.length-1]||null;
+  const mine=last?(last.fromUserId===ME.id||last.fromUserId==='tradie'):false, q=L.q[e.id]||null, bk=L.b[e.id]||null;
+  return {e,q,bk,last,mine,t:(last&&last.createdAt)||e.created_at,unread:!!last&&!mine&&M.length>1,job:(q&&q.job_title)||needJob(e.message)||'Enquiry',st:jobStatus(e,q,bk)};})
+  .sort((a,b)=>Date.parse(b.t)-Date.parse(a.t));
  inboxBadge();
- if(!desk){
-  main.innerHTML=`<div class="phead"><div class="pt"><h2>Inbox</h2><div class="subt">Every chat with a customer. Only you and that customer are in it.</div></div></div>
-   ${IROWS.length?`<div class="msgs">${IROWS.map(r=>`<div class="mrow${r.unread?' unread':''}" onclick="openLead('${r.e.id}',true)"><span class="cav">${esc(initial(r.e.from_name))}</span><span class="tx"><span class="top"><b>${esc(shortName(r.e.from_name))}</b><span>${esc(whenLead(r.t))}</span></span><span class="jb">${esc(r.job)}</span><span class="pv">${r.mine?'You: ':''}${esc((r.last&&r.last.body)||'')}</span></span>${r.unread?'<span class="dot"></span>':''}</div>`).join('')}</div>`
-    :`<div class="card empty"><b style="display:block;color:var(--ink);font-size:16px;margin-bottom:4px">No messages yet.</b>When a customer sends you an enquiry, the chat opens here.</div>`}`;
-  return; }
- if(!ISEL||!IROWS.some(r=>r.e.id===ISEL)) ISEL=IROWS[0]?IROWS[0].e.id:null;
- inboxList(); inboxOpen(ISEL);
- }catch(e){ main.innerHTML='<h2>Inbox</h2>'+errBox(e); }
+ if(!desk){ main.innerHTML=`<div class="phead">${head}</div><div class="fchips" id="itabs" style="margin-bottom:14px"></div><div class="msgs" id="ilist"></div>`; inboxTabs(); inboxList(); return; }
+ const rows=inboxRows();
+ if(!ISEL||!rows.some(r=>r.e.id===ISEL)) ISEL=(rows[0]||IROWS[0]||{e:{}}).e.id||null;
+ inboxTabs(); inboxList(); inboxOpen(ISEL);
+ }catch(e){ main.classList.remove('full'); main.innerHTML='<h2>Inbox</h2>'+errBox(e); }
 }
 function inboxBadge(){const n=IROWS.filter(r=>r.unread).length, c=$('c-inbox'); if(c){c.textContent=n?String(n):'';c.classList.toggle('hot',n>0);}}
+function inboxRows(){const q=IQ.trim().toLowerCase();
+ return IROWS.filter(r=>(ITAB==='all'||r.st[2]===ITAB)&&(!q||[r.e.from_name,r.e.from_town,r.e.message,r.job,...(Array.isArray(r.e.messages)?r.e.messages.map(m=>m&&(m.body||m.text)):[])].join(' ').toLowerCase().includes(q)));}
+function inboxTabs(){const host=$('itabs'); if(!host) return;
+ const n=k=>k==='all'?IROWS.length:IROWS.filter(r=>r.st[2]===k).length;
+ host.innerHTML=ITABS.map(([k,l])=>`<button class="${ITAB===k?'on':''}" onclick="inboxTab('${k}')">${l}<span>${n(k)}</span></button>`).join('');}
+function inboxTab(k){ITAB=k; inboxTabs(); inboxList();
+ if(DESK()){const rows=inboxRows(); if(!rows.some(r=>r.e.id===ISEL)){ISEL=rows[0]?rows[0].e.id:null; inboxOpen(ISEL);}}}
 function inboxList(){
  const host=$('ilist'); if(!host) return;
- const q=IQ.trim().toLowerCase();
- const rows=q?IROWS.filter(r=>[r.e.from_name,r.e.from_town,r.e.message,r.job,...(Array.isArray(r.e.messages)?r.e.messages.map(m=>m&&(m.body||m.text)):[])].join(' ').toLowerCase().includes(q)):IROWS;
- host.innerHTML=rows.length?rows.map(r=>`<div class="li ili${r.e.id===ISEL?' on':''}${r.unread?' unread':''}" data-k="${r.e.id}" onclick="inboxOpen('${r.e.id}',true)"><span class="cav">${esc(initial(r.e.from_name))}</span><span class="ili-tx"><span class="li-top"><b>${esc(shortName(r.e.from_name))}</b><span>${esc(whenLead(r.t))}</span></span><span class="ijob">${esc(r.job)}</span><span class="li-msg one">${r.mine?'You: ':''}${esc((r.last&&r.last.body)||'')}</span></span></div>`).join('')
-  :`<div class="li-none"><b>${q?'Nothing matches.':'No messages yet.'}</b>${q?'Try a name, suburb or word from the chat.':'When a customer sends you an enquiry, the chat opens here.'}</div>`;
+ const rows=inboxRows(), q=IQ.trim();
+ const none=`<div class="li-none"><b>${q?'Nothing matches.':ITAB==='all'?'No messages yet.':'Nothing here.'}</b>${q?'Try a name, suburb or word from the chat.':ITAB==='all'?'When a customer sends you an enquiry, the chat opens here.':'Conversations with this status show here.'}</div>`;
+ if(!DESK()){ host.innerHTML=rows.length?rows.map(r=>`<div class="mrow${r.unread?' unread':''}" onclick="openLead('${r.e.id}',true)"><span class="cav">${esc(initial(r.e.from_name))}</span><span class="tx"><span class="top"><b>${esc(shortName(r.e.from_name))}</b><span>${esc(whenLead(r.t))}</span></span><span class="ili-mid"><span class="jb">${esc(r.job)}</span><span class="pill ${r.st[1]}">${r.st[0]}</span></span><span class="pv">${r.mine?'You: ':''}${esc((r.last&&r.last.body)||'')}</span></span>${r.unread?'<span class="dot"></span>':''}</div>`).join(''):`<div class="card">${none}</div>`; return; }
+ host.innerHTML=rows.length?rows.map(r=>`<div class="li ili${r.e.id===ISEL?' on':''}${r.unread?' unread':''}" data-k="${r.e.id}" onclick="inboxOpen('${r.e.id}',true)"><span class="cav">${esc(initial(r.e.from_name))}</span><span class="ili-tx"><span class="li-top"><b>${esc(shortName(r.e.from_name))}</b><span>${esc(whenLead(r.t))}</span></span><span class="ili-mid"><span class="ijob">${esc(r.job)}</span><span class="pill ${r.st[1]}">${r.st[0]}</span></span><span class="li-msg one">${r.mine?'You: ':''}${esc((r.last&&r.last.body)||'')}</span></span></div>`).join(''):none;
 }
 function inboxOpen(id,focus){
  ISEL=id; document.querySelectorAll('#ilist .li').forEach(r=>r.classList.toggle('on',r.dataset.k===id));
@@ -1183,20 +1254,52 @@ function inboxOpen(id,focus){
  const host=$('iconv'); if(!host) return;
  const r=IROWS.find(x=>x.e.id===id);
  if(!r){host.innerHTML='<div class="li-none" style="padding-top:140px"><b>No conversation open.</b>Pick one on the left.</div>';return;}
- const e=r.e, who=shortName(e.from_name), first=who.split(' ')[0], st=leadStatus(e); LEAD=e;
- host.innerHTML=`<div class="conv"><div class="conv-h"><span class="cav">${esc(initial(who))}</span><span class="tx"><b>${esc(who)}</b><small>${[e.from_town,r.job].filter(Boolean).map(esc).join(' · ')}</small></span><span class="pill ${st[1]}">${st[0]}</span><button class="btn w sm" onclick="openLead('${e.id}')">Open the enquiry</button></div>
-  <div class="thread" id="thread">${bubbles(e)}</div><div class="cerr" id="cerr"></div>${composerHTML(first)}</div>`;
+ const e=r.e, who=shortName(e.from_name), first=who.split(' ')[0]; LEAD=e;
+ host.innerHTML=`<div class="conv"><div class="conv-h"><span class="cav">${esc(initial(who))}</span><span class="tx"><b>${esc(who)}</b><small>${[e.from_town,r.job].filter(Boolean).map(esc).join(' · ')}</small></span><span class="pill ${r.st[1]}">${r.st[0]}</span><button class="btn w sm jibtn" onclick="inboxInfoSheet()">Job details</button></div>
+  <div class="conv-b"><div class="conv-chat"><div class="thread" id="thread">${bubbles(e)}</div><div class="cerr" id="cerr"></div>${composerHTML(first)}</div><aside class="jinfo">${jobInfoHTML(r)}</aside></div></div>`;
  const th=$('thread'); if(th) th.scrollTop=th.scrollHeight;
  if(focus){const ta=$('reply'); if(ta) ta.focus({preventScroll:true});}
+ fillInfoPhotos(e);
+}
+// Everything about the job, beside the chat (or in a sheet on a narrower screen).
+function jobInfoHTML(r){
+ const e=r.e, q=r.q, bk=r.bk, st=r.st, first=shortName(e.from_name).split(' ')[0];
+ const tel=e.from_phone?String(e.from_phone).replace(/[^\d+]/g,''):'';
+ const line={new:'Received '+whenLead(e.created_at),read:'Opened. You haven’t replied yet',replied:'You’ve replied',
+  quoted:q?'Quote sent '+dayShort(q.sent_at||q.created_at)+(q.status==='viewed'?', seen by '+first:''):'',
+  booked:bk?(bk.slot_start?'Booked for '+dayShort(bk.slot_start):'Booked '+dayShort(bk.created_at)):'Quote accepted',
+  done:'Completed '+dayShort((bk&&(bk.completed_at||bk.slot_start))||e.created_at),declined:'You declined this'}[st[2]]||'';
+ const open=!['booked','done','declined'].includes(st[2]);
+ const main=st[2]==='booked'&&bk?`<button class="btn g block" onclick="markComplete('${bk.id}')">Mark job complete</button>`
+  :st[2]==='done'&&bk?`<button class="btn g block" onclick="openJob('${bk.id}')">View job</button>`
+  :open?`<button class="btn g block" onclick="closeModal();go('quoteNew')">${q?'Send a new quote':'Send a quote'}</button>`:'';
+ const two=[tel?`<a class="btn w sm" href="tel:${esc(tel)}">Call ${esc(first)}</a>`:'',e.from_email?`<a class="btn w sm" href="mailto:${esc(String(e.from_email).trim())}">Email</a>`:'',open?`<button class="btn r sm" onclick="closeModal();declineSheet()">Decline</button>`:''].filter(Boolean);
+ const qWord=q?(q.status==='accepted'?'Accepted':q.status==='rejected'?'Declined by the customer':q.status==='viewed'?'Seen by '+first:'Sent '+dayShort(q.sent_at||q.created_at)):'';
+ const fact=(k,v)=>v?`<div><span>${k}</span><b>${v}</b></div>`:'';
+ return `<div class="ji-st"><span class="pill ${st[1]}">${st[0]}</span><small>${esc(line)}</small></div>
+  <div class="ji-cap">The job</div><p class="ji-job">${esc(e.message||'')}</p>
+  <div class="iph"></div>
+  <div class="ji-facts">${fact('Urgency',e.urgency?esc(urgText(e.urgency)):'')}${fact('Suburb',esc(e.from_town||''))}${fact('Mobile',e.from_phone?`<a href="tel:${esc(tel)}">${esc(e.from_phone)}</a>`:'')}${fact('Email',e.from_email?`<a href="mailto:${esc(String(e.from_email).trim())}">${esc(e.from_email)}</a>`:'')}${fact('Received',esc(dayLong(e.created_at)))}</div>
+  ${q?`<div class="ji-q"><span><b>${esc(q.job_title||'Your quote')}</b><small>Your quote · ${esc(qWord)}</small></span><b class="v">${money(q.total_inc_gst)}</b></div>`:''}
+  <div class="ji-acts">${main}${two.length?`<div class="two">${two.join('')}</div>`:''}<button class="btn w block" onclick="closeModal();openLead('${e.id}')">Open the full job</button></div>`;
+}
+function inboxInfoSheet(){const r=IROWS.find(x=>x.e.id===ISEL); if(!r) return;
+ openModal(`<div class="jinfo insheet">${jobInfoHTML(r)}</div><div class="mf"><button class="btn w" onclick="closeModal()">Close</button></div>`); fillInfoPhotos(r.e);}
+async function fillInfoPhotos(e){
+ const P=Array.isArray(e.photos)?e.photos:[], first=shortName(e.from_name).split(' ')[0];
+ if(!P.length){document.querySelectorAll('.iph').forEach(x=>x.innerHTML=`<p class="ji-none">No photos with this enquiry. <a onclick="closeModal();askPhotos()">Ask ${esc(first)} for one</a></p>`);return;}
+ const urls=await enqPhotoSrcs(P); if(LEAD!==e) return;
+ document.querySelectorAll('.iph').forEach(x=>x.innerHTML=urls.length?`<div class="photos sm">${photoTiles(urls)}</div>`:'');
 }
 // after a reply from the Inbox, its row moves to the top and reads "You: …"
 function inboxSent(e,msg){const r=IROWS.find(x=>x.e.id===e.id);if(!r)return;
  r.e=e;r.last={body:msg.body||'',fromUserId:ME.id,createdAt:msg.createdAt};r.mine=true;r.unread=false;r.t=msg.createdAt||new Date().toISOString();
- IROWS.sort((a,b)=>Date.parse(b.t)-Date.parse(a.t)); inboxList(); inboxBadge();}
+ if(r.st[2]==='new'||r.st[2]==='read') r.st=['Replied','n','replied'];
+ IROWS.sort((a,b)=>Date.parse(b.t)-Date.parse(a.t)); inboxTabs(); inboxList(); inboxBadge();
+ const h=document.querySelector('.conv-h .pill'); if(h){h.className='pill '+r.st[1];h.textContent=r.st[0];}}
 let _desk=DESK();
 window.addEventListener('resize',()=>{clearTimeout(window._rz);window._rz=setTimeout(()=>{const d=DESK();if(d===_desk)return;_desk=d;
- if(PAGE==='jobs'||PAGE==='inbox') go(PAGE);
- else if(d&&PAGE==='lead'&&LEAD) go('jobs',{sel:'e:'+LEAD.id});},200);});
+ if(PAGE==='jobs'||PAGE==='inbox') go(PAGE);},200);});
 
 /* ═════ QUOTE BUILDER (same fixed-price + GST model as the app) ═════ */
 let QLINES=[];

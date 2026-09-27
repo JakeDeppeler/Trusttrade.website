@@ -176,22 +176,7 @@ html[data-theme="dark"] .pill{background:var(--cream);color:var(--ink2)}
 html[data-theme="dark"] .pill.g{background:var(--greenb);color:var(--green)}html[data-theme="dark"] .pill.a{background:var(--goldb);color:var(--goldt)}html[data-theme="dark"] .pill.r{background:var(--redb);color:var(--redt)}html[data-theme="dark"] .pill.b{background:var(--blueb);color:var(--blue)}
 
 /* ── Dashboard: last 30 days (TDHome) ── */
-.tds{padding:22px 24px}
-.tds-top{display:flex;justify-content:space-between;align-items:center}
 .tds-top>span:first-child{font-size:15px;font-weight:600;color:var(--ink2)}
-.tds-big{display:flex;align-items:flex-end;justify-content:space-between;gap:18px;margin-top:8px}
-.tds-n b{display:block;font-family:var(--fd);font-size:76px;font-weight:800;letter-spacing:-.05em;line-height:.92}
-.tds-n>span{display:block;font-size:16px;font-weight:600;margin-top:6px}
-.tds-n em{font-style:normal;font-weight:700;color:var(--green)}
-.tds-n em.dn{color:var(--redt)}
-.bars{display:flex;align-items:flex-end;gap:6px;width:190px;height:70px}
-.bars i{flex:1;border-radius:7px;background:var(--bar)}
-.bars i.pk{background:var(--gold)}
-.tds-row{display:flex;margin-top:20px;padding-top:16px;border-top:1px solid var(--line2)}
-.tds-row>span{flex:1;display:flex;flex-direction:column;gap:3px;min-width:0}
-.tds-row>span+span{padding-left:18px;margin-left:18px;border-left:1px solid var(--line2)}
-.tds-row b{font-family:var(--fd);font-size:26px;font-weight:800;letter-spacing:-.035em}
-.tds-row small{font-size:13px;color:var(--ink2)}
 .needs{padding:2px 20px}
 .need{display:flex;align-items:center;gap:13px;padding:15px 0;border-bottom:1px solid var(--line2);cursor:pointer}
 .need:last-child{border-bottom:0}
@@ -482,6 +467,85 @@ html[data-theme="dark"] .toastx{background:rgba(44,44,46,.92);border-color:rgba(
 .pvbar .tag{background:var(--gold);color:#101010;font-size:11px;font-weight:800;letter-spacing:.06em;padding:4px 10px;border-radius:999px}
 .pvbar button{margin-left:auto;height:32px;padding:0 15px;border:0;border-radius:999px;background:#fff;color:#101010;font-size:13px;font-weight:700;cursor:pointer}
 
+/* ── desktop layouts: the Dashboard overview, and Jobs and Inbox as a list beside the open item ── */
+.kgrid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;margin-bottom:16px}
+.kpi2{background:var(--panel);border-radius:24px;box-shadow:var(--sh);padding:18px 22px;min-width:0}
+.kpi2 .kl{font-size:14px;font-weight:600;color:var(--ink2)}
+.kpi2 b{display:block;font-family:var(--fd);font-size:42px;font-weight:800;letter-spacing:-.045em;line-height:1;margin-top:10px;font-variant-numeric:tabular-nums}
+.kpi2 small{display:block;font-size:13px;color:var(--mut);margin-top:8px}
+.kpi2 small em{font-style:normal;font-weight:700;color:var(--green);margin-left:4px}
+.kpi2 small em.dn{color:var(--redt)}
+.dgrid{display:grid;grid-template-columns:minmax(0,2fr) minmax(0,1fr);gap:16px;margin-bottom:6px}
+.dgrid>.card{margin:0}
+.dgrid2{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:16px;align-items:start}
+.ch .end{margin-left:auto}
+.ch .lk{font-size:14px;font-weight:600;text-decoration:underline;text-underline-offset:3px;cursor:pointer;color:var(--ink)}
+.chartc{padding-bottom:18px}
+.chart30{display:flex;align-items:flex-end;gap:5px;height:170px;padding:14px 22px 0}
+.chart30 i{flex:1;min-width:3px;border-radius:6px 6px 3px 3px;background:var(--bar)}
+.chart30 i.on{background:rgba(233,162,28,.45)}
+.chart30 i.pk{background:var(--gold)}
+.chart30 i.z{opacity:.6}
+.axis{display:flex;justify-content:space-between;padding:10px 22px 0;font-size:12.5px;color:var(--mut)}
+.mrows{padding:2px 22px 8px}
+.mr{display:flex;justify-content:space-between;align-items:baseline;padding:14px 0;border-bottom:1px solid var(--line2);font-size:14.5px;color:var(--ink2)}
+.mr:last-child{border-bottom:0}
+.mr b{font-family:var(--fd);font-size:24px;font-weight:800;letter-spacing:-.035em;color:var(--ink)}
+main.full{max-width:none;height:100vh;display:flex;flex-direction:column;padding:26px 30px 22px}
+body.preview main.full{height:calc(100vh - 46px)}
+.fhead{display:flex;align-items:flex-end;gap:14px 20px;flex-wrap:wrap;margin-bottom:18px}
+.fhead .ft{flex:1 1 320px;min-width:0}
+.fhead .subt{margin:6px 0 0}
+.hstats{display:flex;gap:10px;flex-wrap:wrap}
+.hstat{background:var(--panel);border-radius:18px;box-shadow:var(--sh);padding:10px 16px;min-width:108px}
+.hstat.tap{cursor:pointer}
+.hstat.tap:hover{box-shadow:var(--sh2)}
+.hstat b{display:block;font-family:var(--fd);font-size:24px;font-weight:800;letter-spacing:-.035em;line-height:1.1}
+.hstat b.dn{color:var(--redt)}
+.hstat small{font-size:12.5px;font-weight:600;color:var(--ink2)}
+.split{flex:1;min-height:0;display:grid;grid-template-columns:350px minmax(0,1fr);gap:16px}
+.pane{background:var(--panel);border-radius:24px;box-shadow:var(--sh);display:flex;flex-direction:column;min-height:0;overflow:hidden}
+.pane-h{padding:12px;border-bottom:1px solid var(--line2);display:flex;flex-direction:column;gap:10px}
+.pane-b{flex:1;min-height:0;overflow-y:auto}
+.tabs.sm{width:100%;margin:0;box-shadow:none;background:var(--cream);padding:3px}
+.tabs.sm div{flex:1;justify-content:center;height:34px;padding:0 6px;font-size:13px}
+.search{position:relative;display:flex;align-items:center}
+.search svg{position:absolute;left:14px;width:16px;height:16px;fill:none;stroke:var(--ink2);stroke-width:2;stroke-linecap:round;pointer-events:none}
+.search input{width:100%;height:40px;padding:0 14px 0 38px;border:0;border-radius:999px;background:var(--panel2);box-shadow:inset 0 0 0 1px var(--line);font-size:14px;color:var(--ink);outline:none}
+.search input:focus{box-shadow:inset 0 0 0 2px var(--gold)}
+.li{position:relative;padding:14px 16px 14px 18px;border-bottom:1px solid var(--line2);cursor:pointer;transition:background .1s}
+.li:hover{background:var(--panel2)}
+.li.on{background:var(--goldb)}
+.li.on::before{content:"";position:absolute;left:0;top:10px;bottom:10px;width:4px;border-radius:0 4px 4px 0;background:var(--gold)}
+.li-top{display:flex;align-items:baseline;justify-content:space-between;gap:10px}
+.li-top b{font-size:15px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.li.unread .li-top b::after{content:"";display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--gold);margin-left:7px;vertical-align:2px}
+.li-top span{font-size:12.5px;color:var(--ink2);flex-shrink:0}
+.li-msg{font-size:13.5px;line-height:1.4;color:var(--body);margin-top:3px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.li-msg.one{-webkit-line-clamp:1}
+.li-meta{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:8px}
+.li-meta>span:first-child{font-size:12.5px;color:var(--ink2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.li-pills{display:flex;gap:5px;flex-shrink:0}
+.li-pills .pill{height:22px;padding:0 9px;font-size:11.5px}
+.li-none{padding:40px 20px;text-align:center;color:var(--ink2);font-size:14px}
+.li-none b{display:block;color:var(--ink);font-size:15px;margin-bottom:3px}
+.ili{display:flex;gap:12px;align-items:flex-start}
+.ili .cav{width:42px;height:42px;font-size:16px}
+.ili-tx{flex:1;min-width:0;display:flex;flex-direction:column;gap:1px}
+.ijob{font-size:12.5px;font-weight:700;color:var(--goldd);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.det{padding:22px 24px}
+.det-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:18px;align-items:start}
+.det .cust .cn b{font-size:26px}
+.chat.inpane{position:sticky;top:0;height:min(620px,calc(100vh - 200px));margin:0}
+.conv{display:flex;flex-direction:column;height:100%;min-height:0}
+.conv-h{display:flex;align-items:center;gap:12px;padding:14px 18px;border-bottom:1px solid var(--line2)}
+.conv-h .cav{width:44px;height:44px;font-size:17px}
+.conv-h .tx{flex:1;min-width:0}
+.conv-h b{display:block;font-size:17px;font-weight:700}
+.conv-h small{display:block;font-size:13px;color:var(--ink2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.conv .thread{flex:1;min-height:0}
+@media (max-width:1100px){.kgrid{grid-template-columns:repeat(2,minmax(0,1fr))}.dgrid,.dgrid2{grid-template-columns:1fr}}
+
 /* ── narrower screens ── */
 @media (max-width:1100px){.grid2,.grid2.wide{grid-template-columns:1fr}.chat{position:static;height:560px}.kpis{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media (max-width:900px){
@@ -499,9 +563,7 @@ html[data-theme="dark"] .toastx{background:rgba(44,44,46,.92);border-color:rgba(
  main{padding:24px 16px 80px}
  h2{font-size:34px}
  .lcards{grid-template-columns:1fr}
- .tds-n b{font-size:62px}
- .bars{width:140px;height:56px}
- .fgrid,.fgrid3{grid-template-columns:1fr}
+   .fgrid,.fgrid3{grid-template-columns:1fr}
  .srow{grid-template-columns:1fr 110px 44px}
  .srow input:nth-child(3){grid-column:1/3}
  .qline{grid-template-columns:1fr 120px 44px}
@@ -663,7 +725,7 @@ async function loadCounts(){
 function signout(){sb.auth.signOut().then(()=>location.replace('/dashboard'));}
 function go(p,arg){
  if(p==='leads') p='jobs';                      // the old name for the Jobs page
- PAGE=p; window.scrollTo(0,0);
+ PAGE=p; window.scrollTo(0,0); $('main').classList.remove('full');
  const nav={lead:'jobs',job:'jobs',quoteNew:'jobs',profileEdit:'profile'}[p]||p;
  document.querySelectorAll('.nv').forEach(n=>n.classList.toggle('on',n.dataset.p===nav));
  // No listing on this account: every tradie page needs one. Security (2FA) is account-level.
@@ -742,15 +804,17 @@ function jobCard(b,done,W){
   <div class="lc-go"><span>${done?'View job':'Open job'}</span>${ICH}</div></div>`;
 }
 
-/* ═════ DASHBOARD (TDHome) ═════ */
+/* ═════ DASHBOARD (TDHome, laid out for a desktop) ═════ */
 async function pHome(){loading('Dashboard');try{
- const t=LST, W=await workData(), {E,B}=W;
+ const t=LST, W=await workData(), {E,B,Q}=W;
  const now=Date.now(),D=864e5,ts=e=>Date.parse(e.created_at)||0;
  const last30=E.filter(e=>now-ts(e)<30*D).length, prev30=E.filter(e=>now-ts(e)>=30*D&&now-ts(e)<60*D).length, dl=last30-prev30;
- // 7 bars across the same 30 days as the number; the busiest (latest if tied) is amber
- const bars=[0,0,0,0,0,0,0], from=now-30*D;
- E.forEach(e=>{const x=ts(e);if(x>from&&x<=now)bars[Math.min(6,Math.floor((x-from)/(30*D/7)))]++;});
- const max=Math.max(1,...bars), peak=bars.lastIndexOf(Math.max(...bars));
+ // one bar per day for the last 30 days, oldest on the left; the busiest days in amber
+ const sd=new Date();sd.setHours(0,0,0,0);const d0=sd.getTime()-29*D;
+ const days=Array.from({length:30},(_,i)=>({t:d0+i*D,n:0}));
+ E.forEach(e=>{const i=Math.floor((ts(e)-d0)/D);if(i>=0&&i<30)days[i].n++;});
+ const max=Math.max(0,...days.map(d=>d.n));
+ const lab=ms=>new Date(ms).toLocaleDateString('en-AU',{day:'numeric',month:'short'});
  let stat=null; if(!PREVIEW){try{const {data}=await sb.rpc('my_listing_stats',{p_days:30});stat=(Array.isArray(data)?data[0]:data)||null;}catch(e){}}
  const sv=k=>stat?Number(stat[k]||0).toLocaleString():'—';
  // what needs you: new enquiries, customers waiting, today's jobs, customers to rate
@@ -761,26 +825,34 @@ async function pHome(){loading('Dashboard');try{
  B.filter(b=>{const d=new Date(b.slot_start||0);return b.slot_start&&d.toDateString()===new Date().toDateString()&&b.status==='confirmed';})
   .slice(0,2).forEach(b=>needs.push({dot:'g',t:'On today: '+(b.job_title||'booked job'),s:fmtT(new Date(b.slot_start))+' · '+W.whoOf(b),fn:`openJob('${b.id}')`}));
  B.filter(b=>b.status==='completed'&&!W.rated.has(b.id)).slice(0,2).forEach(b=>needs.push({dot:'n',t:'Rate '+W.whoOf(b),s:'Reviews are open for '+(b.job_title||'their job'),fn:`rateCustomer('${b.id}')`}));
- // this month: quotes sent, won, and the win rate of the ones decided (as the app's Insights)
+ // booked jobs, and this month (the app's Insights numbers)
+ const booked=B.filter(b=>['requested','confirmed'].includes(b.status));
  const nowD=new Date(), inMonth=x=>{const d=new Date(x);return d.getMonth()===nowD.getMonth()&&d.getFullYear()===nowD.getFullYear();};
- const mQ=W.Q.filter(q=>q.status!=='draft'&&inMonth(q.sent_at||q.created_at)).length, mWon=W.Q.filter(q=>q.status==='accepted'&&inMonth(q.accepted_at||q.updated_at||q.created_at)).length;
- const decided=W.Q.filter(q=>q.status==='accepted'||q.status==='rejected').length, winRate=decided?Math.round(W.Q.filter(q=>q.status==='accepted').length/decided*100)+'%':'—';
+ const mQ=Q.filter(q=>q.status!=='draft'&&inMonth(q.sent_at||q.created_at)).length, mWon=Q.filter(q=>q.status==='accepted'&&inMonth(q.accepted_at||q.updated_at||q.created_at)).length;
+ const decided=Q.filter(q=>q.status==='accepted'||q.status==='rejected').length, winRate=decided?Math.round(Q.filter(q=>q.status==='accepted').length/decided*100)+'%':'—';
+ const pipeline=Q.filter(q=>['sent','viewed'].includes(q.status)).reduce((a,q)=>a+ +(q.total_inc_gst||0),0)+booked.reduce((a,b)=>{const q=W.qOf(b);return a+(q?+q.total_inc_gst||0:0);},0);
  const h=new Date().getHours(), first=String((ME&&ME.user_metadata&&ME.user_metadata.first_name)||'').trim();
+ const kpi=(l,v,s)=>`<div class="kpi2"><span class="kl">${l}</span><b>${v}</b><small>${s}</small></div>`;
  $('main').innerHTML=`<div class="phead"><div class="pt"><h2>Dashboard</h2><div class="subt">${h<12?'Morning':h<17?'Afternoon':'Evening'}${first?', '+esc(first):''}. Here’s how the business is going.</div></div></div>
   ${stateCard(t)}
-  <div class="grid2">
-   <div><div class="card tds">
-    <div class="tds-top"><span>Last 30 days</span>${t.status==='approved'?'<span class="pill g">&#9679; Live</span>':''}</div>
-    <div class="tds-big"><div class="tds-n"><b>${last30}</b><span>enquir${last30===1?'y':'ies'} ${dl?`<em class="${dl<0?'dn':''}">${dl>0?'+':''}${dl}</em>`:''}</span></div>
-     <div class="bars" aria-hidden="true">${bars.map((n,i)=>`<i style="height:${Math.max(16,Math.round(n/max*70))}px"${n&&i===peak?' class="pk"':''}></i>`).join('')}</div></div>
-    <div class="tds-row"><span><b>${sv('views')}</b><small>Profile views</small></span><span><b>${sv('calls')}</b><small>Calls</small></span><span><b>${sv('emails')}</b><small>Emails</small></span></div>
-   </div>
-   <div class="h3" style="margin-top:22px"><h3>This month</h3><a onclick="go('quotes')">Quotes</a></div>
-   <div class="card tds" style="padding:18px 24px"><div class="tds-row" style="margin:0;padding:0;border:0"><span><b>${mQ}</b><small>Quotes sent</small></span><span><b>${mWon}</b><small>Jobs won</small></span><span><b>${winRate}</b><small>Win rate</small></span></div></div></div>
-   <div>
-    <div class="h3" style="margin-top:4px"><h3>Needs you</h3><a onclick="go('jobs')">See all</a></div>
-    <div class="card needs">${needs.length?needs.slice(0,5).map(n=>`<div class="need" onclick="${n.fn}"><i class="${n.dot}"></i><span class="tx"><b>${esc(n.t)}</b>${n.s?`<small>${esc(n.s)}</small>`:''}</span>${ICH}</div>`).join(''):'<div class="allgood"><b>You’re all caught up.</b>New enquiries and customers waiting on you show here.</div>'}</div>
-   </div>
+  <div class="kgrid">
+   ${kpi('Enquiries',last30,'Last 30 days'+(dl?` <em class="${dl<0?'dn':''}">${dl>0?'+':''}${dl}</em>`:''))}
+   ${kpi('Profile views',sv('views'),'Last 30 days')}
+   ${kpi('Calls',sv('calls'),'Last 30 days')}
+   ${kpi('Emails',sv('emails'),'Last 30 days')}
+  </div>
+  <div class="dgrid">
+   <div class="card chartc"><div class="ch">Enquiries by day${t.status==='approved'?'<span class="end pill g">&#9679; Live</span>':''}</div>
+    <div class="chart30">${days.map(d=>`<i class="${d.n?(d.n===max?'pk':'on'):'z'}" style="height:${d.n?Math.max(10,Math.round(d.n/Math.max(1,max)*150)):4}px" title="${d.n} enquir${d.n===1?'y':'ies'}, ${lab(d.t)}"></i>`).join('')}</div>
+    <div class="axis"><span>${lab(days[0].t)}</span><span>${lab(days[7].t)}</span><span>${lab(days[14].t)}</span><span>${lab(days[21].t)}</span><span>Today</span></div></div>
+   <div class="card"><div class="ch">This month<a class="end lk" onclick="go('quotes')">Quotes</a></div><div class="mrows">
+    <div class="mr"><span>Quotes sent</span><b>${mQ}</b></div><div class="mr"><span>Jobs won</span><b>${mWon}</b></div><div class="mr"><span>Win rate</span><b>${winRate}</b></div><div class="mr"><span>In the pipeline</span><b>${kMoney(pipeline)}</b></div></div></div>
+  </div>
+  <div class="dgrid2">
+   <div><div class="h3"><h3>Needs you</h3><a onclick="go('jobs',{tab:'new'})">See all</a></div>
+    <div class="card needs">${needs.length?needs.slice(0,6).map(n=>`<div class="need" onclick="${n.fn}"><i class="${n.dot}"></i><span class="tx"><b>${esc(n.t)}</b>${n.s?`<small>${esc(n.s)}</small>`:''}</span>${ICH}</div>`).join(''):'<div class="allgood"><b>You’re all caught up.</b>New enquiries and customers waiting on you show here.</div>'}</div></div>
+   <div><div class="h3"><h3>Booked jobs</h3><a onclick="go('jobs',{tab:'booked'})">See all</a></div>
+    <div class="card needs">${booked.length?booked.slice(0,6).map(b=>{const q=W.qOf(b);return `<div class="need" onclick="openJob('${b.id}')"><i class="b"></i><span class="tx"><b>${esc(b.job_title||'Job')}</b><small>${[W.whoOf(b),b.slot_start?'Booked for '+dayShort(b.slot_start):'Booked '+dayShort(b.created_at),q&&q.total_inc_gst!=null?money(q.total_inc_gst):''].filter(Boolean).map(esc).join(' · ')}</small></span>${ICH}</div>`;}).join(''):'<div class="allgood"><b>No booked jobs right now.</b>When a customer accepts your quote, the job is booked and shows here.</div>'}</div></div>
   </div>`;
 }catch(e){$('main').innerHTML='<h2>Dashboard</h2>'+errBox(e);}}
 // TDSuspended / TDPending: a hidden listing says why and what to do; one awaiting review says so.
@@ -792,41 +864,107 @@ function stateCard(l){
  return `<div class="card state"><span class="pill a">Under review</span><h3>You’re nearly live.</h3><p>A person is checking your details before customers can find you. We’ll let you know the moment you’re live.</p></div>`;
 }
 
-/* ═════ JOBS: every enquiry, the new ones, booked jobs, done jobs (TDEnquiries) ═════ */
-let JSEG='all', JW=null;
-async function pJobs(){loading('Jobs');try{
- const W=await workData(); JW=W;
- const {E,B,Q,I}=W;
- const booked=B.filter(b=>['requested','confirmed'].includes(b.status)), done=B.filter(b=>b.status==='completed');
- BOOKED_ENQ=new Set(booked.map(b=>b.enquiry_id).filter(Boolean));
- const pendingQ=Q.filter(q=>['sent','viewed'].includes(q.status)), unpaid=I.filter(i=>['sent','overdue'].includes(i.status));
+/* ═════ JOBS: every enquiry, the new ones, booked jobs, done jobs ═════
+   On a desktop it's the list and the open job side by side, like a mail app: pick one
+   on the left and its details, photos, quote and chat open on the right. In a narrow
+   window it's the app's cards (TDEnquiries), and a card opens its own page. */
+let JSEG='all', JW=null, JSEL=null, JQ='';
+const DESK=()=>window.innerWidth>=1100;
+const ISEARCH='<svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>';
+function jobsFigures(W){
+ const booked=W.B.filter(b=>['requested','confirmed'].includes(b.status));
+ const pendingQ=W.Q.filter(q=>['sent','viewed'].includes(q.status)), unpaid=W.I.filter(i=>['sent','overdue'].includes(i.status));
  const pipeline=pendingQ.reduce((a,q)=>a+ +(q.total_inc_gst||0),0)+booked.reduce((a,b)=>{const q=W.qOf(b);return a+(q?+q.total_inc_gst||0:0);},0);
- const unpaidAmt=unpaid.reduce((a,i)=>a+ +(i.total||0),0);
- $('main').innerHTML=`<div class="phead"><div class="pt"><h2>Jobs</h2><div class="subt">Every enquiry, the jobs you’ve booked and the ones you’ve finished.</div></div></div>
-  <div class="kpis"><div class="kpi tap" onclick="jobsTab('booked')"><b>${booked.length}</b><div class="k">Booked</div></div><div class="kpi tap" onclick="go('quotes')"><b>${pendingQ.length}</b><div class="k">Quoted</div></div><div class="kpi"><b>${kMoney(pipeline)}</b><div class="k">Pipeline</div></div><div class="kpi tap" onclick="go('invoices')"><b class="${unpaid.length?'dn':''}">${unpaid.length}</b><div class="k">Unpaid</div></div></div>
-  ${unpaid.length?`<div class="banner" onclick="go('invoices')"><span class="bic"><svg class="i" viewBox="0 0 24 24"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></span><span><b>${unpaid.length} invoice${unpaid.length>1?'s':''} unpaid, ${money(unpaidAmt)}</b><small>Chase them from Invoices</small></span>${ICH}</div>`:''}
-  <div class="tabs" id="jtabs"></div><div class="lcards" id="jlist"></div>
-  <p class="note">${IBADGE}<span>Every enquiry came to you alone. TrustTrade never sells the same enquiry twice, and declining costs you nothing.</span></p>`;
- jobsTab(JSEG);
-}catch(e){$('main').innerHTML='<h2>Jobs</h2>'+errBox(e);}}
-function jobsTab(seg){
- JSEG=seg||'all'; const W=JW; if(!W) return;
+ return {booked,pendingQ,unpaid,pipeline,unpaidAmt:unpaid.reduce((a,i)=>a+ +(i.total||0),0)};
+}
+async function pJobs(arg){
+ if(arg&&arg.tab) JSEG=arg.tab;
+ if(arg&&arg.sel) JSEL=arg.sel;
+ if(!DESK()) return pJobsCards();
+ const main=$('main'); main.classList.add('full');
+ main.innerHTML=`<div class="fhead"><div class="ft"><h2>Jobs</h2><div class="subt">Every enquiry, the jobs you’ve booked and the ones you’ve finished.</div></div><div class="hstats" id="jstats"></div></div>
+  <div class="split"><div class="pane"><div class="pane-h"><div class="tabs sm" id="jtabs"></div><label class="search">${ISEARCH}<input id="jq" placeholder="Search names, suburbs and jobs" value="${esc(JQ)}" oninput="JQ=this.value;jobsList()"></label></div><div class="pane-b" id="jlist"><div class="shim"></div><div class="shim" style="width:70%"></div><div class="shim" style="width:50%"></div></div></div>
+  <div class="pane"><div class="pane-b" id="jdet"><div class="det"><div class="shim"></div><div class="shim" style="width:60%"></div></div></div></div></div>`;
+ try{ JW=await workData(); }catch(e){ $('jlist').innerHTML=`<div class="li-none">${esc(e.message||e)}</div>`; return; }
+ if(PAGE!=='jobs') return;
+ const W=JW, F=jobsFigures(W);
+ BOOKED_ENQ=new Set(F.booked.map(b=>b.enquiry_id).filter(Boolean));
+ $('jstats').innerHTML=`<div class="hstat tap" onclick="jobsTab('booked')"><b>${F.booked.length}</b><small>Booked</small></div><div class="hstat tap" onclick="go('quotes')"><b>${F.pendingQ.length}</b><small>Quoted</small></div><div class="hstat"><b>${kMoney(F.pipeline)}</b><small>Pipeline</small></div><div class="hstat tap" onclick="go('invoices')"><b class="${F.unpaid.length?'dn':''}">${F.unpaid.length}</b><small>Unpaid${F.unpaid.length?' · '+money(F.unpaidAmt):''}</small></div>`;
+ // open the one asked for, on the tab it lives on
+ if(JSEL&&!jobsItems(W,JSEG).some(it=>it.k===JSEL)){const t=tabFor(JSEL,W);if(t)JSEG=t;}
+ jobsTab(JSEG,true);
+}
+function tabFor(k,W){const [kind,id]=String(k).split(':');
+ if(kind==='b'){const b=W.B.find(x=>x.id===id);return b?(b.status==='completed'?'done':'booked'):null;}
+ const e=W.E.find(x=>x.id===id);if(!e)return null;
+ return (e.status==='completed'||e.job_complete)&&!BOOKED_ENQ.has(e.id)?'all':'all';}
+function jobsItems(W,seg){
  const {E,B}=W, isDone=e=>e.status==='completed'||!!e.job_complete, isNew=e=>e.status==='new'&&e.stage!=='declined';
  const booked=B.filter(b=>['requested','confirmed'].includes(b.status)), done=B.filter(b=>b.status==='completed');
  const doneEnqIds=new Set(done.map(b=>b.enquiry_id).filter(Boolean)), doneEnq=E.filter(e=>isDone(e)&&!doneEnqIds.has(e.id));
- const t=(k,l)=>`<div class="${JSEG===k?'on':''}" onclick="jobsTab('${k}')">${l}</div>`;
- $('jtabs').innerHTML=t('all','All · '+E.length)+t('new','New · '+E.filter(isNew).length)+t('booked','Booked · '+booked.length)+t('done','Done · '+(done.length+doneEnq.length));
- const none=(b,s)=>`<div class="none"><b>${b}</b>${s}</div>`;
- let html='';
- if(JSEG==='booked') html=booked.map(b=>jobCard(b,false,W)).join('')||none('No booked jobs yet.','When a customer accepts your quote, the job is booked and lands here.');
- else if(JSEG==='done') html=(done.map(b=>jobCard(b,true,W)).join('')+doneEnq.map(leadCard).join(''))||none('Nothing here.','Finished jobs show here.');
- else { const L=JSEG==='new'?E.filter(isNew):E; html=L.length?L.map(leadCard).join(''):(E.length?none('Nothing here.','You’re on top of every new enquiry.'):none('No enquiries yet.','When a customer picks you, their enquiry lands here, and only you get it.')); }
- $('jlist').innerHTML=html;
+ if(seg==='booked') return booked.map(b=>({k:'b:'+b.id,b}));
+ if(seg==='done') return done.map(b=>({k:'b:'+b.id,b,t:Date.parse(b.completed_at||b.created_at)||0})).concat(doneEnq.map(e=>({k:'e:'+e.id,e,t:Date.parse(e.created_at)||0}))).sort((a,b)=>b.t-a.t);
+ return (seg==='new'?E.filter(isNew):E).map(e=>({k:'e:'+e.id,e}));
+}
+function jobsCounts(W){return {all:W.E.length,new:jobsItems(W,'new').length,booked:jobsItems(W,'booked').length,done:jobsItems(W,'done').length};}
+function jobText(it,W){return it.e?[it.e.from_name,it.e.from_town,it.e.message].join(' ').toLowerCase():[W.whoOf(it.b),it.b.job_title,(W.P[it.b.customer_id]||{}).suburb].join(' ').toLowerCase();}
+function rowHTML(it,W){
+ if(it.e){const e=it.e, st=leadStatus(e), ug=(st[0]==='Done'||st[0]==='Declined')?null:leadShortUrg(e.urgency);
+  return `<div class="li${JSEL===it.k?' on':''}${e.status==='new'&&e.stage!=='declined'?' unread':''}" data-k="${it.k}" onclick="jobsSelect('${it.k}')"><div class="li-top"><b>${esc(shortName(e.from_name))}</b><span>${esc(whenLead(e.created_at))}</span></div><div class="li-msg">${esc(e.message||'New enquiry')}</div><div class="li-meta"><span>${esc(e.from_town||'')}</span><span class="li-pills">${ug?`<span class="pill ${ug[1]}">${esc(ug[0])}</span>`:''}<span class="pill ${st[1]}">${st[0]}</span></span></div></div>`;}
+ const b=it.b, done=b.status==='completed', q=W.qOf(b), amt=q&&q.total_inc_gst!=null?+q.total_inc_gst:null;
+ const when=done?'Done '+dayShort(b.completed_at||b.slot_start||b.created_at):(b.slot_start?'For '+dayShort(b.slot_start):'Booked '+dayShort(b.created_at));
+ return `<div class="li${JSEL===it.k?' on':''}" data-k="${it.k}" onclick="jobsSelect('${it.k}')"><div class="li-top"><b>${esc(W.whoOf(b))}</b><span>${esc(when)}</span></div><div class="li-msg">${esc(b.job_title||'Job')}</div><div class="li-meta"><span>${esc((W.P[b.customer_id]||{}).suburb||'')}</span><span class="li-pills">${amt!=null?`<span class="pill">${money(amt)}</span>`:''}<span class="pill ${done?'g':'b'}">${done?'Done':'Booked'}</span></span></div></div>`;
+}
+function jobsTab(seg,keep){
+ JSEG=seg||'all'; const W=JW; if(!W||!$('jtabs')) return;
+ const c=jobsCounts(W), t=(k,l)=>`<div class="${JSEG===k?'on':''}" onclick="jobsTab('${k}')">${l} · ${c[k]}</div>`;
+ $('jtabs').innerHTML=t('all','All')+t('new','New')+t('booked','Booked')+t('done','Done');
+ const items=jobsItems(W,JSEG);
+ if(!keep||!JSEL) JSEL=(items.some(it=>it.k===JSEL)?JSEL:(items[0]&&items[0].k))||null;
+ jobsList();
+ if(JSEL) jobsSelect(JSEL);
+ else $('jdet').innerHTML=`<div class="li-none" style="padding-top:140px"><b>${W.E.length?'Nothing here.':'No enquiries yet.'}</b>${W.E.length?'Pick another tab, or a job on the left.':'When a customer picks you, their enquiry lands here, and only you get it.'}</div>`;
+}
+function jobsList(){
+ const W=JW, host=$('jlist'); if(!W||!host) return;
+ let items=jobsItems(W,JSEG); const q=JQ.trim().toLowerCase();
+ if(q) items=items.filter(it=>jobText(it,W).includes(q));
+ const none={all:['No enquiries yet.','When a customer picks you, their enquiry lands here.'],new:['Nothing new.','You’re on top of every new enquiry.'],booked:['No booked jobs.','When a customer accepts your quote, the job is booked and lands here.'],done:['Nothing done yet.','Finished jobs show here.']}[JSEG];
+ host.innerHTML=items.length?items.map(it=>rowHTML(it,W)).join(''):`<div class="li-none"><b>${q?'Nothing matches.':none[0]}</b>${q?'Try a name, suburb or job.':none[1]}</div>`;
+}
+function jobsSelect(k){
+ JSEL=k; document.querySelectorAll('#jlist .li').forEach(r=>r.classList.toggle('on',r.dataset.k===k));
+ { const row=document.querySelector('#jlist .li.on'); if(row) row.scrollIntoView({block:'nearest'}); }
+ const host=$('jdet'); if(!host) return; host.scrollTop=0;
+ const [kind,id]=k.split(':');
+ if(kind==='e') leadView(id,host,'pane'); else jobView(id,host,'pane');
+}
+// Narrow windows: the app's cards, each opening its own page.
+async function pJobsCards(){loading('Jobs');try{
+ const W=await workData(); JW=W; const F=jobsFigures(W);
+ BOOKED_ENQ=new Set(F.booked.map(b=>b.enquiry_id).filter(Boolean));
+ $('main').innerHTML=`<div class="phead"><div class="pt"><h2>Jobs</h2><div class="subt">Every enquiry, the jobs you’ve booked and the ones you’ve finished.</div></div></div>
+  <div class="kpis"><div class="kpi tap" onclick="cardsTab('booked')"><b>${F.booked.length}</b><div class="k">Booked</div></div><div class="kpi tap" onclick="go('quotes')"><b>${F.pendingQ.length}</b><div class="k">Quoted</div></div><div class="kpi"><b>${kMoney(F.pipeline)}</b><div class="k">Pipeline</div></div><div class="kpi tap" onclick="go('invoices')"><b class="${F.unpaid.length?'dn':''}">${F.unpaid.length}</b><div class="k">Unpaid</div></div></div>
+  ${F.unpaid.length?`<div class="banner" onclick="go('invoices')"><span class="bic"><svg class="i" viewBox="0 0 24 24"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></span><span><b>${F.unpaid.length} invoice${F.unpaid.length>1?'s':''} unpaid, ${money(F.unpaidAmt)}</b><small>Chase them from Invoices</small></span>${ICH}</div>`:''}
+  <div class="tabs" id="ctabs"></div><div class="lcards" id="clist"></div>
+  <p class="note">${IBADGE}<span>Every enquiry came to you alone. TrustTrade never sells the same enquiry twice, and declining costs you nothing.</span></p>`;
+ cardsTab(JSEG);
+}catch(e){$('main').innerHTML='<h2>Jobs</h2>'+errBox(e);}}
+function cardsTab(seg){
+ JSEG=seg||'all'; const W=JW; if(!W||!$('ctabs')) return;
+ const c=jobsCounts(W), t=(k,l)=>`<div class="${JSEG===k?'on':''}" onclick="cardsTab('${k}')">${l} · ${c[k]}</div>`;
+ $('ctabs').innerHTML=t('all','All')+t('new','New')+t('booked','Booked')+t('done','Done');
+ const items=jobsItems(W,JSEG);
+ $('clist').innerHTML=items.length?items.map(it=>it.e?leadCard(it.e):jobCard(it.b,it.b.status==='completed',W)).join(''):`<div class="none"><b>Nothing here.</b>${JSEG==='booked'?'When a customer accepts your quote, the job is booked and lands here.':'Enquiries and jobs show here.'}</div>`;
 }
 
 /* ═════ AN ENQUIRY (TDJob): the customer, the job, their photos, the chat ═════ */
-let LEAD=null;
-function openLead(id,chat){go('lead',{id,chat:!!chat});}
+let LEAD=null, VTOK=0;
+function openLead(id,chat){
+ if(DESK()){ if(PAGE==='jobs'&&JW&&$('jlist')&&JW.E.some(x=>x.id===id)){ if(!jobsItems(JW,JSEG).some(it=>it.k==='e:'+id)){JSEL='e:'+id;jobsTab('all',true);} else jobsSelect('e:'+id); return; }
+  go('jobs',{sel:'e:'+id}); return; }
+ go('lead',{id,chat:!!chat});
+}
 async function enqPhotoSrcs(list){const out=[];
  for(const p of (list||[])){const s=String(p||'');if(!s)continue;
   if(/^https?:\/\//i.test(s)||s.startsWith('data:')){out.push(s);continue;}
@@ -848,10 +986,12 @@ function bubbles(e){const me=ME.id;let lastDay='';
   const d=m.createdAt?new Date(m.createdAt):null, day=d&&!isNaN(d)?d.toDateString():'';
   let sep='';if(day&&day!==lastDay){lastDay=day;sep=`<div class="day">${esc(d.toLocaleDateString('en-AU',{weekday:'short',day:'numeric',month:'long'}))}</div>`;}
   return sep+`<div class="bub ${cls}">${esc(m.body||'')}</div>`+(m.ai?`<div class="aitag${cls==='me'?' r':''}">Auto-reply from TrustTrade</div>`:'');}).join('');}
-async function pLead(arg){loading('Enquiry');try{
- const id=arg&&arg.id; if(!id){go('jobs');return;}
+// Draw an enquiry into a page ('page', with the chat beside it) or the Jobs split view ('pane').
+async function leadView(id,host,mode,focusChat){
+ const tok=++VTOK, pane=mode==='pane';
+ host.innerHTML=pane?'<div class="det"><div class="shim"></div><div class="shim" style="width:60%"></div><div class="shim" style="width:40%"></div></div>':`${backLink("go('jobs')",'Jobs')}<div class="card"><div class="shim"></div><div class="shim" style="width:60%"></div></div>`;
+ try{
  const {data:e,error}=await sb.from('enquiries').select('*').eq('id',id).single();if(error)throw error;
- LEAD=e;
  const [bk,qs]=await Promise.all([
   sb.from('bookings').select('id,status,quote_id,completed_at').eq('enquiry_id',e.id),
   sb.from('quotes').select('id,job_title,total_inc_gst,status,created_at,sent_at').eq('enquiry_id',e.id).order('created_at',{ascending:false}).limit(1)]);
@@ -859,57 +999,58 @@ async function pLead(arg){loading('Enquiry');try{
  const liveB=B.find(b=>['confirmed','requested'].includes(b.status))||null, doneB=B.find(b=>b.status==='completed')||null;
  let doneJob=!!(e.job_complete||e.status==='completed'||doneB), reviewed=false;
  if(B.length){try{const {data:rv}=await sb.from('listing_reviews').select('id').in('booking_id',B.map(b=>b.id)).limit(1);reviewed=!!(rv&&rv.length);}catch(x){}}
+ if(tok!==VTOK) return;
  // Opening an enquiry is what "Opened" means to the customer: record it once
  if(!e.tradie_first_viewed_at&&!PREVIEW){const upd={tradie_first_viewed_at:new Date().toISOString()};if(e.status==='new')upd.status='read';
-  try{const {error:ue}=await sb.from('enquiries').update(upd).eq('id',e.id);if(!ue){Object.assign(e,upd);loadCounts();}}catch(x){}}
- const who=shortName(e.from_name), first=who.split(' ')[0];
- const ug=leadShortUrg(e.urgency);
+  try{const {error:ue}=await sb.from('enquiries').update(upd).eq('id',e.id);if(!ue){Object.assign(e,upd);loadCounts();
+   if(JW){const x=JW.E.find(y=>y.id===e.id);if(x)Object.assign(x,upd);const r=document.querySelector(`#jlist .li[data-k="e:${e.id}"]`);if(r){r.classList.remove('unread');const st=leadStatus(x||e);const p=r.querySelector('.li-pills .pill:last-child');if(p){p.className='pill '+st[1];p.textContent=st[0];}}}}}catch(x){}}
+ LEAD=e;
+ const who=shortName(e.from_name), first=who.split(' ')[0], ug=leadShortUrg(e.urgency);
  const pill=doneJob?'<span class="pill g">Done</span>':liveB?'<span class="pill b">Booked</span>':e.stage==='declined'?'<span class="pill">Declined</span>':ug?`<span class="pill ${ug[1]}">${esc(ug[0])}</span>`:'';
  const steps=[['Received',true],['Opened',true],['Job done',doneJob],['Reviewed',reviewed]], reach=steps.filter(x=>x[1]).length;
- const trade=LST.trade||'';
- const tel=e.from_phone?String(e.from_phone).replace(/[^\d+]/g,''):'';
+ const trade=LST.trade||'', tel=e.from_phone?String(e.from_phone).replace(/[^\d+]/g,''):'';
  const open=e.stage!=='declined'&&!doneJob&&!liveB;
  const main=liveB?`<button class="btn g big block" onclick="markComplete('${liveB.id}')">Mark job complete</button>`
   :doneB?`<button class="btn g big block" onclick="openJob('${doneB.id}')">View job</button>`
   :open?`<button class="btn g big block" onclick="go('quoteNew')">${q?'Send a new quote':'Send a quote'}</button>`:'';
  const two=[tel?`<a class="btn w" href="tel:${esc(tel)}">Call ${esc(first)}</a>`:'',e.from_email?`<a class="btn w" href="mailto:${esc(String(e.from_email).trim())}">Email</a>`:'',open?`<button class="btn r" onclick="declineSheet()">Decline</button>`:'',liveB?`<button class="btn w" onclick="openJob('${liveB.id}')">Job details</button>`:''].filter(Boolean);
  const qStatus=q?(q.status==='accepted'?'Accepted, the job is booked':q.status==='rejected'?'Declined by the customer':q.status==='viewed'?'Seen by '+first:'Sent '+dayShort(q.sent_at||q.created_at)):'';
- $('main').innerHTML=`${backLink("go('jobs')",'Jobs')}
-  <div class="grid2 wide"><div>
-   <div class="cust"><span class="cav">${esc(initial(who))}</span><span class="cn"><b>${esc(who)}</b><small>${[e.from_town,whenLead(e.created_at)].filter(Boolean).map(esc).join(' · ')}</small></span>${pill}</div>
+ const details=`<div class="cust"><span class="cav">${esc(initial(who))}</span><span class="cn"><b>${esc(who)}</b><small>${[e.from_town,whenLead(e.created_at)].filter(Boolean).map(esc).join(' · ')}</small></span>${pill}</div>
    <div class="steps" style="--p:${(reach-1)/3}">${steps.map(x=>`<span class="${x[1]?'on':''}"><i>${x[1]?ICK:''}</i><b>${x[0]}</b></span>`).join('')}</div>
    ${e.stage==='declined'?`<p class="note warn">${IBADGE}<span>You declined this${e.stage_notes?' ('+esc(String(e.stage_notes).toLowerCase())+')':''}. The customer has been told.</span></p>`:''}
    <div class="card cpad job" style="margin-top:18px"><div class="cap">The job</div><div class="jt">${esc(e.message||'')}</div></div>
    <div id="lphotos"></div>
    <div class="card facts">${trade?`<div><span>Trade</span><b>${esc(trade)}</b></div>`:''}${e.urgency?`<div><span>Urgency</span><b>${esc(urgText(e.urgency))}</b></div>`:''}${e.from_town?`<div><span>Suburb</span><b>${esc(e.from_town)}</b></div>`:''}${e.from_phone?`<div><span>Mobile</span><b><a href="tel:${esc(tel)}">${esc(e.from_phone)}</a></b></div>`:''}${e.from_email?`<div><span>Email</span><b><a href="mailto:${esc(String(e.from_email).trim())}">${esc(e.from_email)}</a></b></div>`:''}</div>
    ${q?`<div class="card qsum"><span class="qi"><svg class="i" viewBox="0 0 24 24"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5M9 13h6M9 17h4"/></svg></span><span class="tx"><b>${esc(q.job_title||'Your quote')}</b><small>Your quote · ${esc(qStatus)}</small></span><span class="v">${money(q.total_inc_gst)}</span></div>`:''}
-   <div class="acts">${main}${two.length?`<div class="two">${two.join('')}</div>`:''}</div>
-  </div>
-  ${chatCard(e)}
-  </div>`;
+   <div class="acts">${main}${two.length?`<div class="two">${two.join('')}</div>`:''}</div>`;
+ host.innerHTML=pane?`<div class="det"><div class="det-grid"><div>${details}</div>${chatCard(e,true)}</div></div>`
+  :`${backLink("go('jobs')",'Jobs')}<div class="grid2 wide"><div>${details}</div>${chatCard(e)}</div>`;
  const th=$('thread'); if(th) th.scrollTop=th.scrollHeight;
- if(arg.chat){const r=$('reply');if(r)r.focus();}
+ if(focusChat){const r=$('reply');if(r)r.focus();}
  // the customer's photos always have a place (they're private: signed links)
  const ph=$('lphotos'), P=Array.isArray(e.photos)?e.photos:[];
- if(ph){ if(P.length){const urls=await enqPhotoSrcs(P);if(LEAD!==e)return;ph.innerHTML=urls.length?`<div class="photos">${photoTiles(urls)}</div>`:noPhotos(first);} else ph.innerHTML=noPhotos(first); }
-}catch(err){$('main').innerHTML=backLink("go('jobs')",'Jobs')+'<h2>Enquiry</h2>'+errBox(err);}}
-function chatCard(e){const first=shortName(e.from_name).split(' ')[0];
- return `<div class="card chat"><div class="ch">Messages with ${esc(first)}</div><div class="thread" id="thread">${bubbles(e)}</div><div class="cerr" id="cerr"></div>
-   ${PREVIEW?'<div class="compose" style="justify-content:center;color:var(--ink2);font-size:13.5px;font-weight:600">Admin preview: read-only</div>':`<div class="compose"><textarea id="reply" rows="1" placeholder="Message ${esc(first)}" oninput="this.style.height='auto';this.style.height=Math.min(180,this.scrollHeight)+'px'" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendReply()}"></textarea><button class="send" onclick="sendReply()" aria-label="Send"><svg viewBox="0 0 24 24"><path d="M12 19V5M5 12l7-7 7 7"/></svg></button></div>`}</div>`;}
+ if(ph){ if(P.length){const urls=await enqPhotoSrcs(P);if(tok!==VTOK)return;ph.innerHTML=urls.length?`<div class="photos">${photoTiles(urls)}</div>`:noPhotos(first);} else ph.innerHTML=noPhotos(first); }
+ }catch(err){ if(tok===VTOK) host.innerHTML=(pane?'<div class="det">':backLink("go('jobs')",'Jobs'))+errBox(err)+(pane?'</div>':''); }
+}
+async function pLead(arg){const id=arg&&arg.id;if(!id){go('jobs');return;}await leadView(id,$('main'),'page',arg.chat);}
+function composerHTML(first){return PREVIEW?'<div class="compose" style="justify-content:center;color:var(--ink2);font-size:13.5px;font-weight:600">Admin preview: read-only</div>':`<div class="compose"><textarea id="reply" rows="1" placeholder="Message ${esc(first)}" oninput="this.style.height='auto';this.style.height=Math.min(180,this.scrollHeight)+'px'" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendReply()}"></textarea><button class="send" onclick="sendReply()" aria-label="Send"><svg viewBox="0 0 24 24"><path d="M12 19V5M5 12l7-7 7 7"/></svg></button></div>`;}
+function chatCard(e,pane){const first=shortName(e.from_name).split(' ')[0];
+ return `<div class="card chat${pane?' inpane':''}"><div class="ch">Messages with ${esc(first)}</div><div class="thread" id="thread">${bubbles(e)}</div><div class="cerr" id="cerr"></div>${composerHTML(first)}</div>`;}
 function noPhotos(first){return `<div class="card nophoto" onclick="askPhotos()"><span class="ic">${ICAM}</span><span class="tx"><b>No photos with this enquiry</b><small>Ask ${esc(first)} to send one of the job</small></span>${ICH}</div>`;}
 function askPhotos(){const r=$('reply');if(!r)return;if(!r.value)r.value='Could you send a photo or two of the job? It helps me price it properly.';r.focus();}
 // Replies go through the same server function as the app: it appends the one message
 // (writing the whole thread back could lose the customer's latest message).
 async function sendReply(){
- if(!LEAD)return;const ta=$('reply');const txt=(ta.value||'').trim();if(!txt)return;
+ if(!LEAD)return;const ta=$('reply');if(!ta)return;const txt=(ta.value||'').trim();if(!txt)return;
  $('cerr').textContent=''; ta.disabled=true;
  const {data:saved,error}=await sb.rpc('append_enquiry_message',{p_enquiry:LEAD.id,p_body:txt});
  ta.disabled=false;
  if(error){$('cerr').textContent='That didn’t send. Check your connection and try again.';return;}
  const msg=saved||{body:txt,fromUserId:ME.id,createdAt:new Date().toISOString()};
  LEAD.messages=(Array.isArray(LEAD.messages)?LEAD.messages:[]).concat([msg]);
- ta.value='';ta.style.height='';
+ ta.value='';ta.style.height='';ta.focus();
  const th=$('thread');if(th){th.innerHTML=bubbles(LEAD);th.scrollTop=th.scrollHeight;}
+ if(PAGE==='inbox') inboxSent(LEAD,msg);
 }
 const DECLINE_MSG={
  'Too far':"Thanks for thinking of me. You're outside the area I cover, so I can't take this one on. You can send it to another tradie from your Jobs tab.",
@@ -922,13 +1063,24 @@ async function declineLead(r){
  const {error:me}=await sb.rpc('append_enquiry_message',{p_enquiry:e.id,p_body:DECLINE_MSG[r]});
  const {error:ue}=await sb.from('enquiries').update({stage:'declined',stage_notes:r,stage_updated_at:new Date().toISOString()}).eq('id',e.id);
  if(me&&ue){toast('That didn’t go through. Check your connection and try again.');return;}
- openLead(e.id);
+ reopen('e:'+e.id);
 }
+// After a change, draw the job again from fresh data (in the split view, or on its page).
+function reopen(k){const [kind,id]=k.split(':');
+ if(DESK()){go('jobs',{sel:k});return;}
+ if(kind==='e') go('lead',{id}); else go('job',{id});}
 
 /* ═════ A BOOKED OR DONE JOB (TDJob / TDJobDone) ═════ */
-function openJob(id){go('job',{id});}
-async function pJob(arg){loading('Job');try{
- const id=arg&&arg.id;const {data:b,error}=await sb.from('bookings').select('*').eq('id',id).single();if(error)throw error;
+function openJob(id){
+ if(DESK()){ if(PAGE==='jobs'&&JW&&$('jlist')&&JW.B.some(x=>x.id===id)){const k='b:'+id;if(!jobsItems(JW,JSEG).some(it=>it.k===k)){JSEL=k;jobsTab(tabFor(k,JW)||'booked',true);} else jobsSelect(k); return;}
+  go('jobs',{sel:'b:'+id}); return; }
+ go('job',{id});
+}
+async function jobView(id,host,mode){
+ const tok=++VTOK, pane=mode==='pane';
+ host.innerHTML=pane?'<div class="det"><div class="shim"></div><div class="shim" style="width:60%"></div></div>':`${backLink("go('jobs')",'Jobs')}<div class="card"><div class="shim"></div></div>`;
+ try{
+ const {data:b,error}=await sb.from('bookings').select('*').eq('id',id).single();if(error)throw error;
  const [pr,ad,qs,rv,cr,en]=await Promise.all([
   sb.from('profiles').select('name,suburb').eq('id',b.customer_id).maybeSingle(),
   sb.from('customer_addresses').select('*').eq('user_id',b.customer_id).maybeSingle(),
@@ -936,6 +1088,7 @@ async function pJob(arg){loading('Job');try{
   sb.from('listing_reviews').select('id,rating,review_text').eq('booking_id',b.id).limit(1),
   sb.from('customer_reviews').select('id').eq('booking_id',b.id).eq('from_tradie_auth_id',ME.id).limit(1),
   b.enquiry_id?sb.from('enquiries').select('*').eq('id',b.enquiry_id).maybeSingle():Promise.resolve({data:null})]);
+ if(tok!==VTOK) return;
  const Q=qs.data||[], q0=Q.find(x=>b.quote_id&&x.id===b.quote_id)||Q.find(x=>b.enquiry_id&&x.enquiry_id===b.enquiry_id)||null;
  const prof=pr.data, addr=ad.data, enq=en.data, rev=(rv.data||[])[0]||null, rated=!!((cr.data||[]).length);
  const who=shortName((prof&&prof.name)||(q0&&q0.customer_name)||(enq&&enq.from_name)||'Customer'), first=who.split(' ')[0];
@@ -944,13 +1097,9 @@ async function pJob(arg){loading('Job');try{
  const when=done?'Completed '+dayLong(b.completed_at||b.slot_start||b.created_at):(b.slot_start?'Booked for '+dayShort(b.slot_start)+', '+fmtT(new Date(b.slot_start)):'Booked '+dayLong(b.created_at));
  const steps=[['Quoted',!!q0],['Booked',true],['Job done',done],['Reviewed',!!rev]], reach=steps.filter(x=>x[1]).length;
  const msg=enq&&String(enq.message||'').trim();
- const acts=done
-  ?(rated?'':`<button class="btn g big block" onclick="rateCustomer('${b.id}')">Rate ${esc(first)}</button>`)
-  :`<button class="btn g big block" onclick="markComplete('${b.id}')">Mark job complete</button>`;
+ const acts=done?(rated?'':`<button class="btn g big block" onclick="rateCustomer('${b.id}')">Rate ${esc(first)}</button>`):`<button class="btn g big block" onclick="markComplete('${b.id}')">Mark job complete</button>`;
  const two=[b.enquiry_id?`<button class="btn w" onclick="openLead('${b.enquiry_id}')">View the enquiry</button>`:'',addrTxt?`<a class="btn w" target="_blank" rel="noopener" href="https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(addrTxt)}">Directions</a>`:''].filter(Boolean);
- $('main').innerHTML=`${backLink("go('jobs')",'Jobs')}
-  <div class="${enq?'grid2 wide':''}" style="${enq?'':'max-width:720px'}"><div>
-   <div class="cust"><span class="cav${done?' g':''}">${esc(initial(who))}</span><span class="cn"><b>${esc(who)}</b><small>${[prof&&prof.suburb,when].filter(Boolean).map(esc).join(' · ')}</small></span><span class="pill ${done?'g':'b'}">${done?'Done':'Booked'}</span></div>
+ const details=`<div class="cust"><span class="cav${done?' g':''}">${esc(initial(who))}</span><span class="cn"><b>${esc(who)}</b><small>${[prof&&prof.suburb,when].filter(Boolean).map(esc).join(' · ')}</small></span><span class="pill ${done?'g':'b'}">${done?'Done':'Booked'}</span></div>
    <div class="steps" style="--p:${(reach-1)/3}">${steps.map(x=>`<span class="${x[1]?'on':''}"><i>${x[1]?ICK:''}</i><b>${x[0]}</b></span>`).join('')}</div>
    <div class="card cpad job" style="margin-top:18px"><div class="cap">The job</div><div class="jt">${esc(b.job_title||(q0&&q0.job_title)||'Job')}</div>${msg&&msg!==b.job_title?`<div class="jm">${esc(msg)}</div>`:''}
     ${q0&&q0.total_inc_gst!=null?`<div class="amt"><b>${money(q0.total_inc_gst)}</b><small>inc GST · you keep all of it</small></div>`:''}
@@ -958,19 +1107,23 @@ async function pJob(arg){loading('Job');try{
    <div id="jphotos"></div>
    ${done?`<div class="card open-card"><div class="oic"><svg class="i" viewBox="0 0 24 24"><path d="M12 3.6l2.6 5.4 5.9.8-4.3 4.1 1.1 5.9-5.3-2.9-5.3 2.9 1.1-5.9-4.3-4.1 5.9-.8z"/></svg></div><b>${rev?esc(first)+' has reviewed you':'Reviews are open'}</b><p>${rev?'It’s on your profile now. You can reply to it from Reviews.':'You and '+esc(first)+' can review each other now the job is marked complete.'}</p></div>`
     :`<p class="note">${IBADGE}<span>${b.slot_start?'':'You and '+esc(first)+' sort the time out between you. '}When you finish, mark the job complete so you can review each other.</span></p>`}
-   <div class="acts">${acts}${two.length?`<div class="two">${two.join('')}</div>`:''}</div>
-  </div>${enq?chatCard(enq):''}</div>`;
- if(enq){LEAD=enq;const th=$('thread');if(th)th.scrollTop=th.scrollHeight;}
+   <div class="acts">${acts}${two.length?`<div class="two">${two.join('')}</div>`:''}</div>`;
+ if(enq) LEAD=enq;
+ host.innerHTML=pane?`<div class="det">${enq?`<div class="det-grid"><div>${details}</div>${chatCard(enq,true)}</div>`:`<div style="max-width:560px">${details}</div>`}</div>`
+  :`${backLink("go('jobs')",'Jobs')}<div class="${enq?'grid2 wide':''}" style="${enq?'':'max-width:720px'}"><div>${details}</div>${enq?chatCard(enq):''}</div>`;
+ const th=$('thread'); if(th) th.scrollTop=th.scrollHeight;
  const P=(enq&&Array.isArray(enq.photos))?enq.photos:[];
- if(P.length){const urls=await enqPhotoSrcs(P);const ph=$('jphotos');if(ph&&urls.length)ph.innerHTML=`<div class="photos" style="margin-top:0">${photoTiles(urls)}</div>`;}
-}catch(err){$('main').innerHTML=backLink("go('jobs')",'Jobs')+'<h2>Job</h2>'+errBox(err);}}
+ if(P.length){const urls=await enqPhotoSrcs(P);if(tok!==VTOK)return;const ph=$('jphotos');if(ph&&urls.length)ph.innerHTML=`<div class="photos">${photoTiles(urls)}</div>`;}
+ }catch(err){ if(tok===VTOK) host.innerHTML=(pane?'<div class="det">':backLink("go('jobs')",'Jobs'))+errBox(err)+(pane?'</div>':''); }
+}
+async function pJob(arg){const id=arg&&arg.id;if(!id){go('jobs');return;}await jobView(id,$('main'),'page');}
 // Mark a booked job complete: reviews open both ways. (The app's version also takes the job photos.)
 function markComplete(bid){openModal(`<h3>Mark the job complete?</h3><p>The customer sees it straight away, and you can review each other.</p><textarea id="mc_note" placeholder="A line about what you did (optional). The customer sees this."></textarea><div class="ferr" id="mc_err" style="margin-top:10px"></div><div class="mf"><button class="btn w" onclick="closeModal()">Not yet</button><button class="btn g" onclick="doComplete('${bid}')">Mark complete</button></div>`);}
 async function doComplete(bid){
  const note=(val('mc_note')||'').trim();
  const {error}=await sb.from('bookings').update({status:'completed',completed_at:new Date().toISOString(),report_note:note||null}).eq('id',bid);
  if(error){$('mc_err').textContent=error.message||'That didn’t save. Try again.';return;}
- closeModal(); openJob(bid);
+ closeModal(); reopen('b:'+bid);
 }
 // Rate a customer after a completed job (TDReviewCustomer). Only you and they can see it.
 let RATE=0;
@@ -985,22 +1138,65 @@ async function saveRate(bid){
  if(!b){$('rc_err').textContent='That job could not be found.';return;}
  const {error}=await sb.from('customer_reviews').insert({from_tradie_auth_id:ME.id,customer_id:b.customer_id,booking_id:bid,rating:RATE,review_text:(val('rc_text')||'').trim()||null});
  if(error){$('rc_err').textContent=error.message||'That didn’t save. Try again.';return;}
- closeModal(); go(PAGE,PAGE==='job'?{id:bid}:undefined);
+ closeModal();
+ if(PAGE==='jobs'||PAGE==='job') reopen('b:'+bid); else go(PAGE);
 }
 
-/* ═════ INBOX (NewInbox, tradie side) ═════ */
-async function pInbox(){loading('Inbox');try{
+/* ═════ INBOX (NewInbox, tradie side) ═════
+   On a desktop, conversations on the left and the open chat on the right. */
+let ISEL=null, IQ='', IROWS=[];
+async function pInbox(arg){
+ if(arg&&arg.sel) ISEL=arg.sel;
+ const desk=DESK(), main=$('main');
+ if(desk){ main.classList.add('full');
+  main.innerHTML=`<div class="fhead"><div class="ft"><h2>Inbox</h2><div class="subt">Every chat with a customer. Only you and that customer are in it.</div></div></div>
+   <div class="split"><div class="pane"><div class="pane-h"><label class="search">${ISEARCH}<input id="iq" placeholder="Search messages" value="${esc(IQ)}" oninput="IQ=this.value;inboxList()"></label></div><div class="pane-b" id="ilist"><div class="shim"></div><div class="shim" style="width:70%"></div></div></div><div class="pane" id="iconv"><div class="det"><div class="shim"></div></div></div></div>`; }
+ else loading('Inbox');
+ try{
  const {data,error}=await sb.from('enquiries').select('*').eq('listing_id',LST.id).order('created_at',{ascending:false}).limit(300);if(error)throw error;
- const E=data||[];
  const qBy={};try{const {data:qs}=await sb.from('quotes').select('enquiry_id,job_title,created_at').eq('tradie_auth_user_id',ME.id).order('created_at',{ascending:false});(qs||[]).forEach(q=>{if(q.enquiry_id&&!qBy[q.enquiry_id])qBy[q.enquiry_id]=q;});}catch(e){}
- const rows=E.map(e=>{const M=withEnquiryFirst(e,Array.isArray(e.messages)?e.messages:[],ME.id);const last=M[M.length-1]||null;
-  const mine=last?(last.fromUserId===ME.id||last.fromUserId==='tradie'):false;const t=(last&&last.createdAt)||e.created_at;
-  return {e,last,mine,t,unread:!!last&&!mine&&M.length>1};}).sort((a,b)=>Date.parse(b.t)-Date.parse(a.t));
- const unread=rows.filter(r=>r.unread).length; const c=$('c-inbox'); if(c){c.textContent=unread?String(unread):'';c.classList.toggle('hot',unread>0);}
- $('main').innerHTML=`<div class="phead"><div class="pt"><h2>Inbox</h2><div class="subt">Every chat with a customer. Only you and that customer are in it.</div></div></div>
-  ${rows.length?`<div class="msgs">${rows.map(r=>`<div class="mrow${r.unread?' unread':''}" onclick="openLead('${r.e.id}',true)"><span class="cav">${esc(initial(r.e.from_name))}</span><span class="tx"><span class="top"><b>${esc(shortName(r.e.from_name))}</b><span>${esc(whenLead(r.t))}</span></span><span class="jb">${esc((qBy[r.e.id]&&qBy[r.e.id].job_title)||needJob(r.e.message)||'Enquiry')}</span><span class="pv">${r.mine?'You: ':''}${esc((r.last&&r.last.body)||'')}</span></span>${r.unread?'<span class="dot"></span>':''}</div>`).join('')}</div>`
-   :`<div class="card empty"><b style="display:block;color:var(--ink);font-size:16px;margin-bottom:4px">No messages yet.</b>When a customer sends you an enquiry, the chat opens here.</div>`}`;
-}catch(e){$('main').innerHTML='<h2>Inbox</h2>'+errBox(e);}}
+ if(PAGE!=='inbox') return;
+ IROWS=(data||[]).map(e=>{const M=withEnquiryFirst(e,Array.isArray(e.messages)?e.messages:[],ME.id);const last=M[M.length-1]||null;
+  const mine=last?(last.fromUserId===ME.id||last.fromUserId==='tradie'):false;
+  return {e,last,mine,t:(last&&last.createdAt)||e.created_at,unread:!!last&&!mine&&M.length>1,job:(qBy[e.id]&&qBy[e.id].job_title)||needJob(e.message)||'Enquiry'};}).sort((a,b)=>Date.parse(b.t)-Date.parse(a.t));
+ inboxBadge();
+ if(!desk){
+  main.innerHTML=`<div class="phead"><div class="pt"><h2>Inbox</h2><div class="subt">Every chat with a customer. Only you and that customer are in it.</div></div></div>
+   ${IROWS.length?`<div class="msgs">${IROWS.map(r=>`<div class="mrow${r.unread?' unread':''}" onclick="openLead('${r.e.id}',true)"><span class="cav">${esc(initial(r.e.from_name))}</span><span class="tx"><span class="top"><b>${esc(shortName(r.e.from_name))}</b><span>${esc(whenLead(r.t))}</span></span><span class="jb">${esc(r.job)}</span><span class="pv">${r.mine?'You: ':''}${esc((r.last&&r.last.body)||'')}</span></span>${r.unread?'<span class="dot"></span>':''}</div>`).join('')}</div>`
+    :`<div class="card empty"><b style="display:block;color:var(--ink);font-size:16px;margin-bottom:4px">No messages yet.</b>When a customer sends you an enquiry, the chat opens here.</div>`}`;
+  return; }
+ if(!ISEL||!IROWS.some(r=>r.e.id===ISEL)) ISEL=IROWS[0]?IROWS[0].e.id:null;
+ inboxList(); inboxOpen(ISEL);
+ }catch(e){ main.innerHTML='<h2>Inbox</h2>'+errBox(e); }
+}
+function inboxBadge(){const n=IROWS.filter(r=>r.unread).length, c=$('c-inbox'); if(c){c.textContent=n?String(n):'';c.classList.toggle('hot',n>0);}}
+function inboxList(){
+ const host=$('ilist'); if(!host) return;
+ const q=IQ.trim().toLowerCase();
+ const rows=q?IROWS.filter(r=>[r.e.from_name,r.e.from_town,r.e.message,r.job,...(Array.isArray(r.e.messages)?r.e.messages.map(m=>m&&(m.body||m.text)):[])].join(' ').toLowerCase().includes(q)):IROWS;
+ host.innerHTML=rows.length?rows.map(r=>`<div class="li ili${r.e.id===ISEL?' on':''}${r.unread?' unread':''}" data-k="${r.e.id}" onclick="inboxOpen('${r.e.id}',true)"><span class="cav">${esc(initial(r.e.from_name))}</span><span class="ili-tx"><span class="li-top"><b>${esc(shortName(r.e.from_name))}</b><span>${esc(whenLead(r.t))}</span></span><span class="ijob">${esc(r.job)}</span><span class="li-msg one">${r.mine?'You: ':''}${esc((r.last&&r.last.body)||'')}</span></span></div>`).join('')
+  :`<div class="li-none"><b>${q?'Nothing matches.':'No messages yet.'}</b>${q?'Try a name, suburb or word from the chat.':'When a customer sends you an enquiry, the chat opens here.'}</div>`;
+}
+function inboxOpen(id,focus){
+ ISEL=id; document.querySelectorAll('#ilist .li').forEach(r=>r.classList.toggle('on',r.dataset.k===id));
+ { const row=document.querySelector('#ilist .li.on'); if(row) row.scrollIntoView({block:'nearest'}); }
+ const host=$('iconv'); if(!host) return;
+ const r=IROWS.find(x=>x.e.id===id);
+ if(!r){host.innerHTML='<div class="li-none" style="padding-top:140px"><b>No conversation open.</b>Pick one on the left.</div>';return;}
+ const e=r.e, who=shortName(e.from_name), first=who.split(' ')[0], st=leadStatus(e); LEAD=e;
+ host.innerHTML=`<div class="conv"><div class="conv-h"><span class="cav">${esc(initial(who))}</span><span class="tx"><b>${esc(who)}</b><small>${[e.from_town,r.job].filter(Boolean).map(esc).join(' · ')}</small></span><span class="pill ${st[1]}">${st[0]}</span><button class="btn w sm" onclick="openLead('${e.id}')">Open the enquiry</button></div>
+  <div class="thread" id="thread">${bubbles(e)}</div><div class="cerr" id="cerr"></div>${composerHTML(first)}</div>`;
+ const th=$('thread'); if(th) th.scrollTop=th.scrollHeight;
+ if(focus){const ta=$('reply'); if(ta) ta.focus({preventScroll:true});}
+}
+// after a reply from the Inbox, its row moves to the top and reads "You: …"
+function inboxSent(e,msg){const r=IROWS.find(x=>x.e.id===e.id);if(!r)return;
+ r.e=e;r.last={body:msg.body||'',fromUserId:ME.id,createdAt:msg.createdAt};r.mine=true;r.unread=false;r.t=msg.createdAt||new Date().toISOString();
+ IROWS.sort((a,b)=>Date.parse(b.t)-Date.parse(a.t)); inboxList(); inboxBadge();}
+let _desk=DESK();
+window.addEventListener('resize',()=>{clearTimeout(window._rz);window._rz=setTimeout(()=>{const d=DESK();if(d===_desk)return;_desk=d;
+ if(PAGE==='jobs'||PAGE==='inbox') go(PAGE);
+ else if(d&&PAGE==='lead'&&LEAD) go('jobs',{sel:'e:'+LEAD.id});},200);});
 
 /* ═════ QUOTE BUILDER (same fixed-price + GST model as the app) ═════ */
 let QLINES=[];

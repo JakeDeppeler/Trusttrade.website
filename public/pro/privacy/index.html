@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Trust Trade Pro Privacy Policy</title>
-<meta name="description" content="How the Trust Trade Pro app handles your information: jobs stay on your phone, plan images go to Anthropic's Claude only when you choose to read a plan.">
+<meta name="description" content="How the Trust Trade Pro app handles your information: jobs stay on your phone, plan images go to Anthropic's Claude only when you choose to read a plan, and addresses go to Apple Maps when you look one up.">
 <link rel="icon" href="/favicon.ico">
 <link rel="canonical" href="https://trusttrade.au/pro/privacy">
 <style>
@@ -32,7 +32,7 @@
   <div class="card">
     <div class="eyebrow">Trust Trade Pro app</div>
     <h1>Privacy Policy</h1>
-    <p class="meta">Version 1.1 · Effective 26 September 2026</p>
+    <p class="meta">Version 1.2 · Effective 28 September 2026</p>
 
     <p>This policy explains how Deppeler Group Pty Ltd (ABN 40 873 784 535) trading as "TrustTrade" ("we", "us") handles personal information in the Trust Trade Pro iPhone app. We follow the Privacy Act 1988 (Cth) and the Australian Privacy Principles. If you sign in with a TrustTrade account, the TrustTrade Privacy Policy (in the TrustTrade app under Settings → Legal) also applies to that account.</p>
 
@@ -40,7 +40,8 @@
     <p>Everything you put into a job stays on your iPhone. That includes customer names, phone numbers, emails and addresses, room scans, floor plans, 3D models, duct designs, reports and your business details. The app keeps it in its own storage, protected by iOS data protection. We don't receive a copy.</p>
     <p>A job leaves your phone only if you:</p>
     <ul>
-      <li>share a report, materials list or file yourself (for example by email, Messages or AirDrop), or</li>
+      <li>share a report, materials list or file yourself (for example by email, Messages or AirDrop),</li>
+      <li>look up the job's address in Apple Maps (section 4), or</li>
       <li>back up your iPhone, under your own Apple backup settings.</li>
     </ul>
 
@@ -52,34 +53,39 @@
     <p>To keep plan reading fair and affordable, the server records each read with:</p>
     <ul>
       <li>a random ID the app makes for your installation. It isn't your device's identifier, and deleting the app resets it.</li>
-      <li>a one-way hash of your internet address. We can't turn it back into the address, and we clear it after two days.</li>
+      <li>a one-way hash of your internet address (for an IPv6 address, only its network part). We can't turn it back into the address, and we clear it after two days.</li>
       <li>when the plan was read, which AI model was used and how much text it produced. These details are deleted after 30 days.</li>
     </ul>
-    <p>If you're signed in with a TrustTrade account, the read is recorded against that account instead. The server's host also keeps standard request logs (such as IP address and time) for a short time for security.</p>
+    <p>If you're signed in with a TrustTrade account, the read is recorded against that account instead, and deleted after 90 days. Old records are removed automatically every day. The server's host also keeps standard request logs (such as IP address and time) for a short time for security.</p>
     <p>Under Anthropic's commercial terms, plans sent this way aren't used to train its models. Anthropic may keep them for a limited time for safety and abuse monitoring. Because Anthropic is in the United States, this is an overseas disclosure. Only send plans you're allowed to share, and crop out owners' names if you don't need them.</p>
 
-    <h2>4. Signing in to TrustTrade</h2>
+    <h2>4. Addresses and street view (Apple Maps)</h2>
+    <p>A job's address field searches Apple Maps. As you type an address, the app sends what you've typed to Apple to suggest matching Australian addresses. When you pick one, Apple sends back the full address and where it is, and the app uses that to set the job's climate and duct insulation.</p>
+    <p>If you tap "Show the site from Apple Maps" on a job, the app sends that job's address to Apple to find the property and show street-level imagery (Look Around) of it. After that, the app asks Apple for the view again, using the property's map location, each time you open that job's House step.</p>
+    <p>These requests go from your phone straight to Apple, not to us, and Apple handles them under its own privacy policy, which may mean outside Australia. If you don't want an address sent, leave the address field empty and choose the climate yourself.</p>
+
+    <h2>5. Signing in to TrustTrade</h2>
     <p>You don't need to sign in. The app only asks you to sign in if we pause plan reading for people without an account. Your email and password go to TrustTrade's sign-in service. The app never stores your password. It keeps a session token in the Keychain, and signing out removes the token and ends the session on our server.</p>
 
-    <h2>5. What we don't do</h2>
+    <h2>6. What we don't do</h2>
     <p>Trust Trade Pro has no advertising, no tracking and no analytics tools. We don't sell personal information.</p>
 
-    <h2>6. Deleting your information</h2>
+    <h2>7. Deleting your information</h2>
     <ul>
       <li>Delete a job in the app to remove it from your phone. Deleting the app removes all jobs.</li>
       <li>Deleting your TrustTrade account (TrustTrade app → Settings → Delete account) also deletes the plan-reading records linked to it. You can also ask us by email.</li>
     </ul>
 
-    <h2>7. Access, correction and complaints</h2>
+    <h2>8. Access, correction and complaints</h2>
     <p>You can ask for the information we hold about you, ask us to correct it, or make a complaint, using the contact below. We'll respond within a reasonable time, and in any case within 30 days. If you're not satisfied, you can complain to the Office of the Australian Information Commissioner (oaic.gov.au, 1300 363 992).</p>
 
-    <h2>8. Children</h2>
+    <h2>9. Children</h2>
     <p>Trust Trade Pro is a trade tool for adults and isn't directed at children.</p>
 
-    <h2>9. Changes</h2>
+    <h2>10. Changes</h2>
     <p>If this policy changes, we'll update this page and the version date above. For a material change, we'll tell you in the app.</p>
 
-    <h2>10. Contact</h2>
+    <h2>11. Contact</h2>
     <p>Privacy Officer, Deppeler Group Pty Ltd, Harkaway, Victoria, Australia.<br>Email: <a href="mailto:jake@trusttrade.au?subject=Trust%20Trade%20Pro%20privacy">jake@trusttrade.au</a></p>
   </div>
   <footer>© 2026 Deppeler Group Pty Ltd · <a href="/pro">Trust Trade Pro support</a> · <a href="/">trusttrade.au</a></footer>

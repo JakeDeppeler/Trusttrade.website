@@ -665,8 +665,8 @@
     </aside>
   </main>
   <div class="actionbar" id="actionbar">
-    <button class="hbtn ai ab s-house big hero" id="btn-demo">Load demo house</button>
-    <label class="hbtn ab s-house nav" for="file-plan">Upload plan</label>
+    <label class="hbtn ai ab s-house big hero" for="file-plan">Upload a plan</label>
+    <button class="hbtn ab s-house nav" id="btn-demo">Try the demo</button>
     <input type="file" id="file-plan" accept="image/*" hidden/>
     <button class="hbtn ai ab s-design big hero" id="btn-ai">Auto-design</button>
     <button class="hbtn ab s-design nav" id="btn-clean" title="Search every take-off grouping to clear kinks &amp; crossings (slower)">Clean&nbsp;up</button>
@@ -6676,7 +6676,7 @@ async function readPlanAI(){
     let data={}; try{ data=JSON.parse((await res.text()).trim()); }catch(_){ data={error:'no_json'}; }
     if(!res.ok || data.error){
       const M={ forbidden:'Plan reading only works on trusttrade.au', rate_limited:'Too many reads just now — give it a minute',
-        daily_limit:"That's today's free plan-reading limit — trace it by hand for now", busy:'Plan reading is busy — try again shortly',
+        daily_limit:"You've used your 3 free plan reads — trace it by hand, or get in touch to unlock more", busy:'Plan reading is busy — try again shortly',
         unavailable:'Plan reading is turned off right now', bad_image:'That didn’t look like a plan — try a clearer JPEG or PNG',
         refused:"Couldn't read that image", no_json:"Couldn't get usable rooms from that plan", truncated:'That plan was too complex to read in one pass' };
       throw new Error(M[data.error] || ('Plan read failed'+(res.status?' ('+res.status+')':'')));
@@ -7477,8 +7477,8 @@ function autoDesign(){
   flash('Auto-design complete — drag duct handles to route the flex');
 }
 const ai=html=>{const e=$('#ai-say'); if(e) e.innerHTML=html; AISAY=html;};
-let AISAY=`Load the <b>Demo</b>, or <b>Upload a plan</b> — Claude reads the rooms, names and sizes
-  straight off the drawing. Or draw them by hand with the room tool (<b>R</b>, set the scale first).
+let AISAY=`<b>Upload a plan</b> — Claude reads the rooms, names and sizes straight off the drawing.
+  Or try the <b>Demo</b>, or draw them by hand with the room tool (<b>R</b>, set the scale first).
   Then <b>Auto-design</b> sizes it, zones it, runs the flex and prices it.`;
 
 /* ------------------------------------------------------------ DEMO PLAN

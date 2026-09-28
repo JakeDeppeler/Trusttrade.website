@@ -246,14 +246,16 @@
 <body>
 <!-- ===== Jobs home: the main page, like the app's HVAC Designer job list ===== -->
 <div id="jobsHome">
-  <div class="jh-side">
-    <div class="jh-top">
-      <a class="jh-brand" href="/tools" style="text-decoration:none"><span class="mark">TT</span> Trust&nbsp;Trade</a>
-      <div style="flex:1"></div>
-      <a class="hbtn" href="/tools" style="text-decoration:none">← Tools</a>
-    </div>
+  <div class="jh-top">
+    <a class="jh-brand" href="/tools" style="text-decoration:none"><span class="mark">TT</span> Trust&nbsp;Trade</a>
+    <div style="flex:1"></div>
+    <a class="hbtn" href="/tools" style="text-decoration:none">← Tools</a>
+  </div>
+  <div class="jh-head">
     <div class="jh-title">Ducted Designer</div>
     <div class="jh-sub">Your jobs — size, lay out &amp; quote a ducted system</div>
+  </div>
+  <div class="jh-side">
     <div class="seg jh-seg" id="jhSeg">
       <button data-tab="progress" class="on">In progress · <span id="jhCountP">0</span></button>
       <button data-tab="quoted">Quoted · <span id="jhCountQ">0</span></button>
@@ -398,24 +400,27 @@
        source-order tie): wide page, New-job button up by the title, and job
        cards laid out in a responsive grid instead of one narrow column. */
     @media(min-width:821px){
-      /* desktop-app layout: a left sidebar (brand, tabs, New job) + a job grid */
-      body.home #jobsHome{display:grid;grid-template-columns:280px 1fr;gap:44px;align-items:start;
-        max-width:1160px;margin:0 auto;padding:28px 40px 52px;min-height:auto}
-      .jh-side{position:sticky;top:28px}
-      .jh-top{padding:0 0 6px}
+      /* desktop-app layout: full-width top bar + title, then a tabs sidebar + a job grid */
+      body.home #jobsHome{display:grid;
+        grid-template-columns:240px minmax(0,1fr);
+        grid-template-areas:"top top" "head head" "side main";
+        column-gap:40px;align-items:start;
+        max-width:1180px;margin:0 auto;padding:22px 40px 56px;min-height:auto}
+      .jh-top{grid-area:top;padding:0;margin-bottom:12px}
       .jh-brand{font-size:17px}
-      .jh-title{font-size:36px;letter-spacing:-1.4px;margin-top:14px}
-      .jh-sub{font-size:14px;margin-bottom:20px}
-      /* the In-progress / Quoted tabs become a vertical nav in the sidebar */
-      .jh-seg{flex-direction:column;background:none;box-shadow:none;padding:0;gap:8px;max-width:none;margin:0 0 18px}
+      .jh-head{grid-area:head;margin-bottom:26px}
+      .jh-title{font-size:40px;letter-spacing:-1.6px;margin:0;line-height:1}
+      .jh-sub{font-size:15px;margin:8px 0 0}
+      /* In-progress / Quoted become a vertical nav on the left */
+      .jh-side{grid-area:side}
+      .jh-seg{flex-direction:column;background:none;box-shadow:none;padding:0;gap:8px;max-width:none;margin:0 0 14px}
       .jh-seg button{justify-content:flex-start;background:var(--card);box-shadow:var(--card-shadow);height:46px;padding:0 16px;border-radius:12px;font-size:14.5px;color:var(--ink)}
       .jh-seg button.on{background:var(--ink);color:var(--inkOn);box-shadow:none}
-      /* New job lives in the sidebar, full width */
       .jh-actions{position:static;background:none;max-width:none;margin:0;padding:0;z-index:auto}
-      #jhNew{width:100%;height:50px}
-      /* main column: search + a responsive job grid */
-      .jh-main{min-width:0}
-      .jh-search{max-width:none;margin-bottom:16px}
+      #jhNew{width:100%;height:48px}
+      /* right column: search + responsive job grid */
+      .jh-main{grid-area:main;min-width:0}
+      .jh-search{max-width:none;margin:0 0 16px}
       .jh-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px;align-items:start}
       .jh-empty{grid-column:1/-1;max-width:640px;padding:52px 22px}
     }

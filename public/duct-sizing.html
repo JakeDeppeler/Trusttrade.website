@@ -255,16 +255,21 @@
     <div class="jh-title">Ducted Designer</div>
     <div class="jh-sub">Your jobs — size, lay out &amp; quote a ducted system</div>
   </div>
-  <div class="jh-side">
-    <div class="seg jh-seg" id="jhSeg">
-      <button data-tab="progress" class="on">In progress · <span id="jhCountP">0</span></button>
-      <button data-tab="quoted">Quoted · <span id="jhCountQ">0</span></button>
+  <div class="jh-panel">
+    <div class="jh-side">
+      <div class="seg jh-seg" id="jhSeg">
+        <button data-tab="progress" class="on">In progress · <span id="jhCountP">0</span></button>
+        <button data-tab="quoted">Quoted · <span id="jhCountQ">0</span></button>
+      </div>
+      <div class="jh-actions"><button class="hbtn ai" id="jhNew">+ New job</button></div>
     </div>
-    <div class="jh-actions"><button class="hbtn ai" id="jhNew">+ New job</button></div>
-  </div>
-  <div class="jh-main">
-    <input class="field jh-search" id="jhSearch" placeholder="Job name, customer or suburb" autocomplete="off">
-    <div class="jh-list" id="jhList"></div>
+    <div class="jh-main">
+      <div class="jh-searchwrap">
+        <svg class="jh-searchic" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+        <input class="field jh-search" id="jhSearch" placeholder="Search jobs by name, customer or suburb" autocomplete="off">
+      </div>
+      <div class="jh-list" id="jhList"></div>
+    </div>
   </div>
 </div>
 <!-- New-job sheet -->
@@ -376,7 +381,10 @@
     .jh-title{font-family:"Archivo",system-ui;font-weight:800;font-size:34px;letter-spacing:-1.2px;color:var(--ink);margin:16px 2px 2px}
     .jh-sub{color:var(--muted);font-size:14px;margin:0 2px 16px}
     .jh-seg{margin:2px 0 14px}
-    .jh-search{margin:0 0 14px}
+    .jh-panel{display:flex;flex-direction:column}
+    .jh-searchwrap{position:relative;margin:0 0 14px}
+    .jh-searchic{position:absolute;left:15px;top:50%;transform:translateY(-50%);color:var(--muted);pointer-events:none}
+    .jh-search{margin:0;padding-left:42px}
     .jh-list{display:flex;flex-direction:column;gap:10px}
     .jcard{display:flex;align-items:center;gap:13px;background:var(--panel);border-radius:20px;padding:14px 15px;box-shadow:var(--card-shadow);cursor:pointer;text-align:left;border:0;width:100%;font-family:inherit}
     .jcard:active{transform:scale(.995)}
@@ -400,29 +408,30 @@
        source-order tie): wide page, New-job button up by the title, and job
        cards laid out in a responsive grid instead of one narrow column. */
     @media(min-width:821px){
-      /* desktop-app layout: full-width top bar + title, then a tabs sidebar + a job grid */
-      body.home #jobsHome{display:grid;
-        grid-template-columns:240px minmax(0,1fr);
-        grid-template-areas:"top top" "head head" "side main";
-        column-gap:40px;align-items:start;
-        max-width:1180px;margin:0 auto;padding:22px 40px 56px;min-height:auto}
-      .jh-top{grid-area:top;padding:0;margin-bottom:12px}
+      /* desktop: full-width top bar + title, then ONE contained app panel
+         (tabs rail + jobs) so it reads as a finished surface, not loose bits */
+      body.home #jobsHome{display:block;max-width:1120px;margin:0 auto;padding:26px 40px 60px;min-height:auto}
+      .jh-top{padding:0;margin-bottom:16px}
       .jh-brand{font-size:17px}
-      .jh-head{grid-area:head;margin-bottom:26px}
+      .jh-head{margin-bottom:20px}
       .jh-title{font-size:40px;letter-spacing:-1.6px;margin:0;line-height:1}
       .jh-sub{font-size:15px;margin:8px 0 0}
-      /* In-progress / Quoted become a vertical nav on the left */
-      .jh-side{grid-area:side}
-      .jh-seg{flex-direction:column;background:none;box-shadow:none;padding:0;gap:8px;max-width:none;margin:0 0 14px}
-      .jh-seg button{justify-content:flex-start;background:var(--card);box-shadow:var(--card-shadow);height:46px;padding:0 16px;border-radius:12px;font-size:14.5px;color:var(--ink)}
-      .jh-seg button.on{background:var(--ink);color:var(--inkOn);box-shadow:none}
+      /* the panel */
+      .jh-panel{flex-direction:row;gap:30px;background:var(--card);border-radius:24px;
+        box-shadow:0 20px 44px -30px rgba(20,22,30,.5),0 2px 7px rgba(16,16,16,.05);padding:24px 26px}
+      .jh-side{width:212px;flex:none;border-right:1px solid var(--hair);padding-right:26px}
+      .jh-seg{flex-direction:column;background:none;box-shadow:none;padding:0;gap:8px;max-width:none;margin:0 0 16px}
+      .jh-seg button{justify-content:flex-start;background:var(--tile);box-shadow:none;height:44px;padding:0 15px;border-radius:12px;font-size:14px;color:var(--ink)}
+      .jh-seg button.on{background:var(--ink);color:var(--inkOn)}
       .jh-actions{position:static;background:none;max-width:none;margin:0;padding:0;z-index:auto}
-      #jhNew{width:100%;height:48px}
-      /* right column: search + responsive job grid */
-      .jh-main{grid-area:main;min-width:0}
-      .jh-search{max-width:none;margin:0 0 16px}
-      .jh-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px;align-items:start}
-      .jh-empty{grid-column:1/-1;max-width:640px;padding:52px 22px}
+      #jhNew{width:100%;height:46px}
+      .jh-main{flex:1;min-width:0}
+      .jh-searchwrap{margin:0 0 16px}
+      .jh-search{max-width:none;background:var(--tile);border:1px solid var(--line)}
+      .jh-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:12px;align-items:start}
+      .jcard{background:var(--tile);border-radius:16px;box-shadow:none}
+      .jcard .jic{background:var(--card)} .jcard .jdel{background:var(--card)}
+      .jh-empty{grid-column:1/-1;max-width:none;padding:56px 22px;background:var(--tile);box-shadow:none}
     }
     /* ===== Wizard on desktop — same app flow (House·Capture·Check·Design·Send),
        laid out for a big screen. Placed last so it wins the source-order tie. ===== */

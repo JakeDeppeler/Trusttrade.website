@@ -406,6 +406,25 @@
       .jh-actions{position:absolute;top:58px;right:32px;left:auto;bottom:auto;width:auto;max-width:none;margin:0;padding:0;background:none;z-index:5}
       .jh-actions #jhNew{width:auto;padding:0 26px;height:50px;box-shadow:0 8px 14px rgba(233,162,28,.5)}
     }
+    /* ===== Wizard on desktop — same app flow (House·Capture·Check·Design·Send),
+       laid out for a big screen. Placed last so it wins the source-order tie. ===== */
+    @media(min-width:821px){
+      /* canvas-free steps (House, Send): a comfortable centred column with room
+         to breathe, not a narrow strip floating in whitespace */
+      #app[data-step="house"] aside, #app[data-step="send"] aside{max-width:860px;padding-top:10px}
+      #app[data-step="house"] .psummary, #app[data-step="send"] .psummary{border-radius:16px;margin-bottom:6px}
+      /* the bottom bar becomes a real desktop toolbar: natural-width buttons,
+         contextual actions on the left, Back / Next on the right — no stretch */
+      .actionbar{gap:12px;padding:16px 28px calc(18px + env(safe-area-inset-bottom))}
+      .actionbar .hbtn{flex:0 0 auto;min-width:154px;height:50px}
+      .actionbar .hbtn.big{flex:0 0 auto}
+      .actionbar .hbtn.hero{min-width:196px}
+      #ab-back{margin-left:auto}
+      #app[data-step="house"] #ab-next{margin-left:auto}
+      /* Send (last step): Back on the left, the Quote CTA bottom-right */
+      #app[data-step="send"] #ab-back{order:-1;margin-left:0}
+      #app[data-step="send"] #btn-print{margin-left:auto}
+    }
   </style>
   <header id="nav">
     <button class="nav-ic" id="btn-back" title="Trust Trade tools" onclick="location.href='/tools'"><svg viewBox="0 0 24 24" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>

@@ -6974,23 +6974,37 @@ function applyAIRooms(rooms, notes){
   S.placed={}; S.autoPickChosen=false;   // a fresh plan → ask where the gear goes
   const VALID={living:1,bed:1,wet:1,util:1,none:1};
   rooms.forEach(r=>{
+    const type = VALID[r.type] ? r.type : 'other';
+    const glaze = type==='living'?'high' : type==='wet'?'low' : 'med';
+    /* POLYGON: trace the room's real outline off the plan so it goes AROUND the
+       walls instead of a loose box. Points come normalised (0–1); scale them by
+       the same metres-per-pixel the whole plan is pinned to. */
+    let pts=(Array.isArray(r.points)?r.points:[])
+      .map(p=>({x:snap(p.x*IW*mpp), y:snap(p.y*IH*mpp)}));
+    pts=pts.filter((p,i)=>i===0 || Math.hypot(p.x-pts[i-1].x, p.y-pts[i-1].y)>0.05);  // drop dupes
+    if(pts.length>=3){
+      const bb=polyBBox(pts);
+      if(!(bb.w>0.4 && bb.h>0.4) || polyArea(pts)<0.4) return;
+      S.rooms.push({ id:RID, name:(r.name||'Room '+RID).trim(), type,
+        poly:true, points:pts, x:bb.x, y:bb.y, w:bb.w, h:bb.h,
+        zone:RID, ceil:2.4, glaze, orient:'none', aiRead:true,
+        dims:r.dims||null, parentName:r.parent||null });
+      RID++; return;
+    }
+    /* Rectangle fallback when no usable outline came back. AREA: the pixel
+       rectangle is only a guess — the PRINTED dimension is the truth. If this
+       room has one, size it to that, oriented to match which way it reads. */
     let w=r.w*IW*mpp, h=r.h*IH*mpp;
-    /* AREA: the pixel rectangle is only a guess — the PRINTED dimension is the
-       truth. If this room has one, size it to that, oriented to match which way
-       the room reads on the plan (landscape vs portrait). The top-left corner
-       still comes from the pixels, so it lands in the right place. */
     const d=parseDims(r.dims||'');
     if(d && d.w>0.4 && d.h>0.4 && d.w<25 && d.h<25){
       const long=Math.max(d.w,d.h), short=Math.min(d.w,d.h);
       if(w>=h){ w=long; h=short; } else { w=short; h=long; }
     }
     if(!(w>0.4 && h>0.4)) return;
-    const type = VALID[r.type] ? r.type : 'other';
     S.rooms.push({ id:RID, name:(r.name||'Room '+RID).trim(), type,
       x:snap(r.x*IW*mpp), y:snap(r.y*IH*mpp), w:snap(w), h:snap(h),
-      zone:RID, ceil:2.4,
-      glaze: type==='living'?'high' : type==='wet'?'low' : 'med',
-      orient:'none', aiRead:true, dims:r.dims||null, parentName:r.parent||null });
+      zone:RID, ceil:2.4, glaze, orient:'none', aiRead:true,
+      dims:r.dims||null, parentName:r.parent||null });
     RID++;
   });
   refineNested(S.rooms);      // type the ensuites/robes that sit inside a bedroom

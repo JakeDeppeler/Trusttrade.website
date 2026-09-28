@@ -1628,7 +1628,12 @@ function renderTP(){const t=TP.t,bk=TP.bk,rev=TP.rev;
    <div class="card"><div class="ch">Contact, rates &amp; payouts</div><div style="padding:6px 20px">${kv('Email',t.email)}${kv('Phone',t.phone)}${kv('Website',t.website)}${kv('Team size',t.team_size)}${kv('Hourly rate',t.hourly_rate?'$'+t.hourly_rate:'—')}${kv('Call-out fee',t.call_out_fee?'$'+t.call_out_fee:'—')}${kv('Joined',fmtDate(t.joined_at))}${kv('Stripe payouts',t.stripe_charges_enabled?'Enabled ('+esc(t.stripe_account_id||'')+')':'Not connected')}${kv('Pay link',t.pay_link)}${kv('Google',t.google_url)}${kv('Instagram',t.instagram_url)}</div></div>`,
   `<div class="card"><div class="ch">Verification</div><div style="padding:6px 20px">${kv('ABN',t.abn)}${kv('Licence',t.licence)}${kv('Licence expiry',t.licence_expiry_date?fmtDate(t.licence_expiry_date):null)}${kv('Qualified / licensed',t.qualified?'Yes':'No')}${kv('Google rating',t.google_rating?t.google_rating+' ('+(t.google_review_count||0)+' reviews)':'—')}</div></div>`,
   svc.length?`<div class="card"><div class="ch">Services &amp; pricing</div><div style="padding:6px 20px">${svc.map(s=>`<div style="display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--line2)"><span>${esc(s.name||s.title||s.label||'Service')}${s.detail?' <span class="mut" style="font-size:12px">'+esc(s.detail)+'</span>':''}</span><b>${s.price!=null?'$'+esc(s.price):esc(s.priceText||s.amount||'')}</b></div>`).join('')}</div></div>`:'<div class="card"><div class="empty">No services listed.</div></div>',
-  photos.length?`<div class="card"><div class="ch">Gallery (${photos.length})</div><div style="padding:14px 20px;display:grid;grid-template-columns:repeat(4,1fr);gap:8px">${photos.slice(0,12).map(u=>`<img class="zoomable" src="${esc(u)}" style="width:100%;aspect-ratio:1;object-fit:cover;border-radius:16px;display:block">`).join('')}</div></div>`:'<div class="card"><div class="empty">No photos yet.</div></div>',
+  `<div class="card"><div class="ch">Profile photo</div><div style="padding:14px 20px" id="apWrap"></div></div>
+   <div class="card"><div class="ch">Gallery <span class="mut" id="agCount"></span></div><div style="padding:14px 20px">
+     <div class="mut" style="font-size:12.5px;margin-bottom:12px">Add or remove this tradie's work photos. Drag nothing — just tap the tile to add, or ✕ to remove. Changes publish when you press <b>Save gallery</b>.</div>
+     <div id="agGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:10px"></div>
+     <div style="display:flex;gap:8px;margin-top:16px;flex-wrap:wrap"><button class="btn w" onclick="agAddUrl()">Add by URL</button><button class="btn g" id="agSaveBtn" onclick="agSave('${t.id}')">Save gallery</button></div>
+   </div></div>`,
   `<div class="card"><div class="ch">Availability &amp; area</div><div style="padding:6px 20px">${hoursRows||kv('Business hours','—')}${kv('Service radius',t.service_radius_km?t.service_radius_km+' km':'—')}${kv('Suburb · postcode',(t.suburb||'')+' '+(t.postcode||''))}${kv('Cap slot',t.cap_slot||'—')}</div></div>`,
   `<div class="card"><div class="ch">Reviews (${rev.length})</div><div style="padding:6px 20px">${rev.length?rev.map(r=>`<div style="padding:13px 0;border-bottom:1px solid var(--line2)"><div style="display:flex;align-items:center;gap:8px"><b>${esc(r.from_name||'—')}</b><span style="color:var(--star)">${stars(r.rating)}</span><span class="pill ${r.source==='google'?'n':'g'}" style="margin-left:auto">${esc(r.source||'trusttrade')}</span>${r.hidden?'<span class="pill r">Hidden</span>':''}</div><div style="font-size:13px;color:var(--ink2);margin-top:6px">${esc(r.review_text||'')}</div>${r.reply_text?`<div style="margin-top:10px;padding:11px 14px;background:var(--panel2);border-radius:16px;font-size:13.5px"><b>Reply</b> ${esc(r.reply_text)}</div>`:''}</div>`).join(''):'<div class="empty" style="padding:14px 0">No reviews yet.</div>'}</div></div>`,
   `<div class="card"><div class="ch">Bookings (${bk.length})</div>${bk.length?`<table><tbody>${bk.map(b=>`<tr><td><b>${esc(b.job_title||'Job')}</b></td><td>${esc(b.status||'')}</td><td class="mut">${fmtDate(b.slot_start)}</td></tr>`).join('')}</tbody></table>`:'<div class="empty">No bookings yet.</div>'}</div>`,
@@ -1648,7 +1653,53 @@ function renderTP(){const t=TP.t,bk=TP.bk,rev=TP.rev;
   </div>
   <div class="tabs">${TPTABS.map((x,i)=>`<div class="${i===TPTAB?'on':''}" onclick="tpTab(${i})">${esc(x)}</div>`).join('')}</div>
   ${body}`;
+ if(TPTAB===3)galInit();
 }
+
+/* ===== ADMIN GALLERY + PROFILE PHOTO EDITOR ===== */
+// Gallery -> listings.photos (text[]) via the public work-photos bucket.
+// Admin uploads under its OWN uid path (work_photos_owner_insert requires
+// foldername[1]=auth.uid()); the bucket is public so the URL works for all.
+// Profile photo -> listings.photo via tradie-photos (tradie_photos_admin_write).
+let AG=[];
+function galInit(){AG=(Array.isArray(TP.t.photos)?TP.t.photos:[]).filter(Boolean).map(String);agGrid();apRender();}
+function agGrid(){const g=$('agGrid');if(!g)return;
+ g.innerHTML=AG.map((u,i)=>`<div style="position:relative;aspect-ratio:1;border-radius:16px;overflow:hidden;background:var(--panel2) center/cover no-repeat;background-image:url('${esc(u)}')"><button title="Remove" onclick="agRemove(${i})" style="position:absolute;top:6px;right:6px;width:26px;height:26px;border:0;border-radius:50%;background:rgba(0,0,0,.62);color:#fff;font-size:16px;line-height:1;cursor:pointer">&times;</button></div>`).join('')
+  +`<label style="aspect-ratio:1;border-radius:16px;border:2px dashed var(--line2);display:grid;place-items:center;cursor:pointer;color:var(--mut)"><input type="file" accept="image/*" multiple style="display:none" onchange="agUpload(this)"><span style="font-size:30px;line-height:1">+</span></label>`;
+ const c=$('agCount');if(c)c.textContent='('+AG.length+')';}
+function agRemove(i){AG.splice(i,1);agGrid();}
+function agAddUrl(){ask('Add a photo by URL','Paste a direct image link (starts with https://).','https://…',r=>{if(!/^https?:\/\/\S+/i.test(r)){toast('Enter a valid image URL');return;}AG.push(r);closeM();agGrid();});}
+async function agUpload(input){const files=[...(input.files||[])];if(!files.length)return;if(!USER||!USER.id){toast('Not signed in');return;}
+ toast(files.length>1?('Uploading '+files.length+' photos…'):'Uploading…');
+ for(const file of files){const path=USER.id+'/'+Date.now()+'-'+Math.round(performance.now())+'-'+file.name.replace(/[^a-zA-Z0-9.]/g,'_');
+  const up=await sb.storage.from('work-photos').upload(path,file,{upsert:false,cacheControl:'3600'});
+  if(up.error){toast(up.error.message);continue;}
+  AG.push(sb.storage.from('work-photos').getPublicUrl(path).data.publicUrl);}
+ input.value='';agGrid();toast('Added — press Save gallery to publish');}
+async function agSave(id){const btn=$('agSaveBtn');if(btn){btn.disabled=true;btn.style.opacity='.6';}
+ try{const photos=AG.filter(p=>typeof p==='string'&&p.trim());
+  const {error}=await sb.from('listings').update({photos}).eq('id',id);
+  if(error){toast(error.message);return;}
+  await audit('listing_gallery_edited','listing',id,photos.length+' photos');
+  TP.t.photos=photos;toast('Gallery saved');agGrid();
+ }finally{if(btn){btn.disabled=false;btn.style.opacity='';}}}
+function apRender(){const w=$('apWrap');if(!w)return;const t=TP.t;const cur=t.photo||t.chat_avatar_url||'';
+ w.innerHTML=`<div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
+   <div style="width:74px;height:74px;border-radius:20px;overflow:hidden;background:var(--panel2) center/cover no-repeat;${cur?`background-image:url('${esc(cur)}');`:''}display:grid;place-items:center">${cur?'':'<span class="mut" style="font-size:11px">None</span>'}</div>
+   <div style="display:flex;gap:8px;flex-wrap:wrap">
+     <label class="btn w" style="cursor:pointer">${cur?'Replace':'Add'} photo<input type="file" accept="image/*" style="display:none" onchange="apUpload(this,'${t.id}')"></label>
+     ${cur?`<button class="btn r" onclick="apClear('${t.id}')">Remove</button>`:''}
+   </div></div>`;}
+async function apUpload(input,id){const f=(input.files||[])[0];if(!f)return;if(!USER||!USER.id){toast('Not signed in');return;}
+ toast('Uploading…');
+ const path=USER.id+'/'+Date.now()+'-'+f.name.replace(/[^a-zA-Z0-9.]/g,'_');
+ const up=await sb.storage.from('tradie-photos').upload(path,f,{upsert:false,cacheControl:'3600'});
+ if(up.error){toast(up.error.message);input.value='';return;}
+ const url=sb.storage.from('tradie-photos').getPublicUrl(path).data.publicUrl;
+ const {error}=await sb.from('listings').update({photo:url}).eq('id',id);input.value='';
+ if(error){toast(error.message);return;}
+ await audit('listing_photo_edited','listing',id,'profile photo updated');TP.t.photo=url;apRender();toast('Profile photo updated');}
+function apClear(id){ask('Remove the profile photo?','The profile falls back to their initials. Recoverable and audited.','Why remove it?',async r=>{if(r.length<3){toast('Add a short reason');return;}const {error}=await sb.from('listings').update({photo:null}).eq('id',id);if(error){toast(error.message);return;}await audit('listing_photo_removed','listing',id,r);TP.t.photo=null;closeM();apRender();toast('Photo removed');},true);}
 
 /* ===== JOBS (bookings) ===== */
 let LNAMES=null;
@@ -1869,19 +1920,33 @@ function customiseDash(){
   <div class="mf"><button class="btn w" onclick="closeM()">Cancel</button><button class="btn g" onclick="saveDash()">Save</button></div>`,true);}
 function saveDash(){DASH_KEYS.forEach(([k])=>{const cb=$('dc_'+k);if(cb)DASHCFG[k]=cb.checked;});try{localStorage.setItem('tt_dash',JSON.stringify(DASHCFG));}catch(e){}closeM();pDash();}
 function editTradieForm(){const t=TP.t;const svcText=(Array.isArray(t.priced_services)?t.priced_services:[]).map(s=>`${s.name||s.title||''} | ${s.detail||''} | ${s.price!=null?s.price:(s.amount||'')}`).join('\n');
- modal(`<h3>Edit ${esc(t.name)}</h3><p style="color:var(--mut);font-size:12px;margin-top:4px">Edit on the left. The preview on the right updates live, the way customers see the profile. ABN and licence stay register-verified.</p>
+ modal(`<h3>Edit ${esc(t.name)}</h3><p style="color:var(--mut);font-size:12px;margin-top:4px">Edit any field on the left. The preview on the right updates live, the way customers see the profile. Photos are edited in the <b>Gallery</b> tab. Status (Live/Hidden) uses the buttons on the profile so a reason is logged.</p>
  <div style="display:grid;grid-template-columns:1fr 300px;gap:22px;margin-top:14px;align-items:start">
   <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;font-size:11.5px;font-weight:600;color:var(--ink2)">
    <label style="grid-column:1/3">Business name<input id="e_name" value="${esc(t.name||'')}" oninput="epreview()"></label>
    <label>Trade<input id="e_trade" value="${esc(t.trade||'')}" oninput="epreview()"></label>
+   <label>Team size<input id="e_team" value="${esc(t.team_size||'')}"></label>
    <label>Phone<input id="e_phone" value="${esc(t.phone||'')}" oninput="epreview()"></label>
-   <label style="grid-column:1/3">Email<input id="e_email" value="${esc(t.email||'')}" oninput="epreview()"></label>
+   <label>Email<input id="e_email" value="${esc(t.email||'')}"></label>
    <label>Suburb<input id="e_suburb" value="${esc(t.suburb||'')}" oninput="epreview()"></label>
-   <label>Postcode<input id="e_pc" value="${esc(t.postcode||'')}" oninput="epreview()"></label>
+   <label>Postcode<input id="e_pc" value="${esc(t.postcode||'')}"></label>
    <label>Hourly rate ($)<input id="e_rate" value="${t.hourly_rate??''}" oninput="epreview()"></label>
    <label>Call-out fee ($)<input id="e_call" value="${t.call_out_fee??''}" oninput="epreview()"></label>
-   <label>Service radius (km)<input id="e_rad" value="${t.service_radius_km??''}" oninput="epreview()"></label>
+   <label>Labour rate ($)<input id="e_labour" value="${t.labour_rate??''}"></label>
+   <label>Service radius (km)<input id="e_rad" value="${t.service_radius_km??''}"></label>
+   <label>Premises type<input id="e_premises" value="${esc(t.premises_type||'')}"></label>
    <label>Website<input id="e_web" value="${esc(t.website||'')}" oninput="epreview()"></label>
+   <label>Google URL<input id="e_google" value="${esc(t.google_url||'')}"></label>
+   <label>Instagram URL<input id="e_insta" value="${esc(t.instagram_url||'')}"></label>
+   <label>Google rating<input id="e_grate" value="${t.google_rating??''}"></label>
+   <label>Google reviews<input id="e_grc" value="${t.google_review_count??''}"></label>
+   <label style="grid-column:1/3">Payment link<input id="e_paylink" value="${esc(t.pay_link||'')}"></label>
+   <div class="fl" style="grid-column:1/3;border-top:1px solid var(--line2);padding-top:12px;margin-top:2px;color:var(--mut)">Verification — admin override (normally register-verified)</div>
+   <label>ABN<input id="e_abn" value="${esc(t.abn||'')}"></label>
+   <label>Licence no.<input id="e_licence" value="${esc(t.licence||'')}"></label>
+   <label>Licence expiry<input id="e_licexp" type="date" value="${esc(t.licence_expiry_date||'')}"></label>
+   <label>Licensed / qualified<select id="e_qual"><option value="">—</option><option value="yes"${t.qualified?' selected':''}>Yes</option><option value="no"${t.qualified===false?' selected':''}>No</option></select></label>
+   <label style="grid-column:1/3">Brands (comma-separated)<input id="e_brands" value="${esc(Array.isArray(t.brands)?t.brands.join(', '):'')}"></label>
    <label style="grid-column:1/3">About<textarea id="e_desc" oninput="epreview()">${esc(t.description||'')}</textarea></label>
    <label style="grid-column:1/3">Services, one per line: name | detail | price<textarea id="e_svc" style="min-height:88px" oninput="epreview()">${esc(svcText)}</textarea></label>
   </div>
@@ -1912,12 +1977,21 @@ function epreview(){const el=$('eprev');if(!el)return;const t=TP.t||{};
   </div></div>`;}
 async function saveTradieProfile(id){
  const svc=val('e_svc').split('\n').map(l=>l.split('|').map(x=>x.trim())).filter(a=>a[0]).map(a=>({name:a[0],detail:a[1]||'',price:isNaN(+a[2])?(a[2]||''):+a[2]}));
- const upd={name:val('e_name'),trade:val('e_trade'),phone:val('e_phone'),email:val('e_email'),suburb:val('e_suburb'),postcode:val('e_pc'),website:val('e_web'),description:val('e_desc'),priced_services:svc};
- const hr=parseFloat(val('e_rate'));if(!isNaN(hr))upd.hourly_rate=hr;
- const co=parseFloat(val('e_call'));if(!isNaN(co))upd.call_out_fee=co;
- const rd=parseInt(val('e_rad'),10);if(!isNaN(rd))upd.service_radius_km=rd;
+ const numOrNull=i=>{const v=val(i).trim();if(v==='')return null;const n=parseFloat(v);return isNaN(n)?null:n;};
+ const intOrNull=i=>{const v=val(i).trim();if(v==='')return null;const n=parseInt(v,10);return isNaN(n)?null:n;};
+ const upd={
+  name:val('e_name'),trade:val('e_trade'),team_size:val('e_team')||null,phone:val('e_phone'),email:val('e_email'),
+  suburb:val('e_suburb'),postcode:val('e_pc'),premises_type:val('e_premises')||null,website:val('e_web'),
+  google_url:val('e_google')||null,instagram_url:val('e_insta')||null,pay_link:val('e_paylink')||null,
+  abn:val('e_abn')||null,licence:val('e_licence')||null,description:val('e_desc'),priced_services:svc,
+  hourly_rate:numOrNull('e_rate'),call_out_fee:numOrNull('e_call'),labour_rate:numOrNull('e_labour'),
+  google_rating:numOrNull('e_grate'),service_radius_km:intOrNull('e_rad'),google_review_count:intOrNull('e_grc')
+ };
+ const lx=val('e_licexp').trim();upd.licence_expiry_date=lx||null;
+ const q=val('e_qual');if(q==='yes')upd.qualified=true;else if(q==='no')upd.qualified=false;
+ const br=val('e_brands').split(',').map(s=>s.trim()).filter(Boolean);upd.brands=br.length?br:null;
  const {error}=await sb.from('listings').update(upd).eq('id',id);if(error){toast(error.message);return;}
- await audit('listing_edited','listing',id,'profile edited');closeM();toast('Profile updated');openTradie(id);}
+ await audit('listing_edited','listing',id,'profile edited (full)');closeM();toast('Profile updated');openTradie(id);}
 try{if(localStorage.getItem('tt_theme')==='dark'){document.documentElement.setAttribute('data-theme','dark');const l=$('themeLbl');if(l)l.textContent='Light mode';}}catch(e){}
 init();
 </script>

@@ -13,6 +13,11 @@ import { join } from "path";
 const SB = "https://pvcblfpxgrznzqgxbujy.supabase.co";
 const KEY = "sb_publishable_xXxZpIBsumD14mC4zn9qLQ_i4Su8yEN";
 const SITE = "https://trusttrade.au";
+// Every listing column a public page reads. Visitors who aren't signed in are only allowed
+// these: the private ones (payment details, Stripe ids, AI notes) are locked in the database,
+// and a "select=*" is refused once columns are locked. Add a column here AND grant it to the
+// anon role before using it on a public page.
+const LISTING_COLS = "id,slug,name,trade,suburb,location,postcode,description,priced_services,services,photos,photo,photo_sections,cover_position,badges,brands,dealer_brands,team_size,rating,review_count,insured,qualified,licence,abn,phone,website,hourly_rate,call_out_fee,show_call_out,service_radius_km,lat,lng,business_hours,opening_hours,stat_jobs_complete,stat_response_count,stat_response_hours_total";
 const OUT = "public/tradie";
 
 // The profile/card renderer, shared with the browser (inlined into the pages below).
@@ -513,7 +518,7 @@ function notFound(){document.getElementById('root').innerHTML='<div class="tp"><
 ${CATOF_JS}
 var HUBS=${J(Object.fromEntries(ALL_TRADES.map((t) => [t.slug, t.plural])))};
 var slug=location.pathname.split('/').filter(Boolean).pop();
-fetch(SB+'/rest/v1/listings?select=*&status=eq.approved&deleted_at=is.null&slug=eq.'+encodeURIComponent(slug),h)
+fetch(SB+'/rest/v1/listings?select=${LISTING_COLS}&status=eq.approved&deleted_at=is.null&slug=eq.'+encodeURIComponent(slug),h)
 .then(function(r){return r.json();}).then(function(d){
  if(!Array.isArray(d)||!d.length){notFound();return;}
  var l=d[0],trade=l.trade||'Tradie',suburb=l.suburb||'';
@@ -534,7 +539,7 @@ fetch(SB+'/rest/v1/listings?select=*&status=eq.approved&deleted_at=is.null&slug=
     // Fully controlled by the status field an admin sets (approved/hidden/denied),
     // so hiding or approving in the admin console changes what's public.
     const listings = (await api(
-      "listings?status=eq.approved&deleted_at=is.null&select=id,slug,name,trade,suburb,location,postcode,description,priced_services,services,photos,photo,photo_sections,cover_position,badges,brands,dealer_brands,team_size,rating,review_count,insured,qualified,licence,abn,phone,website,hourly_rate,call_out_fee,show_call_out,service_radius_km,lat,lng,business_hours,opening_hours,stat_jobs_complete,stat_response_count,stat_response_hours_total&order=rating.desc.nullslast"
+      `listings?status=eq.approved&deleted_at=is.null&select=${LISTING_COLS}&order=rating.desc.nullslast`
     )).filter((l) => l.slug);
 
     // Real reviews only (hidden ones are filtered by RLS and again by the renderer).

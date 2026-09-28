@@ -389,6 +389,15 @@
       background:linear-gradient(180deg,rgba(242,242,240,0),rgba(242,242,240,.96) 45%)}
     .njs-lbl{font-size:12px;font-weight:700;color:var(--muted);margin:2px 2px 5px}
     .njs-field{margin-bottom:12px}
+    /* Jobs home on desktop — placed last so it wins the source-order tie:
+       comfortable centred column, New-job action flows inline under the list
+       (not pinned to the window bottom). */
+    @media(min-width:821px){
+      #jobsHome{max-width:680px;padding:0 22px 64px}
+      .jh-title{font-size:40px;letter-spacing:-1.6px;margin-top:26px}
+      .jh-actions{position:static;background:none;max-width:none;margin:0;padding:18px 0 0;z-index:auto}
+      .jh-actions #jhNew{max-width:280px}
+    }
   </style>
   <header id="nav">
     <button class="nav-ic" id="btn-back" title="Trust Trade tools" onclick="location.href='/tools'"><svg viewBox="0 0 24 24" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>

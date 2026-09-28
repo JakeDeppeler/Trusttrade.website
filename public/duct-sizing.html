@@ -4,12 +4,19 @@
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
 <title>Trust Trade — Ducted Design &amp; Quote</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@600;700;800;900&display=swap">
 <style>
   :root{
-    --bg:#f4f6f9; --panel:#fff; --ink:#0f172a; --muted:#64748b; --line:#e2e8f0;
-    --accent:#2563eb; --accent-soft:#eff6ff; --ok:#059669; --warn:#d97706; --danger:#dc2626;
-    --canvas:#eceff4; --field:#fff; --hover:#f1f5f9;
-    --z1:#2563eb; --z2:#0891b2; --z3:#7c3aed; --z4:#db2777; --z5:#ea580c; --z6:#65a30d; --z7:#0d9488; --z8:#9333ea;
+    /* Trust Trade Pro theme (from HeatScan/Theme.swift) — light only, amber brand */
+    --bg:#F2F2F0; --panel:#FFFFFF; --ink:#101010; --inkOn:#FAFAF8; --muted:#5E5A52; --line:#DEDCD6;
+    --accent:#E9A21C; --accent-soft:#FBEAC4; --accent-deep:#8A6A0B;
+    --ok:#1B6B45; --ok-bg:#E3F3E8; --warn:#C2561A; --danger:#B4472B; --danger-bg:#FBE4E1;
+    --cool:#2B6CB0; --cool-bg:#E4EEF8;
+    --canvas:#F0EEE9; --field:#F2F0EB; --hover:#F4F2ED; --tile:#F4F2ED; --hair:#EEECE7;
+    --body:#3E3A33; --faint:#8C877D;
+    --z1:#E9A21C; --z2:#2B6CB0; --z3:#1B8A5A; --z4:#8B5CF6; --z5:#D9467A; --z6:#0F9A9A; --z7:#A16207; --z8:#64748B;
+    --card-shadow:0 2px 7px rgba(16,16,16,.06);
   }
   /* Dark. Same ink, different paper — the zone colours stay put so a drawing you
      know in daylight still reads the same at night. */
@@ -56,25 +63,34 @@
   *{box-sizing:border-box;margin:0;padding:0}
   html,body{height:100%}
   body{font:14px/1.45 -apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,sans-serif;
-    color:var(--ink);background:var(--bg);overflow:hidden;-webkit-font-smoothing:antialiased}
+    color:var(--body);background:var(--bg);overflow:hidden;-webkit-font-smoothing:antialiased;
+    background-image:
+      radial-gradient(60% 45% at 12% 8%, rgba(208,226,245,.34), transparent 70%),
+      radial-gradient(58% 42% at 92% 4%, rgba(250,219,150,.30), transparent 70%),
+      radial-gradient(60% 48% at 96% 96%, rgba(214,234,221,.30), transparent 70%),
+      radial-gradient(62% 46% at 4% 98%, rgba(250,230,183,.24), transparent 70%);
+    background-attachment:fixed}
+  h1,h2,h3,.head{font-family:"Archivo",-apple-system,system-ui,sans-serif;font-weight:800;letter-spacing:-.02em;color:var(--ink)}
   button{font:inherit;color:inherit;cursor:pointer;border:none;background:none}
   input,select{font:inherit;color:inherit}
 
   #app{display:grid;grid-template-rows:52px 1fr;height:100vh}
-  header{display:flex;align-items:center;gap:10px;padding:0 14px;background:var(--panel);border-bottom:1px solid var(--line)}
-  .brand{display:flex;align-items:center;gap:9px;font-weight:650;letter-spacing:-.01em}
-  .brand .mark{width:26px;height:26px;border-radius:7px;background:linear-gradient(135deg,#2563eb,#0891b2);
-    display:grid;place-items:center;color:#fff;font-size:13px;font-weight:800}
+  header{display:flex;align-items:center;gap:8px;padding:0 14px;background:rgba(255,255,255,.72);
+    backdrop-filter:blur(10px);border-bottom:1px solid var(--hair)}
+  .brand{display:flex;align-items:center;gap:9px;font-weight:800;letter-spacing:-.02em;font-family:"Archivo",system-ui,sans-serif;color:var(--ink)}
+  .brand .mark{width:28px;height:28px;border-radius:9px;background:linear-gradient(135deg,#FFCB63,#E9A21C);
+    display:grid;place-items:center;color:#1c1300;font-size:13px;font-weight:800;box-shadow:0 3px 9px rgba(233,162,28,.42)}
   .spacer{flex:1}
-  .hbtn{padding:7px 11px;border-radius:8px;border:1px solid var(--line);background:#fff;
-    font-size:13px;font-weight:520;display:inline-flex;gap:6px;align-items:center;white-space:nowrap}
-  .hbtn:hover{background:#f8fafc;border-color:#cbd5e1}
-  .hbtn.primary{background:var(--accent);color:#fff;border-color:var(--accent)}
-  .hbtn.primary:hover{background:#1d4ed8}
-  .hbtn.ai{background:linear-gradient(135deg,#2563eb,#7c3aed);color:#fff;border:none}
-  .hbtn.ai:hover{filter:brightness(1.08)}
+  .hbtn{padding:8px 13px;border-radius:999px;border:0;background:var(--tile);color:var(--ink);
+    font-size:13px;font-weight:700;display:inline-flex;gap:6px;align-items:center;white-space:nowrap;transition:transform .06s,filter .1s}
+  .hbtn:hover{filter:brightness(.96)}
+  .hbtn:active{transform:scale(.98)}
+  .hbtn.primary{background:var(--ink);color:var(--inkOn,#FAFAF8)}
+  .hbtn.primary:hover{filter:brightness(1.12)}
+  .hbtn.ai{background:var(--accent);color:var(--ink);box-shadow:0 6px 12px rgba(233,162,28,.5)}
+  .hbtn.ai:hover{filter:brightness(1.04)}
   .hbtn:disabled{opacity:.4;cursor:not-allowed}
-  .hbtn.icon{padding:7px 9px}
+  .hbtn.icon{padding:8px 10px;border-radius:50%;width:34px;height:34px;justify-content:center}
 
   main{display:grid;grid-template-columns:60px 1fr 425px;overflow:hidden}
   .tools{background:var(--panel);border-right:1px solid var(--line);padding:10px 0;display:flex;flex-direction:column;align-items:center;gap:3px}
@@ -122,10 +138,10 @@
   .ctxpop button.on{background:var(--accent);border-color:var(--accent);color:#fff}
   .busy{position:absolute;inset:0;background:rgba(244,246,249,.9);display:none;place-items:center;z-index:30}
   .busy.on{display:grid}
-  .busy .b{background:#fff;border:1px solid var(--line);border-radius:14px;padding:22px 28px;text-align:center;
-    box-shadow:0 8px 30px rgba(15,23,42,.1);min-width:300px}
-  .bar{height:5px;background:#e2e8f0;border-radius:5px;overflow:hidden;margin-top:12px}
-  .bar i{display:block;height:100%;background:linear-gradient(90deg,#2563eb,#7c3aed);width:0;transition:width .3s}
+  .busy .b{background:#fff;border:0;border-radius:24px;padding:22px 26px;text-align:center;
+    box-shadow:0 18px 50px rgba(16,16,16,.18);min-width:300px}
+  .bar{height:5px;background:var(--hair);border-radius:5px;overflow:hidden;margin-top:12px}
+  .bar i{display:block;height:100%;background:linear-gradient(90deg,#FFCB63,#E9A21C);width:0;transition:width .3s}
 
   aside{background:var(--panel);border-left:1px solid var(--line);display:flex;flex-direction:column;overflow:hidden}
   /* the headline numbers, pinned above the tabs — always visible, whatever tab you're on */
@@ -150,11 +166,11 @@
 
   h3{font-size:11px;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);font-weight:650;margin:0 0 9px}
   h3:not(:first-child){margin-top:22px}
-  .card{border:1px solid var(--line);border-radius:11px;padding:13px;margin-bottom:10px;background:#fff}
+  .card{border:0;border-radius:20px;padding:15px;margin-bottom:11px;background:var(--panel);box-shadow:var(--card-shadow)}
   .row{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:5px 0}
   .row label{color:var(--muted);font-size:13px}
-  .field{width:100%;padding:7px 9px;border:1px solid var(--line);border-radius:7px;background:#fff;font-size:13px}
-  .field:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+  .field{width:100%;padding:10px 12px;border:0;border-radius:12px;background:var(--field);font-size:14px;color:var(--ink)}
+  .field:focus{outline:none;box-shadow:0 0 0 2px var(--accent)}
   select.field{cursor:pointer}
   .inline{width:auto;min-width:96px}
   .grid2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
@@ -178,19 +194,19 @@
   .big b{font-size:30px;font-weight:700;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
   .big span{color:var(--muted);font-size:13px}
   .kpi{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-bottom:12px}
-  .kpi .box{border:1px solid var(--line);border-radius:10px;padding:11px 12px}
+  .kpi .box{border:0;border-radius:16px;padding:12px 13px;background:var(--panel);box-shadow:var(--card-shadow)}
   .kpi .box .v{font-size:19px;font-weight:680;font-variant-numeric:tabular-nums}
   .kpi .box .k{font-size:10.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-top:2px;font-weight:600}
   .note{font-size:11.5px;color:var(--muted);line-height:1.55;margin-top:8px}
-  .flag{display:flex;gap:8px;padding:9px 11px;border-radius:9px;font-size:12.5px;line-height:1.5;margin-bottom:8px}
-  .flag.g{background:#ecfdf5;color:#065f46} .flag.w{background:#fffbeb;color:#92400e}
-  .flag.b{background:var(--accent-soft);color:#1e40af} .flag.r{background:#fef2f2;color:#991b1b}
+  .flag{display:flex;gap:8px;padding:10px 12px;border-radius:14px;font-size:12.5px;line-height:1.5;margin-bottom:8px}
+  .flag.g{background:var(--ok-bg);color:var(--ok)} .flag.w{background:var(--accent-soft);color:var(--accent-deep)}
+  .flag.b{background:var(--cool-bg);color:var(--cool)} .flag.r{background:var(--danger-bg);color:var(--danger)}
   input[type=range]{width:100%;accent-color:var(--accent)}
   .rm{color:var(--muted);font-size:15px;line-height:1;padding:2px 5px;border-radius:5px}
   .rm:hover{background:#fee2e2;color:var(--danger)}
   .roomrow .field{padding:4px 6px;font-size:12px}
   .roomrow.off{opacity:.5}
-  .aicard{border:1px solid #ddd6fe;background:linear-gradient(180deg,#faf5ff,#fff);border-radius:11px;padding:13px;margin-bottom:14px}
+  .aicard{border:0;background:linear-gradient(180deg,var(--accent-soft),#fff);border-radius:18px;padding:14px;margin-bottom:14px;box-shadow:var(--card-shadow)}
   .aicard .t{font-weight:650;font-size:13px;margin-bottom:5px}
   .opts{display:grid;grid-template-columns:1fr 1fr;gap:7px}
   .opt{border:1px solid var(--line);border-radius:9px;padding:9px;cursor:pointer;text-align:left}
@@ -198,11 +214,11 @@
   .opt.on{border-color:var(--accent);background:var(--accent-soft);box-shadow:0 0 0 1px var(--accent)}
   .opt .mn{font-weight:600;font-size:12.5px}
   .opt .md{font-size:10.5px;color:var(--muted);line-height:1.4;margin-top:2px}
-  .seg{display:flex;background:#f1f5f9;border-radius:8px;padding:3px;gap:3px}
-  .seg button{flex:1;padding:6px 8px;border-radius:6px;font-size:12px;font-weight:600;color:var(--muted)}
-  .seg button.on{background:#fff;color:var(--ink);box-shadow:0 1px 2px rgba(0,0,0,.07)}
+  .seg{display:flex;background:var(--card);border-radius:999px;padding:4px;gap:3px;box-shadow:0 2px 5px rgba(0,0,0,.06)}
+  .seg button{flex:1;padding:8px 10px;border-radius:999px;font-size:12.5px;font-weight:600;color:#3C3830}
+  .seg button.on{background:var(--ink);color:var(--inkOn,#FAFAF8);box-shadow:none}
   /* collapsible sections — the panel was a wall of controls */
-  details.sec{border:1px solid var(--line);border-radius:11px;margin-bottom:8px;background:#fff;overflow:hidden}
+  details.sec{border:0;border-radius:16px;margin-bottom:8px;background:var(--panel);overflow:hidden;box-shadow:var(--card-shadow)}
   details.sec>summary{
     list-style:none;cursor:pointer;padding:11px 13px;font-size:13px;font-weight:600;
     display:flex;align-items:center;gap:8px;user-select:none;
@@ -228,26 +244,172 @@
 </style>
 </head>
 <body>
+<!-- ===== Jobs home: the main page, like the app's HVAC Designer job list ===== -->
+<div id="jobsHome">
+  <div class="jh-top">
+    <a class="jh-brand" href="/tools" style="text-decoration:none"><span class="mark">TT</span> Trust&nbsp;Trade</a>
+    <div style="flex:1"></div>
+    <a class="hbtn" href="/tools" style="text-decoration:none">← Tools</a>
+  </div>
+  <div class="jh-title">Ducted Designer</div>
+  <div class="jh-sub">Your jobs — size, lay out &amp; quote a ducted system</div>
+  <div class="seg jh-seg" id="jhSeg">
+    <button data-tab="progress" class="on">In progress · <span id="jhCountP">0</span></button>
+    <button data-tab="quoted">Quoted · <span id="jhCountQ">0</span></button>
+  </div>
+  <input class="field jh-search" id="jhSearch" placeholder="Job name, customer or suburb" autocomplete="off">
+  <div class="jh-list" id="jhList"></div>
+  <div class="jh-actions"><button class="hbtn ai" id="jhNew" style="width:100%;height:54px;border-radius:999px;font-size:16px;box-shadow:0 8px 14px rgba(233,162,28,.5)">+ New job</button></div>
+</div>
+<!-- New-job sheet -->
+<div class="menu-sheet" id="newJobSheet" hidden>
+  <div class="menu-card">
+    <div class="menu-grab"></div>
+    <div class="menu-title">New job</div>
+    <div class="njs-lbl">Job name</div>
+    <input class="field njs-field" id="njName" placeholder="e.g. Smith — ducted upgrade" autocomplete="off">
+    <div class="njs-lbl">Customer <span style="color:var(--faint);font-weight:600">(optional)</span></div>
+    <input class="field njs-field" id="njCust" placeholder="Customer name" autocomplete="off">
+    <div class="njs-lbl">Suburb <span style="color:var(--faint);font-weight:600">(optional)</span></div>
+    <input class="field njs-field" id="njSub" placeholder="Suburb" autocomplete="off">
+    <div style="display:flex;gap:10px;margin-top:6px">
+      <button class="hbtn" id="njCancel" style="flex:1;height:50px;border-radius:999px">Cancel</button>
+      <button class="hbtn ai" id="njCreate" style="flex:2;height:50px;border-radius:999px">Create job</button>
+    </div>
+  </div>
+</div>
 <div id="app">
-  <header>
-    <a class="brand" href="/tools" title="Back to Trust Trade tools" style="text-decoration:none;color:inherit"><div class="mark">TT</div><span>Ducted Designer</span></a>
-    <a class="hbtn" href="/tools" title="Back to Trust Trade tools" style="text-decoration:none">← Tools</a>
-    <div class="spacer"></div>
-    <button class="hbtn icon" id="btn-undo" title="Undo (⌘Z)">↩</button>
-    <button class="hbtn icon" id="btn-redo" title="Redo (⇧⌘Z)">↪</button>
-    <button class="hbtn" id="btn-demo">Demo</button>
-    <label class="hbtn" for="file-plan">Upload plan</label>
-    <input type="file" id="file-plan" accept="image/*" hidden/>
-    <button class="hbtn ai" id="btn-ai">Auto-design</button>
-    <button class="hbtn" id="btn-clean" title="Search every take-off grouping to clear kinks &amp; crossings on a messy plan (slower)">Clean&nbsp;up</button>
-    <label class="hbtn" for="file-proj">Open</label>
-    <input type="file" id="file-proj" accept=".json" hidden/>
-    <button class="hbtn" id="btn-save">Save</button>
-    <button class="hbtn" id="btn-plan" title="Download the plan as a PNG, with the duct-size colour chart">Plan</button>
-    <button class="hbtn icon" id="btn-rules" title="What this can &amp; can't do">?</button>
-    <button class="hbtn icon" id="btn-settings" title="Settings">⚙</button>
-    <button class="hbtn primary" id="btn-print">Quote</button>
+  <style id="tt-pro-flow">
+    /* ===== Pro-app step-wizard chrome ===== */
+    #app{grid-template-rows:auto auto minmax(0,1fr) auto}
+    #nav{display:flex;align-items:center;gap:10px;padding:11px 14px 6px;background:transparent;border-bottom:0}
+    .nav-ic{border:0;background:var(--panel);box-shadow:0 2px 5px rgba(0,0,0,.09)}
+    .nav-ic svg{width:20px;height:20px;stroke:var(--ink);fill:none}
+    #btn-menu svg circle{fill:var(--ink);stroke:none}
+    .nav-ttl{flex:1;text-align:center;min-width:0}
+    .nav-ttl .t{font-family:"Archivo",system-ui,sans-serif;font-weight:800;font-size:18px;letter-spacing:-.02em;color:var(--ink);line-height:1.1}
+    .nav-ttl .s{font-size:12px;color:var(--muted);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .stepbar{display:flex;gap:7px;padding:4px 16px 12px}
+    .stepbar .st{flex:1;background:none;border:0;padding:0;text-align:center;cursor:default;font-family:inherit}
+    .stepbar .st .bar{height:4px;border-radius:999px;background:var(--line);transition:background .15s}
+    .stepbar .st.done .bar{background:var(--ink)}
+    .stepbar .st.cur .bar{background:var(--accent)}
+    .stepbar .st .lbl{font-size:11px;font-weight:700;margin-top:6px;color:var(--faint);white-space:nowrap}
+    .stepbar .st.cur .lbl,.stepbar .st.done .lbl{color:var(--ink)}
+    .stepbar .st.reached{cursor:pointer}
+    /* main = working area; the old tabs give way to the StepBar */
+    aside .tabs{display:none}
+    aside{border-left:1px solid var(--hair);background:transparent}
+    .psummary{background:transparent!important;border-bottom:1px solid var(--hair)!important}
+    main{background:transparent}
+    .stage{background:var(--canvas)}
+    /* canvas-free steps: hide the rail + stage, centre the panel */
+    #app[data-step="house"] .tools, #app[data-step="house"] .stage,
+    #app[data-step="send"] .tools, #app[data-step="send"] .stage{display:none}
+    #app[data-step="house"] main, #app[data-step="send"] main{grid-template-columns:1fr}
+    #app[data-step="house"] aside, #app[data-step="send"] aside{border-left:0;max-width:660px;margin:0 auto;width:100%}
+    /* take-off sub-switch */
+    #toSeg{display:none;margin:12px 16px 0}
+    #app[data-step="send"] #toSeg{display:flex}
+    /* bottom action bar */
+    .actionbar{display:flex;gap:10px;align-items:center;padding:12px 16px calc(14px + env(safe-area-inset-bottom));
+      background:linear-gradient(180deg,rgba(242,242,240,0),rgba(242,242,240,.96) 45%)}
+    .actionbar .hbtn{height:52px;border-radius:999px;font-size:15px;padding:0 22px;justify-content:center;font-weight:700;
+      background:var(--panel);box-shadow:var(--card-shadow)}
+    .actionbar .hbtn.ai{background:var(--accent);color:var(--ink);box-shadow:0 8px 14px rgba(233,162,28,.5)}
+    .actionbar .hbtn.primary{background:var(--ink);color:var(--inkOn)}
+    .actionbar .hbtn.big{flex:1}
+    .actionbar .ab{display:none}
+    #app[data-step="house"] .s-house{display:inline-flex}
+    #app[data-step="design"] .s-design{display:inline-flex}
+    #app[data-step="send"] .s-send{display:inline-flex}
+    /* overflow menu (bottom sheet) */
+    .menu-sheet{position:fixed;inset:0;z-index:80;background:rgba(16,16,16,.32);display:flex;align-items:flex-end;justify-content:center}
+    .menu-sheet[hidden]{display:none}
+    .menu-card{background:var(--panel);border-radius:26px 26px 0 0;width:100%;max-width:560px;padding:10px 16px 26px;box-shadow:0 -12px 40px rgba(16,16,16,.22)}
+    .menu-grab{width:40px;height:5px;border-radius:999px;background:var(--line);margin:6px auto 12px}
+    .menu-title{font-family:"Archivo",system-ui;font-weight:800;font-size:17px;margin:0 4px 12px}
+    .menu-item{display:block;width:100%;text-align:left;background:var(--tile);border:0;border-radius:14px;padding:14px 16px;font-size:15px;font-weight:600;color:var(--ink);margin-bottom:8px;cursor:pointer}
+    .menu-item:hover{filter:brightness(.97)}
+    @media(max-width:820px){
+      main{grid-template-columns:1fr!important;position:relative}
+      #app[data-step="capture"] main,#app[data-step="check"] main,#app[data-step="design"] main{grid-template-rows:56vh minmax(0,1fr)}
+      /* declutter the phone canvas: sizes/bags live in the panel + Take-off */
+      .legend{display:none}
+      .views{top:8px;left:12px;transform:none;padding:2px;max-width:calc(100% - 66px);overflow-x:auto}
+      .views button{padding:4px 9px;font-size:11px}
+      .zoombar{left:8px;right:auto;bottom:8px}
+      #app[data-step="capture"] .stage,#app[data-step="check"] .stage,#app[data-step="design"] .stage{grid-row:1}
+      /* floating, scrollable tool rail pinned top-right of the canvas (inside main) */
+      #app[data-step="capture"] .tools,#app[data-step="check"] .tools,#app[data-step="design"] .tools{
+        position:absolute;right:8px;left:auto;top:8px;bottom:auto;flex-direction:column;background:rgba(255,255,255,.94);
+        backdrop-filter:blur(6px);border-radius:16px;box-shadow:var(--card-shadow);z-index:6;padding:4px;gap:1px;width:auto;
+        max-height:calc(56vh - 16px);overflow:auto}
+      .tools .tool{width:36px;height:36px}
+      .tools .tool svg{width:18px;height:18px}
+      aside{border-left:0}
+      .psummary{overflow-x:auto;flex-wrap:nowrap}
+      .stepbar{gap:5px;padding:2px 12px 10px}
+      .stepbar .st .lbl{font-size:10px;letter-spacing:-.01em}
+      /* action bar: the hero action fills the top row, nav actions share the next */
+      .actionbar{flex-wrap:wrap;gap:8px;padding:10px 12px calc(12px + env(safe-area-inset-bottom))}
+      .actionbar .hbtn{height:48px;font-size:14.5px;padding:0 14px}
+      .actionbar .hero{flex:1 1 100%!important}
+      .actionbar .nav{flex:1 1 0}
+    }
+    @media(min-width:821px){
+      main{grid-template-columns:60px 1fr 400px}
+    }
+    /* ===== Jobs home (like the app's HVAC Designer job list) ===== */
+    #jobsHome{display:none;flex-direction:column;min-height:100dvh;max-width:560px;margin:0 auto;padding:0 18px 120px}
+    body.home #app{display:none}
+    body.home #jobsHome{display:flex}
+    .jh-top{display:flex;align-items:center;gap:10px;padding:14px 0 4px}
+    .jh-brand{display:flex;align-items:center;gap:9px;font-family:"Archivo",system-ui;font-weight:800;font-size:16px;color:var(--ink)}
+    .jh-brand .mark{width:26px;height:26px;border-radius:8px;background:linear-gradient(135deg,#FFCB63,#E9A21C);display:grid;place-items:center;color:#1c1300;font-weight:800;font-size:12px}
+    .jh-title{font-family:"Archivo",system-ui;font-weight:800;font-size:34px;letter-spacing:-1.2px;color:var(--ink);margin:16px 2px 2px}
+    .jh-sub{color:var(--muted);font-size:14px;margin:0 2px 16px}
+    .jh-seg{margin:2px 0 14px}
+    .jh-search{margin:0 0 14px}
+    .jh-list{display:flex;flex-direction:column;gap:10px}
+    .jcard{display:flex;align-items:center;gap:13px;background:var(--panel);border-radius:20px;padding:14px 15px;box-shadow:var(--card-shadow);cursor:pointer;text-align:left;border:0;width:100%;font-family:inherit}
+    .jcard:active{transform:scale(.995)}
+    .jcard .jic{width:44px;height:44px;border-radius:13px;background:var(--tile);display:grid;place-items:center;flex:none;font-size:20px}
+    .jcard .jgrow{flex:1;min-width:0}
+    .jcard .jn{font-weight:800;font-size:16px;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .jcard .js{font-size:12.5px;color:var(--muted);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .jcard .jdel{color:var(--faint);font-size:14px;font-weight:700;padding:6px 9px;border-radius:999px;flex:none;background:var(--tile)}
+    .jcard .jdel.armed{color:#fff;background:var(--danger)}
+    .jh-empty{text-align:center;padding:38px 18px;background:var(--panel);border-radius:22px;box-shadow:var(--card-shadow)}
+    .jh-empty .e1{font-family:"Archivo",system-ui;font-weight:800;font-size:22px;color:var(--ink)}
+    .jh-empty .e2{color:var(--muted);font-size:14px;margin:8px 0 16px;line-height:1.5}
+    .jh-empty .hbtn{margin:0 auto}
+    .jh-actions{position:fixed;left:0;right:0;bottom:0;max-width:560px;margin:0 auto;z-index:15;
+      padding:12px 18px calc(16px + env(safe-area-inset-bottom));
+      background:linear-gradient(180deg,rgba(242,242,240,0),rgba(242,242,240,.96) 45%)}
+    .njs-lbl{font-size:12px;font-weight:700;color:var(--muted);margin:2px 2px 5px}
+    .njs-field{margin-bottom:12px}
+  </style>
+  <header id="nav">
+    <button class="nav-ic" id="btn-back" title="Trust Trade tools" onclick="location.href='/tools'"><svg viewBox="0 0 24 24" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
+    <div class="nav-ttl"><div class="t" id="nav-title">House</div><div class="s" id="nav-sub">Set up the job</div></div>
+    <button class="nav-ic" id="btn-menu" title="More"><svg viewBox="0 0 24 24"><circle cx="5" cy="12" r="1.9"/><circle cx="12" cy="12" r="1.9"/><circle cx="19" cy="12" r="1.9"/></svg></button>
   </header>
+  <div class="stepbar" id="stepbar"></div>
+  <div class="menu-sheet" id="menuSheet" hidden>
+    <div class="menu-card">
+      <div class="menu-grab"></div>
+      <div class="menu-title">More</div>
+      <button class="menu-item" id="btn-undo">↩&nbsp;&nbsp;Undo</button>
+      <button class="menu-item" id="btn-redo">↪&nbsp;&nbsp;Redo</button>
+      <label class="menu-item" for="file-proj">Open a saved job</label>
+      <input type="file" id="file-proj" accept=".json" hidden/>
+      <button class="menu-item" id="btn-save">Save this job</button>
+      <button class="menu-item" id="btn-plan">Download plan (PNG)</button>
+      <button class="menu-item" id="btn-rules">What it can &amp; can't do</button>
+      <button class="menu-item" id="btn-settings">Settings</button>
+    </div>
+  </div>
 
   <main>
     <div class="tools">
@@ -438,6 +600,11 @@
         <button class="tab" data-pane="quote">Quote</button>
         <button class="tab" data-pane="takeoff">Take-off</button>
       </div>
+      <div class="seg" id="toSeg">
+        <button data-p="check" class="on">Check</button>
+        <button data-p="quote">Quote</button>
+        <button data-p="takeoff">Take-off</button>
+      </div>
       <div class="pane on" id="pane-design">
         <div id="design-body"></div>
         <details class="sec" id="zone-sec"><summary>Zoning<span class="sum" id="zone-sum"></span></summary>
@@ -448,6 +615,16 @@
       <div class="pane" id="pane-takeoff"><div id="takeoff-body"></div></div>
     </aside>
   </main>
+  <div class="actionbar" id="actionbar">
+    <button class="hbtn ai ab s-house big hero" id="btn-demo">Load demo house</button>
+    <label class="hbtn ab s-house nav" for="file-plan">Upload plan</label>
+    <input type="file" id="file-plan" accept="image/*" hidden/>
+    <button class="hbtn ai ab s-design big hero" id="btn-ai">Auto-design</button>
+    <button class="hbtn ab s-design nav" id="btn-clean" title="Search every take-off grouping to clear kinks &amp; crossings (slower)">Clean&nbsp;up</button>
+    <button class="hbtn primary ab s-send big hero" id="btn-print">Quote</button>
+    <button class="hbtn ab nav" id="ab-back">Back</button>
+    <button class="hbtn primary ab big nav" id="ab-next">Next</button>
+  </div>
 </div>
 
 <script>
@@ -734,8 +911,9 @@ const DUCT = DUCT_SIZES.map(d=>({d, get max(){ return Math.round(maxLps(d, velLi
 /* Duct colour = DIAMETER, the way the trade already draws it.
    Rooms keep the zone colours; the ducting reads as a size gradient stepping
    down from the unit — Ø400 green at the plenum, Ø200 blue at the far outlet. */
-const SIZECOL={150:'#94a3b8',200:'#3b82f6',250:'#0d9488',300:'#a3a12f',
-               350:'#e11d48',400:'#22c55e',450:'#9333ea',500:'#1e293b'};
+/* Duct-size colours matched to Trust Trade Pro (HeatScan/Theme.swift) */
+const SIZECOL={150:'#E0342F',200:'#6A8DDB',250:'#F0CB2E',300:'#7DC242',
+               350:'#BFC4C9',400:'#D35FD0',450:'#7B3FE4',500:'#7B3FE4'};
 const RVALS=['R1.0','R1.5','R2.0'];
 const RMULT={'R1.0':1,'R1.5':1.18,'R2.0':1.35};
 
@@ -5676,8 +5854,8 @@ function fit(){
   } else if(S.bg){ x1=S.bgOff.x;y1=S.bgOff.y;
     x2=x1+S.bg.width*S.bgFit/PPM;y2=y1+S.bg.height*S.bgFit/PPM;
   } else return;
-  const W=cv.clientWidth,H=cv.clientHeight,pad=70;
-  S.zoom=Math.min((W-pad*2)/((x2-x1)*S.ppm),(H-pad*2)/((y2-y1)*S.ppm),3);
+  const W=cv.clientWidth||1,H=cv.clientHeight||1,pad=Math.max(12,Math.min(70,W*0.12,H*0.12));
+  S.zoom=Math.max(0.05,Math.min((W-pad*2)/((x2-x1)*S.ppm),(H-pad*2)/((y2-y1)*S.ppm),3));
   S.pan.x=W/2-(x1+x2)/2*S.ppm*S.zoom;S.pan.y=H/2-(y1+y2)/2*S.ppm*S.zoom;
   $('#z-lvl').textContent=Math.round(S.zoom*100)+'%';draw();
 }
@@ -8996,7 +9174,10 @@ $('#file-proj').onchange=e=>{
       if(!o.state) throw 0;
       if(o.margin!=null) MARGIN=o.margin;
       pushHist(); restore(JSON.stringify(o.state)); fit(); commit();
-      flash('Project opened');
+      // land on the step that matches what came in (Pro-app scan → Layout/Rooms)
+      try{ if(window.__ttFlow){ const hasV=S.vents&&S.vents.length, hasR=S.rooms&&S.rooms.length;
+        window.__ttFlow.goStep(hasV?3:(hasR?1:0)); } }catch(_){}
+      flash(o.v===3 && o.catalogSource ? 'Opened from the scan' : 'Project opened');
     }catch(err){ flash('That doesn\'t look like a saved design'); }
   };
   rd.readAsText(f);
@@ -9062,17 +9243,152 @@ $('#btn-plan').onclick=downloadPlan;
 
 /* ------------------------------------------------------------------ BOOT */
 resize(); LASTSNAP=snapshot(); render(); setTool('select');
-/* FIRST VISIT: land in the demo, designed — not an empty canvas. Every visit
-   after, boot clean. */
-let firstVisit=false;
-try{ firstVisit=!localStorage.getItem('tt_seen'); if(firstVisit) localStorage.setItem('tt_seen','1'); }catch(e){}
-if(firstVisit && !S.rooms.length){
-  $('#btn-demo').click();
-  autoDesign();
-  flash('Welcome — this is the demo home, fully designed. Poke around, then load your own plan.');
-} else {
-  flash('Load the demo, or upload a plan and draw the rooms with the room tool (R)');
-}
+/* Entry is the Jobs home now (see the jobs controller below), not the wizard. */
+
+/* ===================== Pro-app step flow ===================== */
+(function(){
+  const $id=id=>document.getElementById(id);
+  // Same five steps as the Trust Trade Pro app: House · Capture · Check · Design · Send
+  const STEPS=[
+    {k:'house',   label:'House',   title:'House',          sub:'Set up the job',             tool:'select', canvas:false},
+    {k:'capture', label:'Capture', title:'Add the rooms',  sub:'Draw or upload the plan',    tool:'room',   canvas:true },
+    {k:'check',   label:'Check',   title:'Check the plan', sub:'Confirm rooms & zoning',     tool:'select', canvas:true },
+    {k:'design',  label:'Design',  title:'Duct design',    sub:'Place outlets & auto-design',tool:'select', canvas:true },
+    {k:'send',    label:'Send',    title:'Send',           sub:'Checks, quote & materials',  tool:'select', canvas:false},
+  ];
+  let STEP=0;
+  function showPane(name){
+    document.querySelectorAll('.pane').forEach(p=>p.classList.toggle('on',p.id==='pane-'+name));
+    document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('on',t.dataset.pane===name));
+  }
+  function renderStepBar(){
+    const sb=$id('stepbar'); if(!sb) return;
+    sb.innerHTML=STEPS.map((s,i)=>{
+      const cls=i===STEP?'cur':(i<STEP?'done':'');
+      return `<button class="st ${cls} reached" data-i="${i}"><div class="bar"></div><div class="lbl">${s.label}</div></button>`;
+    }).join('');
+    sb.querySelectorAll('.st').forEach(b=>{ b.onclick=()=>goStep(+b.dataset.i); });
+  }
+  function updateActions(){
+    const back=$id('ab-back'), next=$id('ab-next');
+    if(back) back.style.display=(STEP>0)?'inline-flex':'none';
+    if(next){
+      if(STEP<STEPS.length-1){ next.style.display='inline-flex'; next.textContent='Next: '+STEPS[STEP+1].label; }
+      else next.style.display='none';
+    }
+  }
+  function goStep(i){
+    STEP=Math.max(0,Math.min(STEPS.length-1,i)); const s=STEPS[STEP];
+    $id('app').dataset.step=s.k;
+    // the step wizard IS the walk-through, so Auto-design goes straight to "do it all"
+    // (never the old in-canvas .wiz banner) unless the user placed the gear themselves
+    try{ if(typeof S!=='undefined') S.autoPickChosen=true; }catch(_){}
+    $id('nav-title').textContent=s.title; $id('nav-sub').textContent=s.sub;
+    try{ if(typeof setTool==='function') setTool(s.tool); }catch(e){}
+    if(s.k==='send'){ const on=document.querySelector('#toSeg button.on'); showPane(on?on.dataset.p:'check'); }
+    else showPane('design');
+    renderStepBar(); updateActions();
+    if(s.canvas){ setTimeout(()=>{ try{ typeof resize==='function'&&resize(); (typeof fit==='function'?fit:draw)(); }catch(e){} }, 60); }
+  }
+  // overflow menu
+  $id('btn-menu').onclick=()=>{ $id('menuSheet').hidden=false; };
+  $id('menuSheet').onclick=(e)=>{ if(e.target.id==='menuSheet') $id('menuSheet').hidden=true; };
+  document.querySelectorAll('#menuSheet .menu-item').forEach(b=>b.addEventListener('click',()=>setTimeout(()=>{ $id('menuSheet').hidden=true; },10)));
+  // take-off sub-switch
+  document.querySelectorAll('#toSeg button').forEach(b=>b.onclick=()=>{
+    document.querySelectorAll('#toSeg button').forEach(x=>x.classList.toggle('on',x===b)); showPane(b.dataset.p);
+  });
+  // step nav
+  $id('ab-back').onclick=()=>goStep(STEP-1);
+  $id('ab-next').onclick=()=>goStep(STEP+1);
+  // keep the bar honest after engine actions
+  ['btn-ai','btn-clean','btn-demo'].forEach(id=>{ const el=$id(id); if(el) el.addEventListener('click',()=>setTimeout(()=>{ renderStepBar(); updateActions(); },40)); });
+  window.__ttFlow={goStep,renderStepBar,updateActions,get step(){return STEP;}};
+  // boot: land on Layout if a design already loaded (first-visit demo), else House
+  const designed=(typeof S!=='undefined' && S.vents && S.vents.length);
+  goStep(0); // initialise the wizard to House; the Jobs home shows on top until a job is opened
+})();
+
+/* ===================== Jobs home + job store (like the app's job list) ===================== */
+(function(){
+  const $id=id=>document.getElementById(id);
+  const KEY='tt_dd_jobs';
+  const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+  const load=()=>{ try{ return JSON.parse(localStorage.getItem(KEY)||'[]'); }catch(_){ return []; } };
+  const store=arr=>{ try{ localStorage.setItem(KEY, JSON.stringify(arr)); }catch(_){} };
+  const uid=()=>'j'+Date.now().toString(36)+Math.random().toString(36).slice(2,6);
+  let CUR=null, TAB='progress';
+  // a COMPLETE empty state (all default config fields) — captured now, while S is fresh/empty,
+  // so restore(BLANK) never leaves climate/insul/sys/etc. undefined.
+  const BLANK=(typeof snapshot==='function')?snapshot():'{}';
+  function fmtWhen(ts){ if(!ts) return ''; const diff=(Date.now()-ts)/86400000;
+    if(diff<1) return 'today'; if(diff<2) return 'yesterday'; if(diff<7) return Math.floor(diff)+' days ago';
+    return new Date(ts).toLocaleDateString('en-AU',{day:'numeric',month:'short'}); }
+  function saveCurrent(){ if(!CUR) return; const arr=load(); const j=arr.find(x=>x.id===CUR); if(!j) return;
+    try{ j.state=snapshot(); j.rooms=(S.rooms||[]).length; j.vents=(S.vents||[]).length; }catch(_){}
+    j.updatedAt=Date.now(); store(arr); }
+  function blankDesign(){ try{ restore(BLANK); }catch(_){} }
+  function openJob(id){ const j=load().find(x=>x.id===id); if(!j) return;
+    CUR=id; document.body.classList.remove('home');
+    try{ restore(j.state||BLANK); fit(); commit(); }catch(_){}
+    const hasV=(S.vents||[]).length, hasR=(S.rooms||[]).length;
+    window.__ttFlow.goStep(hasV?3:(hasR?1:0)); }
+  function newJob(meta){ const arr=load(); const id=uid();
+    arr.unshift({id,name:(meta.name||'').trim()||'Untitled job',customer:(meta.customer||'').trim(),suburb:(meta.suburb||'').trim(),
+      updatedAt:Date.now(),quoted:false,state:BLANK,rooms:0,vents:0});
+    store(arr); openJob(id); window.__ttFlow.goStep(0); }
+  function delJob(id){ store(load().filter(x=>x.id!==id)); if(CUR===id) CUR=null; renderList(); }
+  function showHome(){ saveCurrent(); CUR=null; document.body.classList.add('home'); renderList(); }
+  function renderList(){
+    const arr=load().slice().sort((a,b)=>(b.updatedAt||0)-(a.updatedAt||0));
+    const p=arr.filter(j=>!j.quoted), qd=arr.filter(j=>j.quoted);
+    $id('jhCountP').textContent=p.length; $id('jhCountQ').textContent=qd.length;
+    const q=($id('jhSearch').value||'').toLowerCase().trim();
+    const filtered=(TAB==='quoted'?qd:p).filter(j=>!q || (j.name+' '+j.customer+' '+j.suburb).toLowerCase().includes(q));
+    const list=$id('jhList');
+    if(!arr.length){ list.innerHTML=`<div class="jh-empty"><div class="e1">Start your first job</div><div class="e2">Create a job to size and lay out a ducted system — or try a finished demo house.</div><button class="hbtn ai" id="jhDemo" style="height:50px;border-radius:999px;padding:0 22px">Try the demo house</button></div>`;
+      const db=$id('jhDemo'); if(db) db.onclick=demoJob; return; }
+    if(!filtered.length){ list.innerHTML=`<div class="jh-empty"><div class="e2">No ${TAB==='quoted'?'quoted':'in-progress'} jobs${q?` match “${esc(q)}”`:''}.</div></div>`; return; }
+    list.innerHTML=filtered.map(j=>{
+      const sub=[j.customer,j.suburb].filter(Boolean).join(' · ')||'No details yet';
+      const stage=j.quoted?'Quoted':(j.vents?'Designed':(j.rooms?'Rooms in':'New'));
+      return `<button class="jcard" data-id="${j.id}"><div class="jic">🏠</div>
+        <div class="jgrow"><div class="jn">${esc(j.name)}</div><div class="js">${esc(sub)} · ${stage} · ${fmtWhen(j.updatedAt)}</div></div>
+        <span class="jdel" data-del="${j.id}">Delete</span></button>`;
+    }).join('');
+    list.querySelectorAll('.jcard').forEach(c=>c.onclick=e=>{ if(e.target.classList.contains('jdel')) return; openJob(c.dataset.id); });
+    list.querySelectorAll('.jdel').forEach(d=>{ d.textContent='✕'; d.onclick=e=>{ e.stopPropagation();
+      if(d.classList.contains('armed')){ delJob(d.dataset.del); }
+      else { d.classList.add('armed'); d.textContent='Delete?'; setTimeout(()=>{ if(d){ d.classList.remove('armed'); d.textContent='✕'; } },2500); } }; });
+  }
+  function demoJob(){ const arr=load(); const id=uid();
+    arr.unshift({id,name:'Demo house',customer:'Sample',suburb:'',updatedAt:Date.now(),quoted:false,state:BLANK,rooms:0,vents:0});
+    store(arr); CUR=id; document.body.classList.remove('home');
+    blankDesign(); $id('btn-demo').click(); try{ autoDesign(); }catch(_){}
+    saveCurrent(); window.__ttFlow.goStep(3); }
+  // new-job sheet
+  function openSheet(){ ['njName','njCust','njSub'].forEach(i=>{const el=$id(i); if(el) el.value='';}); $id('newJobSheet').hidden=false; setTimeout(()=>$id('njName').focus(),60); }
+  function closeSheet(){ $id('newJobSheet').hidden=true; }
+  $id('jhNew').onclick=openSheet;
+  $id('njCancel').onclick=closeSheet;
+  $id('njCreate').onclick=()=>{ const name=$id('njName').value; if(!name.trim()){ $id('njName').focus(); return; }
+    closeSheet(); newJob({name,customer:$id('njCust').value,suburb:$id('njSub').value}); };
+  $id('njName').addEventListener('keydown',e=>{ if(e.key==='Enter') $id('njCreate').click(); });
+  $id('newJobSheet').onclick=e=>{ if(e.target.id==='newJobSheet') closeSheet(); };
+  // tabs + search
+  $id('jhSeg').querySelectorAll('button').forEach(b=>b.onclick=()=>{ TAB=b.dataset.tab;
+    $id('jhSeg').querySelectorAll('button').forEach(x=>x.classList.toggle('on',x===b)); renderList(); });
+  $id('jhSearch').addEventListener('input',renderList);
+  // wizard back button → save + return to the jobs list
+  $id('btn-back').onclick=showHome;
+  // autosave the open job
+  setInterval(saveCurrent,4000);
+  window.addEventListener('beforeunload',saveCurrent);
+  document.addEventListener('visibilitychange',()=>{ if(document.hidden) saveCurrent(); });
+  window.__ttJobs={showHome,openJob,newJob};
+  // boot on the home page
+  showHome();
+})();
 </script>
 </body>
 </html>

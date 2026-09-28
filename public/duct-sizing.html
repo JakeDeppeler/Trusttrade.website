@@ -5919,11 +5919,11 @@ $('#file-plan').onchange=e=>{
     S.rooms=[]; S.vents=[]; S.routes={}; S.boxes={}; S.unit=S.ret=S.outdoor=null;
     // (auto-trace / AI read are coming soon — the plan loads as a backdrop to draw over)
     render();
-    // jump to Capture so the plan is actually visible on the canvas (House hides it),
-    // then arm the scale tool and frame the plan
+    // jump to Capture so the plan is visible on the canvas (House hides it), frame it,
+    // then let AI read the rooms straight away (falls back to manual tracing on any error)
     if(window.__ttFlow) window.__ttFlow.goStep(1);
-    setTool('scale'); fit();
-    flash('Plan loaded — set the scale: click the two ends of one wall you know, then draw the rooms.');
+    fit();
+    readPlanAI();
   };
   img.src=URL.createObjectURL(f);
 };
@@ -6654,6 +6654,43 @@ async function aiReadPlan(){
         : (e.message||'')}`);
   }finally{ unbusy(); }
 }
+
+/* SERVER-SIDE plan reading — Trust Trade's own Claude (the read-plan-web edge function),
+   no personal API key. Rate-limited + CORS-locked to trusttrade.au. Same output shape as
+   aiReadPlan, so applyAIRooms handles the scale-from-dimensions and layout. */
+const RP_WEB='https://pvcblfpxgrznzqgxbujy.supabase.co/functions/v1/read-plan-web';
+function installId(){ try{ let id=localStorage.getItem('tt_dd_install');
+  if(!id||!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(id)){ id=crypto.randomUUID(); localStorage.setItem('tt_dd_install',id); }
+  return id; }catch(_){ return crypto.randomUUID(); } }
+async function readPlanAI(){
+  if(!S.bg){ flash('Upload a plan first'); return; }
+  try{
+    busy('Reading the plan…','Preparing the image',10); await wait(30);
+    const MAX=1568, k=Math.min(1, MAX/Math.max(S.bg.width,S.bg.height));
+    const c=document.createElement('canvas'); c.width=Math.round(S.bg.width*k); c.height=Math.round(S.bg.height*k);
+    const g=c.getContext('2d'); g.fillStyle='#fff'; g.fillRect(0,0,c.width,c.height); g.drawImage(S.bg,0,0,c.width,c.height);
+    const b64=c.toDataURL('image/jpeg',0.9).split(',')[1];
+    busy('Reading the plan…','Claude is reading your plan…',45);
+    const res=await fetch(RP_WEB,{ method:'POST', headers:{'content-type':'application/json','x-install-id':installId()},
+      body:JSON.stringify({ image:b64, media_type:'image/jpeg' }) });
+    let data={}; try{ data=JSON.parse((await res.text()).trim()); }catch(_){ data={error:'no_json'}; }
+    if(!res.ok || data.error){
+      const M={ forbidden:'Plan reading only works on trusttrade.au', rate_limited:'Too many reads just now — give it a minute',
+        daily_limit:"That's today's free plan-reading limit — trace it by hand for now", busy:'Plan reading is busy — try again shortly',
+        unavailable:'Plan reading is turned off right now', bad_image:'That didn’t look like a plan — try a clearer JPEG or PNG',
+        refused:"Couldn't read that image", no_json:"Couldn't get usable rooms from that plan", truncated:'That plan was too complex to read in one pass' };
+      throw new Error(M[data.error] || ('Plan read failed'+(res.status?' ('+res.status+')':'')));
+    }
+    const rooms=(data.result&&data.result.rooms)||[];
+    if(!rooms.length) throw new Error('No rooms came back — is that definitely a floor plan?');
+    applyAIRooms(rooms, data.result.notes);
+  }catch(e){
+    unbusy();
+    flash(e.message||'Plan read failed');
+    ai(`<b style="color:#b45309">AI read didn’t finish.</b> ${esc0(e.message||'')}<br>You can still <b>set the scale</b> (the ruler tool) and draw the rooms by hand with <b>R</b>.`);
+  }finally{ unbusy(); }
+}
+function esc0(s){ return String(s==null?'':s).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c])); }
 
 /* Turn the model's normalised rectangles into real rooms at the real scale. */
 /* ===========================================================================
@@ -7440,10 +7477,9 @@ function autoDesign(){
   flash('Auto-design complete — drag duct handles to route the flex');
 }
 const ai=html=>{const e=$('#ai-say'); if(e) e.innerHTML=html; AISAY=html;};
-let AISAY=`Load the <b>Demo</b>, or <b>Upload a plan</b> and draw the rooms over it with the
-  room tool (<b>R</b> — set the scale first with the scale tool so areas come out right).
-  Then <b>Auto-design</b> sizes it, zones it, runs the flex and prices it.
-  <br/><span style="color:#94a3b8">Plan tracing and AI plan-reading are coming soon.</span>`;
+let AISAY=`Load the <b>Demo</b>, or <b>Upload a plan</b> — Claude reads the rooms, names and sizes
+  straight off the drawing. Or draw them by hand with the room tool (<b>R</b>, set the scale first).
+  Then <b>Auto-design</b> sizes it, zones it, runs the flex and prices it.`;
 
 /* ------------------------------------------------------------ DEMO PLAN
    A normal Australian narrow-lot single-storey: 4 bed, 2 bath, one long central
@@ -9292,7 +9328,7 @@ function downloadPlan(){
 }
 $('#btn-plan').onclick=downloadPlan;
 
-{ const b=$('#btn-ai-read'); if(b) b.onclick=aiReadPlan; }
+{ const b=$('#btn-ai-read'); if(b) b.onclick=readPlanAI; }
 
 /* ------------------------------------------------------------------ BOOT */
 resize(); LASTSNAP=snapshot(); render(); setTool('select');

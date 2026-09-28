@@ -520,6 +520,50 @@
       body:not(.home) #app[data-step="send"] #btn-print{margin-left:0}
       body:not(.home) #app[data-step="house"] aside,body:not(.home) #app[data-step="send"] aside{max-width:900px;margin:0 auto}
     }
+
+    /* ===== Plan step = upload-first hero ===== */
+    #houseHero{display:none}
+    #app[data-step="house"] #houseHero{display:block}
+    #app[data-step="house"] #design-body,#app[data-step="house"] #zone-sec,
+    #app[data-step="house"] .tabs,#app[data-step="house"] #toSeg,
+    #app[data-step="house"] .psummary{display:none}
+    #app[data-step="house"] .actionbar .s-house{display:none}
+    .hh-inner{max-width:540px;margin:0 auto;text-align:center;padding:10px 4px}
+    .hh-h{font-family:"Archivo",system-ui,sans-serif;font-weight:800;font-size:25px;letter-spacing:-.6px;color:var(--ink)}
+    .hh-sub{color:var(--muted);font-size:14px;line-height:1.5;margin:8px auto 18px;max-width:440px}
+    .hh-drop{display:block;border:2px dashed var(--line);border-radius:18px;background:var(--tile);
+      padding:32px 20px;cursor:pointer;transition:border-color .15s,background .15s}
+    .hh-drop:hover,.hh-drop.drag{border-color:var(--accent);background:var(--accent-soft)}
+    .hh-ic{width:38px;height:38px;stroke:var(--accent-deep);fill:none;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round;margin:0 auto 10px;display:block}
+    .hh-drop-t{font-weight:700;font-size:15px;color:var(--ink)}
+    .hh-drop-t span{color:var(--accent-deep);text-decoration:underline}
+    .hh-drop-s{font-size:12.5px;color:var(--muted);margin-top:4px}
+    .hh-seg{display:flex;gap:9px;margin:14px 0 4px}
+    .hh-opt{flex:1;display:flex;align-items:center;gap:11px;text-align:left;background:var(--card);
+      border:1.5px solid var(--line);border-radius:14px;padding:12px 13px;cursor:pointer;font-family:inherit}
+    .hh-opt.on{border-color:var(--accent);background:var(--accent-soft)}
+    .hh-opt-ic{width:34px;height:34px;border-radius:10px;background:var(--tile);display:grid;place-items:center;font-size:17px;flex:none}
+    .hh-opt.on .hh-opt-ic{background:#fff}
+    .hh-opt-t{font-weight:700;font-size:13.5px;color:var(--ink)}
+    .hh-opt-s{font-size:11.5px;color:var(--muted);margin-top:1px}
+    .hh-links{display:flex;gap:20px;justify-content:center;margin-top:16px}
+    .hh-link{background:none;border:0;color:var(--accent-deep);font-weight:600;font-size:13px;cursor:pointer;font-family:inherit;padding:4px}
+    .hh-link:hover{text-decoration:underline}
+
+    /* Jobs tab pills never wrap ("In progress · 2" on one line) */
+    .jh-seg button{white-space:nowrap}
+
+    @media(min-width:960px){
+      /* Back button → a proper labelled pill instead of a bare chevron */
+      body:not(.home) #btn-back{width:auto;height:36px;padding:0 15px 0 11px;border-radius:999px;
+        display:inline-flex;align-items:center;gap:6px;background:var(--tile);box-shadow:none;
+        border:1px solid var(--hair);color:var(--ink);font-weight:700;font-size:13.5px}
+      body:not(.home) #btn-back::after{content:"Jobs"}
+      body:not(.home) #btn-back:hover{background:var(--hover)}
+      body:not(.home) #btn-back svg{width:16px;height:16px}
+      .hh-h{font-size:29px}
+      #app[data-step="house"] #houseHero{padding-top:24px}
+    }
   </style>
   <header id="nav">
     <button class="nav-ic" id="btn-back" title="Trust Trade tools" onclick="location.href='/tools'"><svg viewBox="0 0 24 24" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
@@ -737,6 +781,30 @@
         <button data-p="takeoff">Take-off</button>
       </div>
       <div class="pane on" id="pane-design">
+        <!-- House step = upload-first hero (shown only on the Plan step) -->
+        <div id="houseHero"><div class="hh-inner">
+          <div class="hh-h">Upload the floor plan</div>
+          <div class="hh-sub">Claude reads the rooms, names and sizes straight off the drawing — then sizes, zones and prices the whole system. No digital plan? Draw it by hand.</div>
+          <label class="hh-drop" for="file-plan" id="hh-drop">
+            <svg class="hh-ic" viewBox="0 0 24 24"><path d="M12 16V4M7 9l5-5 5 5M4 20h16"/></svg>
+            <div class="hh-drop-t">Drop a plan here, or <span>choose a file</span></div>
+            <div class="hh-drop-s">A PNG, JPG or a clear photo of the plan</div>
+          </label>
+          <div class="hh-seg">
+            <button class="hh-opt on" id="hh-scan" type="button" data-intent="scan">
+              <div class="hh-opt-ic">⚡</div>
+              <div><div class="hh-opt-t">Scan it with AI</div><div class="hh-opt-s">Reads every room off the plan</div></div>
+            </button>
+            <button class="hh-opt" id="hh-drawmode" type="button" data-intent="draw">
+              <div class="hh-opt-ic">✎</div>
+              <div><div class="hh-opt-t">I'll size it by hand</div><div class="hh-opt-s">Trace the rooms yourself</div></div>
+            </button>
+          </div>
+          <div class="hh-links">
+            <button class="hh-link" id="hh-draw" type="button">Draw without a plan</button>
+            <button class="hh-link" id="hh-demo" type="button">Try the demo house →</button>
+          </div>
+        </div></div>
         <div id="design-body"></div>
         <details class="sec" id="zone-sec"><summary>Zoning<span class="sum" id="zone-sum"></span></summary>
           <div class="secbody"><div id="zone-body"></div></div></details>
@@ -5992,23 +6060,41 @@ function fit(){
 }
 
 /* ==================================================== PLAN → ROOMS (CV) */
-$('#file-plan').onchange=e=>{
-  const f=e.target.files[0]; if(!f) return;
+window.__planIntent='scan';   // 'scan' = AI reads the plan · 'draw' = trace by hand
+function loadPlanFile(f){
+  if(!f) return;
   const img=new Image();
   img.onload=()=>{
     S.bg=img; S.bgOff={x:0,y:0}; S.bgFit=(15*PPM)/img.width;
     S.calibrated=false; S.planScale=null;
     S.rooms=[]; S.vents=[]; S.routes={}; S.boxes={}; S.unit=S.ret=S.outdoor=null;
-    // (auto-trace / AI read are coming soon — the plan loads as a backdrop to draw over)
     render();
-    // jump to Capture so the plan is visible on the canvas (House hides it), frame it,
-    // then let AI read the rooms straight away (falls back to manual tracing on any error)
+    // jump to the Rooms step so the plan is visible on the canvas (Plan step hides it), frame it
     if(window.__ttFlow) window.__ttFlow.goStep(1);
     fit();
-    readPlanAI();
+    if(window.__planIntent==='draw'){ try{ setTool('room'); }catch(_){}
+      try{ flash('Set the scale, then trace each room'); }catch(_){} }
+    else readPlanAI();   // AI read (falls back to manual tracing on any error)
   };
   img.src=URL.createObjectURL(f);
-};
+}
+$('#file-plan').onchange=e=>{ loadPlanFile(e.target.files[0]); e.target.value=''; };
+/* Plan-step hero: upload-first, with a Scan-with-AI / size-by-hand choice */
+(function(){
+  const seg=['#hh-scan','#hh-drawmode'].map(s=>$(s)).filter(Boolean);
+  seg.forEach(b=>b.onclick=()=>{ window.__planIntent=b.dataset.intent;
+    seg.forEach(x=>x.classList.toggle('on',x===b)); });
+  const drop=$('#hh-drop');
+  if(drop){
+    ['dragenter','dragover'].forEach(ev=>drop.addEventListener(ev,e=>{e.preventDefault();drop.classList.add('drag');}));
+    ['dragleave','dragend'].forEach(ev=>drop.addEventListener(ev,e=>{e.preventDefault();drop.classList.remove('drag');}));
+    drop.addEventListener('drop',e=>{ e.preventDefault(); drop.classList.remove('drag');
+      const f=e.dataTransfer&&e.dataTransfer.files&&e.dataTransfer.files[0]; if(f) loadPlanFile(f); });
+  }
+  const dh=$('#hh-draw'); if(dh) dh.onclick=()=>{ if(window.__ttFlow) window.__ttFlow.goStep(1);
+    try{ setTool('room'); }catch(_){} try{ flash('Set the scale, then trace each room'); }catch(_){} };
+  const dm=$('#hh-demo'); if(dm) dm.onclick=()=>{ const b=$('#btn-demo'); if(b) b.click(); };
+})();
 const busy=(t,s,p)=>{$('#busy').classList.add('on');$('#busy-t').textContent=t;
   $('#busy-s').textContent=s;$('#busy-b').style.width=p+'%';};
 const unbusy=()=>$('#busy').classList.remove('on');
@@ -9421,11 +9507,11 @@ resize(); LASTSNAP=snapshot(); render(); setTool('select');
   const $id=id=>document.getElementById(id);
   // Same five steps as the Trust Trade Pro app: House · Capture · Check · Design · Send
   const STEPS=[
-    {k:'house',   label:'House',   title:'House',          sub:'Set up the job',             tool:'select', canvas:false},
-    {k:'capture', label:'Capture', title:'Add the rooms',  sub:'Draw or upload the plan',    tool:'room',   canvas:true },
-    {k:'check',   label:'Check',   title:'Check the plan', sub:'Confirm rooms & zoning',     tool:'select', canvas:true },
-    {k:'design',  label:'Design',  title:'Duct design',    sub:'Place outlets & auto-design',tool:'select', canvas:true },
-    {k:'send',    label:'Send',    title:'Send',           sub:'Checks, quote & materials',  tool:'select', canvas:false},
+    {k:'house',   label:'Plan',    title:'Upload the plan',   sub:'Start with the floor plan',      tool:'select', canvas:false},
+    {k:'capture', label:'Rooms',   title:'Scan or size the rooms', sub:'Let AI read it, or size by hand', tool:'room', canvas:true },
+    {k:'check',   label:'Check',   title:'Check the plan',    sub:'Confirm the rooms & zoning',     tool:'select', canvas:true },
+    {k:'design',  label:'Design',  title:'Vents & design',    sub:'Auto-draw or place vents by hand',tool:'select', canvas:true },
+    {k:'send',    label:'Send',    title:'Send',              sub:'Checks, quote & materials',      tool:'select', canvas:false},
   ];
   let STEP=0;
   function showPane(name){
@@ -9529,7 +9615,7 @@ resize(); LASTSNAP=snapshot(); render(); setTool('select');
     if(window.matchMedia('(min-width:821px)').matches){
       // Desktop: the mock's jobs TABLE
       const rows=filtered.map(j=>{
-        const upto=j.quoted?'Send':(j.vents?'Design':(j.rooms?'Check':'House'));
+        const upto=j.quoted?'Send':(j.vents?'Design':(j.rooms?'Rooms':'Plan'));
         const system=(j.kw&&j.zones)?`${j.kw} kW · ${j.zones} zone${j.zones==1?'':'s'}`:'—';
         const cust=j.customer?`<span class="jt-cust">${esc(j.customer)}</span>`:'';
         return `<tr data-id="${j.id}">

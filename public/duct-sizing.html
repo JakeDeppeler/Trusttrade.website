@@ -342,6 +342,12 @@
     .menu-title{font-family:"Archivo",system-ui;font-weight:800;font-size:17px;margin:0 4px 12px}
     .menu-item{display:block;width:100%;text-align:left;background:var(--tile);border:0;border-radius:14px;padding:14px 16px;font-size:15px;font-weight:600;color:var(--ink);margin-bottom:8px;cursor:pointer}
     .menu-item:hover{filter:brightness(.97)}
+    /* desktop: bottom-sheets become centred dialogs (a phone sheet looks broken on a big screen) */
+    @media(min-width:821px){
+      .menu-sheet{align-items:center}
+      .menu-card{border-radius:24px;max-width:440px;padding:18px 20px 24px;box-shadow:0 30px 70px -20px rgba(16,16,16,.4)}
+      .menu-grab{display:none}
+    }
     @media(max-width:820px){
       main{grid-template-columns:1fr!important;position:relative}
       #app[data-step="capture"] main,#app[data-step="check"] main,#app[data-step="design"] main{grid-template-rows:56vh minmax(0,1fr)}

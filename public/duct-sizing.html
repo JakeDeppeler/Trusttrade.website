@@ -244,6 +244,17 @@
 </style>
 </head>
 <body>
+<!-- ===== Persistent app sidebar (desktop only) — matches the Trust Trade Pro desktop mock ===== -->
+<div id="appnav">
+  <a class="an-brand" href="/tools"><span class="an-mark">TT</span><span class="an-name">TRUST&nbsp;TRADE<br>PRO</span></a>
+  <nav class="an-nav">
+    <a class="an-item" href="/tools"><svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>Tools</a>
+    <a class="an-item on" id="an-designer"><svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M7 9h4M7 13h7"/></svg>Ducted Designer</a>
+    <a class="an-item" href="/job-calculator.html"><svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M20.6 13.4 13.4 20.6a2 2 0 0 1-2.8 0l-7.2-7.2A2 2 0 0 1 2.8 12V4a1.2 1.2 0 0 1 1.2-1.2H12a2 2 0 0 1 1.4.6l7.2 7.2a2 2 0 0 1 0 2.8Z"/><circle cx="7.5" cy="7.5" r="1"/></svg>Price list</a>
+    <a class="an-item" href="/tools"><svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.2"/><path d="M3.5 20a5.5 5.5 0 0 1 11 0M16 6a3 3 0 0 1 0 6M20.5 20a5 5 0 0 0-4-4.9"/></svg>Installers</a>
+    <a class="an-item" id="an-settings"><svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3.2"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M5 5l2 2M17 17l2 2M19 5l-2 2M7 17l-2 2"/></svg>Settings</a>
+  </nav>
+</div>
 <!-- ===== Jobs home: the main page, like the app's HVAC Designer job list ===== -->
 <div id="jobsHome">
   <div class="jh-top">
@@ -251,26 +262,22 @@
     <div style="flex:1"></div>
     <a class="hbtn" href="/tools" style="text-decoration:none">← Tools</a>
   </div>
-  <div class="jh-head">
-    <div class="jh-title">Ducted Designer</div>
-    <div class="jh-sub">Your jobs — size, lay out &amp; quote a ducted system</div>
-  </div>
-  <div class="jh-panel">
-    <div class="jh-side">
-      <div class="seg jh-seg" id="jhSeg">
-        <button data-tab="progress" class="on">In progress · <span id="jhCountP">0</span></button>
-        <button data-tab="quoted">Quoted · <span id="jhCountQ">0</span></button>
-      </div>
-      <div class="jh-actions"><button class="hbtn ai" id="jhNew">+ New job</button></div>
+  <div class="jh-bar">
+    <div class="jh-head">
+      <div class="jh-title">Ducted Designer</div>
+      <div class="jh-sub">Your jobs — size, lay out &amp; quote a ducted system</div>
     </div>
-    <div class="jh-main">
-      <div class="jh-searchwrap">
-        <svg class="jh-searchic" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
-        <input class="field jh-search" id="jhSearch" placeholder="Search jobs by name, customer or suburb" autocomplete="off">
-      </div>
-      <div class="jh-list" id="jhList"></div>
+    <div class="seg jh-seg" id="jhSeg">
+      <button data-tab="progress" class="on">In progress · <span id="jhCountP">0</span></button>
+      <button data-tab="quoted">Quoted · <span id="jhCountQ">0</span></button>
     </div>
+    <div class="jh-searchwrap">
+      <svg class="jh-searchic" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+      <input class="field jh-search" id="jhSearch" placeholder="Search jobs by name, customer or suburb" autocomplete="off">
+    </div>
+    <div class="jh-actions"><button class="hbtn ai" id="jhNew">+ New job</button></div>
   </div>
+  <div class="jh-list" id="jhList"></div>
 </div>
 <!-- New-job sheet -->
 <div class="menu-sheet" id="newJobSheet" hidden>
@@ -387,7 +394,7 @@
     .jh-title{font-family:"Archivo",system-ui;font-weight:800;font-size:34px;letter-spacing:-1.2px;color:var(--ink);margin:16px 2px 2px}
     .jh-sub{color:var(--muted);font-size:14px;margin:0 2px 16px}
     .jh-seg{margin:2px 0 14px}
-    .jh-panel{display:flex;flex-direction:column}
+    .jh-bar{display:contents}
     .jh-searchwrap{position:relative;margin:0 0 14px}
     .jh-searchic{position:absolute;left:15px;top:50%;transform:translateY(-50%);color:var(--muted);pointer-events:none}
     .jh-search{margin:0;padding-left:42px}
@@ -410,34 +417,40 @@
     #jhNew{width:100%;height:54px;border-radius:999px;font-size:16px;box-shadow:0 8px 14px rgba(233,162,28,.5)}
     .njs-lbl{font-size:12px;font-weight:700;color:var(--muted);margin:2px 2px 5px}
     .njs-field{margin-bottom:12px}
-    /* Jobs home on desktop — a real desktop layout (placed last so it wins the
-       source-order tie): wide page, New-job button up by the title, and job
-       cards laid out in a responsive grid instead of one narrow column. */
+    /* Jobs home on desktop — the streamlined-flow mock: a header row (title +
+       In-progress/Quoted tabs + search + New job) over a full-width jobs TABLE
+       (Job / Suburb / Up to / System / Updated). Placed last to win the tie. */
     @media(min-width:821px){
-      /* desktop: full-width top bar + title, then ONE contained app panel
-         (tabs rail + jobs) so it reads as a finished surface, not loose bits */
-      body.home #jobsHome{display:block;max-width:1120px;margin:0 auto;padding:26px 40px 60px;min-height:auto}
-      .jh-top{padding:0;margin-bottom:16px}
-      .jh-brand{font-size:17px}
-      .jh-head{margin-bottom:20px}
-      .jh-title{font-size:40px;letter-spacing:-1.6px;margin:0;line-height:1}
-      .jh-sub{font-size:15px;margin:8px 0 0}
-      /* the panel */
-      .jh-panel{flex-direction:row;gap:30px;background:var(--card);border-radius:24px;
-        box-shadow:0 20px 44px -30px rgba(20,22,30,.5),0 2px 7px rgba(16,16,16,.05);padding:24px 26px}
-      .jh-side{width:212px;flex:none;border-right:1px solid var(--hair);padding-right:26px}
-      .jh-seg{flex-direction:column;background:none;box-shadow:none;padding:0;gap:8px;max-width:none;margin:0 0 16px}
-      .jh-seg button{justify-content:flex-start;background:var(--tile);box-shadow:none;height:44px;padding:0 15px;border-radius:12px;font-size:14px;color:var(--ink)}
-      .jh-seg button.on{background:var(--ink);color:var(--inkOn)}
-      .jh-actions{position:static;background:none;max-width:none;margin:0;padding:0;z-index:auto}
-      #jhNew{width:100%;height:46px}
-      .jh-main{flex:1;min-width:0}
-      .jh-searchwrap{margin:0 0 16px}
-      .jh-search{max-width:none;background:var(--tile);border:1px solid var(--line)}
-      .jh-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:12px;align-items:start}
-      .jcard{background:var(--tile);border-radius:16px;box-shadow:none}
-      .jcard .jic{background:var(--card)} .jcard .jdel{background:var(--card)}
-      .jh-empty{grid-column:1/-1;max-width:none;padding:56px 22px;background:var(--tile);box-shadow:none}
+      body.home #jobsHome{display:block;max-width:1180px;margin:0 auto;padding:26px 40px 64px;min-height:auto}
+      .jh-top{display:none}
+      .jh-bar{display:flex;align-items:center;gap:16px;margin-bottom:22px}
+      .jh-head{flex:1;min-width:0}
+      .jh-title{font-size:33px;letter-spacing:-1.4px;margin:0;line-height:1.02}
+      .jh-sub{font-size:14px;margin:6px 0 0}
+      .jh-seg{flex:none;margin:0}
+      .jh-searchwrap{flex:0 0 clamp(220px,26vw,320px);margin:0}
+      .jh-search{margin:0;background:var(--card);border:1px solid var(--line)}
+      .jh-actions{position:static;background:none;max-width:none;margin:0;padding:0;flex:none}
+      #jhNew{width:auto;height:44px;padding:0 20px;box-shadow:none}
+      /* the table */
+      .jh-list{display:block}
+      .jtable{width:100%;border-collapse:collapse;background:var(--card);border-radius:16px;overflow:hidden;
+        box-shadow:0 20px 44px -30px rgba(20,22,30,.5),0 2px 7px rgba(16,16,16,.05)}
+      .jtable th{text-align:left;font-size:11px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--faint);
+        padding:13px 18px;border-bottom:1px solid var(--hair);background:var(--tile);white-space:nowrap}
+      .jtable td{padding:15px 18px;border-bottom:1px solid var(--hair);font-size:14px;color:var(--ink);vertical-align:middle}
+      .jtable tr:last-child td{border-bottom:0}
+      .jtable tbody tr{cursor:pointer;transition:background .12s}
+      .jtable tbody tr:hover{background:var(--tile)}
+      .jt-name{font-weight:700}
+      .jt-name .jt-cust{display:block;font-weight:500;font-size:12.5px;color:var(--muted);margin-top:2px}
+      .jt-when{color:var(--muted);font-size:13px;white-space:nowrap}
+      .jtag{display:inline-block;background:var(--accent-soft,#FBEAC4);color:var(--accent-deep,#8A6A0B);
+        font-weight:700;font-size:12px;padding:4px 12px;border-radius:999px;white-space:nowrap}
+      .jt-del{width:52px;text-align:right}
+      .jt-del .jdel{color:var(--faint);cursor:pointer;padding:6px 8px;border-radius:8px;font-weight:700;font-size:13px}
+      .jt-del .jdel.armed{color:#fff;background:var(--danger)}
+      .jh-empty{max-width:none;padding:60px 22px;background:var(--card)}
     }
     /* ===== Wizard on desktop — same app flow (House·Capture·Check·Design·Send),
        laid out for a big screen. Placed last so it wins the source-order tie. ===== */
@@ -458,41 +471,53 @@
       #app[data-step="send"] #ab-back{order:-1;margin-left:0}
       #app[data-step="send"] #btn-print{margin-left:auto}
     }
-    /* ===== TRUE DESKTOP shell (a job open): the phone's top step-bar + bottom
-       action-bar become a left step-nav sidebar + top bar + content + footer,
-       so it reads and works like a desktop app (same workflow). ===== */
+    /* ===== Desktop chrome matching the Trust Trade Pro mock: a persistent app
+       sidebar (left) + a top bar carrying the steps as a horizontal numbered
+       wizard + content + a slim footer. Same workflow, real desktop layout. ===== */
+    #appnav{display:none}
     @media(min-width:960px){
-      body:not(.home) #app{
-        display:grid;
-        grid-template-columns:252px minmax(0,1fr);
-        grid-template-rows:60px minmax(0,1fr) auto;
-        grid-template-areas:"top top" "side main" "side action";
-        height:100vh}
-      body:not(.home) #nav{grid-area:top;border-bottom:1px solid var(--hair);
-        background:rgba(255,255,255,.82);backdrop-filter:blur(10px);padding:0 22px;gap:14px;margin:0}
-      body:not(.home) .nav-ttl{text-align:left;flex:1}
-      body:not(.home) .nav-ttl .t{font-size:19px}
-      /* left step navigation */
-      body:not(.home) .stepbar{grid-area:side;display:flex;flex-direction:column;align-items:stretch;gap:3px;
-        padding:16px 12px;margin:0;background:var(--card);border-right:1px solid var(--hair);overflow:auto;counter-reset:step}
-      body:not(.home) .stepbar .st{flex:none;display:flex;align-items:center;gap:11px;padding:11px 12px;
-        border-radius:12px;text-align:left;counter-increment:step;cursor:pointer}
+      #appnav{display:flex;flex-direction:column;position:fixed;left:0;top:0;bottom:0;width:232px;z-index:40;
+        background:#FAFAF8;border-right:1px solid #E6E4DF;padding:16px 14px}
+      .an-brand{display:flex;align-items:center;gap:11px;text-decoration:none;padding:6px 8px 20px}
+      .an-mark{width:34px;height:34px;border-radius:9px;background:linear-gradient(135deg,#FFCB63,#E9A21C);
+        display:grid;place-items:center;color:#1c1300;font-weight:800;font-size:14px;box-shadow:0 3px 9px rgba(233,162,28,.4);flex:none}
+      .an-name{font-family:"Archivo",system-ui,sans-serif;font-weight:800;font-size:12.5px;letter-spacing:.09em;color:var(--ink);line-height:1.2}
+      .an-nav{display:flex;flex-direction:column;gap:2px}
+      .an-item{display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:11px;text-decoration:none;
+        color:var(--body);font-size:15px;font-weight:600;cursor:pointer}
+      .an-item svg{width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:1.8;flex:none}
+      .an-item:hover{background:rgba(0,0,0,.035)}
+      .an-item.on{background:var(--accent-soft);color:var(--ink)}
+      /* content sits to the right of the sidebar */
+      body.home #jobsHome{margin-left:232px}
+      body:not(.home) #app{margin-left:232px;display:flex;flex-direction:column;height:100vh;position:relative}
+      body:not(.home) #btn-menu{display:none}
+      /* top bar: step title (left) + horizontal numbered step wizard (right) */
+      body:not(.home) #nav{flex:none;height:62px;border-bottom:1px solid var(--hair);
+        background:var(--card);padding:0 20px;gap:12px;margin:0}
+      body:not(.home) .nav-ttl{text-align:left;flex:0 1 auto}
+      body:not(.home) .nav-ttl .t{font-size:18px}
+      body:not(.home) .stepbar{position:absolute;top:0;right:20px;height:62px;display:flex;flex-direction:row;
+        align-items:center;gap:6px;margin:0;padding:0;background:none;counter-reset:step}
+      body:not(.home) .stepbar .st{flex:none;display:flex;align-items:center;gap:8px;height:34px;padding:0 14px;
+        border-radius:999px;background:var(--tile);counter-increment:step;cursor:pointer}
       body:not(.home) .stepbar .st .bar{display:none}
-      body:not(.home) .stepbar .st::before{content:counter(step);width:26px;height:26px;border-radius:50%;
-        background:var(--tile);color:var(--muted);display:grid;place-items:center;font-size:12.5px;font-weight:800;flex:none}
+      body:not(.home) .stepbar .st::before{content:counter(step);font-size:11.5px;font-weight:800;color:var(--muted);
+        width:18px;height:18px;border-radius:50%;background:rgba(0,0,0,.06);display:grid;place-items:center;flex:none}
       body:not(.home) .stepbar .st.done::before{content:"✓";background:var(--ink);color:#fff}
-      body:not(.home) .stepbar .st.cur{background:var(--tile)}
-      body:not(.home) .stepbar .st.cur::before{background:var(--accent);color:#231700}
-      body:not(.home) .stepbar .st .lbl{font-size:14.5px;font-weight:700;color:var(--ink);margin:0}
-      /* content + footer */
-      body:not(.home) main{grid-area:main;min-height:0}
-      body:not(.home) .actionbar{grid-area:action;background:var(--card);border-top:1px solid var(--hair);
+      body:not(.home) .stepbar .st.cur{background:var(--ink)}
+      body:not(.home) .stepbar .st.cur::before{background:rgba(255,255,255,.22);color:#fff}
+      body:not(.home) .stepbar .st .lbl{font-size:13.5px;font-weight:700;color:var(--body);margin:0}
+      body:not(.home) .stepbar .st.cur .lbl{color:var(--inkOn)}
+      body:not(.home) .stepbar .st.done .lbl{color:var(--ink)}
+      /* content + slim footer */
+      body:not(.home) main{flex:1;min-height:0}
+      body:not(.home) .actionbar{flex:none;background:var(--card);border-top:1px solid var(--hair);
         justify-content:flex-end;padding:12px 24px;gap:10px}
       body:not(.home) #ab-back{margin-left:0}
       body:not(.home) #app[data-step="house"] #ab-next{margin-left:0}
       body:not(.home) #app[data-step="send"] #ab-back{order:0;margin-left:0}
       body:not(.home) #app[data-step="send"] #btn-print{margin-left:0}
-      /* canvas-free steps sit in a comfortable centred column within the content */
       body:not(.home) #app[data-step="house"] aside,body:not(.home) #app[data-step="send"] aside{max-width:900px;margin:0 auto}
     }
   </style>
@@ -9471,7 +9496,10 @@ resize(); LASTSNAP=snapshot(); render(); setTool('select');
     if(diff<1) return 'today'; if(diff<2) return 'yesterday'; if(diff<7) return Math.floor(diff)+' days ago';
     return new Date(ts).toLocaleDateString('en-AU',{day:'numeric',month:'short'}); }
   function saveCurrent(){ if(!CUR) return; const arr=load(); const j=arr.find(x=>x.id===CUR); if(!j) return;
-    try{ j.state=snapshot(); j.rooms=(S.rooms||[]).length; j.vents=(S.vents||[]).length; }catch(_){}
+    try{ j.state=snapshot(); j.rooms=(S.rooms||[]).length; j.vents=(S.vents||[]).length;
+      if((S.vents||[]).length && typeof totals==='function'){ const t=totals();
+        j.kw=Math.round((t.design||0)*10)/10; j.zones=t.zones||1; }
+    }catch(_){}
     j.updatedAt=Date.now(); store(arr); }
   function blankDesign(){ try{ restore(BLANK); }catch(_){} }
   function openJob(id){ const j=load().find(x=>x.id===id); if(!j) return;
@@ -9495,17 +9523,40 @@ resize(); LASTSNAP=snapshot(); render(); setTool('select');
     if(!arr.length){ list.innerHTML=`<div class="jh-empty"><div class="e1">Start your first job</div><div class="e2">Create a job to size and lay out a ducted system — or try a finished demo house.</div><button class="hbtn ai" id="jhDemo" style="height:50px;border-radius:999px;padding:0 22px">Try the demo house</button></div>`;
       const db=$id('jhDemo'); if(db) db.onclick=demoJob; return; }
     if(!filtered.length){ list.innerHTML=`<div class="jh-empty"><div class="e2">No ${TAB==='quoted'?'quoted':'in-progress'} jobs${q?` match “${esc(q)}”`:''}.</div></div>`; return; }
+    const armDel=d=>{ d.onclick=e=>{ e.stopPropagation();
+      if(d.classList.contains('armed')){ delJob(d.dataset.del); }
+      else { d.classList.add('armed'); d.textContent='Delete?'; setTimeout(()=>{ if(d&&d.isConnected){ d.classList.remove('armed'); d.textContent='✕'; } },2500); } }; };
+    if(window.matchMedia('(min-width:821px)').matches){
+      // Desktop: the mock's jobs TABLE
+      const rows=filtered.map(j=>{
+        const upto=j.quoted?'Send':(j.vents?'Design':(j.rooms?'Check':'House'));
+        const system=(j.kw&&j.zones)?`${j.kw} kW · ${j.zones} zone${j.zones==1?'':'s'}`:'—';
+        const cust=j.customer?`<span class="jt-cust">${esc(j.customer)}</span>`:'';
+        return `<tr data-id="${j.id}">
+          <td class="jt-name">${esc(j.name)}${cust}</td>
+          <td>${esc(j.suburb||'—')}</td>
+          <td><span class="jtag">${upto}</span></td>
+          <td>${system}</td>
+          <td class="jt-when">${fmtWhen(j.updatedAt)}</td>
+          <td class="jt-del"><span class="jdel" data-del="${j.id}">✕</span></td></tr>`;
+      }).join('');
+      list.innerHTML=`<table class="jtable"><thead><tr>
+        <th>Job</th><th>Suburb</th><th>Up to</th><th>System</th><th>Updated</th><th></th>
+        </tr></thead><tbody>${rows}</tbody></table>`;
+      list.querySelectorAll('tbody tr').forEach(r=>r.onclick=e=>{ if(e.target.closest('.jdel')) return; openJob(r.dataset.id); });
+      list.querySelectorAll('.jdel').forEach(armDel);
+      return;
+    }
+    // Mobile: job cards
     list.innerHTML=filtered.map(j=>{
       const sub=[j.customer,j.suburb].filter(Boolean).join(' · ')||'No details yet';
       const stage=j.quoted?'Quoted':(j.vents?'Designed':(j.rooms?'Rooms in':'New'));
       return `<button class="jcard" data-id="${j.id}"><div class="jic">🏠</div>
         <div class="jgrow"><div class="jn">${esc(j.name)}</div><div class="js">${esc(sub)} · ${stage} · ${fmtWhen(j.updatedAt)}</div></div>
-        <span class="jdel" data-del="${j.id}">Delete</span></button>`;
+        <span class="jdel" data-del="${j.id}">✕</span></button>`;
     }).join('');
     list.querySelectorAll('.jcard').forEach(c=>c.onclick=e=>{ if(e.target.classList.contains('jdel')) return; openJob(c.dataset.id); });
-    list.querySelectorAll('.jdel').forEach(d=>{ d.textContent='✕'; d.onclick=e=>{ e.stopPropagation();
-      if(d.classList.contains('armed')){ delJob(d.dataset.del); }
-      else { d.classList.add('armed'); d.textContent='Delete?'; setTimeout(()=>{ if(d){ d.classList.remove('armed'); d.textContent='✕'; } },2500); } }; });
+    list.querySelectorAll('.jdel').forEach(armDel);
   }
   function demoJob(){ const arr=load(); const id=uid();
     arr.unshift({id,name:'Demo house',customer:'Sample',suburb:'',updatedAt:Date.now(),quoted:false,state:BLANK,rooms:0,vents:0});
@@ -9525,8 +9576,16 @@ resize(); LASTSNAP=snapshot(); render(); setTool('select');
   $id('jhSeg').querySelectorAll('button').forEach(b=>b.onclick=()=>{ TAB=b.dataset.tab;
     $id('jhSeg').querySelectorAll('button').forEach(x=>x.classList.toggle('on',x===b)); renderList(); });
   $id('jhSearch').addEventListener('input',renderList);
+  // re-render jobs list when crossing the desktop/mobile breakpoint (table ↔ cards)
+  { let wasDesk=window.matchMedia('(min-width:821px)').matches;
+    window.addEventListener('resize',()=>{ const d=window.matchMedia('(min-width:821px)').matches;
+      if(d!==wasDesk){ wasDesk=d; if(document.body.classList.contains('home')) renderList(); } }); }
   // wizard back button → save + return to the jobs list
   $id('btn-back').onclick=showHome;
+  // app sidebar (desktop): Ducted Designer → jobs list; Settings → settings modal
+  { const d=$id('an-designer'); if(d) d.onclick=e=>{ e.preventDefault(); showHome(); }; }
+  { const s=$id('an-settings'); if(s) s.onclick=e=>{ e.preventDefault();
+      try{ if(typeof renderSettings==='function') renderSettings(); const m=document.getElementById('settings'); if(m) m.classList.add('on'); }catch(_){} }; }
   // autosave the open job
   setInterval(saveCurrent,4000);
   window.addEventListener('beforeunload',saveCurrent);

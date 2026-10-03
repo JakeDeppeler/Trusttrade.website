@@ -4,16 +4,54 @@
     {
       "source": "/(duct-sizing|job-calculator|dashboard|admin|apply).html",
       "headers": [
-        { "key": "Cache-Control", "value": "public, max-age=0, must-revalidate" }
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=0, must-revalidate"
+        }
       ]
     }
   ],
   "rewrites": [
-    { "source": "/dashboard", "destination": "/dashboard.html" },
-    { "source": "/admin", "destination": "/admin.html" },
-    { "source": "/apply", "destination": "/apply.html" },
-    { "source": "/tradie/:slug", "destination": "/tradie/_dynamic.html" },
-    { "source": "/", "destination": "/index.html" },
-    { "source": "/((?!api/).*)", "destination": "/_shell.html" }
+    {
+      "source": "/dashboard",
+      "destination": "/dashboard.html"
+    },
+    {
+      "source": "/admin",
+      "destination": "/admin.html"
+    },
+    {
+      "source": "/apply",
+      "destination": "/apply.html"
+    },
+    {
+      "source": "/tradie/:slug",
+      "destination": "/tradie/_dynamic.html"
+    },
+    {
+      "source": "/",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/((?!api/).*)",
+      "destination": "/_shell.html"
+    }
+  ],
+  "redirects": [
+    {
+      "source": "/for-homeowners",
+      "destination": "/#how",
+      "permanent": true
+    },
+    {
+      "source": "/how-it-works",
+      "destination": "/#how",
+      "permanent": true
+    },
+    {
+      "source": "/our-story",
+      "destination": "/about",
+      "permanent": true
+    }
   ]
 }

@@ -120,7 +120,7 @@ function header(active) {
 }
 function footer() {
   return `<footer class="foot"><div class="wrap wide">
-<p>© ${new Date().getFullYear()} Trust Trade — Australia's honest trade app. Verified, insured, local.</p>
+<p>© ${new Date().getFullYear()} Trust Trade — Australia's honest trade app. Licence-checked, local.</p>
 <p style="margin-top:6px"><a href="/">Home</a> · <a href="/guides/">Guides</a> · <a href="/tradie">Find a tradie</a> · <a href="/for-tradies">For tradies</a> · <a href="/faq">FAQ</a></p>
 </div></footer>`;
 }
@@ -189,7 +189,7 @@ ${g.faqs.map((f) => `<details><summary>${H(f.q)}</summary><p>${H(f.a)}</p></deta
 <div class="related"><h3>Find a verified local</h3><div class="pillrow">${(g.relatedFind || []).map((r) => `<a href="${r.href}">${H(r.label)} →</a>`).join("")}</div></div>
 ${related.length ? `<div class="related"><h3>Keep reading</h3><div class="pillrow">${related.map((r) => `<a href="/guides/${r.slug}/">${H(r.title)}</a>`).join("")}</div></div>` : ""}
 
-${appCta("Skip the guesswork — get it done proper.", "Trust Trade routes you to a verified, insured local who can actually fix it. Licence-checked, fixed call-out fees, real reviews. Now on iPhone.")}
+${appCta("Skip the guesswork — get it done proper.", "Find a licence-checked local tradie, send one enquiry and accept a fixed-price quote. Real reviews from booked jobs. Now on iPhone.")}
 </article></main>
 ${footer()}
 </body></html>`;
@@ -221,7 +221,7 @@ ${header("guides")}
 <div class="gcards">
 ${GUIDES.map((g) => `<a class="gcard" href="/guides/${g.slug}/"><span class="chip">${H(g.category)}</span><h2>${H(g.title)}</h2><p>${H(g.description)}</p><span class="more">Read the guide →</span></a>`).join("\n")}
 </div>
-${appCta("Ready to get it done proper?", "Every tradie on Trust Trade is licence-checked and insured before they're listed. Tell us what's broken and we'll route you to the right local, first time.")}
+${appCta("Ready to get it done proper?", "Every tradie on Trust Trade is licence-checked by a person before they're listed. Find the right local, first time.")}
 </main>
 ${footer()}
 </body></html>`;

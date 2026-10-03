@@ -101,7 +101,7 @@ const HEADER = `<header class="hdr"><div class="hdr-in">
 const FOOTER = `<footer class="foot"><div class="fwrap">
  <div class="foot-top">
   <div class="foot-brand"><div class="brand">${LOGO.replace('decoding="async"', 'loading="lazy" decoding="async"')}Trust Trade<span class="reg">®</span></div>
-   <p>Verified. Insured. Done proper. Built in Melbourne for Aussie homes and Aussie trades.</p>
+   <p>Licence-checked. Fixed prices. Done proper. Built in Melbourne for Aussie homes and Aussie trades.</p>
    ${TT.appStore("light")}</div>
   <div class="foot-col"><h3>Product</h3><ul><li><a href="/how-it-works">How it works</a></li><li><a href="/for-homeowners">For homeowners</a></li><li><a href="/how-we-verify">How we verify</a></li><li><a href="/trades">Trades we cover</a></li><li><a href="/faq">FAQ</a></li></ul></div>
   <div class="foot-col"><h3>For Tradies</h3><ul><li><a href="/for-tradies">Why join</a></li><li><a href="/apply">Apply</a></li><li><a href="/faq#tradies">Tradie FAQ</a></li><li><a href="mailto:jake@trusttrade.au">Contact</a></li></ul></div>
@@ -299,7 +299,7 @@ function page(l, reviews) {
   const title = `${l.name} — ${trade}${suburb ? " in " + suburb : ""}, VIC | Trust Trade`;
   const desc = (l.description && l.description.trim())
     ? l.description.trim().slice(0, 155)
-    : `${l.name} is a verified, insured ${trade.toLowerCase()}${suburb ? " serving " + suburb + " and nearby" : " in Victoria"}. See services, reviews and get a quote on Trust Trade.`;
+    : `${l.name} is a licence-checked ${trade.toLowerCase()}${suburb ? " serving " + suburb + " and nearby" : " in Victoria"}. See services, reviews and get a quote on Trust Trade.`;
   const ogImg = TT.ownPhotos(l)[0] || l.photo || `${SITE}/og-image.png`;
   const r = TT.rating(reviews);
   const ld = {
@@ -364,15 +364,15 @@ function directory(listings, reviewsById, hubLinks, areaLinks) {
   return `<!doctype html><html lang="en-AU"><head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="apple-itunes-app" content="app-id=6778369757">
 <title>Verified Local Tradies in Victoria | Trust Trade</title>
-<meta name="description" content="Browse verified, insured local tradies on Trust Trade — electricians, plumbers, HVAC and more across Victoria. Every one licence-checked.">
+<meta name="description" content="Browse licence-checked local tradies on Trust Trade: electricians, plumbers, HVAC and more across Victoria. Every one checked by a person.">
 <link rel="canonical" href="${SITE}/tradie"><meta name="theme-color" content="#f2a900"><link rel="icon" type="image/png" sizes="48x48" href="/favicon-48.png">
-<meta property="og:title" content="Verified Local Tradies in Victoria"><meta property="og:description" content="Browse verified, insured local tradies on Trust Trade."><meta property="og:url" content="${SITE}/tradie"><meta property="og:image" content="${SITE}/og-image.png">
+<meta property="og:title" content="Verified Local Tradies in Victoria"><meta property="og:description" content="Browse licence-checked local tradies on Trust Trade."><meta property="og:url" content="${SITE}/tradie"><meta property="og:image" content="${SITE}/og-image.png">
 <script type="application/ld+json">${J(ld)}</script>
 ${FONTS}${STYLE}</head><body>
 ${HEADER}
 <main class="page">
  <span class="eyebrow">Find a tradie</span>
- <h1 class="dh">Find a verified tradie</h1><p class="dsub">Every tradie is ABN-checked, licence-verified and insured.</p>
+ <h1 class="dh">Find a verified tradie</h1><p class="dsub">Every tradie is licence-checked, ABN-checked and ID-verified by a person.</p>
  ${hubLinks && hubLinks.length ? `<div class="links" style="margin:0 0 22px"><h3>Browse by trade</h3><div class="lg">${hubLinks.map((a) => `<a href="${a.url}">${H(a.label)}</a>`).join("")}</div></div>` : ""}
  <div class="filters"><input id="q" placeholder="Search name, trade or suburb…" aria-label="Search tradies" oninput="flt()"><select id="tr" aria-label="Trade" onchange="flt()"><option value="">All trades</option>${trades.map((t) => `<option value="${H(t.toLowerCase())}">${H(t)}</option>`).join("")}</select></div>
  <div class="g" id="g">${cards}</div>
@@ -390,8 +390,8 @@ function areaPage(cat, loc, serving, reviewsById, otherAreas, otherTrades) {
   const suburb = loc.suburb;
   const url = `${SITE}/find/${cat.slug}-in-${slugify(suburb)}`;
   const n = serving.length;
-  const title = `${cat.plural} in ${suburb}, VIC — Verified & Insured | Trust Trade`;
-  const desc = `Find a verified ${cat.singular} in ${suburb}. Every ${cat.singular} on Trust Trade is licence-checked, ABN-verified and insured. ${n} near ${suburb} — see reviews and get a quote.`;
+  const title = `${cat.plural} in ${suburb}, VIC — Licence-Checked | Trust Trade`;
+  const desc = `Find a verified ${cat.singular} in ${suburb}. Every ${cat.singular} on Trust Trade is licence-checked, ABN-verified and ID-checked. ${n} near ${suburb} — see reviews and get a quote.`;
   const cards = serving.map((l) => TT.card(l, reviewsById[l.id])).join("");
   const ld = {
     "@context": "https://schema.org",
@@ -420,11 +420,11 @@ ${HEADER}
 <main class="page">
  <nav class="crumbs"><a href="/">Home</a> › <a href="/tradie">Find a tradie</a> › <span>${H(cat.plural)} in ${H(suburb)}</span></nav>
  <h1 class="dh">${H(cat.plural)} in ${H(suburb)}</h1>
- <p class="dsub">Verified, insured and licence-checked. Every ${H(cat.singular)} here is ABN-checked and covers ${H(suburb)}${loc.postcode ? " " + H(loc.postcode) : ""}.</p>
- <div class="trust"><span>✓ Licence verified</span><span>✓ $5M insured</span><span>✓ ABN checked</span><span>✓ Real reviews</span></div>
+ <p class="dsub">Licence-checked by a person. Every ${H(cat.singular)} here is ABN-checked and covers ${H(suburb)}${loc.postcode ? " " + H(loc.postcode) : ""}.</p>
+ <div class="trust"><span>✓ Licence verified</span><span>✓ Photo ID matched</span><span>✓ ABN checked</span><span>✓ Real reviews</span></div>
  <div class="g" id="g">${cards}</div>
  <div id="none" class="none" style="display:none">No ${H(cat.singular)}s listed for ${H(suburb)} yet. <a href="/tradie">Browse all verified tradies</a>.</div>
- <div class="card"><h2>Why book ${an(cat.singular)} ${H(cat.singular)} through Trust Trade</h2><p class="body">We hand-check every ${H(cat.singular)} before they can appear: a current licence for the work they do, $5M public-liability insurance sighted, ABN verified against the Australian Business Register, and photo ID confirmed. You message and book the one you pick — no lead auctions, no five callbacks, no spam.</p></div>
+ <div class="card"><h2>Why book ${an(cat.singular)} ${H(cat.singular)} through Trust Trade</h2><p class="body">We hand-check every ${H(cat.singular)} before they can appear: a current licence for the work they do, ABN verified against the Australian Business Register, and photo ID confirmed. You message and book the one you pick — no lead auctions, no five callbacks, no spam.</p></div>
  ${otherAreaLinks ? `<div class="links"><h3>${H(cat.plural)} in nearby areas</h3><div class="lg">${otherAreaLinks}</div></div>` : ""}
  ${otherTradeLinks ? `<div class="links"><h3>Other trades in ${H(suburb)}</h3><div class="lg">${otherTradeLinks}</div></div>` : ""}
  <a class="big" href="/">Find your ${H(cat.singular)} on Trust Trade →</a>
@@ -444,11 +444,11 @@ function tradeHubPage(cat, tradies, reviewsById, areaSuburbs) {
   const url = `${SITE}/find/${cat.slug}`;
   const has = tradies.length > 0;
   const title = has
-    ? `Verified ${cat.plural} in Victoria — Insured & Licence-Checked | Trust Trade`
-    : `${cat.plural} — Verified & Insured | Trust Trade`;
+    ? `Verified ${cat.plural} in Victoria — Licence-Checked | Trust Trade`
+    : `${cat.plural} — Licence-Checked | Trust Trade`;
   const desc = has
-    ? `Find a verified ${cat.singular} on Trust Trade. Every ${cat.singular} is licence-checked, ABN-verified and $5M insured. Browse ${tradies.length} across Victoria, see reviews and get a quote.`
-    : `Trust Trade is onboarding verified, insured ${cat.plural.toLowerCase()} across Australia. Every one licence-checked and ABN-verified. Get the app to be first in line.`;
+    ? `Find a verified ${cat.singular} on Trust Trade. Every ${cat.singular} is licence-checked, ABN-verified and ID-checked. Browse ${tradies.length} across Victoria, see reviews and get a quote.`
+    : `Trust Trade is onboarding licence-checked ${cat.plural.toLowerCase()} across Australia. Every one licence-checked and ABN-verified. Get the app to be first in line.`;
   const cards = tradies.map((l) => TT.card(l, reviewsById[l.id])).join("");
   const suburbLinks = areaSuburbs.map((s) => `<a href="/find/${cat.slug}-in-${slugify(s.suburb)}">${H(cat.plural)} in ${H(s.suburb)}</a>`).join("");
   const ld = {
@@ -465,16 +465,16 @@ function tradeHubPage(cat, tradies, reviewsById, areaSuburbs) {
   };
   const body = has
     ? `<h1 class="dh">${H(cat.plural)} on Trust Trade</h1>
- <p class="dsub">Verified, insured and licence-checked ${H(cat.plural.toLowerCase())} across Victoria. Pick one, message them, and book — no lead auctions, no spam.</p>
- <div class="trust"><span>✓ Licence verified</span><span>✓ $5M insured</span><span>✓ ABN checked</span><span>✓ Real reviews</span></div>
+ <p class="dsub">Licence-checked ${H(cat.plural.toLowerCase())} across Victoria. Pick one, message them, and book — no lead auctions, no spam.</p>
+ <div class="trust"><span>✓ Licence verified</span><span>✓ Photo ID matched</span><span>✓ ABN checked</span><span>✓ Real reviews</span></div>
  <div class="g" id="g">${cards}</div>
  <div id="none" class="none" style="display:none">No ${H(cat.plural.toLowerCase())} listed yet. <a href="/tradie">Browse all verified tradies</a>.</div>
  ${suburbLinks ? `<div class="links"><h3>${H(cat.plural)} by suburb</h3><div class="lg">${suburbLinks}</div></div>` : ""}
- <div class="card"><h2>Why book ${an(cat.singular)} ${H(cat.singular)} through Trust Trade</h2><p class="body">Every ${H(cat.singular)} is hand-checked before they appear: a current licence for the work they do, $5M public-liability insurance sighted, ABN verified against the Australian Business Register, and photo ID confirmed. You message and book the one you choose — no auctions, no five callbacks.</p></div>
+ <div class="card"><h2>Why book ${an(cat.singular)} ${H(cat.singular)} through Trust Trade</h2><p class="body">Every ${H(cat.singular)} is hand-checked before they appear: a current licence for the work they do, ABN verified against the Australian Business Register, and photo ID confirmed. You message and book the one you choose — no auctions, no five callbacks.</p></div>
  <a class="big" href="/">Find your ${H(cat.singular)} on Trust Trade →</a>`
     : `<h1 class="dh">${H(cat.plural)}</h1>
- <p class="dsub">We're onboarding verified, insured ${H(cat.plural.toLowerCase())} right now. Every one is licence-checked and ABN-verified before they can appear.</p>
- <div class="trust"><span>✓ Licence verified</span><span>✓ $5M insured</span><span>✓ ABN checked</span><span>✓ Real reviews</span></div>
+ <p class="dsub">We're onboarding licence-checked ${H(cat.plural.toLowerCase())} right now. Every one is licence-checked and ABN-verified before they can appear.</p>
+ <div class="trust"><span>✓ Licence verified</span><span>✓ Photo ID matched</span><span>✓ ABN checked</span><span>✓ Real reviews</span></div>
  <div class="g" id="g"></div>
  <div class="card"><h2>Be first when ${an(cat.singular)} ${H(cat.singular)} joins</h2><p class="body">Trust Trade only lists a handful of tradies per area, then it locks. Get the app and we'll notify you the moment a verified ${H(cat.singular)} covers your suburb.</p><a class="big" href="/">Get the Trust Trade app →</a></div>
  <div class="card"><h2>Are you ${an(cat.singular)} ${H(cat.singular)}?</h2><p class="body">List your business free while we grow — a few spots per suburb, then it locks. Verified tradies get real jobs, not lead-auction spam.</p><a class="big" href="/for-tradies">List your business →</a></div>`;

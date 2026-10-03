@@ -17,8 +17,9 @@ const purge = purgecss({
       "user", "assistant", "askai-typing",
       "current", "on", "active", "b", "c",
       "reveal", "reveal-sm", "reveal-scale",
+      "arm", "show",
     ],
-    greedy: [/^c\d+$/],
+    greedy: [/^c\d+$/, /^tone-/],
   },
 });
 

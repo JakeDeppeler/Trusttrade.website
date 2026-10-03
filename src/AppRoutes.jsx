@@ -1,19 +1,16 @@
 import { Suspense, lazy, useRef } from "react";
 import { Routes, Route, Navigate, useLocation } from "react-router-dom";
-import { ScrollToTop } from "./components/PageChrome.jsx";
+import { ScrollToTop } from "./components/SiteChrome.jsx";
 import Seo from "./components/Seo.jsx";
 // Homepage loads eagerly (it's the LCP route + most traffic, and the only route we
 // prerender). Every other route is code-split into its own chunk so it's only
 // downloaded when visited — this keeps the initial JS payload small.
-import LandingPage from "./pages/LandingPage.jsx";
-const HowItWorksPage = lazy(() => import("./pages/HowItWorksPage.jsx"));
+import HomePage from "./pages/HomePage.jsx";
 const VerifyPage = lazy(() => import("./pages/VerifyPage.jsx"));
 const ForTradiesPage = lazy(() => import("./pages/ForTradiesPage.jsx"));
-const ForHomeownersPage = lazy(() => import("./pages/ForHomeownersPage.jsx"));
 const TradesPage = lazy(() => import("./pages/TradesPage.jsx"));
 const FAQPage = lazy(() => import("./pages/FAQPage.jsx"));
 const AboutPage = lazy(() => import("./pages/AboutPage.jsx"));
-const OurStoryPage = lazy(() => import("./pages/OurStoryPage.jsx"));
 const ToolsPage = lazy(() => import("./pages/ToolsPage.jsx"));
 
 // Fade each page in on navigation so route changes flow more smoothly.
@@ -30,15 +27,15 @@ function AnimatedRoutes() {
     <div className={cls} key={location.pathname}>
       <Suspense fallback={null}>
         <Routes location={location}>
-          <Route path="/" element={<LandingPage />} />
-          <Route path="/how-it-works" element={<HowItWorksPage />} />
+          <Route path="/" element={<HomePage />} />
+          <Route path="/how-it-works" element={<Navigate to="/#how" replace />} />
           <Route path="/how-we-verify" element={<VerifyPage />} />
           <Route path="/for-tradies" element={<ForTradiesPage />} />
-          <Route path="/for-homeowners" element={<ForHomeownersPage />} />
+          <Route path="/for-homeowners" element={<Navigate to="/#how" replace />} />
           <Route path="/trades" element={<TradesPage />} />
           <Route path="/faq" element={<FAQPage />} />
           <Route path="/about" element={<AboutPage />} />
-          <Route path="/our-story" element={<OurStoryPage />} />
+          <Route path="/our-story" element={<Navigate to="/about" replace />} />
           <Route path="/tools" element={<ToolsPage />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>

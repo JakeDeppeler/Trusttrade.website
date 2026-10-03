@@ -1,398 +1,162 @@
-import {
-  PageDownloadCTA,
-  PageFooter,
-  PageHeader,
-} from "../components/PageChrome.jsx";
-import PageLink from "../components/PageLink.jsx";
-import { usePageReveal, DevRow, Marquee, FaqAccordion } from "../components/RedesignSections.jsx";
-import "../styles/hiw-redesign.css";
+import { PageShell, PageHero, HeadC, CardGrid, Steps, Feature, FaqList, Phone, PageLink, Check } from "../components/SiteKit.jsx";
 
-const FTR_MARQUEE = [
-  ["0", "lead fees, ever"],
-  ["You", "set the call-out"],
-  ["No", "lock-in"],
-  ["Verified", "customers only"],
-  ["One", "inbox, one thread"],
-  ["100%", "of every job is yours"],
+// /for-tradies: the "apply as a tradie" page. Every benefit here is something
+// the live tradie app does today (dashboard, jobs, quote builder, insights,
+// desktop dashboard). Pricing: free to apply, no lead fees, no commission
+// (the app's quote screen says so). Never promise a price for listing.
+
+const BENEFITS = [
+  { t: "Enquiries, not leads", d: "A homeowner looked at your profile, picked you and wrote to you. Nobody else gets that enquiry.", tone: "amber" },
+  { t: "No lead fees", d: "You never pay to see a job or to reply. No bidding against four other tradies for the same customer.", tone: "peach" },
+  { t: "No commission", d: "Trust Trade takes nothing from your quote. You invoice the customer and keep the full amount.", tone: "mint" },
+  { t: "Limited spots per area", d: "Only a few tradies per trade in each suburb, so the work in your area isn't spread thin.", tone: "sky" },
+  { t: "You can't pay to rank", d: "Where you show up comes from your rating, reply speed, completed jobs, prices and photos. Money isn't a factor.", tone: "mint" },
+  { t: "Checked like you are", d: "Every tradie on here passed the same checks. You're not standing next to someone with a ute and no licence.", tone: "amber" },
 ];
 
-const TRADIE_FAQ_GROUPS = [
-  {
-    name: "Joining & pricing",
-    items: [
-      { q: "What does it cost to join as a tradie?", a: "Free to apply and free to be listed while we grow. Founding members — the first 50 verified tradies — lock in lifetime founding-member pricing on any future paid tiers." },
-      { q: "Do you take a cut of my job?", a: "No. Trust Trade doesn't sit between you and your customer's money. You invoice them direct, you get paid direct. We're the paper trail and the routing layer, not a middleman." },
-      { q: "How do I get verified?", a: "Apply, then upload your licence, insurance certificate of currency, ABN, and ID. We check with the relevant state regulator and confirm the documents. Two reference jobs (two past customers willing to vouch in writing). Usually 48-72 hours end to end." },
-      { q: "Can I set my own call-out fee?", a: "Yes, per job, every job. Your default rate is saved, but you can override it on any specific job before sending. No platform-set minimums, no algorithmic discount." },
-      { q: "What if I want to take a few weeks off?", a: "Switch yourself to Unavailable in the app. No jobs route to you. Switch back on whenever. No lock-in, no penalty, no clawback." },
-      { q: "Can I be on multiple lead-gen platforms at once?", a: "Yeah, that's your call. We don't ask for exclusivity. Plenty of tradies run us alongside one other platform at first and drop the other once they've ramped." },
-      { q: "What trades do you cover?", a: "Thirty-five trades across six categories — wet trades, electrical, building/carpentry, surfaces, outside work, and specialists. Full list on the Trades we cover page. If your trade isn't there, email Jake, we add by request." },
-    ],
-  },
-  {
-    name: "About the business",
-    items: [
-      { q: "Who's behind Trust Trade?", a: "Jake, a plumber who built Trust Trade himself and runs it solo for now. ABN 40 873 784 535, registered in Victoria, no outside investment yet (and I like it that way for now)." },
-      { q: "Are you regulated by anyone?", a: "Trust Trade itself is a platform, not a trade. The tradies we list are regulated by their state authority (VBA, ESV, etc.) and we verify against those regulators. Consumer Affairs Victoria oversees us as an Australian Consumer Law-bound business like any other marketplace." },
-      { q: "Can I invest / partner / sell into Trust Trade?", a: "We're not raising at the moment. For partnerships, insurance, regulator integrations, trade associations, email jake@trusttrade.au with a one-pager." },
-      { q: "Is the name actually trademarked?", a: "Yep, Trust Trade® is a registered Australian trademark in classes 9, 35 and 42 (software, marketplace services, app development). Use of the mark for anything else needs our written nod." },
-    ],
-  },
+const STEPS = [
+  { t: "Apply online", d: "Your details, licence, ABN, trading hours, services and prices, and some photos of your work." },
+  { t: "We check you", d: "A person checks your licence on the regulator's register, your ABN and your photo ID before anything goes live." },
+  { t: "Your profile goes live", d: "Homeowners nearby can find you, see your work and prices, and send you an enquiry." },
+  { t: "Quote, book, do the job", d: "Reply, send a fixed-price quote from your phone and the job's booked when they accept. Then get reviewed for it." },
 ];
 
-const ELIGIBILITY = [
-  { h: "A current trade licence", p: "Checked with the state regulator, VBA, ESV, VBPRB. Apprentices under a qualified holder.", s: "Regulator check" },
-  { h: "Public liability + workers' comp", p: "Minimum $10m PL, workers' comp if you employ. Certificate of currency on file.", s: "Insurance verified" },
-  { h: "An active ABN", p: "Sole trader, partnership or Pty Ltd. We check the ABR, suspended means no listing.", s: "ABR-checked" },
-  { h: "A Victoria work address", p: "VIC for now. NSW, QLD and SA are rolling out next — pop your ABN in and we'll let you know when your state opens.", s: "VIC for now" },
-  { h: "A clean disciplinary record", p: "No active suspensions or consumer-affairs orders. Checked at apply, re-checked quarterly.", s: "Quarterly re-check" },
-  { h: "A phone with a camera", p: "That's the hardware list. Any iPhone or Android from the last five years works.", s: "iOS 16+ / Android 10+" },
+const NEED = [
+  { t: "A current trade licence", d: "For the trade you're listing, in the state you work in." },
+  { t: "An active ABN", d: "Matched to the business you're trading as." },
+  { t: "Photo ID", d: "So customers know the person turning up is the person we checked." },
 ];
 
-const FOUNDING_LOCKS = [
-  { h: "Lifetime founding pricing.", p: "Whatever premium routing costs down the track, you pay founding rates. Forever, on the same ABN.", s: "Lock 01" },
-  { h: "Founding badge on your profile.", p: "Customers see the mark. We surface founding members first in your trade + radius.", s: "Lock 02" },
-  { h: "Direct line to the team.", p: "A real human on a real phone, Jake's mobile, for your first 12 months. No ticket queue.", s: "Lock 03" },
-  { h: "Free to apply, free to list.", p: "No card, no commitment. Get verified, get listed, take jobs, all at zero cost.", s: "Lock 04" },
+const FAQ = [
+  ["What does it cost?", "Applying is free. There are no lead fees and Trust Trade takes no commission on your jobs."],
+  ["How are enquiries sent to me?", "A homeowner finds your profile and sends you an enquiry directly. It isn't sent to anyone else, and you're notified as soon as it arrives."],
+  ["How do customers pay me?", "Directly, the way you already get paid. You can send invoices from the app and see what's unpaid at a glance."],
+  ["Can I set my own prices?", "Yes. You set your services and prices on your profile, and every quote is yours to write. The app adds GST for you."],
+  ["Why is there a limit per area?", "So the tradies on Trust Trade each get a fair share of the work nearby. When the spots for your trade in a suburb are taken, it locks."],
+  ["Do I need to be on my phone all day?", "No. Set your hours and when you take emergencies. There's also a desktop dashboard for doing quotes and invoices from the office."],
 ];
 
 export default function ForTradiesPage() {
-  usePageReveal();
-
   return (
-    <>
-      <PageHeader current="For Tradies.html" />
+    <PageShell>
+      <PageHero
+        kicker="Tradies"
+        title="Real jobs."
+        accent="No lead fees."
+        lede="Homeowners nearby find you, check your work and send you the job. You quote it, they accept, it's booked. No bidding, no commission."
+        visual={
+          <div className="s-phero-vis" aria-hidden="true">
+            <div className="s-aurora" />
+            <Phone name="trade-jobs" className="l" />
+            <Phone name="trade-quote" className="r" />
+            <Phone name="trade-dashboard" className="c" />
+          </div>
+        }
+      >
+        <a className="s-dl big" href="/apply">Apply to join</a>
+        <a className="s-textlink" href="#how-joining-works">How it works →</a>
+      </PageHero>
 
-      {/* ===== Hero ===== */}
-      <section className="page-hero page-hero-centered">
-        <div className="page-hero-decor" aria-hidden="true" />
-        <div className="container">
-          <div className="page-hero-centered-inner">
-            <div className="page-hero-eyebrow">
-              <span className="dot" aria-hidden="true" />
-              For tradies
-            </div>
-            <h1 className="page-hero-title-xl">
-              More jobs. <span className="it">Less mucking around.</span>
-            </h1>
-            <p className="page-hero-subhead">
-              Real homeowners. Real jobs. Routed to you by trade and postcode, on your terms. Skip
-              the lead-gen rort and the race-to-the-bottom bidding.
-            </p>
-            <div className="page-hero-cta-row">
-              <a href="/apply" className="btn btn-primary btn-lg">
-                Apply to join →
-              </a>
-              <a href="#tradie-faq" className="btn btn-ghost btn-lg">
-                Read the tradie FAQ
-              </a>
-            </div>
-            <p style={{ marginTop: 16, fontSize: 14 }}>
-              Already listed? <a href="/dashboard" style={{ color: "var(--accent)", fontWeight: 700 }}>Log in to your dashboard →</a>
-            </p>
-            <div className="ftr-hero-ticks">
-              <span><span className="tk">✓</span> Free to apply</span>
-              <span><span className="tk">✓</span> Founding-50 perks</span>
-              <span><span className="tk">✓</span> No lock-in</span>
-            </div>
+      <section className="s-sec">
+        <div className="s-wrap">
+          <HeadC lines={["Built for tradies who", "do the job properly."]} sub="Most platforms sell the same job to five businesses. Trust Trade sends it to one: the one the homeowner picked." />
+          <CardGrid items={BENEFITS} cols={3} />
+        </div>
+      </section>
+
+      <section className="s-sec s-stack-sec">
+        <div className="s-wrap">
+          <HeadC kicker="The tradie app" lines={["Your whole business,", "in your pocket."]} />
+          <div className="s-feats">
+            <Feature
+              kicker="Dashboard"
+              title="See what's coming in."
+              body="Enquiries for the last 30 days, profile views, calls and emails, and everything that needs you today, on one screen."
+              shot="trade-dashboard"
+              tone="amber"
+            />
+            <Feature
+              kicker="Quotes"
+              title="Quote it in a minute."
+              body="Start from a template, add labour and supply lines, and GST is worked out for you. Add your terms and warranty, then send it."
+              points={["Accepted means booked", "Save your own templates", "No commission taken"]}
+              shot="trade-quote"
+              tone="peach"
+              flip
+            />
+            <Feature
+              kicker="Jobs"
+              title="Every job, sorted."
+              body="New, booked and done jobs in one list, with the chat, photos and quote on each. Unpaid invoices are flagged so nothing slips."
+              shot="trade-jobs"
+              tone="sky"
+            />
+            <Feature
+              kicker="Insights"
+              title="Know why you rank."
+              body="See your views and enquiries over time, and exactly what moves you up: rating, reply speed, completed jobs, published prices and work photos."
+              shot="trade-insights"
+              tone="mint"
+              flip
+            />
+          </div>
+          <p className="s-fine s-center">Prefer a bigger screen? Log in at <a href="/dashboard" className="s-textlink" style={{ height: "auto", padding: 0 }}>trusttrade.au/dashboard</a> to quote and invoice from the office.</p>
+        </div>
+      </section>
+
+      <section className="s-sec" id="grow">
+        <div className="s-wrap">
+          <HeadC kicker="Grow your business" lines={["Tools that help", "you grow."]} sub="Beyond the jobs app, Trust Trade builds tools for the parts of the trade that eat your evenings: designing, sizing and pricing." />
+          <div className="s-grow">
+            <a className="s-grow-pro rv" href="/pro">
+              <span className="s-mono"><i /> Trust Trade Pro</span>
+              <h3>Trade tools in one app.</h3>
+              <p>
+                Start with Ducted Designer: scan a home with an iPhone Pro or upload the builder's plan, and it works out
+                every room's heat load, sizes the unit and lays out the ducts. Then share a customer report and a
+                materials list.
+              </p>
+              <ul>
+                <li><Check /> Room-by-room heat loads</li>
+                <li><Check /> Unit sizing and duct layout</li>
+                <li><Check /> Customer report and take-off</li>
+              </ul>
+              <span className="s-grow-cta">Learn about Trust Trade Pro →</span>
+            </a>
+            <PageLink className="s-grow-tools rv" href="Tools.html" style={{ "--d": "100ms" }}>
+              <span className="s-gcard-ic">Free</span>
+              <h3>Free trade tools.</h3>
+              <p>The Job Calculator works out what an hour really costs you and prices every job for profit. The Ducted Designer sizes a whole duct run in your browser.</p>
+              <span className="s-grow-cta">Open the free tools →</span>
+            </PageLink>
           </div>
         </div>
       </section>
 
-      <Marquee items={FTR_MARQUEE} />
+      <section className="s-sec" id="how-joining-works">
+        <div className="s-wrap">
+          <HeadC kicker="Joining" lines={["From application", "to your first job."]} />
+          <Steps items={STEPS} />
+        </div>
+      </section>
 
-      {/* ===== The problem — big editorial pull ===== */}
-      <section className="page-section">
-        <div className="container">
-          <div className="reveal">
-            <div className="eyebrow accent" style={{ marginBottom: 22 }}>The rort</div>
-            <h2 className="pull-statement">
-              You're paying to <span className="it">bid</span> on jobs<br />
-              <span className="dim">you'll probably never win.</span>
-            </h2>
-            <p className="pull-sub">
-              Cold leads at $20–80 a pop. The same job sold to four other tradies. A race to the
-              cheapest quote that shrinks your margin every year. You didn't get your licence to
-              feed a bidding machine.
-            </p>
-          </div>
-
-          <div className="stat-band reveal" style={{ marginTop: 56, "--rd": "80ms" }}>
-            <div className="stat-cell">
-              <div className="n">$20<span className="sm">–80</span></div>
-              <div className="k">Per cold lead on the usual platforms, paid whether you win it or not.</div>
-            </div>
-            <div className="stat-cell">
-              <div className="n">4<span className="sm">–5</span></div>
-              <div className="k">Tradies sold the exact same lead. First to the phone, cheapest to the quote.</div>
-            </div>
-            <div className="stat-cell">
-              <div className="n"><span className="it">½</span></div>
-              <div className="k">Of those leads ghost you, free-email tyre-kickers with no intent.</div>
-            </div>
-            <div className="stat-cell">
-              <div className="n">6</div>
-              <div className="k">Places the job lives, SMS, email, Facebook, Gumtree. One of them's a Sarah.</div>
-            </div>
+      <section className="s-sec tight">
+        <div className="s-wrap">
+          <HeadC kicker="What you'll need" lines={["Three things."]} sm sub="Have these handy before you start your application." />
+          <CardGrid items={NEED} cols={3} numbered />
+          <div className="s-center" style={{ marginTop: 40 }}>
+            <a className="s-dl big" href="/apply">Start your application</a>
           </div>
         </div>
       </section>
 
-      {/* ===== The fix — vs split ===== */}
-      <section className="page-section bordered">
-        <div className="container">
-          <div className="mid-head reveal">
-            <div className="eyebrow accent">The fix</div>
-            <h2 className="h-1">We built the <span className="it">opposite.</span></h2>
-            <p className="lede">Same trade, same postcode, a completely different deal. Here's the side-by-side.</p>
-          </div>
-
-          <div className="vs reveal" style={{ "--rd": "60ms" }}>
-            <div className="vs-col them">
-              <div className="vs-tag">The usual lead-gen</div>
-              <h3>The old way</h3>
-              <div className="vs-list">
-                {[
-                  "Pay per lead, $20–80 a click for tyre-kickers",
-                  "Your lead resold to 4–5 other tradies",
-                  "Bidding war. Lowest quote wins, margins bleed",
-                  "Anyone with a free email can request",
-                  "Six inboxes, one Sarah, no paper trail",
-                  "Anonymous review drive-bys, no right of reply",
-                ].map((t, i) => (
-                  <div className="vs-line" key={i}><span className="vs-mark">✕</span><span>{t}</span></div>
-                ))}
-              </div>
-            </div>
-            <div className="vs-badge">vs</div>
-            <div className="vs-col us">
-              <div className="vs-tag">Trust Trade</div>
-              <h3>Your way</h3>
-              <div className="vs-list">
-                {[
-                  "No lead fees. Free to be listed. Founding-50 locked in for life",
-                  "One tradie at a time. They pick you, or it moves on",
-                  "You set the call-out, per job. They approve before you roll",
-                  "Verified, mobile-confirmed accounts with a brief on file",
-                  "One inbox. One thread per job. Receipts baked in",
-                  "Only verified bookings can review. Disputes mediated in 48h",
-                ].map((t, i) => (
-                  <div className="vs-line" key={i}><span className="vs-mark">✓</span><span>{t}</span></div>
-                ))}
-              </div>
-            </div>
-          </div>
+      <section className="s-sec">
+        <div className="s-wrap s-faq">
+          <HeadC lines={["Tradie questions."]} sm />
+          <FaqList items={FAQ} id="tradies" />
+          <PageLink className="s-textlink center" href="FAQ.html">All questions →</PageLink>
         </div>
       </section>
-
-      {/* ===== How it helps — image-forward alternating rows ===== */}
-      <section className="page-section bordered" style={{ paddingBottom: 40 }}>
-        <div className="container">
-          <div className="mid-head reveal">
-            <div className="eyebrow accent">On the tools</div>
-            <h2 className="h-1">What the app actually <span className="it">does for you.</span></h2>
-            <p className="lede">No dashboard homework. Open it between jobs, it's already sorted your day.</p>
-          </div>
-
-          <DevRow
-            idx="01"
-            kicker="Every job, one inbox"
-            title="Every job,"
-            italic="in one place."
-            body="New enquiries, quoted work, booked jobs and finished receipts, all in one list. Emergencies pin themselves to the top. No scrolling six apps to find which Sarah had the laundry tap."
-            img="/assets/trade-jobs.webp"
-            facts={[
-              "Routed by trade + postcode, never blasted to a mailing list",
-              "Emergencies auto-pin to the top of your day",
-              "Customer name and ABN-verified mobile attached to every brief",
-            ]}
-            chips={[
-              { lbl: "New enquiry", big: "Hot water leak", sub: "Pakenham · Emergency" },
-              { lbl: "Today", big: "3 new jobs", sub: "1 emergency pinned" },
-            ]}
-          />
-
-          <DevRow
-            flip
-            idx="02"
-            kicker="You set the price"
-            title="One number."
-            italic="They approve."
-            body="Send your call-out fee, your standard rate or a job-specific one. The customer approves it on their phone before you roll. No tendering, no haggling, no undercutting. If they ghost the quote, it auto-releases."
-            img="/assets/trade-price.webp"
-            facts={[
-              "Your default rate is saved, override it per job in a tap",
-              "Ghosted quotes auto-release in 30 min. No wasted morning",
-              "Booking logged with your ABN, their address and the fee",
-            ]}
-            chips={[
-              { lbl: "Call-out fee", big: "$200 ex GST", sub: "Your standard rate" },
-              { lbl: "Approved", big: "On site 8–10am", sub: "Confirmed in writing" },
-            ]}
-          />
-
-          <DevRow
-            idx="03"
-            kicker="One thread per job"
-            title="No more"
-            italic="phone tag."
-            body="Every job gets its own conversation, the brief, the photos, the location, the chat. ETA pings send as you drive. Mark it complete and a receipt emails both sides instantly. The paper trail writes itself."
-            img="/assets/trade-messages.webp"
-            facts={[
-              "In-app chat scoped to THIS job, no Facebook DM archaeology",
-              "ETA pings to the customer as you drive",
-              "Mark complete → receipt + review request, both sides, instantly",
-            ]}
-            chips={[
-              { lbl: "On my way", big: "20 min ETA", sub: "Customer notified" },
-              { lbl: "Complete", big: "Receipt sent", sub: "Both sides · 7-yr archive" },
-            ]}
-          />
-
-          <DevRow
-            flip
-            idx="04"
-            kicker="Your rules, in the app"
-            title="On your"
-            italic="terms."
-            body="Set your radius, your hours, your availability. On-call, business-hours, weekends-only, after-hours premium, flick it in the app and we route around it. Taking a few weeks off? Switch to Unavailable. No lock-in, no penalty."
-            img="/assets/trade-settings.webp"
-            facts={[
-              "Radius: 5km, 25km, whole metro, we won't send what you can't reach",
-              "Hours + availability toggle per day, per week",
-              "Pause or leave anytime. No cancellation fee, no clawback",
-            ]}
-            chips={[
-              { lbl: "Radius", big: "25 km", sub: "Pakenham + Gippsland" },
-              { lbl: "Status", big: "Available", sub: "Business hours" },
-            ]}
-          />
-        </div>
-      </section>
-
-      {/* ===== Job Calculator add-on ===== */}
-      <section className="page-section bordered">
-        <div className="container">
-          <div className="mid-head reveal">
-            <div className="eyebrow accent">A free add-on</div>
-            <h2 className="h-1">Know what an hour <span className="it">actually costs you.</span></h2>
-            <p className="lede">
-              Every listed tradie gets the Trust Trade Job Calculator, free. Put your real numbers
-              in and it tells you your break-even rate, prices every job off that number, and builds
-              a customer-ready price list you can publish straight to your listing. Built to help you
-              make a living, not just win work.
-            </p>
-            <div style={{ display: "flex", gap: 12, justifyContent: "center", flexWrap: "wrap", marginTop: 26 }}>
-              <a href="/job-calculator.html" className="btn btn-primary btn-lg">
-                Open the calculator →
-              </a>
-              <a href="/job-calculator.html" className="btn btn-ghost btn-lg">
-                Try it with sample numbers
-              </a>
-            </div>
-            <p style={{ fontFamily: "var(--font-mono)", fontSize: 12, color: "var(--text-faint)", letterSpacing: "0.1em", textTransform: "uppercase", marginTop: 18 }}>
-              Free for a month · Free forever once you're listed
-            </p>
-          </div>
-        </div>
-      </section>
-
-      {/* ===== Founder note ===== */}
-      <section className="quote-block page-section bordered" style={{ paddingTop: "clamp(60px,8vw,110px)" }}>
-        <div className="container">
-          <div className="two-col reveal">
-            <div className="col-label">A note from us</div>
-            <div>
-              <blockquote>
-                "I'm a plumber. The lead-gen rort bled me dry chasing jobs that never landed, so I
-                built it myself.
-                <span className="accent"> Trust Trade is the platform I wish I'd had.</span>"
-              </blockquote>
-              <div className="quote-attr">
-                <div className="avatar">J</div>
-                <div className="who">
-                  <strong>Jake</strong>
-                  Founder, Trust Trade®
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* ===== Founding 50 — progress meter ===== */}
-      <section className="page-section bordered">
-        <div className="container">
-          <div className="mid-head reveal">
-            <div className="eyebrow accent">Founding 50</div>
-            <h2 className="h-1">First 50 in are <span className="it">locked in for life.</span></h2>
-            <p className="lede">No paid tier exists yet. When it does — premium routing and analytics — the first 50 verified tradies pay founding rates. Forever. The moment we're full, the badge is gone.</p>
-          </div>
-
-          <div className="meter reveal" style={{ "--pct": "50%" }}>
-            <div className="meter-top">
-              <div className="meter-big"><span className="it">50</span> <span className="of">founding spots</span></div>
-              <div className="meter-note">Victoria · limited</div>
-            </div>
-            <div className="meter-bar"><div className="meter-fill"></div></div>
-
-            <div className="checklist" style={{ marginTop: 40, borderTop: "1px solid var(--line)" }}>
-              {FOUNDING_LOCKS.map((c, i) => (
-                <div className="check-row" key={i} style={i >= 2 ? { borderBottom: 0 } : undefined}>
-                  <div className="tick">✓</div>
-                  <div className="ctext"><h4>{c.h}</h4><p>{c.p}</p></div>
-                  <div className="cstamp">{c.s}</div>
-                </div>
-              ))}
-            </div>
-
-            <div style={{ marginTop: 36, display: "flex", flexWrap: "wrap", gap: 12, alignItems: "center" }}>
-              <a href="/apply" className="btn btn-primary btn-lg">
-                Claim a founding spot →
-              </a>
-              <span style={{ fontFamily: "var(--font-mono)", fontSize: 12, color: "var(--text-faint)", letterSpacing: "0.1em", textTransform: "uppercase" }}>
-                Applications reviewed in 48–72h
-              </span>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* ===== Eligibility — tight checklist ===== */}
-      <section className="page-section bordered">
-        <div className="container">
-          <div className="mid-head reveal">
-            <div className="eyebrow accent">What we need from you</div>
-            <h2 className="h-1">To get listed, <span className="it">you'll need…</span></h2>
-            <p className="lede">Six things. We check every one against the source, the regulator, the ABR, the insurer, before you take a single job.</p>
-          </div>
-
-          <div className="checklist reveal" style={{ "--rd": "60ms" }}>
-            {ELIGIBILITY.map((c, i) => (
-              <div className="check-row" key={i} style={i >= 4 ? { borderBottom: 0 } : undefined}>
-                <div className="tick">✓</div>
-                <div className="ctext"><h4>{c.h}</h4><p>{c.p}</p></div>
-                <div className="cstamp">{c.s}</div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ===== Tradie FAQ ===== */}
-      <section className="page-section bordered" id="tradie-faq">
-        <div className="container">
-          <div className="mid-head reveal">
-            <div className="eyebrow accent">Tradie FAQ</div>
-            <h2 className="h-1">The questions <span className="it">every tradie asks.</span></h2>
-            <p className="lede">Cost, cuts, verification, lock-in, plus the honest word on who's behind Trust Trade. Something we haven't covered? Email jake@trusttrade.au.</p>
-          </div>
-          <div className="reveal"><FaqAccordion groups={TRADIE_FAQ_GROUPS} idPrefix="tradie-faq" /></div>
-        </div>
-      </section>
-
-      <PageDownloadCTA />
-      <PageFooter />
-    </>
+    </PageShell>
   );
 }

@@ -1,6 +1,6 @@
 export const HREF_TO_ROUTE = {
   "Trust Trade Landing.html": "/",
-  "How it works.html": "/how-it-works",
+  "How it works.html": "/#how",
   "How we verify.html": "/how-we-verify",
   "For Tradies.html": "/for-tradies",
   "For Homeowners.html": "/for-homeowners",

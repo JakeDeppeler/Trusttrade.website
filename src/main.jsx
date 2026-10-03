@@ -3,16 +3,7 @@ import ReactDOM from "react-dom/client";
 import { BrowserRouter } from "react-router-dom";
 import AppRoutes from "./AppRoutes.jsx";
 import "./styles/fonts.css";
-import "./styles/landing.css";
-import "./styles/pages.css";
-import "./styles/chrome.css";
-
-// Marketing site runs on the cream-primary/dark-accent inversion of the app's
-// brand palette. Guarded so the module is import-safe during the SSR/prerender
-// pass (no `document` there); on the client this runs before first paint.
-if (typeof document !== "undefined") {
-  document.body.classList.add("theme-cream");
-}
+import "./styles/site.css";
 
 const app = (
   <React.StrictMode>

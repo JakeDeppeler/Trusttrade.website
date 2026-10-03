@@ -1,259 +1,70 @@
-import { useEffect, useRef, useState } from "react";
-import {
-  PageFooter,
-  PageHeader,
-  PageHero,
-  PageWaitlistFooterCTA,
-} from "../components/PageChrome.jsx";
-import PageLink from "../components/PageLink.jsx";
+import { PageShell, PageHero, HeadC, FaqList, PageLink } from "../components/SiteKit.jsx";
 
-const FAQ_SECTIONS = [
-  {
-    id: "general",
-    name: "General",
-    items: [
-      { q: "Is Trust Trade out yet?", a: "Yes, it's live now. Download Trust Trade from the App Store on your iPhone, with Victoria covered to start. Android's on the way, so leave your details and we'll tell you the day it lands." },
-      { q: "Is Trust Trade free for homeowners?", a: "Yes, finding, requesting and booking a tradie is free. You only ever pay the tradie's quoted call-out fee, and only once you've approved it in writing. There's no Trust Trade surcharge on top." },
-      { q: "Where are you operating?", a: "Starting in Victoria, Melbourne metro, Geelong, and Gippsland (yes, including Pakenham). NSW, QLD and SA are rolling out next. If you're outside these, pop your details in and we'll email you when your state opens." },
-      { q: "Why 'Trust Trade'?", a: "Because the two biggest things missing from finding a tradie online were trust and a clear paper trail. We picked a name that put both up front. The ® is registered in Australia." },
-      { q: "How is this different from existing platforms?", a: "Three big differences: tradies are verified before they're listed (not just signed up); we don't sell leads (no race-to-the-bottom bidding); and every job leaves a real receipt. We charge tradies nothing to be listed while we grow." },
-    ],
-  },
-  {
-    id: "homeowners",
-    name: "Homeowners",
-    items: [
-      { q: "How do you verify tradies?", a: "Four checks at apply: licence number verified with the state regulator, public liability + workers' comp on file, ABN active and not on hold, no active disciplinary action. Plus photo-ID-to-licence match and two reference jobs we phone. Full breakdown on the How we verify page." },
-      { q: "What if it goes wrong on the day?", a: "Tap the help button in the job. A human reads the thread and gets back to both sides within an hour (business hours). For real disputes, wrong work, no-show, billing problems, we mediate within 48 hours between verified accounts." },
-      { q: "Do I pay through the app?", a: "No, you pay your tradie direct. Trust Trade isn't an escrow. But the booking record, call-out fee, ETA, address, ABN, is logged in the app and emailed to both sides as a receipt." },
-      { q: "Does the AI replace talking to a real tradie?", a: "Nope. The AI's job is to work out which trade you actually need from a plain-English description, then point you at verified humans. The fix-it bit is still done by a real, insured person on site." },
-      { q: "Can I cancel a booking?", a: "Yes, reschedule or cancel free up to 1 hour before the agreed ETA. Inside that window, a small cancellation fee may apply to cover the tradie's travel and time. The fee is set by the tradie and disclosed before you book." },
-      { q: "What if I get quoted more on the day?", a: "Call-out fee is locked. Any work beyond the call-out, replacement parts, additional jobs uncovered on site, must be quoted again in the app before it starts. You approve it; only then can they proceed." },
-      { q: "I left a review I regret. Can I edit it?", a: "You can edit within 24 hours of posting. After that, it's locked, but tradies can post a public reply underneath. We don't delete reviews on request, the integrity of the system depends on them sticking." },
-    ],
-  },
-  {
-    id: "tradies",
-    name: "Tradies",
-    items: [
-      { q: "What does it cost to join as a tradie?", a: "Free to apply and free to be listed while we grow. Founding members — the first 50 verified tradies — lock in lifetime founding-member pricing on any future paid tiers." },
-      { q: "Do you take a cut of my job?", a: "No. Trust Trade doesn't sit between you and your customer's money. You invoice them direct, you get paid direct. We're the paper trail and the routing layer, not a middleman." },
-      { q: "How do I get verified?", a: "Apply, upload your licence, insurance certificate of currency, ABN, and ID. We check with the relevant state regulator and confirm the documents. Two reference jobs (two past customers willing to vouch in writing). Usually 48-72 hours end to end." },
-      { q: "Can I set my own call-out fee?", a: "Yes, per job, every job. Your default rate is saved, but you can override it on any specific job before sending. No platform-set minimums, no algorithmic discount." },
-      { q: "What if I want to take a few weeks off?", a: "Switch yourself to Unavailable in the app. No jobs route to you. Switch back on whenever. No lock-in, no penalty, no clawback." },
-      { q: "Can I be on multiple lead-gen platforms at once?", a: "Yeah, that's your call. We don't ask for exclusivity. Plenty of tradies run us alongside one other platform to start with, then drop the other once we've ramped." },
-      { q: "What trades do you cover?", a: "Thirty-five trades across six categories — wet trades, electrical, building/carpentry, surfaces, outside work, and specialists. Full list on the Trades we cover page. If your trade isn't there, email Jake, we add by request." },
-    ],
-  },
-  {
-    id: "trust",
-    name: "Trust & safety",
-    items: [
-      { q: "What if a tradie's licence lapses while they're listed?", a: "Our system tracks expiry on every licence and insurance cert. Seven days before expiry we ping them. The day it lapses, they can't take new jobs until they've uploaded a renewed cert. No 'maybe verified'it's binary." },
-      { q: "Are reviews moderated?", a: "Lightly, we strip out personal contact info, slurs, and obvious fakes. We don't pay-to-bury and we don't delete on request. Tradies get a public right of reply. Disputed reviews go to 48-hour mediation." },
-      { q: "What data do you collect about me?", a: "What you need an account for: name, mobile, suburb, the brief on your job. We don't sell it, we don't share it with insurers or banks, we don't on-sell to a third-party CRM. Full breakdown in the Privacy policy." },
-      { q: "Is my address shared before I book?", a: "No. Tradies see the suburb and the brief, never your street address, until you've approved their call-out fee. After that, they see the address (because they're showing up). Address is never visible to anyone you didn't approve." },
-    ],
-  },
-  {
-    id: "business",
-    name: "About the business",
-    items: [
-      { q: "Who's behind Trust Trade?", a: "Just me. Jake, a mechanical plumber based in Melbourne who started on the tools and now runs the quoting side too. Solo founder, no team, no outside investment. ABN 40 873 784 535, registered in Victoria." },
-      { q: "Are you regulated by anyone?", a: "Trust Trade itself is a platform, not a trade. The tradies we list are regulated by their state authority (VBA, ESV, etc.) and we verify against those regulators. Consumer Affairs Victoria oversees us as an Australian Consumer Law-bound business like any other marketplace." },
-      { q: "Can I invest / partner / sell into Trust Trade?", a: "We're not raising at the moment. For partnerships, insurance, regulator integrations, trade associations, email jake@trusttrade.au with a one-pager." },
-      { q: "Is the name actually trademarked?", a: "Yep, Trust Trade® is a registered Australian trademark in classes 9, 35 and 42 (software, marketplace services, app development). Use of the mark for anything else needs our written nod." },
-    ],
-  },
+// /faq. Answers describe the live app only: no call-out fees (fixed-price quotes),
+// no insurance checks, no in-app payments, no invented timelines or member counts.
+
+const HOMEOWNERS = [
+  ["Is Trust Trade free?", "Yes. Finding a tradie, sending enquiries, getting quotes and booking are free for homeowners. You only pay your tradie for the job, at the price you accepted."],
+  ["How do I find a tradie?", "Search by name or by the job, or browse the map. Tradies are sorted nearest first, and every one has passed our checks. Not sure who you need? Ask the assistant in the app."],
+  ["Who sees my enquiry?", "Only the tradie you send it to. It isn't shared with or sold to anyone else, and you won't hear from businesses you didn't contact."],
+  ["How do quotes work?", "Your tradie sends a fixed-price quote in the app with GST shown. Accept it and the job is booked. Anything extra should come as an updated quote before the work is done."],
+  ["Do I pay through the app?", "No. You pay your tradie directly. The quote, booking and messages stay in the app as a record of what you agreed."],
+  ["Is my address shared?", "Your street address is only shared with the tradie you book, for that job."],
+  ["How do reviews work?", "Once a job's done you can leave a review. Reviews from a booked job are marked as verified, and tradies can reply publicly."],
+  ["Where does it work?", "Trust Trade is live on iPhone in Australia, starting in Victoria. Android is on the way."],
 ];
 
-const ALL_FAQS = FAQ_SECTIONS.flatMap((s) =>
-  s.items.map((i) => ({ ...i, sectionId: s.id, sectionName: s.name }))
-);
+const CHECKS = [
+  ["What do you check?", "Three things, by a person, before a tradie is listed: their trade licence on the state regulator's public register, their ABN against the Australian Business Register, and their photo ID."],
+  ["Do you check insurance?", "No. We don't verify a tradie's insurance. If your job needs it, ask your tradie for a current certificate before they start."],
+  ["What if something goes wrong?", "Raise an issue from the job in the app, or email jake@trusttrade.au. A person reads every message. You can also report any profile from the profile itself."],
+  ["Does the assistant replace a tradie?", "No. It helps you work out which trade you need and how urgent it is, then points you to checked tradies. The work is always done by a licensed person."],
+];
 
-// FAQPage structured data — rendered into the (now prerendered) /faq HTML so
-// Google can show the questions as a rich result. Built from the same Q&A source.
-const FAQ_SCHEMA = {
-  "@context": "https://schema.org",
-  "@type": "FAQPage",
-  mainEntity: ALL_FAQS.map((f) => ({
-    "@type": "Question",
-    name: f.q,
-    acceptedAnswer: { "@type": "Answer", text: f.a },
-  })),
-};
+const TRADIES = [
+  ["What does it cost to join?", "Applying is free. There are no lead fees, and Trust Trade takes no commission on your jobs."],
+  ["What do I need to apply?", "A current trade licence, an active ABN and photo ID, plus your services, prices, hours and some photos of your work."],
+  ["Are enquiries shared with other tradies?", "No. A homeowner picks you and sends the enquiry to you only."],
+  ["How many tradies are in my area?", "Only a few per trade in each suburb. When the spots are taken, that area locks."],
+  ["How do I rank higher?", "Good reviews, fast replies, completed jobs, published prices and photos of your work. Paying isn't a factor."],
+  ["Is there a desktop version?", "Yes. Log in at trusttrade.au/dashboard to manage enquiries, quotes and invoices from a computer."],
+];
 
 export default function FAQPage() {
-  const [query, setQuery] = useState("");
-  const [openIds, setOpenIds] = useState({});
-  const [activeSection, setActiveSection] = useState("general");
-
-  const filtered = query.trim()
-    ? ALL_FAQS.filter((f) =>
-        (f.q + " " + f.a).toLowerCase().includes(query.trim().toLowerCase())
-      )
-    : ALL_FAQS;
-
-  const grouped = FAQ_SECTIONS.map((sec) => ({
-    ...sec,
-    items: filtered.filter((f) => f.sectionId === sec.id),
-  })).filter((sec) => sec.items.length > 0);
-
-  const totalCount = filtered.length;
-  const toggle = (id) => setOpenIds((s) => ({ ...s, [id]: !s[id] }));
-
-  const refs = useRef({});
-  useEffect(() => {
-    const onScroll = () => {
-      let best = activeSection;
-      let bestTop = Infinity;
-      for (const sec of FAQ_SECTIONS) {
-        const el = refs.current[sec.id];
-        if (!el) continue;
-        const top = el.getBoundingClientRect().top;
-        if (top < 200 && top > -el.offsetHeight) {
-          if (top > -bestTop) {
-            best = sec.id;
-            bestTop = top;
-          }
-        }
-      }
-      if (best !== activeSection) setActiveSection(best);
-    };
-    window.addEventListener("scroll", onScroll, { passive: true });
-    return () => window.removeEventListener("scroll", onScroll);
-  }, [activeSection]);
-
-  const scrollToSection = (id) => {
-    const el = refs.current[id];
-    if (!el) return;
-    const top = el.getBoundingClientRect().top + window.scrollY - 90;
-    window.scrollTo({ top, behavior: "smooth" });
-  };
-
   return (
-    <>
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(FAQ_SCHEMA) }}
-      />
-      <PageHeader current="FAQ.html" />
+    <PageShell>
+      <PageHero kicker="FAQ" title="Questions," accent="answered." lede="Everything you need to know about finding a tradie, or joining as one." />
 
-      <PageHero
-        eyebrow="Questions"
-        title="You ask."
-        italicWord="We answer."
-        lede="Everything we've been asked about Trust Trade so far, by homeowners and tradies. Use the search if you've got something specific."
-        meta={[
-          { k: "Total questions", v: `${ALL_FAQS.length} answered` },
-          { k: "Sections", v: FAQ_SECTIONS.map((s) => s.name).join(" · ") },
-          { k: "Missing one?", v: "jake@trusttrade.au" },
-        ]}
-      />
-
-      <section className="page-section">
-        <div className="container">
-          <div className="two-col">
-            <div className="faq-side">
-              {FAQ_SECTIONS.map((sec) => (
-                <button
-                  key={sec.id}
-                  className={activeSection === sec.id ? "active" : ""}
-                  onClick={() => scrollToSection(sec.id)}
-                >
-                  {sec.name}
-                </button>
-              ))}
-            </div>
-            <div>
-              <div className="faq-search">
-                <input
-                  type="text"
-                  placeholder="Search the FAQ…"
-                  value={query}
-                  onChange={(e) => setQuery(e.target.value)}
-                />
-                <div className="count">
-                  {totalCount} {totalCount === 1 ? "match" : "matches"}
-                </div>
-              </div>
-
-              {grouped.length === 0 && (
-                <div style={{ padding: "60px 0", textAlign: "center", color: "var(--text-dim)" }}>
-                  <h3 className="h-3" style={{ marginBottom: 12 }}>
-                    Nothing matches "{query}".
-                  </h3>
-                  <p>Try a different search, or email jake@trusttrade.au, we'll add it.</p>
-                </div>
-              )}
-
-              {grouped.map((sec) => (
-                <div
-                  key={sec.id}
-                  id={"faq-" + sec.id}
-                  ref={(el) => (refs.current[sec.id] = el)}
-                >
-                  <div className="faq-section-title">{sec.name}</div>
-                  <div className="faq-grid">
-                    {sec.items.map((item, i) => {
-                      const id = sec.id + "-" + i;
-                      const isOpen = !!openIds[id];
-                      const panelId = `faq-a-${id}`;
-                      const buttonId = `faq-q-${id}`;
-                      return (
-                        <div
-                          key={id}
-                          className={"faq-item " + (isOpen ? "open" : "")}
-                        >
-                          <button
-                            type="button"
-                            className="faq-q"
-                            id={buttonId}
-                            aria-expanded={isOpen}
-                            aria-controls={panelId}
-                            onClick={() => toggle(id)}
-                          >
-                            <span>{item.q}</span>
-                            <span className="plus" aria-hidden="true">+</span>
-                          </button>
-                          <div
-                            id={panelId}
-                            role="region"
-                            aria-labelledby={buttonId}
-                            className="faq-a"
-                          >
-                            <div className="faq-a-inner">
-                              <div className="faq-a-text">{item.a}</div>
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
+      <section className="s-sec tight">
+        <div className="s-wrap s-faq">
+          <HeadC kicker="Homeowners" lines={["Finding and booking."]} sm />
+          <FaqList items={HOMEOWNERS} id="homeowners" />
         </div>
       </section>
 
-      <section className="page-section bordered">
-        <div className="container">
-          <div className="page-nav-prevnext">
-            <PageLink href="For Homeowners.html">
-              <span>← Previous</span>
-              <strong>For Homeowners</strong>
-            </PageLink>
-            <PageLink href="About.html" className="next">
-              <span>Next →</span>
-              <strong>About Trust Trade</strong>
-            </PageLink>
-          </div>
+      <section className="s-sec tight">
+        <div className="s-wrap s-faq">
+          <HeadC kicker="Trust & safety" lines={["Checks and safety."]} sm />
+          <FaqList items={CHECKS} id="safety" />
+          <PageLink className="s-textlink center" href="How we verify.html">How we check tradies →</PageLink>
         </div>
       </section>
 
-      <PageWaitlistFooterCTA />
-      <PageFooter />
-    </>
+      <section className="s-sec tight">
+        <div className="s-wrap s-faq">
+          <HeadC kicker="Tradies" lines={["Joining Trust Trade."]} sm />
+          <FaqList items={TRADIES} id="tradies" />
+          <PageLink className="s-textlink center" href="For Tradies.html">Why join →</PageLink>
+        </div>
+      </section>
+
+      <section className="s-sec tight">
+        <div className="s-wrap s-center">
+          <p className="s-sub">
+            Still stuck? Email <a className="s-textlink" style={{ height: "auto", padding: 0 }} href="mailto:jake@trusttrade.au">jake@trusttrade.au</a>. A real person answers.
+          </p>
+        </div>
+      </section>
+    </PageShell>
   );
 }

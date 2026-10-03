@@ -1,287 +1,95 @@
-import {
-  PageFooter,
-  PageHeader,
-  PageHero,
-  PageWaitlistFooterCTA,
-} from "../components/PageChrome.jsx";
-import PageLink from "../components/PageLink.jsx";
+import { PageShell, PageHero, HeadC, CardGrid } from "../components/SiteKit.jsx";
 
-const PRINCIPLES = [
-  {
-    num: "01",
-    title: "Verification is binary.",
-    body: "Either we've checked it with the regulator, or we haven't. No \"trust score\", no traffic-light fudge.",
-  },
-  {
-    num: "02",
-    title: "One tradie, one job.",
-    body: "We will never sell the same lead twice. The day we do, we've become the thing we set out to replace.",
-  },
-  {
-    num: "03",
-    title: "Prices live in writing.",
-    body: "If it's not in the app, it's not the price. No verbal quotes, no day-of upcharges, no surprises.",
-  },
-  {
-    num: "04",
-    title: "Tradies keep 100%.",
-    body: "We don't take a cut of the work. Subscription if anything, when the time comes. Never a slice of the job.",
-  },
-  {
-    num: "05",
-    title: "Receipts are sacred.",
-    body: "Every booking, every quote, every change, every dispute, logged, immutable, available to both parties on request.",
-  },
-  {
-    num: "06",
-    title: "Boring, Australian, profitable.",
-    body: "We're building a small, sustainable, AU-owned business. Not a unicorn. Not a marketplace land-grab. A useful tool.",
-  },
-];
+// /about (also where /our-story now points). Only verifiable facts: Jake is a
+// Melbourne mechanical plumber who founded it, reviews applications, and the app
+// went live on the App Store in Sept 2026. No invented timeline, team or numbers.
 
-const TEAM = [
-  {
-    name: "Jake",
-    role: "Founder · Mech plumber",
-    body: "Solo founder. Started as an apprentice, spent years on the tools, now runs the quoting side of the business too. I build the platform, run the verifications, and handle every email myself. The mobile number behind the \"direct line to the team\" perk for Founding 50.",
-    placeholder: "Founder portrait placeholder",
-  },
-];
-
-const TIMELINE = [
-  {
-    when: "Apr 2024",
-    title: "The pattern lands.",
-    body: "Quoting a job at a customer's place, they tell me about being burned three times by other tradies. Two weeks later: same story, different house. Then again. I realise this is the pattern, not the exception, people don't know who to trust. The idea for Trust Trade starts here.",
-  },
-  {
-    when: "Sep 2024",
-    title: "First prototype.",
-    body: "Three Pakenham tradies and a Google Form. We route fifteen test jobs by hand for a month. Twelve get done, on time, on quote. The other three teach us a lot.",
-  },
-  {
-    when: "Mar 2025",
-    title: "Trademark + ABN.",
-    body: "Trust Trade® is registered with IP Australia in three classes. Company structure goes in. We start writing the verification stack.",
-  },
-  {
-    when: "Oct 2025",
-    title: "Closed beta, 40 tradies, 200 homes.",
-    body: "Six suburbs in Melbourne's south-east. We get reviews, we get bugs, we get a lot of strong opinions. Most of them make the product better.",
-  },
-  {
-    when: "May 2026",
-    title: "Public waitlist opens.",
-    body: "The public waitlist opens, Founding 50 spots go up for grabs, and the iOS build heads into TestFlight with a small alpha cohort.",
-  },
-  {
-    when: "Sep 2026",
-    title: "Live on the App Store.",
-    body: "Where we are now. Trust Trade goes live on the App Store for iPhone, Victoria-wide. Founding 50 spots are still open, and Android's on the way.",
-  },
-  {
-    when: "Next",
-    title: "NSW, QLD, SA.",
-    body: "We open the next three states as we grow, verification stack ported state by state, and the founding-member program continues.",
-  },
-];
-
-const CONTACTS = [
-  {
-    ticker: "General",
-    title: "Email Jake.",
-    body: "Anything that doesn't fit the other boxes. Founder's inbox, no filter.",
-    email: "jake@trusttrade.au",
-  },
-  {
-    ticker: "Press",
-    title: "Media + story requests.",
-    body: "Founder availability for interviews about the lead-gen economy and what's broken with finding tradies online.",
-    email: "press@trusttrade.au",
-  },
-  {
-    ticker: "Trade associations",
-    title: "Partnerships.",
-    body: "If you represent a master-builders chapter or trade association and want a member rate, we want to hear from you.",
-    email: "partners@trusttrade.au",
-  },
+const BELIEFS = [
+  { t: "One enquiry, one tradie.", d: "Your job goes to the tradie you chose. We will never sell the same job to five businesses." },
+  { t: "Checked by a person.", d: "Every tradie's licence, ABN and photo ID is checked by a real person before they're listed." },
+  { t: "Prices in writing.", d: "A fixed-price quote, with GST shown, agreed in the app before the job is booked." },
+  { t: "No commission.", d: "Tradies keep the full amount of every job. We don't take a slice of the work." },
+  { t: "You can't pay to rank.", d: "Tradies rank on reviews, reply speed and the work they've done. Never on what they spend." },
+  { t: "A real person answers.", d: "Questions come to the founder's inbox, not a ticket queue." },
 ];
 
 export default function AboutPage() {
   return (
-    <>
-      <PageHeader current="About.html" />
-
+    <PageShell>
       <PageHero
-        eyebrow="About"
-        title="Built in Melbourne."
-        italicWord="For Aussie homes."
-        lede="Trust Trade is a one-person shop run by a mechanical plumber trying to fix one specific problem: people don't know who to trust when they need a tradie. Here's why I'm doing it, and how I got here."
-        meta={[
-          { k: "Founded", v: "Melbourne, 2024" },
-          { k: "Team", v: "Solo founder" },
-          { k: "ABN", v: "40 873 784 535" },
-          { k: "Status", v: "Live on the App Store (iOS)" },
-        ]}
+        kicker="About Trust Trade"
+        title="Finding a good tradie"
+        accent="shouldn't be this hard."
+        lede="Trust Trade was started by a Melbourne mechanical plumber who kept hearing the same story: people don't know who to trust, and good tradies get lost in the noise."
       />
 
-      <section className="page-section">
-        <div className="container">
-          <div className="about-grid">
-            <div>
-              <div className="eyebrow accent" style={{ marginBottom: 14 }}>
-                The why
+      <section className="s-sec tight">
+        <div className="s-wrap">
+          <div className="s-prose rv">
+            <p>
+              I'm Jake, a mechanical plumber in Melbourne, still on the tools. The hardest part of getting work done on a
+              home is rarely the repair. It's working out <strong>who to trust to do it right.</strong> Recommendations run
+              out, reviews are easy to fake, and you've no idea whether the person at the door is even licensed.
+            </p>
+            <p>
+              On the other side, the tradies who take real pride in their work get buried, while lead-gen sites sell the
+              same job to five businesses and let them fight over price. It's bad for homeowners and it's bad for good
+              tradies.
+            </p>
+            <p>
+              Trust Trade is the app I wanted at both ends. Every tradie is checked before they're listed. Your enquiry goes
+              to the one you pick. The price is agreed in writing before anyone turns up. And tradies keep every dollar of
+              the job.
+            </p>
+            <div className="s-sign">
+              <picture>
+                <source srcSet="/assets/mascot-toolbox-sm.avif" type="image/avif" />
+                <img src="/assets/mascot-toolbox-sm.webp" alt="" width={56} height={56} loading="lazy" />
+              </picture>
+              <div>
+                <b>Jake</b>
+                <small>Founder, Trust Trade</small>
               </div>
-              <h2 className="h-1">
-                A mech plumber <span className="it">with a software problem.</span>
-              </h2>
-            </div>
-            <div>
-              <p className="lead">
-                I'm a mechanical plumber. I started at the bottom, apprentice, on the tools.
-                Years of doing the work. Now I run the quoting side of the business too. Same
-                trade, different chair.
-              </p>
-              <p>
-                From both chairs, the same problem kept showing up. Customers tell me about
-                being burned by other tradies, quoted one number, charged another, work that
-                fell apart in six months. Tradies tell me about lead-gen platforms selling their
-                email to four other sparkies for the same job, then ghosting when the customer
-                picks someone cheaper.
-              </p>
-              <p>
-                Two different stories.{" "}
-                <strong>Same root problem: people don't know who to trust.</strong>{" "}
-                The customer doesn't know which tradie isn't going to take advantage. The tradie
-                doesn't know which platform isn't going to take advantage of them.
-              </p>
-              <p>
-                Trust Trade is the platform I'd want at both ends, verified, fixed-price,
-                one-tradie-at-a-time, no lead fees. It's what I'd want as the bloke calling for a
-                plumber on a Sunday. It's what I'd want as the bloke quoting the work on Monday.
-                So I built it.
-              </p>
-              <p style={{ marginTop: 32 }}>Jake, founder</p>
             </div>
           </div>
         </div>
       </section>
 
-      <section className="page-section cream">
-        <div className="container">
-          <div className="mid-head">
-            <div className="eyebrow accent">What we believe</div>
-            <h2 className="h-1">
-              Five rules we won't <span className="it">trade away.</span>
-            </h2>
-            <p className="lede">
-              Every product decision goes through these. When I'm tempted to fudge one, I go
-              back and read them out loud.
-            </p>
-          </div>
-
-          <div className="tradie-perks">
-            {PRINCIPLES.map((p) => (
-              <div className="tradie-perk" key={p.num}>
-                <div className="num">{p.num}</div>
-                <h4>{p.title}</h4>
-                <p>{p.body}</p>
-              </div>
-            ))}
-          </div>
+      <section className="s-sec">
+        <div className="s-wrap">
+          <HeadC kicker="What we stand on" lines={["Six things we", "won't trade away."]} />
+          <CardGrid items={BELIEFS} cols={3} numbered />
         </div>
       </section>
 
-      <section className="page-section bordered">
-        <div className="container">
-          <div className="mid-head">
-            <div className="eyebrow accent">The team</div>
-            <h2 className="h-1">
-              Just me. <span className="it">Direct inbox.</span>
-            </h2>
-            <p className="lede">
-              If you've got a question, I'm reading it. No support ticket queue, no team to route
-              through. Founder's mobile, founder's inbox.
-            </p>
-          </div>
-
-          <div className="team-row" style={{ display: "flex", justifyContent: "center" }}>
-            {TEAM.map((t) => (
-              <div className="team-card" key={t.name} style={{ maxWidth: 420, width: "100%" }}>
-                <div className="ph">
-                  <span>{t.placeholder}</span>
-                </div>
-                <h5>{t.name}</h5>
-                <div className="role">{t.role}</div>
-                <p>{t.body}</p>
-              </div>
-            ))}
-          </div>
+      <section className="s-sec tight">
+        <div className="s-wrap">
+          <HeadC kicker="Where we are" lines={["Live on iPhone,", "starting in Victoria."]} sm sub="Trust Trade launched on the App Store in September 2026. We're growing state by state, and Android is on the way." />
         </div>
       </section>
 
-      <section className="page-section bordered">
-        <div className="container">
-          <div className="mid-head">
-            <div className="eyebrow accent">How we got here</div>
-            <h2 className="h-1">
-              The road <span className="it">so far.</span>
-            </h2>
-          </div>
-
-          <div className="timeline">
-            {TIMELINE.map((row) => (
-              <div className="timeline-row" key={row.when}>
-                <div className="when">{row.when}</div>
-                <div>
-                  <h4>{row.title}</h4>
-                  <p>{row.body}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      <section className="page-section bordered">
-        <div className="container">
-          <div className="mid-head">
-            <div className="eyebrow accent">Press & contact</div>
-            <h2 className="h-1">Want to talk?</h2>
-          </div>
-
-          <div className="proof-grid">
-            {CONTACTS.map((c) => (
-              <div className="proof-card" key={c.email}>
-                <div className="ticker">{c.ticker}</div>
-                <h4>{c.title}</h4>
-                <p>{c.body}</p>
-                <a className="stamp" href={`mailto:${c.email}`}>
-                  {c.email}
-                </a>
-              </div>
-            ))}
+      <section className="s-sec tight">
+        <div className="s-wrap">
+          <HeadC kicker="Get in touch" lines={["Talk to us."]} sm />
+          <div className="s-contact">
+            <a className="rv" href="mailto:jake@trusttrade.au">
+              <small>General</small>
+              <b>Email Jake</b>
+              <span>jake@trusttrade.au</span>
+            </a>
+            <a className="rv" href="mailto:jake@trusttrade.au?subject=Media%20enquiry" style={{ "--d": "80ms" }}>
+              <small>Press</small>
+              <b>Media and story requests</b>
+              <span>Email with "Media" in the subject</span>
+            </a>
+            <a className="rv" href="mailto:jake@trusttrade.au?subject=Partnership" style={{ "--d": "160ms" }}>
+              <small>Partners</small>
+              <b>Trade associations and partners</b>
+              <span>Email with "Partnership" in the subject</span>
+            </a>
           </div>
         </div>
       </section>
-
-      <section className="page-section bordered">
-        <div className="container">
-          <div className="page-nav-prevnext">
-            <PageLink href="FAQ.html">
-              <span>← Previous</span>
-              <strong>Full FAQ</strong>
-            </PageLink>
-            <PageLink href="Trust Trade Landing.html" className="next">
-              <span>Back to →</span>
-              <strong>The home page</strong>
-            </PageLink>
-          </div>
-        </div>
-      </section>
-
-      <PageWaitlistFooterCTA />
-      <PageFooter />
-    </>
+    </PageShell>
   );
 }

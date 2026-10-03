@@ -83,8 +83,9 @@ html{scroll-behavior:smooth;scroll-padding-top:96px;-webkit-text-size-adjust:100
 
 /* ---------- header ---------- */
 .s-head{position:fixed;z-index:50;top:14px;left:0;right:0;padding:0 18px;pointer-events:none}
+@media (min-width:1024px){.s-head{top:18px;padding:0 28px}}
 /* logo in one corner, Download app in the other, page links in a small glass pill in the middle */
-.s-head-bar{position:relative;max-width:1320px;margin:0 auto;height:50px;display:flex;align-items:center;gap:6px}
+.s-head-bar{position:relative;margin:0;height:50px;display:flex;align-items:center;gap:6px}
 .s-head-bar>*{pointer-events:auto}
 .s-head.scrolled .s-brand,.s-head.scrolled .s-nav{background:rgba(255,255,255,.86);box-shadow:0 0 0 1px rgba(14,14,14,.06),0 12px 34px -14px rgba(14,14,14,.24)}
 .s-brand{display:flex;align-items:center;gap:6px;height:46px;padding:0 16px 0 12px;border-radius:999px;font-family:var(--s-fd);font-weight:700;font-size:16px;letter-spacing:-.035em;color:var(--s-ink);background:rgba(255,255,255,.72);-webkit-backdrop-filter:saturate(1.8) blur(20px);backdrop-filter:saturate(1.8) blur(20px);box-shadow:0 0 0 1px rgba(14,14,14,.05),0 8px 30px -14px rgba(14,14,14,.18);transition:box-shadow .3s var(--s-ease),background-color .3s}

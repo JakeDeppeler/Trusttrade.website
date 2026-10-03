@@ -1,5 +1,6 @@
 import { Suspense, lazy, useRef } from "react";
 import { Routes, Route, Navigate, useLocation } from "react-router-dom";
+import { Analytics } from "@vercel/analytics/react";
 import { ScrollToTop } from "./components/SiteChrome.jsx";
 import Seo from "./components/Seo.jsx";
 // Homepage loads eagerly (it's the LCP route + most traffic, and the only route we
@@ -52,6 +53,7 @@ export default function AppRoutes() {
       <ScrollToTop />
       <Seo />
       <AnimatedRoutes />
+      <Analytics />
     </>
   );
 }

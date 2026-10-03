@@ -327,7 +327,7 @@ function Faq() {
         </div>
         <div className="s-faq-list rv">
           {FAQ.map(([q, a], i) => (
-            <details key={q} className="s-qa" style={{ "--q": i }}>
+            <details key={q} name="faq" className="s-qa" style={{ "--q": i }}>
               <summary>{q}</summary>
               <p>{a}</p>
             </details>

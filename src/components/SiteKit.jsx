@@ -46,6 +46,17 @@ export function DownloadPill({ big = false }) {
 // only armed once JS runs, and only for elements still below the fold, so nothing
 // above the fold ever starts hidden (that would kill LCP).
 export function useReveal() {
+  // FAQs: only one answer open at a time across the page. <details name="faq">
+  // does this natively in current browsers; this covers older ones.
+  useEffect(() => {
+    const onToggle = (e) => {
+      const d = e.target;
+      if (!(d instanceof HTMLDetailsElement) || !d.open || !d.classList.contains("s-qa")) return;
+      document.querySelectorAll(".site details.s-qa[open]").forEach((o) => o !== d && (o.open = false));
+    };
+    document.addEventListener("toggle", onToggle, true);
+    return () => document.removeEventListener("toggle", onToggle, true);
+  }, []);
   useEffect(() => {
     if (!("IntersectionObserver" in window)) return;
     const io = new IntersectionObserver(
@@ -281,7 +292,7 @@ export function FaqList({ items, id }) {
   return (
     <div className="s-faq-list rv" id={id}>
       {items.map(([q, a], i) => (
-        <details key={q} className="s-qa" style={{ "--q": i }}>
+        <details key={q} name="faq" className="s-qa" style={{ "--q": i }}>
           <summary>{q}</summary>
           <p>{a}</p>
         </details>

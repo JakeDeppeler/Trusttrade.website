@@ -4,7 +4,7 @@ import { PageShell, PageHero, HeadC } from "../components/SiteKit.jsx";
 
 const TOOLS = [
   { name: "Job Calculator", desc: "Work out what an hour really costs you, price every job for profit and publish a customer-ready price list. Imports from Xero.", href: "/job-calculator.html", cta: "Open the calculator", tone: "amber" },
-  { name: "Ducted Designer", desc: "Upload a floor plan, place your outlets and it sizes the whole duct run, then builds a take-off and a quote.", href: "/duct-sizing.html", cta: "Open the designer", tone: "sky" },
+  { name: "Ducted Designer", desc: "Upload the builder's plan: heat loads, zones and the whole duct run, then the materials and the customer report. The Trust Trade Pro designer, in your browser.", href: "/tools/hvac-designer/", cta: "Open the designer", tone: "sky" },
 ];
 
 export default function ToolsPage() {

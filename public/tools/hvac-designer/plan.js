@@ -104,7 +104,7 @@ export class Plan {
   xform() {
     const v = this.data?.view;
     const W = this.canvas.clientWidth, H = this.canvas.clientHeight;
-    const b = v?.bounds ?? [0, 0, 10, 10];
+    const b = this.data?.bounds ?? v?.bounds ?? [0, 0, 10, 10];
     const minX = b[0] - 1, minY = b[1] - 1, maxX = b[2] + 1, maxY = b[3] + 1;
     const bw = Math.max(maxX - minX, 1), bh = Math.max(maxY - minY, 1);
     const pad = 24, inset = this.data?.insetBottom ?? 0;
@@ -134,7 +134,10 @@ export class Plan {
     const x = this.xform();
     this.x = x;
     const layout = d.layout;
-    this.drawRooms(g, x, d.view, layout);
+    // The room editor draws its rooms as they're being dragged, and its handles over the top.
+    const view = d.editor ? { ...d.view, rooms: d.editor.liveRooms() } : d.view;
+    d.editor?.underlay(g, x);
+    this.drawRooms(g, x, view, layout);
     if (d.showPlan !== false && d.backdrop && d.project?.backdrop) this.drawBackdrop(g, x, d.project.backdrop, d.backdrop, dpr);
     if (d.gaps) this.drawGaps(g, x, d.gaps);
     if (layout) {
@@ -155,9 +158,10 @@ export class Plan {
       const r = d.view.rooms.find((r) => r.id === d.selection.id);
       if (r) { this.path(g, r.polygon.map(x.pt), true); g.strokeStyle = T.accent; g.lineWidth = 3; g.stroke(); }
     }
-    if (d.labels !== false) this.drawLabels(g, x, d.view, layout, d.compact !== false);
+    if (d.labels !== false) this.drawLabels(g, x, view, layout, d.compact !== false);
     if (layout && d.report) this.drawReportMarks(g, x, layout);
-    else if (layout) this.drawMarkers(g, x, layout, d);
+    else if (layout && !d.editor) this.drawMarkers(g, x, layout, d);
+    d.editor?.overlay(g, x);
   }
 
   path(g, pts, close) {
@@ -546,12 +550,20 @@ export class Plan {
       const q = local(e);
       this.pointers.set(e.pointerId, q);
       if (this.pointers.size === 2) { this.pinch = { d: this.pinchDist(), zoom: this.zoom }; this.drag = null; return; }
+      if (this.data?.editor && this.x) {
+        const h = this.data.editor.down(q, this.x, e);
+        this.drag = { start: q, last: q, item: h ? { kind: 'edit', h } : null, active: false, pan: { ...this.pan } };
+        return;
+      }
       const interactive = this.data?.interactive !== false;
       const item = interactive && this.data?.layout ? this.hitMarker(q) : null;
       this.drag = { start: q, last: q, item, active: false, pan: { ...this.pan } };
     });
     c.addEventListener('pointermove', (e) => {
-      if (!this.pointers.has(e.pointerId)) return;
+      if (!this.pointers.has(e.pointerId)) {
+        if (this.data?.editor && this.x && e.pointerType === 'mouse') { this.data.editor.hover(local(e), this.x, e); this.draw(); }
+        return;
+      }
       const q = local(e);
       this.pointers.set(e.pointerId, q);
       if (this.pinch && this.pointers.size === 2) {
@@ -564,10 +576,12 @@ export class Plan {
       if (!d.active && Math.hypot(q.x - d.start.x, q.y - d.start.y) > 4) {
         d.active = true;
         d.screen = q;
-        if (d.item) this.on.select?.(d.item);
+        if (d.item && d.item.kind !== 'edit') this.on.select?.(d.item);
       }
       if (!d.active) return;
-      if (d.item) {
+      if (d.item?.kind === 'edit') {
+        this.data.editor.move(d.item.h, q, this.x, e);
+      } else if (d.item) {
         d.screen = q;
         this.on.dragMove?.(d.item, this.x.world(q));
       } else {
@@ -583,12 +597,15 @@ export class Plan {
       this.drag = null;
       if (!d) return;
       const q = local(e);
-      if (d.active && d.item) {
+      if (d.active && d.item?.kind === 'edit') {
+        this.data.editor?.up(d.item.h, q, this.x, e);
+      } else if (d.active && d.item) {
         this.on.drop?.(d.item, this.x.world(q));
       } else if (d.active) {
         this.on.changed?.();
       } else if (e.type === 'pointerup') {
-        this.tap(q);
+        if (this.data?.editor) this.data.editor.tap(q, this.x, e);
+        else this.tap(q);
       }
       this.draw();
     };

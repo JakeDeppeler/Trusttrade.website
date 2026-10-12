@@ -6844,7 +6844,7 @@ async function readPlanAI(){
     let data={}; try{ data=JSON.parse((await res.text()).trim()); }catch(_){ data={error:'no_json'}; }
     if(!res.ok || data.error){
       const M={ forbidden:'Plan reading only works on trusttrade.au', rate_limited:'Too many reads just now — give it a minute',
-        daily_limit:"You've used your 3 free plan reads — trace it by hand, or get in touch to unlock more", busy:'Plan reading is busy — try again shortly',
+        daily_limit:"You've used today's 10 free plan reads — trace it by hand, or get in touch to unlock more", busy:'Plan reading is busy — try again shortly',
         unavailable:'Plan reading is turned off right now', bad_image:'That didn’t look like a plan — try a clearer JPEG or PNG',
         refused:"Couldn't read that image", no_json:"Couldn't get usable rooms from that plan", truncated:'That plan was too complex to read in one pass' };
       throw new Error(M[data.error] || ('Plan read failed'+(res.status?' ('+res.status+')':'')));

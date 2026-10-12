@@ -61,6 +61,30 @@ export async function inkImage(blob) {
   return c.transferToImageBitmap();
 }
 
+/// Space held: a drag moves the plan whatever's under the pointer (as in drawing apps).
+let spaceHeld = false;
+window.addEventListener('keydown', (e) => {
+  if (e.code !== 'Space' || e.target.closest?.('input, textarea, select, button, [contenteditable]')) return;
+  spaceHeld = true;
+  e.preventDefault();
+});
+window.addEventListener('keyup', (e) => { if (e.code === 'Space') spaceHeld = false; });
+window.addEventListener('blur', () => { spaceHeld = false; });
+export const spaceIsHeld = () => spaceHeld;
+
+/// A drag that only moves the plan: the hand's on, Space is held, or it's the middle or right button.
+export const movesOnly = (e, hand) => hand || spaceHeld || e.button === 1 || e.button === 2;
+
+/// What a wheel turn does: a trackpad's two-finger scroll moves the plan; a pinch (it arrives as Ctrl + wheel), Ctrl
+/// or ⌘ + wheel, or a mouse wheel zooms.
+export function wheelMoves(e) {
+  if (e.ctrlKey || e.metaKey) return false;
+  const mouseWheel = e.deltaMode !== 0 || (e.deltaX === 0 && Math.abs(e.deltaY) >= 50);
+  return !mouseWheel;
+}
+
+export const ZOOM_MAX = 12;
+
 export class Plan {
   /// `on`: select(item|null), drop(item, pos), dragMove(item, pos), add(pos), changed() (zoom/pan).
   constructor(canvas, on = {}) {
@@ -72,6 +96,7 @@ export class Plan {
     this.pan = { x: 0, y: 0 };
     this.pointers = new Map();
     this.drag = null;
+    this.hand = false;
     this.flow = 0;
     this.raf = 0;
     this.bind();
@@ -88,6 +113,30 @@ export class Plan {
   }
 
   fit() { this.zoom = 1; this.pan = { x: 0, y: 0 }; this.draw(); this.on.changed?.(); }
+
+  /// Zoom by `k` about a point on the screen (the middle by default), keeping that point where it is.
+  zoomBy(k, q = null) {
+    if (!this.x) return;
+    const c = q ?? { x: this.canvas.clientWidth / 2, y: (this.canvas.clientHeight - (this.data?.insetBottom ?? 0)) / 2 };
+    const before = this.x.world(c);
+    this.zoom = Math.min(Math.max(this.zoom * k, 0.6), ZOOM_MAX);
+    const after = this.xform().pt(before);
+    this.pan = { x: this.pan.x + c.x - after.x, y: this.pan.y + c.y - after.y };
+    this.draw();
+    this.on.changed?.();
+  }
+
+  panBy(dx, dy) {
+    this.pan = { x: this.pan.x + dx, y: this.pan.y + dy };
+    this.draw();
+    this.on.changed?.();
+  }
+
+  /// The hand: every drag moves the plan, and nothing's picked or placed.
+  setHand(on) {
+    this.hand = on;
+    this.canvas.style.cursor = on ? 'grab' : '';
+  }
 
   animate() {
     const tick = (t) => {
@@ -451,19 +500,30 @@ export class Plan {
       if (sel?.kind === 'ret') { g.beginPath(); g.roundRect(c.x - 17, c.y - 15.5, 34, 34, 5); g.strokeStyle = T.accent; g.lineWidth = 3; g.stroke(); }
       this.hits.push({ item: { kind: 'ret' }, x: c.x, y: c.y + 1.5, r: 18 });
     }
-    // Fan coil: the body turns with its plenum, the label stays upright.
+    // Fan coil, sideways as they are: wide and skinny (the engine's 1.6 × 0.7 m), its plenum along the long side the
+    // supply faces, where the ducts come off. To scale, never smaller than a mark you can grab.
     {
       const c = at('unit', null, x.pt(l.unit));
+      const depth = Math.max(0.7 * x.s, 16), width = Math.max(1.6 * x.s, 46), plenum = Math.max(0.45 * x.s, 9);
+      const turn = -Math.atan2(l.unitDir.y, l.unitDir.x);
       shadow(() => {
-        g.save(); g.translate(c.x, c.y); g.rotate(-Math.atan2(l.unitDir.y, l.unitDir.x));
-        g.beginPath(); g.roundRect(-26 + 4 - 4.5, -12, 52, 24, 4); g.fillStyle = T.ink; g.fill();
-        g.fillStyle = '#BFBFBF'; g.fillRect(26 - 0.5, -10, 9, 20);
-        if (sel?.kind === 'unit') { g.beginPath(); g.roundRect(-30.5, -16, 70, 32, 6); g.strokeStyle = T.accent; g.lineWidth = 3; g.stroke(); }
+        g.save(); g.translate(c.x, c.y); g.rotate(turn);
+        g.beginPath(); g.roundRect(-depth / 2, -width / 2, depth, width, 4); g.fillStyle = T.ink; g.fill();
+        g.fillStyle = '#BFBFBF'; g.fillRect(depth / 2 - 0.5, -width / 2 + 2, plenum, width - 4);
+        if (sel?.kind === 'unit') {
+          g.beginPath(); g.roundRect(-depth / 2 - 4, -width / 2 - 4, depth + plenum + 8, width + 8, 6); g.strokeStyle = T.accent; g.lineWidth = 3; g.stroke();
+        }
         g.restore();
+        // The label runs along the unit, the right way up.
+        let a = turn + Math.PI / 2;
+        while (a > Math.PI / 2) a -= Math.PI;
+        while (a <= -Math.PI / 2) a += Math.PI;
+        g.save(); g.translate(c.x, c.y); g.rotate(a);
         g.font = `800 8px ${FONT}`; g.fillStyle = '#fff'; g.textAlign = 'center'; g.textBaseline = 'middle';
-        g.fillText('FAN COIL', c.x, c.y);
+        g.fillText('FAN COIL', 0, 0);
+        g.restore();
       });
-      this.hits.push({ item: { kind: 'unit' }, x: c.x, y: c.y, r: 27 });
+      this.hits.push({ item: { kind: 'unit' }, x: c.x, y: c.y, r: Math.max(width / 2, 27) });
     }
     // BDO handles: a ring when picked, a pin once moved by hand.
     for (const b of l.boxes) {
@@ -550,6 +610,11 @@ export class Plan {
       const q = local(e);
       this.pointers.set(e.pointerId, q);
       if (this.pointers.size === 2) { this.pinch = { d: this.pinchDist(), zoom: this.zoom }; this.drag = null; return; }
+      if (movesOnly(e, this.hand)) {
+        this.drag = { start: q, last: q, item: null, active: false, pan: { ...this.pan }, moveOnly: true, cursor: c.style.cursor };
+        c.style.cursor = 'grabbing';
+        return;
+      }
       if (this.data?.editor && this.x) {
         const h = this.data.editor.down(q, this.x, e);
         this.drag = { start: q, last: q, item: h ? { kind: 'edit', h } : null, active: false, pan: { ...this.pan } };
@@ -567,7 +632,7 @@ export class Plan {
       const q = local(e);
       this.pointers.set(e.pointerId, q);
       if (this.pinch && this.pointers.size === 2) {
-        this.zoom = Math.min(Math.max(this.pinch.zoom * this.pinchDist() / this.pinch.d, 0.6), 8);
+        this.zoom = Math.min(Math.max(this.pinch.zoom * this.pinchDist() / this.pinch.d, 0.6), ZOOM_MAX);
         this.draw();
         return;
       }
@@ -597,6 +662,12 @@ export class Plan {
       this.drag = null;
       if (!d) return;
       const q = local(e);
+      if (d.moveOnly) {
+        c.style.cursor = this.hand ? 'grab' : d.cursor;
+        if (d.active) this.on.changed?.();
+        this.draw();
+        return;
+      }
       if (d.active && d.item?.kind === 'edit') {
         this.data.editor?.up(d.item.h, q, this.x, e);
       } else if (d.active && d.item) {
@@ -613,15 +684,11 @@ export class Plan {
     c.addEventListener('pointercancel', end);
     c.addEventListener('wheel', (e) => {
       e.preventDefault();
-      const q = local(e), before = this.x.world(q);
-      const k = Math.exp(-e.deltaY * (e.ctrlKey ? 0.01 : 0.0015));
-      this.zoom = Math.min(Math.max(this.zoom * k, 0.6), 8);
-      // Keep the point under the cursor where it is.
-      const x = this.xform(), after = x.pt(before);
-      this.pan = { x: this.pan.x + q.x - after.x, y: this.pan.y + q.y - after.y };
-      this.draw();
-      this.on.changed?.();
+      if (!this.x) return;
+      if (wheelMoves(e)) { this.panBy(-e.deltaX, -e.deltaY); return; }
+      this.zoomBy(Math.exp(-e.deltaY * (e.ctrlKey ? 0.01 : 0.0015)), local(e));    // the point under the cursor stays put
     }, { passive: false });
+    c.addEventListener('contextmenu', (e) => e.preventDefault());              // a right-drag moves the plan
   }
 
   pinchDist() {

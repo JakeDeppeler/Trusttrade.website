@@ -1,10 +1,10 @@
 // Trust Trade Pro — the HVAC Designer in the browser. The same five steps as the app (House · Capture · Check · Design ·
 // Send) on the app's own engine (engine.wasm, run in a worker): the same loads, zones, ducts, checks and materials.
 
-import { call, latest } from './engine.js?v=6d56e6e-202610121204';
-import * as store from './store.js?v=6d56e6e-202610121204';
-import { Plan, inkImage, zoneColour, ductColour, T, pointInPolygon } from './plan.js?v=6d56e6e-202610121204';
-import { RoomEditor, metres, signedArea, onLine } from './roomeditor.js?v=6d56e6e-202610121204';
+import { call, latest } from './engine.js?v=9a4c156-202610121250';
+import * as store from './store.js?v=9a4c156-202610121250';
+import { Plan, inkImage, zoneColour, ductColour, T, pointInPolygon, movesOnly, wheelMoves, ZOOM_MAX } from './plan.js?v=9a4c156-202610121250';
+import { RoomEditor, metres, signedArea, onLine } from './roomeditor.js?v=9a4c156-202610121250';
 
 // MARK: Helpers
 
@@ -33,8 +33,29 @@ const ICON = {
   wind: '<path d="M3 8h11a3 3 0 10-3-3M3 12h15a3 3 0 11-3 3M3 16h7"/>', zones: '<circle cx="8.5" cy="8.5" r="5"/><circle cx="15.5" cy="15.5" r="5"/>',
   house: '<path d="M3.5 11L12 3.5l8.5 7.5M5.5 9.5v10h13v-10"/>', ruler: '<path d="M3 17L17 3l4 4L7 21z"/><path d="M7 13l2 2M10 10l2 2M13 7l2 2"/>',
   pin: '<path d="M12 21v-7"/><circle cx="12" cy="8" r="5"/>', send: '<path d="M4 12l16-8-6 16-2.5-6.5z"/>',
+  minus: '<path d="M5 12h14"/>',
+  hand: '<path d="M8 12.5V6a1.5 1.5 0 013 0v5.5M11 11V4.5a1.5 1.5 0 013 0V11M14 11V6a1.5 1.5 0 013 0v7.5c0 4-2.6 7-6.4 7-2.4 0-4.1-1.1-5.3-3.2L3.6 14a1.4 1.4 0 012.3-1.6L8 15"/>',
 };
 const icon = (k, cls = '') => `<svg class="${cls}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${ICON[k]}</svg>`;
+
+/// Zoom in and out, fit, and the hand (every drag moves the plan) over a plan: Space-and-drag, a right-drag or a
+/// trackpad's two-finger scroll move it too.
+function zoomCtl() {
+  return `<div class="zoomctl">
+    <button data-z="hand" title="Move the plan (or hold Space and drag)">${icon('hand')}</button>
+    <button data-z="in" title="Zoom in">${icon('plus')}</button>
+    <button data-z="out" title="Zoom out">${icon('minus')}</button>
+    <button data-z="fit" title="Fit the plan">${icon('fit')}</button></div>`;
+}
+function bindZoomCtl(root, api) {
+  root.querySelectorAll('.zoomctl [data-z]').forEach((b) => (b.onclick = () => {
+    const z = b.dataset.z;
+    if (z === 'in') api.zoomBy(1.5);
+    else if (z === 'out') api.zoomBy(1 / 1.5);
+    else if (z === 'fit') api.fit();
+    else { const on = !b.classList.contains('on'); b.classList.toggle('on', on); api.setHand(on); }
+  }));
+}
 
 function toast(msg, ms = 3200) {
   const t = document.createElement('div');
@@ -244,7 +265,10 @@ function renderTop() {
 
 function primaryAction() {
   const v = app.view, hasRooms = (v?.rooms?.length ?? 0) > 0;
-  if (app.editorOpen) return { label: 'Done', run: closeEditor };
+  if (app.editorOpen) {
+    const next = hasRooms && (app.editorOpen.edited || app.editorOpen.from !== 'design');
+    return { label: next ? 'Next: check the rooms →' : 'Done', run: closeEditor };
+  }
   switch (app.step) {
     case 'house': return { label: hasRooms ? 'Next: Check →' : 'Next: Capture →', run: () => go(hasRooms ? 'check' : 'capture') };
     case 'capture': return { label: 'Check the rooms →', disabled: !hasRooms, run: () => go('check') };
@@ -632,7 +656,7 @@ function renderCapture(c) {
     c.innerHTML = `<div class="card" style="max-width:560px;margin:20px auto"><h2>No rooms drawn yet</h2>
       <p class="muted">The plan's in and scaled. Draw the rooms over it, corner by corner.</p>
       <div class="actions-row"><button class="btn" id="drawrooms">Draw the rooms</button><button class="btn2" id="another">Use a different plan</button></div></div>`;
-    $('#drawrooms', c).onclick = () => openEditor({ mode: 'draw' });
+    $('#drawrooms', c).onclick = () => openEditor({ mode: 'draw', guide: true });
     $('#another', c).onclick = () => pickPlan(false);
     return;
   }
@@ -672,7 +696,7 @@ function renderCapture(c) {
   $('#demo2', c)?.addEventListener('click', async () => { const { project } = await call('demo', { project: app.project }); app.read = null; await commit(project); go('check'); });
   $('#uselen', c)?.addEventListener('click', () => { const m = parseFloat($('#len', c).value); if (m >= 4 && m <= 60) importRead(m); else toast('A house between 4 and 60 m long.'); });
   $('#measure', c)?.addEventListener('click', () => { app.read.status = 'measure'; render(); });
-  $('#drawit', c)?.addEventListener('click', () => { app.read.result = null; startDrawing(); });
+  $('#drawit', c)?.addEventListener('click', () => { app.read.result = null; app.read.status = 'measure'; render(); });
   $('#fixrooms', c)?.addEventListener('click', () => openEditor());
   c.querySelectorAll('[data-north]').forEach((b) => (b.onclick = () => { app.read.north = b.dataset.north; importRead(); }));
   const cv = $('#cv', c);
@@ -876,15 +900,20 @@ function mountMeasure(cv, url, m, { interactive, onChange, view }) {
   img.onload = draw;
   img.src = url;
   new ResizeObserver(draw).observe(cv);
-  cv.style.cursor = interactive ? 'crosshair' : 'grab';
+  let hand = false;
+  const rest = () => (hand || !interactive ? 'grab' : 'crosshair');
+  cv.style.cursor = rest();
   const local = (e) => { const r = cv.getBoundingClientRect(); return { x: e.clientX - r.left, y: e.clientY - r.top }; };
   let drag = null;
   cv.addEventListener('pointerdown', (e) => {
     cv.setPointerCapture(e.pointerId);
     const q = local(e);
-    const end = interactive ? m.pts.findIndex((p) => { const s2 = toScr(p); return Math.hypot(s2.x - q.x, s2.y - q.y) <= 12; }) : -1;
-    drag = { start: q, pan: { ...st.pan }, end, moved: false };
+    const moveOnly = movesOnly(e, hand) || !interactive;
+    const end = !moveOnly ? m.pts.findIndex((p) => { const s2 = toScr(p); return Math.hypot(s2.x - q.x, s2.y - q.y) <= 12; }) : -1;
+    drag = { start: q, pan: { ...st.pan }, end, moved: false, moveOnly };
+    if (moveOnly) cv.style.cursor = 'grabbing';
   });
+  cv.addEventListener('contextmenu', (e) => e.preventDefault());
   cv.addEventListener('pointermove', (e) => {
     if (!drag) return;
     const q = local(e);
@@ -898,6 +927,8 @@ function mountMeasure(cv, url, m, { interactive, onChange, view }) {
     if (!drag) return;
     const d = drag;
     drag = null;
+    cv.style.cursor = rest();
+    if (d.moveOnly) return;
     if (d.moved && d.end >= 0) onChange();
     else if (!d.moved && interactive && e.type === 'pointerup') {
       const p = toImg(local(e));
@@ -909,16 +940,24 @@ function mountMeasure(cv, url, m, { interactive, onChange, view }) {
   };
   cv.addEventListener('pointerup', up);
   cv.addEventListener('pointercancel', up);
-  cv.addEventListener('wheel', (e) => {
-    e.preventDefault();
-    const q = local(e), before = toImg(q);
-    st.zoom = Math.min(Math.max(st.zoom * Math.exp(-e.deltaY * (e.ctrlKey ? 0.01 : 0.0015)), 0.5), 12);
+  const zoomBy = (f, q = { x: cv.clientWidth / 2, y: cv.clientHeight / 2 }) => {
+    const before = toImg(q);
+    st.zoom = Math.min(Math.max(st.zoom * f, 0.5), ZOOM_MAX * 2);
     place();
     const after = toScr(before);
     st.pan = { x: st.pan.x + q.x - after.x, y: st.pan.y + q.y - after.y };
     draw();
+  };
+  cv.addEventListener('wheel', (e) => {
+    e.preventDefault();
+    if (wheelMoves(e)) { st.pan = { x: st.pan.x - e.deltaX, y: st.pan.y - e.deltaY }; draw(); return; }
+    zoomBy(Math.exp(-e.deltaY * (e.ctrlKey ? 0.01 : 0.0015)), local(e));
   }, { passive: false });
-  return { draw };
+  return {
+    draw, zoomBy,
+    fit: () => { st.zoom = 1; st.pan = { x: 0, y: 0 }; draw(); },
+    setHand: (on) => { hand = on; cv.style.cursor = rest(); },
+  };
 }
 
 /// Metres a pixel from the length measured on the plan, or null until it's measured and typed.
@@ -935,8 +974,8 @@ function renderPlanStart(c) {
   c.innerHTML = `<div class="work">
     <div class="stage">
       <div class="bar"><b>The builder's plan</b><div class="spacer" style="flex:1"></div><button class="link" id="another">Use a different plan</button></div>
-      <div class="canvas-card"><canvas id="mcv"></canvas></div>
-      <div class="hint">${measuring ? 'Click one end of a length you know, then the other. Drag an end to fine-tune it, scroll to zoom in for accuracy.' : 'Scroll to zoom, drag to look around the plan.'}</div>
+      <div class="canvas-card"><canvas id="mcv"></canvas>${zoomCtl()}</div>
+      <div class="hint">${measuring ? 'Click one end of a length you know, then the other; drag an end to fine-tune it. Zoom in with + (or scroll) to be exact; move around with the hand, Space-and-drag or a right-drag.' : 'Zoom with + and −; move around with the hand, Space-and-drag or a right-drag.'}</div>
     </div>
     <div class="panel" id="ps-panel"></div></div>`;
   $('#another', c).onclick = () => pickPlan(true);
@@ -946,23 +985,25 @@ function renderPlanStart(c) {
     if (!measuring) {
       panel.innerHTML = `<div class="card"><h2>The rooms</h2><p class="small muted" style="margin:2px 0 10px">How do you want them off the plan?</p>
         <button class="option" id="pick-read" style="width:100%;text-align:left"><span class="radio"></span><span><b>Read them for me</b> <span class="tag">RECOMMENDED</span><p>AI finds each room — L-shapes and angled walls too — its windows and the scale from the printed sizes. You check and fix them after. Up to 10 plans a day.</p></span></button>
-        <button class="option" id="pick-draw" style="width:100%;text-align:left;margin-top:8px"><span class="radio"></span><span><b>Draw them myself</b><p>1 · Click round each room's corners over the plan.<br>2 · Click one wall you know the length of (a printed size, like 3600) and type it — the whole plan is sized from it.</p></span></button></div>`;
+        <button class="option" id="pick-draw" style="width:100%;text-align:left;margin-top:8px"><span class="radio"></span><span><b>Draw them myself</b><p>1 · Set the scale: click both ends of a printed size (like 3600) and type it.<br>2 · Click round each room's corners over the plan.</p></span></button></div>`;
       $('#pick-read', panel).onclick = readPlan;
-      $('#pick-draw', panel).onclick = () => startDrawing();
+      $('#pick-draw', panel).onclick = () => { r.status = 'measure'; render(); };
       return;
     }
-    panel.innerHTML = `<div class="card"><h2>Set the size</h2>
+    const across = mpp ? r.keep.w * mpp : 0, odd = mpp && (across > 70 || Math.max(across, r.keep.h * mpp) < 6);
+    panel.innerHTML = `<div class="card">${r.result ? '<h2>Set the scale</h2>' : '<span class="eyebrow">Step 1 of 2</span><h2>Set the scale</h2><p class="small muted" style="margin:2px 0 6px">Then step 2: draw the rooms over the plan.</p>'}
         <div class="checklist" style="margin-top:4px">
           <div class="item ${m.pts.length === 2 ? 'ok' : 'info'}"><div class="mark">${m.pts.length === 2 ? '✓' : '1'}</div><div><b>Click both ends of a length you know</b>
             <p class="small muted" style="margin:2px 0 0">A room's printed size (3600 across a bedroom), a dimension line or the plan's scale bar. The longer it is, the truer the scale.</p></div></div>
           <div class="item ${mpp ? 'ok' : 'info'}" id="ps-len"><div class="mark">${mpp ? '✓' : '2'}</div><div style="flex:1"><b>How long is it?</b>
             <div style="display:flex;gap:8px;align-items:center;margin-top:6px"><input class="text" id="mm" type="number" min="100" step="10" placeholder="e.g. 3600" value="${esc(m.mm)}" style="flex:1"><span class="small muted">mm</span></div></div></div>
         </div>
-        <p class="small muted" id="ps-across" style="margin:8px 0 0">${mpp ? `At that scale the drawing is ${fmt(r.keep.w * mpp, 1)} × ${fmt(r.keep.h * mpp, 1)} m.` : ''}</p></div>
+        <p class="small muted" id="ps-across" style="margin:8px 0 0">${mpp ? `At that scale the drawing is ${fmt(r.keep.w * mpp, 1)} × ${fmt(r.keep.h * mpp, 1)} m.` : ''}</p>
+        <p class="small" id="ps-odd" style="margin:6px 0 0;color:var(--danger);font-weight:600;${odd ? '' : 'display:none'}">That's an odd size for a house plan — check you clicked both ends of the same dimension, and the length is in mm.</p></div>
       <div class="card"><span class="eyebrow">Where does north point on the plan?</span>
         <div class="seg">${[['up', '↑ Up'], ['right', '→ Right'], ['down', '↓ Down'], ['left', '← Left']].map(([k, l]) => `<button data-north="${k}" class="${north === k ? 'on' : ''}">${l}</button>`).join('')}</div>
         <p class="small muted" style="margin:8px 0 0">So the windows face the right way for the sun.</p></div>
-      <div class="actions-row"><button class="btn" id="ps-go" ${mpp ? '' : 'disabled'}>${r.result ? 'Use this scale' : 'Start drawing the rooms'}</button>
+      <div class="actions-row"><button class="btn" id="ps-go" ${mpp ? '' : 'disabled'}>${r.result ? 'Use this scale' : 'Next: draw the rooms →'}</button>
         <button class="btn2" id="ps-back">Back</button></div>`;
     const input = $('#mm', panel);
     input.oninput = () => {
@@ -970,6 +1011,8 @@ function renderPlanStart(c) {
       const k = measuredScale(m);
       $('#ps-go', panel).disabled = !k;
       $('#ps-across', panel).textContent = k ? `At that scale the drawing is ${fmt(r.keep.w * k, 1)} × ${fmt(r.keep.h * k, 1)} m.` : '';
+      const w2 = k ? r.keep.w * k : 0;
+      $('#ps-odd', panel).style.display = k && (w2 > 70 || Math.max(w2, r.keep.h * k) < 6) ? '' : 'none';
       $('#ps-len', panel).className = 'item ' + (k ? 'ok' : 'info');
       $('#ps-len .mark', panel).textContent = k ? '✓' : '2';
     };
@@ -984,15 +1027,16 @@ function renderPlanStart(c) {
     if (m.pts.length === 2 && !m.mm) input.focus();
   };
   paint();
-  mountMeasure($('#mcv', c), r.url, r.measure, { interactive: measuring, onChange: paint, view: r.view });
+  const mc = mountMeasure($('#mcv', c), r.url, r.measure, { interactive: measuring, onChange: paint, view: r.view });
+  bindZoomCtl(c, mc);
 }
 
 /// The plan image under an empty house and the editor open to draw the rooms over it. With no scale measured it goes in
 /// at a guess (the drawing about 25 m across) and is sized after, from a wall you know.
 async function startDrawing(mpp) {
   const r = app.read;
-  const guess = !mpp;
-  mpp ??= 25 / Math.max(r.keep.w, r.keep.h);
+  if (!mpp) { r.status = 'measure'; render(); return; }                        // the scale comes first
+  const guess = false;
   try {
     const { project } = await call('blankPlan', { project: app.project, file: r.fileName, imageWidth: r.keep.w, imageHeight: r.keep.h, mpp, north: r.north ?? 'up' });
     await store.saveImage(r.fileName, r.keep.blob);
@@ -1003,7 +1047,7 @@ async function startDrawing(mpp) {
     await loadBackdrop();
     app.read = null;
     setUnsized(guess);
-    openEditor({ mode: 'draw' });
+    openEditor({ mode: 'draw', guide: true });
   } catch (e) {
     toast(e.message);
   }
@@ -1051,10 +1095,10 @@ async function editorGaps() {
 }
 
 /// Open the room editor in place of the step (Capture, Check or Design), on a room or drawing.
-async function openEditor({ room = null, mode = 'edit' } = {}) {
+async function openEditor({ room = null, mode = 'edit', guide = false } = {}) {
   if (!app.project) return;
   shutEditor();
-  const st = { showImage: true, undoBase: app.undo.length, redoBase: app.redo.length, edited: false, zoom: null, pan: null, from: app.step };
+  const st = { showImage: true, undoBase: app.undo.length, redoBase: app.redo.length, edited: false, zoom: null, pan: null, from: app.step, guide };
   st.ed = new RoomEditor({
     commit: (op, args) => edEdit(op, args),
     changed: () => edPanel(),
@@ -1088,7 +1132,7 @@ async function closeEditor() {
     return;
   }
   shutEditor();
-  if (!st.edited) { render(); return; }
+  if (!st.edited) { if (app.view.rooms.length && st.from !== 'design') go('check'); else render(); return; }
   app.roomsEdited = !!app.project.design;
   const a = app.checkAnswers;
   if (a) {
@@ -1112,12 +1156,10 @@ function renderRoomEditor(c) {
       <div class="bar">
         <div class="seg" id="ed-tools">${[['edit', 'Select'], ['draw', 'Draw a room'], ['measure', 'Set the size']].map(([k, l]) => `<button data-tool="${k}">${l}</button>`).join('')}</div>
         <div class="spacer" style="flex:1"></div>
-        ${hasImage ? `<label class="chip" style="cursor:pointer;height:34px"><input type="checkbox" id="ed-img" ${st.showImage ? 'checked' : ''} style="accent-color:var(--ink)"> Plan image</label>` : ''}
-        <button class="iconbtn" id="ed-undo" title="Undo">${icon('undo')}</button>
-        <button class="iconbtn" id="ed-redo" title="Redo">${icon('redo')}</button>
-        <button class="iconbtn" id="ed-fit" title="Fit the plan">${icon('fit')}</button>
+        <button class="btn2 small" id="ed-undo" title="Undo the last change">${icon('undo').replace('<svg', '<svg width="15" height="15"')} Back</button>
+        <button class="btn2 small" id="ed-redo" title="Redo it">Forward ${icon('redo').replace('<svg', '<svg width="15" height="15"')}</button>
       </div>
-      <div class="canvas-card"><canvas id="cv"></canvas></div>
+      <div class="canvas-card"><canvas id="cv"></canvas>${zoomCtl()}</div>
       <div class="hint" id="ed-hint"></div>
     </div>
     <div class="panel" id="ed-panel"></div>
@@ -1132,14 +1174,12 @@ function renderRoomEditor(c) {
   c.querySelectorAll('[data-tool]').forEach((b) => (b.onclick = () => st.ed.setMode(b.dataset.tool)));
   $('#ed-undo', c).onclick = edUndo;
   $('#ed-redo', c).onclick = edRedo;
-  $('#ed-fit', c).onclick = () => { st.bounds = editorBounds(); plan.set({ bounds: st.bounds }); plan.fit(); };
-  $('#ed-img', c)?.addEventListener('change', (e) => {
-    st.showImage = e.target.checked;
-    st.ed.set({ hasImage: st.showImage });
-    plan.set({ showPlan: st.showImage });
-  });
+  bindZoomCtl(c, { zoomBy: (k) => plan.zoomBy(k), setHand: (on) => plan.setHand(on),
+    fit: () => { st.bounds = editorBounds(); plan.set({ bounds: st.bounds }); plan.fit(); } });
   plan.canvas.style.cursor = st.ed.mode === 'edit' ? '' : 'crosshair';
   edPanel();
+  // Back to the step's own primary once the panel's drawn (Next: check the rooms).
+  renderTop();
 }
 
 /// A change made in the editor: through the engine, kept with an undo step, the plan and the panel brought up to date
@@ -1194,6 +1234,8 @@ function edKeys(e) {
   if (!st || document.querySelector('.overlay') || e.target.closest?.('input, select, textarea')) return;
   const ed = st.ed;
   if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'z') { e.preventDefault(); if (e.shiftKey) edRedo(); else edUndo(); return; }
+  const arrows = { ArrowLeft: [60, 0], ArrowRight: [-60, 0], ArrowUp: [0, 60], ArrowDown: [0, -60] };
+  if (arrows[e.key]) { e.preventDefault(); st.plan?.panBy(...arrows[e.key]); return; }
   if (e.key === 'Escape') ed.escape();
   else if (e.key === 'Enter' && ed.mode === 'draw') ed.finish();
   else if (e.key === 'Backspace' || e.key === 'Delete') {
@@ -1215,6 +1257,15 @@ function wallWindows(r, edge) {
   });
 }
 
+/// A room's zone choices: as the zoning puts it, a zone of its own, on another room's zone, or no zone (always on).
+function zoneOptions(r, current) {
+  const others = app.view.rooms.filter((x) => x.conditioned && x.id !== r?.id);
+  return `<option value="" ${current === '' ? 'selected' : ''}>As the zoning puts it</option>
+    <option value="own" ${current === 'own' ? 'selected' : ''}>Its own zone</option>
+    ${others.length ? `<optgroup label="On a zone with">${others.map((x) => `<option value="${x.id}" ${current === x.id ? 'selected' : ''}>${esc(x.name)}</option>`).join('')}</optgroup>` : ''}
+    <option value="none" ${current === 'none' ? 'selected' : ''}>No zone — always on</option>`;
+}
+
 function shapeWord(r) {
   const n = r.polygon.length;
   const square = r.polygon.every((q, i) => { const o = r.polygon[(i + 1) % n]; return Math.abs(q.x - o.x) < 0.01 || Math.abs(q.y - o.y) < 0.01; });
@@ -1233,9 +1284,9 @@ function edPanel() {
   if (rd) rd.disabled = app.redo.length <= st.redoBase;
   const hint = $('#ed-hint');
   if (hint) {
-    hint.textContent = ed.mode === 'draw' ? 'Click each corner of the room in turn; click the first corner (or press Enter) to finish. Corners snap to the rooms round them — hold Shift to place one freely.'
+    hint.textContent = ed.mode === 'draw' ? 'Click each corner of the room in turn; click the first corner (or press Enter) to finish. Corners snap to the rooms round them — hold Shift to place one freely. Move around with the hand, Space-and-drag or a right-drag.'
       : ed.mode === 'measure' ? 'Click a wall you know the length of (it lights up blue), or two points on the plan such as the ends of the scale bar.'
-      : 'Drag a wall or a picked room\'s corner (the room next door comes too). Drag a + to put a corner in a wall. Scroll to zoom, drag the background to pan.';
+      : 'Drag a wall or a picked room\'s corner (the room next door comes too). Drag a + to put a corner in a wall. Zoom with + and −; move around with the hand, Space-and-drag, a right-drag or the arrow keys.';
   }
   const close = '<button class="iconbtn close" id="ed-close">' + icon('x') + '</button>';
   const unsized = isUnsized(), area = (m2) => (unsized ? 'not sized yet' : fmt(m2, 1) + ' m²');
@@ -1251,6 +1302,12 @@ function edPanel() {
     </div></div>` : '';
   if (ed.mode === 'draw') {
     const n = ed.draft.length;
+    if (st.guide && !unsized) {
+      html += `<div class="card"><div class="checklist">
+        <div class="item ok"><div class="mark">✓</div><div><b>Scale set</b><p class="small muted" style="margin:2px 0 0">Lengths and areas are real now.</p></div></div>
+        <div class="item ${drawn ? 'ok' : 'info'}"><div class="mark">${drawn ? '✓' : '2'}</div><div><b>Draw the rooms</b><p class="small muted" style="margin:2px 0 0">${drawn ? `${v.rooms.length} drawn. Draw the rest, then Next.` : 'Click round the first room\'s corners.'}</p>
+          ${drawn ? '<button class="btn" id="dr-next" style="margin-top:8px">Next: check the rooms →</button>' : ''}</div></div></div></div>`;
+    }
     html += `<div class="card"><h2>Draw a room</h2>
       <p class="small muted" style="margin:4px 0 10px">${n ? `${n} corner${n === 1 ? '' : 's'} so far.` : 'Click the first corner of the room.'} Go round the room's walls — the inside face — and click the first corner again to finish.</p>
       <div class="actions-row">${n >= 3 ? '<button class="btn" id="dr-finish">Finish the room</button>' : ''}${n ? '<button class="btn2" id="dr-back">Take the last corner out</button>' : ''}
@@ -1286,6 +1343,7 @@ function edPanel() {
         <div class="insp-sub">${area(r.area)} · ${shapeWord(r)} · ${r.windows.length} window${r.windows.length === 1 ? '' : 's'}</div>
         <label class="field"><span>Name</span><input id="ed-name" value="${esc(r.name)}"></label>
         <label class="field"><span>Type</span><select id="ed-type">${o.roomTypes.map((x) => `<option value="${x.id}" ${x.id === r.type ? 'selected' : ''}>${esc(x.label)}</option>`).join('')}</select></label>
+        ${r.conditioned ? `<label class="field"><span>Zone</span><select id="ed-zone">${zoneOptions(r, r.zonePlan ?? '')}</select></label>` : ''}
         <p class="small muted" style="margin:0">Pick a corner to cut it out or take it out; pick a wall for its windows. Drag a + to bend a wall.</p></div>
       ${corner}${wall}
       <div class="actions-row"><button class="btn2 danger" id="ed-del">${icon('trash').replace('<svg', '<svg width="16" height="16"')} Delete this room</button></div>`;
@@ -1316,8 +1374,10 @@ function edPanel() {
   $('#dr-stop', el)?.addEventListener('click', () => ed.setMode(ed.draft.length ? 'draw' : 'edit'));
   $('#ms-stop', el)?.addEventListener('click', () => ed.setMode('edit'));
   $('#go-size', el)?.addEventListener('click', () => ed.setMode('measure'));
+  $('#dr-next', el)?.addEventListener('click', closeEditor);
   $('#ed-name', el)?.addEventListener('change', (e) => { const r = room(); if (r && e.target.value.trim()) edEdit('setRoom', { room: r.id, name: e.target.value.trim() }); });
   $('#ed-type', el)?.addEventListener('change', (e) => { const r = room(); if (r) edEdit('setRoom', { room: r.id, type: e.target.value }); });
+  $('#ed-zone', el)?.addEventListener('change', (e) => { const r = room(); if (r) edEdit('setZonePlan', { room: r.id, choice: e.target.value || null }); });
   $('#c-square', el)?.addEventListener('click', () => ed.squareCorner());
   $('#c-remove', el)?.addEventListener('click', () => ed.removeCorner());
   el.querySelectorAll('[data-win]').forEach((b) => (b.onclick = () => { const r = room(); if (r) edEdit('addWindow', { room: r.id, edge: sel.edge, width: +b.dataset.win }); }));
@@ -1346,11 +1406,14 @@ function newRoomDialog(pts) {
   const d = dialog(`<h2>The new room${isUnsized() ? '' : ' · ' + fmt(area, 1) + ' m²'}</h2><p class="muted small" style="margin:0 0 10px">What is it?</p>
     <div class="pills" id="nr-kinds">${kinds.map(([l], i) => `<button data-k="${i}" class="${i === 0 ? 'on' : ''}">${l}</button>`).join('')}</div>
     <p class="small muted" style="margin:8px 0 0">Garage takes in anything not air conditioned (robe, pantry, store).</p>
-    <label class="field" style="margin-top:12px"><span>Name</span><input id="nr-name" placeholder="Bedroom" autofocus></label>`,
+    <label class="field" style="margin-top:12px"><span>Name</span><input id="nr-name" placeholder="Bedroom" autofocus></label>
+    <label class="field" id="nr-zonef"><span>Zone</span><select id="nr-zone">${zoneOptions(null, '')}</select>
+      <small class="muted" style="display:block;margin-top:4px">Its own zone, on a zone with other rooms, or no zone (always on). Change it later on the room.</small></label>`,
   [{ label: 'Cancel', run: () => { st.plan?.draw(); edPanel(); } },
     { label: 'Add the room', primary: true, run: async (o) => {
       const name = $('#nr-name', o).value.trim();
-      const r = await edEdit('addRoom', { outline: pts, name, type: pick[1] });
+      const zone = pick[1] === 'garage' ? null : ($('#nr-zone', o).value || null);
+      const r = await edEdit('addRoom', { outline: pts, name, type: pick[1], choice: zone });
       if (r?.id) toast((app.view.rooms.find((x) => x.id === r.id)?.name ?? pick[0]) + (isUnsized() ? ' added — draw the rest, then set the size' : ' added — draw the next room, or Select to fix one'));
       else { st.ed.draft = pts; st.ed.mode = 'draw'; edPanel(); st.plan?.draw(); }
     } }]);
@@ -1362,6 +1425,7 @@ function newRoomDialog(pts) {
     pick = kinds[+b.dataset.k];
     d.querySelectorAll('#nr-kinds button').forEach((x) => x.classList.toggle('on', x === b));
     $('#nr-name', d).placeholder = pick[0];
+    $('#nr-zonef', d).style.display = pick[1] === 'garage' ? 'none' : '';
   });
   edPanel();
 }
@@ -1396,7 +1460,7 @@ function mountPlan(cv, opts) {
   const plan = new Plan(cv, handlers ?? {});
   plan.set({
     project: app.project, view: app.view, layout: layout === false ? null : app.layout, air: app.air, backdrop: app.backdrop,
-    showPlan: app.layers.plan, allSizes: app.layers.allSizes, showAir: false, selection: null, ...rest,
+    showPlan: true, allSizes: app.layers.allSizes, showAir: false, selection: null, ...rest,
   });
   return plan;
 }
@@ -1426,9 +1490,11 @@ function renderDesign(c) {
         <div class="stats"><div><b>${v.totals.unit ? g(v.totals.unit.kw) + ' kW' : '—'}</b><span>unit</span></div><div><b>${zones || '—'}</b><span>zones</span></div>
           <div><b>${l ? l.outlets.length : '—'}</b><span>outlets</span></div><div><b>${l ? bags : '—'}</b><span>flex bags</span></div></div>
         <div class="spacer" style="flex:1"></div>
+        <button class="btn2 small" id="b-undo" title="Undo the last change" ${app.undo.length ? '' : 'disabled'}>${icon('undo').replace('<svg', '<svg width="15" height="15"')} Back</button>
+        <button class="btn2 small" id="b-redo" title="Redo it" ${app.redo.length ? '' : 'disabled'}>Forward ${icon('redo').replace('<svg', '<svg width="15" height="15"')}</button>
         <div class="seg"><button data-mode="plan" class="${app.layers.air ? '' : 'on'}">Plan</button><button data-mode="air" class="${app.layers.air ? 'on' : ''}">Air</button></div>
       </div>
-      <div class="canvas-card"><canvas id="cv"></canvas>
+      <div class="canvas-card"><canvas id="cv"></canvas>${zoomCtl()}
         <div class="north">${'<svg width="14" height="16" viewBox="0 0 14 16"><path d="M7 0l6 16-6-4-6 4z" fill="#E0342F"/></svg>'}<div>N</div></div>
         ${app.designing ? '<div class="busy"><div><div class="spinner"></div>Designing the ducts…</div></div>' : ''}
       </div>
@@ -1452,6 +1518,9 @@ function renderDesign(c) {
   $('#t-add', c).onclick = () => { app.addMode = !app.addMode; if (app.addMode) app.selection = null; render(); };
   $('#t-undo', c).onclick = undo;
   $('#t-redo', c).onclick = redo;
+  $('#b-undo', c).onclick = undo;
+  $('#b-redo', c).onclick = redo;
+  bindZoomCtl(c, { zoomBy: (k) => plan.zoomBy(k), fit: () => plan.fit(), setHand: (on) => plan.setHand(on) });
   $('#t-fit', c).onclick = () => plan.fit();
   $('#t-layers', c).onclick = (e) => layersMenu(e.currentTarget);
   $('#cancel-join', c)?.addEventListener('click', () => { app.joining = null; render(); });
@@ -1468,15 +1537,14 @@ function layersMenu(anchor) {
   m.className = 'menu';
   const r = anchor.getBoundingClientRect();
   m.style.left = r.right + 8 + 'px'; m.style.top = r.top + 'px'; m.style.position = 'fixed';
-  m.innerHTML = `${app.project.backdrop ? `<label><input type="checkbox" data-l="plan" ${app.layers.plan ? 'checked' : ''}> Plan drawing</label>` : ''}
-    <label><input type="checkbox" data-l="allSizes" ${app.layers.allSizes ? 'checked' : ''}> All duct sizes</label>
+  m.innerHTML = `<label><input type="checkbox" data-l="allSizes" ${app.layers.allSizes ? 'checked' : ''}> All duct sizes</label>
     <label><input type="checkbox" data-l="air" ${app.layers.air ? 'checked' : ''}> Airflow</label>`;
   document.body.append(m);
   m.onchange = async (e) => {
     const k = e.target.dataset.l;
     app.layers[k] = e.target.checked; saveLayers();
     if (k === 'air' && app.layers.air && !app.air) app.air = await call('air', { project: app.project, closed: [...app.closed], balanced: app.balanced });
-    app.plan?.set({ showPlan: app.layers.plan, allSizes: app.layers.allSizes, showAir: app.layers.air, air: app.air });
+    app.plan?.set({ allSizes: app.layers.allSizes, showAir: app.layers.air, air: app.air });
   };
   setTimeout(() => document.addEventListener('pointerdown', function off(e) { if (!m.contains(e.target)) { m.remove(); document.removeEventListener('pointerdown', off); render(); } }), 0);
 }
@@ -1587,6 +1655,10 @@ function renderInspector() {
     const u = v.totals.unit;
     html = `<div class="card"><div class="insp-head"><h2>Fan coil</h2>${close}</div>
       <div class="insp-sub">${u ? `${g(u.kw)} kW, ${fmt(u.lps)} L/s fan` : '—'} · ${fmt(l.totalLps)} L/s now · drag to move</div>
+      <span class="eyebrow" style="display:block;margin-top:10px">Supply air transition</span>
+      <div class="seg" style="flex-wrap:wrap">${[[null, 'Auto'], [1, '1-way'], [2, '2-way'], [3, '3-way']].map(([n, t]) => `<button data-tko="${n ?? ''}" class="${(p.design?.takeoffs ?? null) === n ? 'on' : ''}">${t}</button>`).join('')}</div>
+      <p class="small muted" style="margin:6px 0 0">How many ducts come off the plenum${p.design?.takeoffs ? '' : ` — auto picks 2 or 3, whichever runs cleaner (${l.collars.length} now)`}.</p>
+      ${p.design?.takeoffs && l.collars.length < p.design.takeoffs ? `<p class="small" style="margin:6px 0 0;color:var(--accent-deep);font-weight:600">Only ${l.collars.length} run${l.collars.length === 1 ? '' : 's'} to take off the plenum in this design (one per zone or group of zones), so it's ${l.collars.length}-way for now.</p>` : ''}
       <div class="actions-row"><button class="btn2" id="rotate">${icon('rotate').replace('<svg', '<svg width="16" height="16"')} Turn it 90°</button></div></div>`;
   } else if (s?.kind === 'ret' && l) {
     html = `<div class="card"><div class="insp-head"><h2>Return air grille ${l.returnGrilleSize[0]} × ${l.returnGrilleSize[1]}</h2>${close}</div>
@@ -1602,6 +1674,12 @@ function renderInspector() {
   }
   el.innerHTML = html;
   bindInspector(el);
+}
+
+function takeoffOptions() {
+  const n = app.project.design?.takeoffs ?? null, now = app.layout?.collars?.length;
+  return [[null, `Auto${now ? ` (${now}-way now)` : ' (2 or 3)'}`], [1, '1-way'], [2, '2-way'], [3, '3-way']]
+    .map(([k, t]) => `<option value="${k ?? ''}" ${n === k ? 'selected' : ''}>${t}</option>`).join('');
 }
 
 function velocity(lps, mm) { return lps / 1000 / (Math.PI * (mm / 2000) ** 2); }
@@ -1637,7 +1715,7 @@ function designSummary() {
       <div class="seg" style="margin-top:10px"><button data-bal="1" class="${app.balanced ? 'on' : ''}">Balanced</button><button data-bal="0" class="${app.balanced ? '' : 'on'}">As installed</button></div></div>
     <div class="card"><h2>System &amp; zoning</h2>
       <div class="rowpick"><label>Zoning</label><select id="zoning">${app.options.zonings.map((z) => `<option value="${z.id}" ${z.id === zoning ? 'selected' : ''}>${esc(z.label)}</option>`).join('')}</select></div>
-      <div class="rowpick"><label>Trunks off the plenum</label><select id="takeoffs"><option value="">Auto (2 or 3)</option>${[1, 2, 3].map((n) => `<option value="${n}" ${p.design?.takeoffs === n ? 'selected' : ''}>${n}</option>`).join('')}</select></div>
+      <div class="rowpick"><label>Supply air transition</label><select id="takeoffs">${takeoffOptions()}</select></div>
       <div class="rowpick"><label>Air speed</label><select id="velocity">${app.options.velocities.map((x) => `<option value="${x.id}" ${x.id === (p.site.velocityPref ?? 'standard') ? 'selected' : ''}>${esc(x.label)}</option>`).join('')}</select></div>
       <div class="kv"><span>Fan</span><b>${fmt(l.network.externalPa)} of ${fmt(l.network.ratedEsp)} Pa${l.network.limitedByFan ? ' · can\'t reach its airflow' : ''}</b></div>
       ${(p.design?.boxPins || p.design?.stations) ? '<button class="btn2" id="unhand" style="margin-top:10px">Undo hand-placed BDOs</button>' : ''}</div>
@@ -1674,6 +1752,7 @@ function bindInspector(el) {
   $('#zoning', el)?.addEventListener('change', (e) => commit({ ...app.project, site: { ...app.project.site, zoningPref: e.target.value } }, { undoable: true }));
   $('#velocity', el)?.addEventListener('change', (e) => commit({ ...app.project, site: { ...app.project.site, velocityPref: e.target.value } }, { undoable: true }));
   $('#takeoffs', el)?.addEventListener('change', (e) => edit('setTakeoffs', { n: e.target.value ? +e.target.value : null }));
+  el.querySelectorAll('[data-tko]').forEach((b) => (b.onclick = () => edit('setTakeoffs', { n: b.dataset.tko ? +b.dataset.tko : null })));
   $('#unhand', el)?.addEventListener('click', () => edit('resetHandBoxes'));
 }
 
@@ -1754,7 +1833,7 @@ function openReport(kind) {
   const close = () => o.remove();
   $('#rp-close', o).onclick = close;
   o.addEventListener('keydown', (e) => e.key === 'Escape' && close());
-  import('./reports.js?v=6d56e6e-202610121204').then(async (m) => {
+  import('./reports.js?v=9a4c156-202610121250').then(async (m) => {
     // Reports are always the design as installed: every zone open, balanced.
     app.designLayout = await call('route', { project: app.project, closed: [], balanced: true });
     const r = await m.build(kind, { app, call, Plan });

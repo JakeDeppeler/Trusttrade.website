@@ -142,6 +142,8 @@ h1, h2, h3 { font-family: var(--head); font-weight: 800; letter-spacing: -.02em;
 .overlay { position: fixed; inset: 0; background: rgba(16,16,16,.32); display: grid; place-items: center; z-index: 40; padding: 16px; }
 .dialog { background: #fff; border-radius: 26px; padding: 22px; width: min(460px, 100%); box-shadow: 0 30px 80px rgba(0,0,0,.25); max-height: 90vh; overflow: auto; }
 .dialog h2 { font-size: 21px; margin-bottom: 6px; }
+.dialog.wide { width: min(780px, 100%); }
+.dialog table td.num, .dialog table th.num { white-space: nowrap; }
 .dialog .actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 16px; flex-wrap: wrap; }
 
 .report-view { display: flex; flex-direction: column; padding: 0; place-items: stretch; background: rgba(16,16,16,.55); }

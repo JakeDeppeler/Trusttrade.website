@@ -1,10 +1,10 @@
 // Trust Trade Pro — the HVAC Designer in the browser. The same five steps as the app (House · Capture · Check · Design ·
 // Send) on the app's own engine (engine.wasm, run in a worker): the same loads, zones, ducts, checks and materials.
 
-import { call, latest } from './engine.js?v=9a4c156-202610121250';
-import * as store from './store.js?v=9a4c156-202610121250';
-import { Plan, inkImage, zoneColour, ductColour, T, pointInPolygon, movesOnly, wheelMoves, ZOOM_MAX } from './plan.js?v=9a4c156-202610121250';
-import { RoomEditor, metres, signedArea, onLine } from './roomeditor.js?v=9a4c156-202610121250';
+import { call, latest } from './engine.js?v=98ba130-202610121526';
+import * as store from './store.js?v=98ba130-202610121526';
+import { Plan, inkImage, zoneColour, ductColour, T, pointInPolygon, movesOnly, wheelMoves, ZOOM_MAX } from './plan.js?v=98ba130-202610121526';
+import { RoomEditor, metres, signedArea, onLine } from './roomeditor.js?v=98ba130-202610121526';
 
 // MARK: Helpers
 
@@ -56,6 +56,8 @@ function bindZoomCtl(root, api) {
     else { const on = !b.classList.contains('on'); b.classList.toggle('on', on); api.setHand(on); }
   }));
 }
+
+document.addEventListener('click', (e) => { if (e.target.closest?.('[data-sizehow]')) sizeBreakdown(); });
 
 function toast(msg, ms = 3200) {
   const t = document.createElement('div');
@@ -749,7 +751,7 @@ async function renderCheck(c) {
       ${a.pc.gaps.length ? `<div class="card"><h2>Gaps between rooms</h2><p class="small muted" style="margin:2px 0 8px">Floor the plan reading left out. On, it becomes part of the room it opens off.</p>
         ${a.pc.gaps.map((x) => `<label class="kv" style="cursor:pointer"><span><b style="font-weight:700">${x.outdoorish ? 'Outside, by the look of it' : x.joins ? 'Part of the ' + esc(roomName(x.joins)) : 'A hallway of its own'}</b><br><span class="small muted">${fmt(x.area, 1)} m²${x.outdoorish ? ' · runs through to the outside — left out unless you switch it on' : ''}</span></span>
           <input type="checkbox" data-gap="${esc(x.key)}" ${a.gapsOn.has(x.key) ? 'checked' : ''} style="width:20px;height:20px;accent-color:var(--ink)"></label>`).join('')}</div>` : ''}
-      <div class="card"><h2>Unit size</h2><p class="small muted" style="margin:2px 0 10px">Sized so the whole home can run fully open on a design day. Inverters ramp down to about 5 kW, so a bigger unit still runs one zone.</p>
+      <div class="card"><div style="display:flex;align-items:center;gap:8px"><h2 style="flex:1">Unit size</h2><button class="btn2 small" data-sizehow>How it's worked out</button></div><p class="small muted" style="margin:2px 0 10px">Sized so the whole home can run fully open on a design day. Inverters ramp down to about 5 kW, so a bigger unit still runs one zone.</p>
         ${unitOptions(t, p.site)}</div>
       <div class="card"><h2>Spill</h2>${spillCard(cards, p)}</div>
       <div class="card"><h2>Zoning</h2><p class="small muted" style="margin:2px 0 8px">${esc(o.zonings.find((z) => z.id === (p.site.zoningPref ?? 'perroom'))?.note ?? '')}</p>
@@ -1654,7 +1656,7 @@ function renderInspector() {
   } else if (s?.kind === 'unit' && l) {
     const u = v.totals.unit;
     html = `<div class="card"><div class="insp-head"><h2>Fan coil</h2>${close}</div>
-      <div class="insp-sub">${u ? `${g(u.kw)} kW, ${fmt(u.lps)} L/s fan` : '—'} · ${fmt(l.totalLps)} L/s now · drag to move</div>
+      <div class="insp-sub">${u ? `${g(u.kw)} kW, ${fmt(u.lps)} L/s fan` : '—'} · ${fmt(l.totalLps)} L/s now · drag to move · <button class="link" data-sizehow style="padding:0">how it's sized</button></div>
       <span class="eyebrow" style="display:block;margin-top:10px">Supply air transition</span>
       <div class="seg" style="flex-wrap:wrap">${[[null, 'Auto'], [1, '1-way'], [2, '2-way'], [3, '3-way']].map(([n, t]) => `<button data-tko="${n ?? ''}" class="${(p.design?.takeoffs ?? null) === n ? 'on' : ''}">${t}</button>`).join('')}</div>
       <p class="small muted" style="margin:6px 0 0">How many ducts come off the plenum${p.design?.takeoffs ? '' : ` — auto picks 2 or 3, whichever runs cleaner (${l.collars.length} now)`}.</p>
@@ -1680,6 +1682,58 @@ function takeoffOptions() {
   const n = app.project.design?.takeoffs ?? null, now = app.layout?.collars?.length;
   return [[null, `Auto${now ? ` (${now}-way now)` : ' (2 or 3)'}`], [1, '1-way'], [2, '2-way'], [3, '3-way']]
     .map(([k, t]) => `<option value="${k ?? ''}" ${n === k ? 'selected' : ''}>${t}</option>`).join('');
+}
+
+/// How the unit size is worked out (the engine's Designer.roomLoad and totals): each room's floor × the climate's W/m²
+/// × what its ceiling, insulation, glass, the way it faces and its type do to it; the rooms added up; the allowance for
+/// them not all peaking at once; the unit picked. Then whatever on this job is pulling the size down.
+function sizeBreakdown() {
+  const v = app.view, t = v.totals, p = app.project, o = app.options;
+  if (!v?.rooms?.length) { toast('No rooms yet.'); return; }
+  const live = v.rooms.filter((r) => r.conditioned), off = v.rooms.filter((r) => !r.conditioned);
+  const zoning = o.zonings.find((z) => z.id === (p.site.zoningPref ?? 'perroom'));
+  const zmult = v.coincidence > 0 ? t.diversity / v.coincidence : 1;
+  const perM2 = (kw, m2) => (m2 > 0 ? fmt(kw * 1000 / m2) + ' W/m²' : '—');
+  const pct = (x) => fmt(x * 100) + '%';
+  const climate = live[0]?.factors?.[0];                                       // ["Cool climate", "20 m² × 115 W/m²"]
+  const base = climate?.[1]?.split('×')[1]?.trim() ?? '';
+  const factor = (r, word) => r.factors.find(([k]) => k.toLowerCase().startsWith(word));
+  const mult = (f) => parseFloat(String(f?.[1] ?? '').replace('×', '')) || 1;
+  const chain = (r) => r.factors.slice(1).map(([k, val]) => {
+    const n = mult([k, val]);
+    return `<span style="${n < 0.995 ? 'color:var(--danger)' : n > 1.005 ? 'color:var(--green)' : ''}">${esc(val)} ${esc(k.toLowerCase())}</span>`;
+  }).join(' · ');
+  const noGlass = live.filter((r) => !r.windows.length);
+  const insul = factor(live[0] ?? { factors: [] }, 'insulation');
+  const ch = t.choices ?? {};
+  const pickedBy = t.byHand ? 'picked by hand' : ({ wholeHome: 'whole home open', margin: 'more margin', zoned: 'zoned use only' })[t.sizing] ?? t.sizing;
+  const lows = [];
+  if (noGlass.length) lows.push(`<b>${noGlass.length} of ${live.length} rooms have no windows.</b> Glass is the biggest gain: a room with none counts as low glazing (× 0.90) facing nowhere in particular (× 1.00 — a west-facing room is × 1.16, a glassy one × 1.22). Add them: Edit the rooms → pick a wall → Add a window.`);
+  if (/good/.test(insul?.[0] ?? '')) lows.push(`<b>Ceiling insulation R3.5 or better</b> takes 15% off every room (× 0.85). Check it on the House step if you're not sure what's up there.`);
+  lows.push(`<b>Whole home open takes ${pct(v.coincidence)} of the total</b>, because rooms facing different ways don't all peak at the same hour. If you want the full total covered, pick “more margin” (one size up) or a size by hand.`);
+  if (/cool/i.test(climate?.[0] ?? '')) lows.push(`<b>${esc(climate[0])} sizes from ${esc(base)}</b> for the summer peak. The winter heating load isn't worked out separately, and in a cool climate it can be the bigger one — allow for it on an old or draughty house.`);
+  const opt = (key, label) => ch[key] ? `<div class="kv"><span>${label}${!t.byHand && t.sizing === key ? ' <span class="tag">PICKED</span>' : ''}</span><b>${esc(ch[key].label)}</b></div>` : '';
+  const d = dialog(`<h2>How the size is worked out</h2>
+    <p class="muted small" style="margin:0 0 12px">${esc(climate?.[0] ?? '')} · ${esc(base)} base · summer ${fmt(v.summerDB)}°C / winter ${fmt(v.winterDB)}°C design days · ${esc(zoning?.label ?? '')} zoning. A simplified room-by-room estimate (DA09-style) — not a certified calculation.</p>
+    <table class="rooms" style="width:100%;font-size:13px"><thead><tr><th>Room</th><th class="num">Floor</th><th class="num">Windows</th><th class="num">Load</th><th class="num">W/m²</th></tr></thead><tbody>
+      ${live.map((r) => `<tr><td><b>${esc(r.name)}</b><div class="small muted" style="margin-top:2px">${esc(r.factors[0]?.[1] ?? '')} · ${chain(r)}</div></td>
+        <td class="num">${fmt(r.area, 1)} m²</td><td class="num">${r.windows.length || '<span style="color:var(--danger)">none</span>'}</td><td class="num"><b>${fmt(r.kw, 2)} kW</b></td><td class="num">${perM2(r.kw, r.area)}</td></tr>`).join('')}
+      ${off.map((r) => `<tr class="muted"><td>${esc(r.name)} <span class="small">· not air conditioned</span></td><td class="num">${fmt(r.area, 1)} m²</td><td></td><td class="num">—</td><td></td></tr>`).join('')}
+    </tbody></table>
+    <div class="card" style="margin:14px 0 0;padding:12px 14px;background:var(--tile);box-shadow:none">
+      <div class="kv"><span>Every room at its peak (connected)</span><b>${fmt(t.connectedKW, 1)} kW · ${perM2(t.connectedKW, t.area)} over ${fmt(t.area)} m²</b></div>
+      <div class="kv"><span>Whole home open: × ${pct(v.coincidence)} (they don't all peak at once)</span><b>${fmt(t.wholeHomeKW, 1)} kW</b></div>
+      <div class="kv"><span>Zoned use only: × ${pct(v.coincidence)} × ${pct(zmult)} for ${esc((zoning?.label ?? '').toLowerCase())} zoning</span><b>${fmt(t.designKW, 1)} kW</b></div>
+    </div>
+    <span class="eyebrow" style="display:block;margin:14px 0 4px">The unit — the next size up from the load</span>
+    ${opt('wholeHome', 'Whole home open')}${opt('margin', 'More margin (one size up)')}${opt('zoned', 'Zoned use only')}
+    ${t.byHand ? `<div class="kv"><span>Picked by hand <span class="tag">PICKED</span></span><b>${esc(t.unit?.label ?? '')}</b></div>` : ''}
+    <p class="small muted" style="margin:6px 0 0">${t.unit ? `${esc(t.unit.label)} (${pickedBy}) is ${perM2(t.unit.kw, t.area)} of conditioned floor.` : ''}</p>
+    <span class="eyebrow" style="display:block;margin:14px 0 4px">What's keeping it down on this job</span>
+    <ul class="small" style="margin:4px 0 0;padding-left:18px">${lows.map((x) => `<li style="margin:6px 0">${x}</li>`).join('')}</ul>`,
+  [{ label: 'Close' },
+    ...(t.sizing !== 'margin' || t.byHand ? [{ label: 'Use more margin', primary: true, run: () => commit({ ...app.project, site: { ...app.project.site, unitSizingPref: 'margin', unitKWPref: null } }) }] : [])]);
+  d.querySelector('.dialog').classList.add('wide');
 }
 
 function velocity(lps, mm) { return lps / 1000 / (Math.PI * (mm / 2000) ** 2); }
@@ -1714,6 +1768,7 @@ function designSummary() {
       ${zones.map((z) => `<div class="zone-row ${z.open ? '' : 'shut'}" data-zone="${z.number}"><span class="dot" style="background:${zoneColour(z.number)}"></span><b>${z.number === 0 ? 'Constant · ' + esc(z.name) : esc(z.name)}</b><span>${fmt(z.lps)} L/s</span></div>`).join('')}
       <div class="seg" style="margin-top:10px"><button data-bal="1" class="${app.balanced ? 'on' : ''}">Balanced</button><button data-bal="0" class="${app.balanced ? '' : 'on'}">As installed</button></div></div>
     <div class="card"><h2>System &amp; zoning</h2>
+      <div class="kv"><span>Unit</span><b>${esc(v.totals.unit?.label ?? '—')} <button class="link" data-sizehow style="padding:0 0 0 6px">How it's sized</button></b></div>
       <div class="rowpick"><label>Zoning</label><select id="zoning">${app.options.zonings.map((z) => `<option value="${z.id}" ${z.id === zoning ? 'selected' : ''}>${esc(z.label)}</option>`).join('')}</select></div>
       <div class="rowpick"><label>Supply air transition</label><select id="takeoffs">${takeoffOptions()}</select></div>
       <div class="rowpick"><label>Air speed</label><select id="velocity">${app.options.velocities.map((x) => `<option value="${x.id}" ${x.id === (p.site.velocityPref ?? 'standard') ? 'selected' : ''}>${esc(x.label)}</option>`).join('')}</select></div>
@@ -1833,7 +1888,7 @@ function openReport(kind) {
   const close = () => o.remove();
   $('#rp-close', o).onclick = close;
   o.addEventListener('keydown', (e) => e.key === 'Escape' && close());
-  import('./reports.js?v=9a4c156-202610121250').then(async (m) => {
+  import('./reports.js?v=98ba130-202610121526').then(async (m) => {
     // Reports are always the design as installed: every zone open, balanced.
     app.designLayout = await call('route', { project: app.project, closed: [], balanced: true });
     const r = await m.build(kind, { app, call, Plan });

@@ -1,10 +1,10 @@
 // Trust Trade Pro — the HVAC Designer in the browser. The same five steps as the app (House · Capture · Check · Design ·
 // Send) on the app's own engine (engine.wasm, run in a worker): the same loads, zones, ducts, checks and materials.
 
-import { call, latest } from './engine.js';
-import * as store from './store.js';
-import { Plan, inkImage, zoneColour, ductColour, T, pointInPolygon } from './plan.js';
-import { RoomEditor, metres, signedArea, onLine } from './roomeditor.js';
+import { call, latest } from './engine.js?v=6d56e6e-202610121204';
+import * as store from './store.js?v=6d56e6e-202610121204';
+import { Plan, inkImage, zoneColour, ductColour, T, pointInPolygon } from './plan.js?v=6d56e6e-202610121204';
+import { RoomEditor, metres, signedArea, onLine } from './roomeditor.js?v=6d56e6e-202610121204';
 
 // MARK: Helpers
 
@@ -152,6 +152,11 @@ async function openJob(id, step) {
   app.step = STEPS[want >= 0 ? Math.min(want, reach) : Math.min(up, reach)].k;
   if (app.step === 'design' && !app.project.design && app.view?.planChecked) designNow();
 }
+
+/// A plan drawn by hand over an image that hasn't been sized yet (drawn first, sized after from a wall you know).
+const unsizedKey = () => 'ttpro.unsized.' + app.jobId;
+function isUnsized() { try { return localStorage.getItem(unsizedKey()) === '1'; } catch (_) { return false; } }
+function setUnsized(on) { try { if (on) localStorage.setItem(unsizedKey(), '1'); else localStorage.removeItem(unsizedKey()); } catch (_) {} }
 
 /// The furthest step that opens: the job's own, or Capture while a plan's just been picked (before the era is).
 function reachNow() {
@@ -611,6 +616,7 @@ async function importRead(overallMetres, mpp) {
     app.selection = null; app.closed = new Set(); app.checkAnswers = null; app.undo = []; app.redo = [];
     await commit(project, { rerender: false });
     await loadBackdrop();
+    setUnsized(false);
     r.status = 'done';
   } catch (e) {
     r.status = e.message === 'noScale' ? 'noscale' : 'error';
@@ -666,7 +672,7 @@ function renderCapture(c) {
   $('#demo2', c)?.addEventListener('click', async () => { const { project } = await call('demo', { project: app.project }); app.read = null; await commit(project); go('check'); });
   $('#uselen', c)?.addEventListener('click', () => { const m = parseFloat($('#len', c).value); if (m >= 4 && m <= 60) importRead(m); else toast('A house between 4 and 60 m long.'); });
   $('#measure', c)?.addEventListener('click', () => { app.read.status = 'measure'; render(); });
-  $('#drawit', c)?.addEventListener('click', () => { app.read.result = null; app.read.status = 'measure'; render(); });
+  $('#drawit', c)?.addEventListener('click', () => { app.read.result = null; startDrawing(); });
   $('#fixrooms', c)?.addEventListener('click', () => openEditor());
   c.querySelectorAll('[data-north]').forEach((b) => (b.onclick = () => { app.read.north = b.dataset.north; importRead(); }));
   const cv = $('#cv', c);
@@ -696,6 +702,7 @@ async function renderCheck(c) {
   const t = v.totals, cards = app.cards;
   c.innerHTML = `<div class="work" style="grid-template-columns:1fr 400px">
     <div class="stage" style="overflow:auto">
+      ${isUnsized() ? `<div class="card" style="border:2px solid var(--accent)"><h2>The plan isn't sized yet</h2><p class="small muted" style="margin:2px 0 10px">The rooms were drawn by hand: set the size from one wall you know before the loads and ducts mean anything.</p><button class="btn" id="sizeit">Set the size</button></div>` : ''}
       <div class="card" style="padding:12px 14px 6px">
         <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px"><h2 style="flex:1">Rooms · ${v.rooms.length}</h2><button class="btn2 small" id="editrooms">Edit the rooms on the plan</button></div>
         <table class="rooms"><thead><tr><th></th><th>Room</th><th>Type</th><th class="num">Area</th><th class="num">Load</th></tr></thead><tbody>
@@ -727,6 +734,7 @@ async function renderCheck(c) {
   const plan = mountPlan($('#cv', c), { interactive: false, labels: true, compact: true, gaps: a.pc.gaps.map((x) => ({ ...x, on: a.gapsOn.has(x.key) })),
     handlers: { tapRoom: (w) => openEditor({ room: w && v.rooms.find((r) => pointInPolygon(w, r.polygon))?.id }) } });
   $('#editrooms', c).onclick = () => openEditor();
+  $('#sizeit', c)?.addEventListener('click', () => openEditor({ mode: 'measure' }));
   c.querySelectorAll('[data-name]').forEach((inp) => inp.addEventListener('change', () => roomEdit(inp.dataset.name, { name: inp.value })));
   c.querySelectorAll('[data-type]').forEach((sel) => sel.addEventListener('change', () => roomEdit(sel.dataset.type, { type: sel.value })));
   c.querySelectorAll('[data-split]').forEach((b) => (b.onclick = () => { a.openAreas.splice(+b.dataset.split, 1); renderCheck(c); }));
@@ -938,12 +946,12 @@ function renderPlanStart(c) {
     if (!measuring) {
       panel.innerHTML = `<div class="card"><h2>The rooms</h2><p class="small muted" style="margin:2px 0 10px">How do you want them off the plan?</p>
         <button class="option" id="pick-read" style="width:100%;text-align:left"><span class="radio"></span><span><b>Read them for me</b> <span class="tag">RECOMMENDED</span><p>AI finds each room — L-shapes and angled walls too — its windows and the scale from the printed sizes. You check and fix them after. Up to 10 plans a day.</p></span></button>
-        <button class="option" id="pick-draw" style="width:100%;text-align:left;margin-top:8px"><span class="radio"></span><span><b>Draw them myself</b><p>Set the scale from a length you know, then click round each room's corners over the plan.</p></span></button></div>`;
+        <button class="option" id="pick-draw" style="width:100%;text-align:left;margin-top:8px"><span class="radio"></span><span><b>Draw them myself</b><p>1 · Click round each room's corners over the plan.<br>2 · Click one wall you know the length of (a printed size, like 3600) and type it — the whole plan is sized from it.</p></span></button></div>`;
       $('#pick-read', panel).onclick = readPlan;
-      $('#pick-draw', panel).onclick = () => { r.status = 'measure'; render(); };
+      $('#pick-draw', panel).onclick = () => startDrawing();
       return;
     }
-    panel.innerHTML = `<div class="card"><h2>Set the scale</h2>
+    panel.innerHTML = `<div class="card"><h2>Set the size</h2>
         <div class="checklist" style="margin-top:4px">
           <div class="item ${m.pts.length === 2 ? 'ok' : 'info'}"><div class="mark">${m.pts.length === 2 ? '✓' : '1'}</div><div><b>Click both ends of a length you know</b>
             <p class="small muted" style="margin:2px 0 0">A room's printed size (3600 across a bedroom), a dimension line or the plan's scale bar. The longer it is, the truer the scale.</p></div></div>
@@ -979,9 +987,12 @@ function renderPlanStart(c) {
   mountMeasure($('#mcv', c), r.url, r.measure, { interactive: measuring, onChange: paint, view: r.view });
 }
 
-/// The plan image under an empty house, at the scale measured, and the editor open to draw the rooms over it.
+/// The plan image under an empty house and the editor open to draw the rooms over it. With no scale measured it goes in
+/// at a guess (the drawing about 25 m across) and is sized after, from a wall you know.
 async function startDrawing(mpp) {
   const r = app.read;
+  const guess = !mpp;
+  mpp ??= 25 / Math.max(r.keep.w, r.keep.h);
   try {
     const { project } = await call('blankPlan', { project: app.project, file: r.fileName, imageWidth: r.keep.w, imageHeight: r.keep.h, mpp, north: r.north ?? 'up' });
     await store.saveImage(r.fileName, r.keep.blob);
@@ -991,6 +1002,7 @@ async function startDrawing(mpp) {
     await commit(project, { rerender: false });
     await loadBackdrop();
     app.read = null;
+    setUnsized(guess);
     openEditor({ mode: 'draw' });
   } catch (e) {
     toast(e.message);
@@ -1006,6 +1018,7 @@ function drawOnGrid() {
     app.selection = null; app.closed = new Set(); app.checkAnswers = null; app.undo = []; app.redo = []; app.read = null;
     await commit(project, { rerender: false });
     await loadBackdrop();
+    setUnsized(false);
     if (app.step === 'house') { app.step = 'capture'; history.replaceState(null, '', '#/job/' + app.jobId + '/capture'); }
     openEditor({ mode: 'draw' });
   };
@@ -1047,7 +1060,7 @@ async function openEditor({ room = null, mode = 'edit' } = {}) {
     changed: () => edPanel(),
     redraw: () => st.plan?.draw(),
     finishRoom: (pts) => newRoomDialog(pts),
-    measured: (a, b) => scaleDialog(a, b),
+    measured: (a, b, wall) => scaleDialog(a, b, wall),
   });
   st.bounds = editorBounds();
   st.gaps = await editorGaps();
@@ -1069,6 +1082,11 @@ function shutEditor() {
 async function closeEditor() {
   const st = app.editorOpen;
   if (!st) return;
+  if (isUnsized() && app.view.rooms.length) {
+    dialog(`<h2>Set the size first</h2><p class="muted">The rooms are drawn but the plan isn't sized yet, so their areas and loads would be wrong. Click one wall you know the length of and type it.</p>`,
+      [{ label: 'Not yet' }, { label: 'Set the size', primary: true, run: () => st.ed.setMode('measure') }]);
+    return;
+  }
   shutEditor();
   if (!st.edited) { render(); return; }
   app.roomsEdited = !!app.project.design;
@@ -1092,7 +1110,7 @@ function renderRoomEditor(c) {
   c.innerHTML = `<div class="work">
     <div class="stage">
       <div class="bar">
-        <div class="seg" id="ed-tools">${[['edit', 'Select'], ['draw', 'Draw a room'], ['measure', 'Set the scale']].map(([k, l]) => `<button data-tool="${k}">${l}</button>`).join('')}</div>
+        <div class="seg" id="ed-tools">${[['edit', 'Select'], ['draw', 'Draw a room'], ['measure', 'Set the size']].map(([k, l]) => `<button data-tool="${k}">${l}</button>`).join('')}</div>
         <div class="spacer" style="flex:1"></div>
         ${hasImage ? `<label class="chip" style="cursor:pointer;height:34px"><input type="checkbox" id="ed-img" ${st.showImage ? 'checked' : ''} style="accent-color:var(--ink)"> Plan image</label>` : ''}
         <button class="iconbtn" id="ed-undo" title="Undo">${icon('undo')}</button>
@@ -1107,7 +1125,8 @@ function renderRoomEditor(c) {
   const plan = new Plan($('#cv', c), { changed: () => { st.zoom = plan.zoom; st.pan = { ...plan.pan }; } });
   if (st.zoom) { plan.zoom = st.zoom; plan.pan = { ...st.pan }; }
   st.plan = plan;
-  st.ed.set({ rooms: app.view.rooms, gaps: st.gaps, hasImage: hasImage && st.showImage, canvas: plan.canvas });
+  st.ed.set({ rooms: app.view.rooms, gaps: st.gaps, hasImage: hasImage && st.showImage, canvas: plan.canvas, sized: !isUnsized() });
+  edPanel();                                          // the hint's in place before the first draw, so the canvas doesn't jump
   plan.set({ project: p, view: app.view, layout: null, backdrop: app.backdrop, showPlan: st.showImage, labels: true, compact: true,
     editor: st.ed, bounds: st.bounds, gaps: st.gaps.map((x) => ({ ...x, on: false })) });
   c.querySelectorAll('[data-tool]').forEach((b) => (b.onclick = () => st.ed.setMode(b.dataset.tool)));
@@ -1133,6 +1152,7 @@ async function edEdit(op, args) {
     if (r.ok === false) { toast(editRefusal(op)); return null; }
     await commit(r.project, { undoable: true, rerender: false });
     st.edited = true;
+    if (op === 'rescale') { setUnsized(false); st.ed.set({ sized: true }); }
     await edRefresh();
     return r;
   } catch (e) {
@@ -1214,23 +1234,34 @@ function edPanel() {
   const hint = $('#ed-hint');
   if (hint) {
     hint.textContent = ed.mode === 'draw' ? 'Click each corner of the room in turn; click the first corner (or press Enter) to finish. Corners snap to the rooms round them — hold Shift to place one freely.'
-      : ed.mode === 'measure' ? 'Click both ends of a length you know: a printed room size, a dimension line or the scale bar.'
+      : ed.mode === 'measure' ? 'Click a wall you know the length of (it lights up blue), or two points on the plan such as the ends of the scale bar.'
       : 'Drag a wall or a picked room\'s corner (the room next door comes too). Drag a + to put a corner in a wall. Scroll to zoom, drag the background to pan.';
   }
   const close = '<button class="iconbtn close" id="ed-close">' + icon('x') + '</button>';
-  let html = '';
+  const unsized = isUnsized(), area = (m2) => (unsized ? 'not sized yet' : fmt(m2, 1) + ' m²');
+  // A plan drawn by hand: draw first, then size it — both steps in view the whole time.
+  const drawn = v.rooms.length > 0;
+  let html = unsized && ed.mode !== 'measure' ? `<div class="card"><h2>Two steps</h2>
+    <div class="checklist" style="margin-top:4px">
+      <div class="item ${drawn ? 'ok' : 'info'}"><div class="mark">${drawn ? '✓' : '1'}</div><div><b>Draw the rooms</b>
+        <p class="small muted" style="margin:2px 0 0">Click round each room's corners over the plan. The sizes don't matter yet.</p></div></div>
+      <div class="item ${drawn ? 'warn' : 'info'}"><div class="mark">2</div><div><b>Set the size</b>
+        <p class="small muted" style="margin:2px 0 0">Click one wall you know the length of — a printed size, like 3600 — and type it. The whole plan is sized from it.</p>
+        ${drawn ? '<button class="btn" id="go-size" style="margin-top:8px">Set the size</button>' : ''}</div></div>
+    </div></div>` : '';
   if (ed.mode === 'draw') {
     const n = ed.draft.length;
-    html = `<div class="card"><h2>Draw a room</h2>
+    html += `<div class="card"><h2>Draw a room</h2>
       <p class="small muted" style="margin:4px 0 10px">${n ? `${n} corner${n === 1 ? '' : 's'} so far.` : 'Click the first corner of the room.'} Go round the room's walls — the inside face — and click the first corner again to finish.</p>
       <div class="actions-row">${n >= 3 ? '<button class="btn" id="dr-finish">Finish the room</button>' : ''}${n ? '<button class="btn2" id="dr-back">Take the last corner out</button>' : ''}
         <button class="btn2" id="dr-stop">${n ? 'Cancel' : 'Stop drawing'}</button></div></div>
       <div class="card"><h2>Tips</h2><ul class="small muted" style="margin:4px 0 0;padding-left:18px">
         <li>A corner snaps onto a room's corner or wall, and lines up square with the corners either side.</li>
         <li>Rooms you draw over give way — draw the laundry in the kitchen's corner and the kitchen becomes an L round it.</li>
-        <li>${st.showImage && app.backdrop ? 'Wrong size? Set the scale from a length you know.' : 'No plan image: the grid is in metres.'}</li></ul></div>`;
+        <li>${unsized ? 'Then set the size from one wall you know.' : st.showImage && app.backdrop ? 'Sizes out? Set the size from a wall you know.' : 'No plan image: the grid is in metres.'}</li></ul></div>`;
   } else if (ed.mode === 'measure') {
-    html = `<div class="card"><h2>Set the scale</h2><p class="small muted" style="margin:4px 0 10px">Click both ends of a length you know on the plan. You'll type what it really is, and the rooms and the plan image are scaled to match.${app.project.design ? ' The ducts are laid out again after.' : ''}</p>
+    html = `<div class="card"><h2>Set the size</h2><p class="small muted" style="margin:4px 0 10px"><b>Click a wall you know the length of</b> — it lights up blue — and type how long it really is (the printed size, like 3600). Or click two points on the plan, like the ends of the scale bar.</p>
+      <p class="small muted" style="margin:0 0 10px">The rooms and the plan image are sized to match.${app.project.design ? ' The ducts are laid out again after.' : ''}</p>
       <button class="btn2" id="ms-stop">Cancel</button></div>`;
   } else if (sel?.kind === 'room' && ed.room(sel.id)) {
     const r = ed.room(sel.id), n = r.polygon.length;
@@ -1251,8 +1282,8 @@ function edPanel() {
         ${inside ? '' : `<span class="eyebrow" style="display:block;margin-top:8px">Add a window</span>
           <div class="seg" style="flex-wrap:wrap">${[0.6, 1.2, 1.8, 2.4, 3.0].map((wd) => `<button data-win="${wd}">${wd.toFixed(1)} m</button>`).join('')}</div>`}</div>`;
     }
-    html = `<div class="card"><div class="insp-head"><h2>${esc(r.name)}</h2>${close}</div>
-        <div class="insp-sub">${fmt(r.area, 1)} m² · ${shapeWord(r)} · ${r.windows.length} window${r.windows.length === 1 ? '' : 's'}</div>
+    html += `<div class="card"><div class="insp-head"><h2>${esc(r.name)}</h2>${close}</div>
+        <div class="insp-sub">${area(r.area)} · ${shapeWord(r)} · ${r.windows.length} window${r.windows.length === 1 ? '' : 's'}</div>
         <label class="field"><span>Name</span><input id="ed-name" value="${esc(r.name)}"></label>
         <label class="field"><span>Type</span><select id="ed-type">${o.roomTypes.map((x) => `<option value="${x.id}" ${x.id === r.type ? 'selected' : ''}>${esc(x.label)}</option>`).join('')}</select></label>
         <p class="small muted" style="margin:0">Pick a corner to cut it out or take it out; pick a wall for its windows. Drag a + to bend a wall.</p></div>
@@ -1260,19 +1291,19 @@ function edPanel() {
       <div class="actions-row"><button class="btn2 danger" id="ed-del">${icon('trash').replace('<svg', '<svg width="16" height="16"')} Delete this room</button></div>`;
   } else if (sel?.kind === 'gap' && st.gaps.find((x) => x.key === sel.key)) {
     const gp = st.gaps.find((x) => x.key === sel.key);
-    html = `<div class="card"><div class="insp-head"><h2>Gap · ${fmt(gp.area, 1)} m²</h2>${close}</div>
+    html += `<div class="card"><div class="insp-head"><h2>Gap · ${area(gp.area)}</h2>${close}</div>
       <p class="small muted" style="margin:4px 0 10px">Floor the rooms don't cover. If it's a room the plan reading lost, make it that room. (Or leave it: on Check, switch it into the hallway or the room it opens off, or leave it out.)</p>
       <div class="pills">${o.gapKinds.map((k) => `<button data-kind="${esc(k.id)}" data-label="${esc(k.label)}">${esc(k.label)}</button>`).join('')}</div></div>`;
   } else {
-    html = `<div class="card"><h2>Edit the rooms</h2><ul class="small muted" style="margin:6px 0 0;padding-left:18px">
+    html += `<div class="card"><h2>Edit the rooms</h2><ul class="small muted" style="margin:6px 0 0;padding-left:18px">
         <li>Click a room to rename it, change its type, reshape it or delete it.</li>
         <li>Drag any wall to move it — the room on the other side comes too.</li>
         <li>Pick a room, then drag its corners, or drag a + to put a corner in a wall (rooms needn't be rectangles).</li>
         <li><b>Draw a room</b> to add one the reading missed, corner by corner.</li>
-        <li><b>Set the scale</b> if the sizes are out: measure a length you know.</li></ul>
+        <li><b>Set the size</b> if the sizes are out: click a wall you know the length of and type it.</li></ul>
       <div class="actions-row"><button class="btn" id="ed-draw">Draw a room</button></div></div>
-      ${v.rooms.length ? `<div class="card"><h2>${v.rooms.length} rooms · ${g(v.totals.area)} m²</h2>
-        ${v.rooms.map((r) => `<button class="kv" data-pick="${r.id}" style="width:100%;border:0;background:none;cursor:pointer;text-align:left"><span>${esc(r.name)}</span><b>${fmt(r.area, 1)} m²</b></button>`).join('')}</div>`
+      ${v.rooms.length ? `<div class="card"><h2>${v.rooms.length} rooms${unsized ? '' : ' · ' + g(v.totals.area) + ' m²'}</h2>
+        ${v.rooms.map((r) => `<button class="kv" data-pick="${r.id}" style="width:100%;border:0;background:none;cursor:pointer;text-align:left"><span>${esc(r.name)}</span><b>${area(r.area)}</b></button>`).join('')}</div>`
       : '<div class="card"><p class="small muted" style="margin:0">No rooms yet. Pick <b>Draw a room</b> and click round the first room\'s corners.</p></div>'}`;
   }
   el.innerHTML = html;
@@ -1284,6 +1315,7 @@ function edPanel() {
   $('#dr-back', el)?.addEventListener('click', () => ed.undoPoint());
   $('#dr-stop', el)?.addEventListener('click', () => ed.setMode(ed.draft.length ? 'draw' : 'edit'));
   $('#ms-stop', el)?.addEventListener('click', () => ed.setMode('edit'));
+  $('#go-size', el)?.addEventListener('click', () => ed.setMode('measure'));
   $('#ed-name', el)?.addEventListener('change', (e) => { const r = room(); if (r && e.target.value.trim()) edEdit('setRoom', { room: r.id, name: e.target.value.trim() }); });
   $('#ed-type', el)?.addEventListener('change', (e) => { const r = room(); if (r) edEdit('setRoom', { room: r.id, type: e.target.value }); });
   $('#c-square', el)?.addEventListener('click', () => ed.squareCorner());
@@ -1311,7 +1343,7 @@ function newRoomDialog(pts) {
     ['Study', 'study'], ['Bathroom', 'bathroom'], ['Laundry', 'laundry'], ['Hallway', 'hallway'], ['Garage', 'garage']];
   let pick = kinds[0];
   const area = Math.abs(signedArea(pts));
-  const d = dialog(`<h2>The new room · ${fmt(area, 1)} m²</h2><p class="muted small" style="margin:0 0 10px">What is it?</p>
+  const d = dialog(`<h2>The new room${isUnsized() ? '' : ' · ' + fmt(area, 1) + ' m²'}</h2><p class="muted small" style="margin:0 0 10px">What is it?</p>
     <div class="pills" id="nr-kinds">${kinds.map(([l], i) => `<button data-k="${i}" class="${i === 0 ? 'on' : ''}">${l}</button>`).join('')}</div>
     <p class="small muted" style="margin:8px 0 0">Garage takes in anything not air conditioned (robe, pantry, store).</p>
     <label class="field" style="margin-top:12px"><span>Name</span><input id="nr-name" placeholder="Bedroom" autofocus></label>`,
@@ -1319,7 +1351,7 @@ function newRoomDialog(pts) {
     { label: 'Add the room', primary: true, run: async (o) => {
       const name = $('#nr-name', o).value.trim();
       const r = await edEdit('addRoom', { outline: pts, name, type: pick[1] });
-      if (r?.id) toast((app.view.rooms.find((x) => x.id === r.id)?.name ?? pick[0]) + ' added — draw the next room, or Select to fix one');
+      if (r?.id) toast((app.view.rooms.find((x) => x.id === r.id)?.name ?? pick[0]) + (isUnsized() ? ' added — draw the rest, then set the size' : ' added — draw the next room, or Select to fix one'));
       else { st.ed.draft = pts; st.ed.mode = 'draw'; edPanel(); st.plan?.draw(); }
     } }]);
   // The pills' buttons sit inside the dialog: their clicks pick a kind rather than close it.
@@ -1334,15 +1366,16 @@ function newRoomDialog(pts) {
   edPanel();
 }
 
-/// A length measured in the editor: what it really is, and the whole plan scaled to match.
-function scaleDialog(a, b) {
+/// A length picked in the editor (a wall, or two points): what it really is, and the whole plan sized to match.
+function scaleDialog(a, b, wall) {
   const st = app.editorOpen;
   if (!st) return;
-  const now = Math.hypot(b.x - a.x, b.y - a.y);
-  dialog(`<h2>How long is that, really?</h2><p class="muted small" style="margin:0 0 10px">It's ${metres(now)} on the plan now. Type the printed size (or what the scale bar says) and the rooms and the plan image are scaled to match.${app.project.design ? ' The ducts are laid out again after.' : ''}</p>
+  const now = Math.hypot(b.x - a.x, b.y - a.y), unsized = isUnsized();
+  dialog(`<h2>How long is ${wall ? 'this wall' : 'that'}, really?</h2>
+    <p class="muted small" style="margin:0 0 10px">${unsized ? '' : `It's ${metres(now)} on the plan now. `}Type the printed size${wall ? '' : ' (or what the scale bar says)'} and the rooms and the plan image are sized to match.${app.project.design ? ' The ducts are laid out again after.' : ''}</p>
     <label class="field"><span>Length in mm</span><input id="sc-mm" type="number" min="100" step="10" placeholder="e.g. 3600" autofocus></label>`,
-  [{ label: 'Cancel', run: () => st.ed.setMode('edit') },
-    { label: 'Scale the plan', primary: true, run: async (o) => {
+  [{ label: 'Cancel', run: () => st.ed.setMode('measure') },
+    { label: 'Size the plan', primary: true, run: async (o) => {
       const mm = parseFloat($('#sc-mm', o).value);
       if (!(mm >= 100 && mm <= 100000)) { toast('Type the length in millimetres, e.g. 3600'); return true; }
       const k = mm / 1000 / now;
@@ -1351,7 +1384,7 @@ function scaleDialog(a, b) {
       if (r) {
         st.bounds = editorBounds(); st.zoom = null; st.pan = null;
         render();
-        toast(`Scaled ×${k.toFixed(3)} — the rooms are ${k > 1 ? 'bigger' : 'smaller'} now`);
+        toast(unsized ? `Sized — ${app.view.rooms.length} room${app.view.rooms.length === 1 ? '' : 's'}, ${g(app.view.totals.area)} m². Check them over, then Done.` : `Sized ×${k.toFixed(3)} — the rooms are ${k > 1 ? 'bigger' : 'smaller'} now`);
       }
     } }]);
 }
@@ -1721,7 +1754,7 @@ function openReport(kind) {
   const close = () => o.remove();
   $('#rp-close', o).onclick = close;
   o.addEventListener('keydown', (e) => e.key === 'Escape' && close());
-  import('./reports.js').then(async (m) => {
+  import('./reports.js?v=6d56e6e-202610121204').then(async (m) => {
     // Reports are always the design as installed: every zone open, balanced.
     app.designLayout = await call('route', { project: app.project, closed: [], balanced: true });
     const r = await m.build(kind, { app, call, Plan });

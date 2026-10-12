@@ -4,7 +4,7 @@
 // (plan.js calls down/move/up/tap/hover and draws underlay/overlay); every change goes through the engine's edits
 // (JobEdits — the ones the app's plan editor makes), so the house stays one the designer can lay ducts in.
 
-import { T, pointInPolygon } from './plan.js';
+import { T, pointInPolygon } from './plan.js?v=6d56e6e-202610121204';
 
 const FONT = '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif';
 const dist = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
@@ -79,9 +79,13 @@ export class RoomEditor {
     this.busy = false;
     this.hasImage = false;
     this.canvas = null;
+    /// False while a hand-drawn plan hasn't had its size set: its lengths mean nothing yet, so none are shown.
+    this.sized = true;
+    this.hoverWall = null;
   }
 
-  set({ rooms, gaps, hasImage, canvas }) {
+  set({ rooms, gaps, hasImage, canvas, sized }) {
+    if (sized !== undefined) this.sized = sized;
     if (rooms) this.rooms = rooms;
     if (gaps) this.gaps = gaps;
     if (hasImage !== undefined) this.hasImage = hasImage;
@@ -106,6 +110,7 @@ export class RoomEditor {
     this.draft = [];
     this.measure = [];
     this.hoverPt = null;
+    this.hoverWall = null;
     this.guides = [];
     if (mode !== 'edit') this.sel = null;
     if (this.canvas) this.canvas.style.cursor = mode === 'edit' ? '' : 'crosshair';
@@ -292,11 +297,19 @@ export class RoomEditor {
       return;
     }
     if (this.mode === 'measure') {
+      // A wall clicked: its length is the one you know. Else two points on the plan (the scale bar, a dimension line).
+      const wall = !this.measure.length && !e.shiftKey && this.wallAt(q, x);
+      if (wall) {
+        const r = this.room(wall.room), n = r.polygon.length;
+        this.hoverWall = null;
+        this.h.measured(r.polygon[wall.edge], r.polygon[(wall.edge + 1) % n], true);
+        return;
+      }
       this.measure.push(this.snap(w, x, { refs: this.measure.slice(-1), free: e.shiftKey }));
       if (this.measure.length === 2) {
         const [a, b] = this.measure;
         if (dist(a, b) < 0.05) { this.measure = [b]; return; }
-        this.h.measured(a, b);
+        this.h.measured(a, b, false);
       }
       this.h.changed();
       return;
@@ -318,7 +331,9 @@ export class RoomEditor {
   hover(q, x, e) {
     if (this.mode === 'draw' || this.mode === 'measure') {
       const refs = this.mode === 'draw' ? [this.draft[this.draft.length - 1], this.draft[0]].filter(Boolean) : this.measure.slice(-1);
-      this.hoverPt = this.snap(x.world(q), x, { refs, free: e.shiftKey });
+      this.hoverWall = this.mode === 'measure' && !this.measure.length && !e.shiftKey ? this.wallAt(q, x) : null;
+      this.hoverPt = this.hoverWall ? null : this.snap(x.world(q), x, { refs, free: e.shiftKey });
+      if (this.canvas) this.canvas.style.cursor = this.hoverWall ? 'pointer' : 'crosshair';
       return;
     }
     if (!this.canvas) return;
@@ -430,7 +445,7 @@ export class RoomEditor {
       // Each wall's length, just outside it (clear of the + and the room's own label).
       const outward = -(Math.sign(signedArea(sel.polygon)) || 1);
       g.font = `800 10px ${FONT}`;
-      for (let i = 0; i < n; i++) {
+      for (let i = 0; i < n && this.sized; i++) {
         const a = sel.polygon[i], b = sel.polygon[(i + 1) % n];
         if (dist(pts[i], pts[(i + 1) % n]) < 46) continue;
         const text = metres(dist(a, b)), nm = normal(a, b);
@@ -470,11 +485,11 @@ export class RoomEditor {
         this.path(g, hov ? [...pts, hov] : pts, false);
         if (pts.length >= 2) { g.fillStyle = 'rgba(233,162,28,0.12)'; g.fill(); }
         g.strokeStyle = T.accentDeep; g.lineWidth = 2.5; g.stroke();
-        for (let i = 1; i < this.draft.length; i++) {
+        for (let i = 1; i < this.draft.length && this.sized; i++) {
           const a = this.draft[i - 1], b = this.draft[i], m = x.pt({ x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 });
           this.tag(g, metres(dist(a, b)), m.x, m.y - 12, '#fff', T.ink);
         }
-        if (hov) {
+        if (hov && this.sized) {
           const a = this.draft[this.draft.length - 1], m = x.pt({ x: (a.x + this.hoverPt.x) / 2, y: (a.y + this.hoverPt.y) / 2 });
           this.tag(g, metres(dist(a, this.hoverPt)), m.x, m.y - 12, T.accent, T.ink);
         }
@@ -485,14 +500,22 @@ export class RoomEditor {
       });
       if (hov) { g.beginPath(); g.arc(hov.x, hov.y, 4, 0, Math.PI * 2); g.fillStyle = T.ink; g.fill(); }
     }
-    // A length being measured.
+    // A length being measured: a wall under the pointer, or two points.
+    if (this.mode === 'measure' && this.hoverWall) {
+      const r = this.room(this.hoverWall.room);
+      if (r) {
+        const n = r.polygon.length, a = x.pt(r.polygon[this.hoverWall.edge]), b = x.pt(r.polygon[(this.hoverWall.edge + 1) % n]);
+        g.beginPath(); g.moveTo(a.x, a.y); g.lineTo(b.x, b.y); g.strokeStyle = T.cool; g.lineWidth = 6; g.lineCap = 'round'; g.stroke();
+        this.tag(g, 'This wall', (a.x + b.x) / 2, (a.y + b.y) / 2 - 16, T.cool, '#fff');
+      }
+    }
     if (this.mode === 'measure') {
       const ends = [...this.measure, ...(this.measure.length < 2 && this.hoverPt ? [this.hoverPt] : [])];
       const pts = ends.map(x.pt);
       if (pts.length === 2) {
         g.beginPath(); g.moveTo(pts[0].x, pts[0].y); g.lineTo(pts[1].x, pts[1].y);
         g.strokeStyle = T.cool; g.lineWidth = 3; g.stroke();
-        this.tag(g, metres(dist(ends[0], ends[1])) + ' now', (pts[0].x + pts[1].x) / 2, (pts[0].y + pts[1].y) / 2 - 14, T.cool, '#fff');
+        if (this.sized) this.tag(g, metres(dist(ends[0], ends[1])) + ' now', (pts[0].x + pts[1].x) / 2, (pts[0].y + pts[1].y) / 2 - 14, T.cool, '#fff');
       }
       for (const p of pts) {
         g.beginPath(); g.moveTo(p.x - 8, p.y); g.lineTo(p.x + 8, p.y); g.moveTo(p.x, p.y - 8); g.lineTo(p.x, p.y + 8);

@@ -1,10 +1,10 @@
 // Trust Trade Pro — the HVAC Designer in the browser. The same five steps as the app (House · Capture · Check · Design ·
 // Send) on the app's own engine (engine.wasm, run in a worker): the same loads, zones, ducts, checks and materials.
 
-import { call, latest } from './engine.js?v=225a56c-202610131259';
-import * as store from './store.js?v=225a56c-202610131259';
-import { Plan, inkImage, zoneColour, ductColour, T, pointInPolygon, movesOnly, wheelMoves, ZOOM_MAX } from './plan.js?v=225a56c-202610131259';
-import { RoomEditor, metres, signedArea, onLine } from './roomeditor.js?v=225a56c-202610131259';
+import { call, latest } from './engine.js?v=8589d9f-202610131323';
+import * as store from './store.js?v=8589d9f-202610131323';
+import { Plan, inkImage, zoneColour, ductColour, T, pointInPolygon, movesOnly, wheelMoves, ZOOM_MAX } from './plan.js?v=8589d9f-202610131323';
+import { RoomEditor, metres, signedArea, onLine } from './roomeditor.js?v=8589d9f-202610131323';
 
 // MARK: Helpers
 
@@ -1717,6 +1717,8 @@ function renderInspector() {
     const u = v.totals.unit;
     html = `<div class="card"><div class="insp-head"><h2>Fan coil</h2>${close}</div>
       <div class="insp-sub">${u ? `${g(u.kw)} kW, ${fmt(u.lps)} L/s fan` : '—'} · ${fmt(l.totalLps)} L/s now · drag to move · <button class="link" data-sizehow style="padding:0">how it's sized</button></div>
+      <div class="kv"><span>Fan static setting</span><b>${staticLine(l.network)}</b></div>
+      ${l.network.espSettings?.length ? `<p class="small muted" style="margin:2px 0 0">Settings: ${l.network.espSettings.map((x) => fmt(x)).join(' / ')} Pa — the lowest that covers the ducts, so it's quietest.</p>` : ''}
       <span class="eyebrow" style="display:block;margin-top:10px">Supply air transition</span>
       <div class="seg" style="flex-wrap:wrap">${[[null, 'Auto'], [1, '1-way'], [2, '2-way'], [3, '3-way']].map(([n, t]) => `<button data-tko="${n ?? ''}" class="${(p.design?.takeoffs ?? null) === n ? 'on' : ''}">${t}</button>`).join('')}</div>
       <p class="small muted" style="margin:6px 0 0">How many ducts come off the plenum${p.design?.takeoffs ? '' : ` — auto picks 2 or 3, whichever runs cleaner (${l.collars.length} now)`}.</p>
@@ -1736,6 +1738,12 @@ function renderInspector() {
   }
   el.innerHTML = html;
   bindInspector(el);
+}
+
+/// "Set to 100 Pa · needs 92": the fan's static setting for the ducts as laid out (balanced, every zone open).
+function staticLine(n) {
+  if (n.limitedByFan) return `needs more than it can push · ${fmt(n.externalPa)} Pa`;
+  return n.espSetting != null ? `set to ${fmt(n.espSetting)} Pa · needs ${fmt(n.externalPa)}` : `needs ${fmt(n.externalPa)} Pa — over its ${fmt(n.ratedEsp)} Pa top setting`;
 }
 
 function takeoffOptions() {
@@ -1835,7 +1843,7 @@ function designSummary() {
       <div class="rowpick"><label>Zoning</label><select id="zoning">${app.options.zonings.map((z) => `<option value="${z.id}" ${z.id === zoning ? 'selected' : ''}>${esc(z.label)}</option>`).join('')}</select></div>
       <div class="rowpick"><label>Supply air transition</label><select id="takeoffs">${takeoffOptions()}</select></div>
       <div class="rowpick"><label>Air speed</label><select id="velocity">${app.options.velocities.map((x) => `<option value="${x.id}" ${x.id === (p.site.velocityPref ?? 'standard') ? 'selected' : ''}>${esc(x.label)}</option>`).join('')}</select></div>
-      <div class="kv"><span>Fan</span><b>${fmt(l.network.externalPa)} of ${fmt(l.network.ratedEsp)} Pa${l.network.limitedByFan ? ' · can\'t reach its airflow' : ''}</b></div>
+      <div class="kv"><span>Fan static</span><b>${staticLine(l.network)}</b></div>
       ${(p.design?.boxPins || p.design?.stations) ? '<button class="btn2" id="unhand" style="margin-top:10px">Undo hand-placed BDOs</button>' : ''}</div>
     <div class="card"><h2>Flex to order</h2>
       ${l.flex.map((f) => `<div class="kv"><span><span class="dot" style="display:inline-block;width:10px;height:10px;border-radius:50%;background:${ductColour(f.sizeMM)};margin-right:8px"></span>Ø${f.sizeMM}</span><b>${fmt(f.metres, 1)} m · ${f.bags} bag${f.bags === 1 ? '' : 's'}</b></div>`).join('')}
@@ -1951,7 +1959,7 @@ function openReport(kind) {
   const close = () => o.remove();
   $('#rp-close', o).onclick = close;
   o.addEventListener('keydown', (e) => e.key === 'Escape' && close());
-  import('./reports.js?v=225a56c-202610131259').then(async (m) => {
+  import('./reports.js?v=8589d9f-202610131323').then(async (m) => {
     // Reports are always the design as installed: every zone open, balanced.
     app.designLayout = await call('route', { project: app.project, closed: [], balanced: true });
     const r = await m.build(kind, { app, call, Plan });

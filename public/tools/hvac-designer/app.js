@@ -1,10 +1,10 @@
 // Trust Trade Pro — the HVAC Designer in the browser. The same five steps as the app (House · Capture · Check · Design ·
 // Send) on the app's own engine (engine.wasm, run in a worker): the same loads, zones, ducts, checks and materials.
 
-import { call, latest } from './engine.js?v=ffe7aa9-202610131146';
-import * as store from './store.js?v=ffe7aa9-202610131146';
-import { Plan, inkImage, zoneColour, ductColour, T, pointInPolygon, movesOnly, wheelMoves, ZOOM_MAX } from './plan.js?v=ffe7aa9-202610131146';
-import { RoomEditor, metres, signedArea, onLine } from './roomeditor.js?v=ffe7aa9-202610131146';
+import { call, latest } from './engine.js?v=c3cdcc6-202610131240';
+import * as store from './store.js?v=c3cdcc6-202610131240';
+import { Plan, inkImage, zoneColour, ductColour, T, pointInPolygon, movesOnly, wheelMoves, ZOOM_MAX } from './plan.js?v=c3cdcc6-202610131240';
+import { RoomEditor, metres, signedArea, onLine } from './roomeditor.js?v=c3cdcc6-202610131240';
 
 // MARK: Helpers
 
@@ -841,12 +841,15 @@ function pickOpenArea(c) {
   return d;
 }
 
+/// The biggest ducted unit on the list (the engine's Designer.units).
+function biggestUnitKW() { return Math.max(...app.options.units.map((u) => u.kw)); }
+
 function unitOptions(t, site) {
   const opt = (sizing, title, detail, badge) => `<button class="option ${!t.byHand && (site.unitSizingPref ?? 'wholeHome') === sizing ? 'on' : ''}" data-sizing="${sizing}">
     <span class="radio"></span><span><b>${esc(title)}</b>${badge ? ` <span class="tag">${badge}</span>` : ''}<p>${esc(detail)}</p></span></button>`;
   const ch = t.choices;
   let html = '';
-  if (ch.wholeHome) html += opt('wholeHome', `${g(ch.wholeHome.kw)} kW · whole home open`, `${fmt(t.wholeHomeKW, 1)} kW with every zone on (${fmt(app.view.coincidence * 100)}% of the ${fmt(t.connectedKW, 1)} kW if every room peaked at once)`, 'RECOMMENDED');
+  if (ch.wholeHome) html += opt('wholeHome', `${g(ch.wholeHome.kw)} kW · whole home open`, `${fmt(t.wholeHomeKW, 1)} kW: every room's load added up, so it runs the full open home on a design day and turns down as zones shut.${t.wholeHomeKW > biggestUnitKW() * 1.06 ? ' More than one ducted unit can carry — see how it\'s worked out.' : ''}`, 'RECOMMENDED');
   if (ch.margin && ch.margin.kw !== ch.wholeHome?.kw) html += opt('margin', `${g(ch.margin.kw)} kW · more margin`, 'One size up: the hottest days, bigger windows than the plan shows, a room added later.');
   if (ch.zoned && ch.zoned.kw !== ch.wholeHome?.kw) html += opt('zoned', `${g(ch.zoned.kw)} kW · zoned use only`, `${fmt(t.designKW, 1)} kW: never every zone on at once (${(app.options.zonings.find((z) => z.id === (site.zoningPref ?? 'perroom'))?.label ?? '').toLowerCase()} zoning, ${fmt(t.diversity * 100)}% diversity).`);
   html += `<label class="rowpick" style="border-top:0"><label>${t.byHand ? `Picked by hand: ${g(t.unit?.kw ?? 0)} kW` : 'Pick another size…'}</label>
@@ -1761,9 +1764,11 @@ function sizeBreakdown() {
   const ch = t.choices ?? {};
   const pickedBy = t.byHand ? 'picked by hand' : ({ wholeHome: 'whole home open', margin: 'more margin', zoned: 'zoned use only' })[t.sizing] ?? t.sizing;
   const lows = [];
-  if (noGlass.length) lows.push(`<b>${noGlass.length} of ${live.length} rooms have no windows.</b> Glass is the biggest gain: a room with none counts as low glazing (× 0.90) facing nowhere in particular (× 1.00 — a west-facing room is × 1.16, a glassy one × 1.22). Add them: Edit the rooms → pick a wall → Add a window.`);
+  const big = biggestUnitKW();
+  if (t.wholeHomeKW > big * 1.06) lows.push(`<b>The full open home needs ${fmt(t.wholeHomeKW, 1)} kW — more than the biggest ducted unit (${g(big)} kW).</b> Split it into two systems (say living and sleeping), or size it for zoned use and tell the customer it won't run every room flat out at once on the hottest day.`);
+  if (noGlass.length) lows.push(`<b>${noGlass.length} of ${live.length} rooms have no windows drawn.</b> They count as typical glass (× 1.00) facing no particular way — a west-facing room is × 1.16 and a glassy one × 1.22. Add the windows for a truer size: Edit the rooms → pick a wall → Add a window.`);
   if (/good/.test(insul?.[0] ?? '')) lows.push(`<b>Ceiling insulation R3.5 or better</b> takes 15% off every room (× 0.85). Check it on the House step if you're not sure what's up there.`);
-  lows.push(`<b>Whole home open takes ${pct(v.coincidence)} of the total</b>, because rooms facing different ways don't all peak at the same hour. If you want the full total covered, pick “more margin” (one size up) or a size by hand.`);
+  lows.push(`<b>People and appliances are in each room's W/m² rate</b> (a typical household), not added on top. Bedrooms are × 0.92 because they're mostly used at night; a home office, a gym or a west-facing bedroom may want a size up.`);
   if (/cool/i.test(climate?.[0] ?? '')) lows.push(`<b>${esc(climate[0])} sizes from ${esc(base)}</b> for the summer peak. The winter heating load isn't worked out separately, and in a cool climate it can be the bigger one — allow for it on an old or draughty house.`);
   const opt = (key, label) => ch[key] ? `<div class="kv"><span>${label}${!t.byHand && t.sizing === key ? ' <span class="tag">PICKED</span>' : ''}</span><b>${esc(ch[key].label)}</b></div>` : '';
   const d = dialog(`<h2>How the size is worked out</h2>
@@ -1775,14 +1780,14 @@ function sizeBreakdown() {
     </tbody></table>
     <div class="card" style="margin:14px 0 0;padding:12px 14px;background:var(--tile);box-shadow:none">
       <div class="kv"><span>Every room at its peak (connected)</span><b>${fmt(t.connectedKW, 1)} kW · ${perM2(t.connectedKW, t.area)} over ${fmt(t.area)} m²</b></div>
-      <div class="kv"><span>Whole home open: × ${pct(v.coincidence)} (they don't all peak at once)</span><b>${fmt(t.wholeHomeKW, 1)} kW</b></div>
+      <div class="kv"><span>Whole home open: every room at once (the full open home)</span><b>${fmt(t.wholeHomeKW, 1)} kW</b></div>
       <div class="kv"><span>Zoned use only: × ${pct(v.coincidence)} × ${pct(zmult)} for ${esc((zoning?.label ?? '').toLowerCase())} zoning</span><b>${fmt(t.designKW, 1)} kW</b></div>
     </div>
     <span class="eyebrow" style="display:block;margin:14px 0 4px">The unit — the next size up from the load</span>
     ${opt('wholeHome', 'Whole home open')}${opt('margin', 'More margin (one size up)')}${opt('zoned', 'Zoned use only')}
     ${t.byHand ? `<div class="kv"><span>Picked by hand <span class="tag">PICKED</span></span><b>${esc(t.unit?.label ?? '')}</b></div>` : ''}
     <p class="small muted" style="margin:6px 0 0">${t.unit ? `${esc(t.unit.label)} (${pickedBy}) is ${perM2(t.unit.kw, t.area)} of conditioned floor.` : ''}</p>
-    <span class="eyebrow" style="display:block;margin:14px 0 4px">What's keeping it down on this job</span>
+    <span class="eyebrow" style="display:block;margin:14px 0 4px">Worth checking on this job</span>
     <ul class="small" style="margin:4px 0 0;padding-left:18px">${lows.map((x) => `<li style="margin:6px 0">${x}</li>`).join('')}</ul>`,
   [{ label: 'Close' },
     ...(t.sizing !== 'margin' || t.byHand ? [{ label: 'Use more margin', primary: true, run: () => commit({ ...app.project, site: { ...app.project.site, unitSizingPref: 'margin', unitKWPref: null } }) }] : [])]);
@@ -1941,7 +1946,7 @@ function openReport(kind) {
   const close = () => o.remove();
   $('#rp-close', o).onclick = close;
   o.addEventListener('keydown', (e) => e.key === 'Escape' && close());
-  import('./reports.js?v=ffe7aa9-202610131146').then(async (m) => {
+  import('./reports.js?v=c3cdcc6-202610131240').then(async (m) => {
     // Reports are always the design as installed: every zone open, balanced.
     app.designLayout = await call('route', { project: app.project, closed: [], balanced: true });
     const r = await m.build(kind, { app, call, Plan });

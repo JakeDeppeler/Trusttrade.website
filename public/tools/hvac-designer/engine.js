@@ -1,6 +1,6 @@
 // The page's side of the engine: every call goes to the worker (engine-worker.js) and comes back as a promise.
 
-const worker = new Worker(new URL('./engine-worker.js?v=ffe7aa9-202610131146', import.meta.url));
+const worker = new Worker(new URL('./engine-worker.js?v=c3cdcc6-202610131240', import.meta.url));
 const pending = new Map();
 let nextId = 1;
 

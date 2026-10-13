@@ -1,10 +1,10 @@
 // Trust Trade Pro — the HVAC Designer in the browser. The same five steps as the app (House · Capture · Check · Design ·
 // Send) on the app's own engine (engine.wasm, run in a worker): the same loads, zones, ducts, checks and materials.
 
-import { call, latest } from './engine.js?v=8589d9f-202610131323';
-import * as store from './store.js?v=8589d9f-202610131323';
-import { Plan, inkImage, zoneColour, ductColour, T, pointInPolygon, movesOnly, wheelMoves, ZOOM_MAX } from './plan.js?v=8589d9f-202610131323';
-import { RoomEditor, metres, signedArea, onLine } from './roomeditor.js?v=8589d9f-202610131323';
+import { call, latest } from './engine.js?v=cea6cc5-202610131457';
+import * as store from './store.js?v=cea6cc5-202610131457';
+import { Plan, inkImage, zoneColour, ductColour, T, pointInPolygon, movesOnly, wheelMoves, ZOOM_MAX } from './plan.js?v=cea6cc5-202610131457';
+import { RoomEditor, metres, signedArea, onLine } from './roomeditor.js?v=cea6cc5-202610131457';
 
 // MARK: Helpers
 
@@ -83,13 +83,18 @@ const app = {
   jobId: null, project: null, view: null, layout: null, air: null, cards: null, checks: null,
   backdrop: null, backdropFile: null,
   step: 'house', selection: null, closed: new Set(), balanced: true,
-  layers: { plan: true, allSizes: false, air: false }, addMode: false, joining: null,
+  layers: { plan: true, allSizes: true, air: false, zones: true }, addMode: false, joining: null,
   undo: [], redo: [], designing: false, read: null, jobsTab: 'progress', jobsSearch: '', jobsPick: null,
   plan: null, checkAnswers: null,
   /// The room editor while it's open (it shows in place of the step), and whether rooms changed since the design.
   editorOpen: null, roomsEdited: false,
 };
-try { Object.assign(app.layers, JSON.parse(localStorage.getItem('ttpro.layers') || '{}')); } catch (_) {}
+try {
+  // Saved before every duct's size was shown by default (13 Oct): keep the airflow choice, show the sizes.
+  const saved = JSON.parse(localStorage.getItem('ttpro.layers') || '{}');
+  if (saved.zones === undefined) delete saved.allSizes;
+  Object.assign(app.layers, saved);
+} catch (_) {}
 const saveLayers = () => { try { localStorage.setItem('ttpro.layers', JSON.stringify(app.layers)); } catch (_) {} };
 
 // MARK: The job and the engine
@@ -153,6 +158,7 @@ function editRefusal(op) {
     addRoom: 'That room won\'t do — at least 0.8 m², no crossing lines, and not right over another room.',
     makeRoom: 'That gap has changed — pick it again.',
     addWindow: 'Windows go in outside walls, with room to spare.',
+    drawWindow: 'Windows go in outside walls (dashed blue), with half a metre of wall for one.',
     rescale: 'That scale doesn\'t look right.',
   })[op] ?? 'That didn\'t change anything.';
 }
@@ -750,7 +756,7 @@ function renderCapture(c) {
   $('#fixrooms', c)?.addEventListener('click', () => openEditor());
   c.querySelectorAll('[data-north]').forEach((b) => (b.onclick = () => { app.read.north = b.dataset.north; importRead(); }));
   const cv = $('#cv', c);
-  if (cv) mountPlan(cv, { interactive: false, labels: true, compact: false });
+  if (cv) mountPlan(cv, { interactive: false, labels: true, compact: false, zoneCards: false });
 }
 
 // MARK: Check
@@ -805,7 +811,7 @@ async function renderCheck(c) {
       <div class="card"><h2>Zoning</h2><p class="small muted" style="margin:2px 0 8px">${esc(o.zonings.find((z) => z.id === (p.site.zoningPref ?? 'perroom'))?.note ?? '')}</p>
         <div class="seg" style="flex-wrap:wrap">${o.zonings.map((z) => `<button data-zoning="${z.id}" class="${z.id === (p.site.zoningPref ?? 'perroom') ? 'on' : ''}">${esc(z.label)}</button>`).join('')}</div></div>
     </div></div>`;
-  const plan = mountPlan($('#cv', c), { interactive: false, labels: true, compact: true, gaps: a.pc.gaps.map((x) => ({ ...x, on: a.gapsOn.has(x.key) })),
+  const plan = mountPlan($('#cv', c), { interactive: false, labels: true, compact: true, zoneCards: false, gaps: a.pc.gaps.map((x) => ({ ...x, on: a.gapsOn.has(x.key) })),
     handlers: { tapRoom: (w) => openEditor({ room: w && v.rooms.find((r) => pointInPolygon(w, r.polygon))?.id }) } });
   $('#editrooms', c).onclick = () => openEditor();
   $('#sizeit', c)?.addEventListener('click', () => openEditor({ mode: 'measure' }));
@@ -1211,7 +1217,7 @@ function renderRoomEditor(c) {
   c.innerHTML = `<div class="work">
     <div class="stage">
       <div class="bar">
-        <div class="seg" id="ed-tools">${[['edit', 'Select'], ['draw', 'Draw a room'], ['measure', 'Set the size']].map(([k, l]) => `<button data-tool="${k}">${l}</button>`).join('')}</div>
+        <div class="seg" id="ed-tools">${[['edit', 'Select'], ['draw', 'Draw a room'], ['window', 'Windows'], ['measure', 'Set the size']].map(([k, l]) => `<button data-tool="${k}">${l}</button>`).join('')}</div>
         <div class="spacer" style="flex:1"></div>
         <button class="btn2 small" id="ed-undo" title="Undo the last change">${icon('undo').replace('<svg', '<svg width="15" height="15"')} Back</button>
         <button class="btn2 small" id="ed-redo" title="Redo it">Forward ${icon('redo').replace('<svg', '<svg width="15" height="15"')}</button>
@@ -1296,7 +1302,8 @@ function edKeys(e) {
   if (e.key === 'Escape') ed.escape();
   else if (e.key === 'Enter' && ed.mode === 'draw') ed.finish();
   else if (e.key === 'Backspace' || e.key === 'Delete') {
-    if (ed.mode === 'draw' && ed.draft.length) ed.undoPoint();
+    if (ed.sel?.kind === 'window') { const { room, n } = ed.sel; ed.sel = null; edEdit('removeWindow', { room, n }); }
+    else if (ed.mode === 'draw' && ed.draft.length) ed.undoPoint();
     else if (ed.mode === 'edit' && ed.sel?.corner != null) ed.removeCorner();
     else return;
     e.preventDefault();
@@ -1323,6 +1330,8 @@ function zoneOptions(r, current) {
     <option value="none" ${current === 'none' ? 'selected' : ''}>No zone — always on</option>`;
 }
 
+const FACING = { N: 'north', NE: 'north-east', E: 'east', SE: 'south-east', S: 'south', SW: 'south-west', W: 'west', NW: 'north-west' };
+
 function shapeWord(r) {
   const n = r.polygon.length;
   const square = r.polygon.every((q, i) => { const o = r.polygon[(i + 1) % n]; return Math.abs(q.x - o.x) < 0.01 || Math.abs(q.y - o.y) < 0.01; });
@@ -1343,6 +1352,7 @@ function edPanel() {
   if (hint) {
     hint.textContent = ed.mode === 'draw' ? 'Click each corner of the room in turn; click the first corner (or press Enter) to finish. Corners snap to the rooms round them — hold Shift to place one freely. Move around with the hand, Space-and-drag or a right-drag.'
       : ed.mode === 'measure' ? 'Click a wall you know the length of (it lights up blue), or two points on the plan such as the ends of the scale bar.'
+      : ed.mode === 'window' ? 'Drag along an outside wall (dashed blue) from one side of a window to the other, or click the wall for a 1.2 m one. Click a window to size it or take it out.'
       : 'Drag a wall or a picked room\'s corner (the room next door comes too). Drag a + to put a corner in a wall. Zoom with + and −; move around with the hand, Space-and-drag, a right-drag or the arrow keys.';
   }
   const close = '<button class="iconbtn close" id="ed-close">' + icon('x') + '</button>';
@@ -1357,14 +1367,18 @@ function edPanel() {
         <p class="small muted" style="margin:2px 0 0">Click one wall you know the length of — a printed size, like 3600 — and type it. The whole plan is sized from it.</p>
         ${drawn ? '<button class="btn" id="go-size" style="margin-top:8px">Set the size</button>' : ''}</div></div>
     </div></div>` : '';
+  // Drawing by hand: the steps, with Next once there are rooms.
+  const wins = v.rooms.reduce((t, r) => t + (r.windows?.length ?? 0), 0);
+  const guide = st.guide && !unsized ? `<div class="card"><div class="checklist">
+      <div class="item ok"><div class="mark">✓</div><div><b>Scale set</b><p class="small muted" style="margin:2px 0 0">Lengths and areas are real now.</p></div></div>
+      <div class="item ${drawn ? 'ok' : 'info'}"><div class="mark">${drawn ? '✓' : '2'}</div><div><b>Draw the rooms</b><p class="small muted" style="margin:2px 0 0">${drawn ? `${v.rooms.length} drawn.${ed.mode === 'draw' ? ' Draw the rest.' : ''}` : 'Click round the first room\'s corners.'}</p>
+        ${drawn && ed.mode !== 'draw' ? '<button class="btn2 small" id="dr-rooms" style="margin-top:6px">Draw a room</button>' : ''}</div></div>
+      <div class="item ${wins ? 'ok' : 'info'}"><div class="mark">${wins ? '✓' : '3'}</div><div><b>Draw the windows</b><p class="small muted" style="margin:2px 0 0">${wins ? `${wins} drawn.` : 'Drag along the outside walls where the plan has windows and glass doors.'} A room left without counts as typical glass.</p>
+        ${drawn && ed.mode !== 'window' ? '<button class="btn2 small" id="dr-win" style="margin-top:6px">Draw the windows</button>' : ''}</div></div></div>
+      ${drawn ? '<button class="btn" id="dr-next" style="margin-top:10px;width:100%">Next: check the rooms →</button>' : ''}</div>` : '';
   if (ed.mode === 'draw') {
     const n = ed.draft.length;
-    if (st.guide && !unsized) {
-      html += `<div class="card"><div class="checklist">
-        <div class="item ok"><div class="mark">✓</div><div><b>Scale set</b><p class="small muted" style="margin:2px 0 0">Lengths and areas are real now.</p></div></div>
-        <div class="item ${drawn ? 'ok' : 'info'}"><div class="mark">${drawn ? '✓' : '2'}</div><div><b>Draw the rooms</b><p class="small muted" style="margin:2px 0 0">${drawn ? `${v.rooms.length} drawn. Draw the rest, then Next.` : 'Click round the first room\'s corners.'}</p>
-          ${drawn ? '<button class="btn" id="dr-next" style="margin-top:8px">Next: check the rooms →</button>' : ''}</div></div></div></div>`;
-    }
+    html += guide;
     html += `<div class="card"><h2>Draw a room</h2>
       <p class="small muted" style="margin:4px 0 10px">${n ? `${n} corner${n === 1 ? '' : 's'} so far.` : 'Click the first corner of the room.'} Go round the room's walls — the inside face — and click the first corner again to finish.</p>
       <div class="actions-row">${n >= 3 ? '<button class="btn" id="dr-finish">Finish the room</button>' : ''}${n ? '<button class="btn2" id="dr-back">Take the last corner out</button>' : ''}
@@ -1377,6 +1391,29 @@ function edPanel() {
     html = `<div class="card"><h2>Set the size</h2><p class="small muted" style="margin:4px 0 10px"><b>Click a wall you know the length of</b> — it lights up blue — and type how long it really is (the printed size, like 3600). Or click two points on the plan, like the ends of the scale bar.</p>
       <p class="small muted" style="margin:0 0 10px">The rooms and the plan image are sized to match.${app.project.design ? ' The ducts are laid out again after.' : ''}</p>
       <button class="btn2" id="ms-stop">Cancel</button></div>`;
+  } else if (sel?.kind === 'window' && ed.room(sel.room)?.windows?.[sel.n]) {
+    const r = ed.room(sel.room), w = r.windows[sel.n];
+    const gl = r.glass?.[sel.n] ?? { height: 1.2, width: Math.hypot(w[1].x - w[0].x, w[1].y - w[0].y), facing: '' };
+    const door = gl.height >= 2;
+    html += `<div class="card"><div class="insp-head"><h2>${door ? 'Glass door' : 'Window'} · ${esc(r.name)}</h2>${close}</div>
+        <div class="insp-sub">${FACING[gl.facing] ? 'Faces ' + FACING[gl.facing] + ' · ' : ''}${fmt(gl.height * gl.width, 2)} m² of glass</div>
+        <p class="small muted" style="margin:6px 0 8px">Its size as the plan prints it: height × width (like 2100 × 2400 for a glass door).</p>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+          <label class="field"><span>Height (mm)</span><input id="win-h" type="number" inputmode="numeric" min="300" max="3000" step="10" value="${Math.round(gl.height * 1000)}"></label>
+          <label class="field"><span>Width (mm)</span><input id="win-w" type="number" inputmode="numeric" min="250" max="6000" step="10" value="${Math.round(gl.width * 1000)}"></label></div>
+        <div class="seg" style="flex-wrap:wrap;margin-top:2px">${[[600, '600'], [900, '900'], [1200, '1200'], [1500, '1500'], [1800, '1800'], [2100, '2100 door']].map(([mm, l]) => `<button data-wh="${mm}" class="${Math.round(gl.height * 1000) === mm ? 'on' : ''}">${l}</button>`).join('')}</div>
+        <div class="actions-row" style="margin-top:10px"><button class="btn2 danger" id="win-del">${icon('trash').replace('<svg', '<svg width="16" height="16"')} Take it out</button>
+          ${ed.mode === 'window' ? '' : '<button class="btn2" id="win-more">Draw more windows</button>'}</div></div>${ed.mode === 'window' ? guide : ''}`;
+  } else if (ed.mode === 'window') {
+    const typical = v.rooms.filter((r) => r.conditioned && !(r.windows?.length) && ['living', 'bed', 'other'].includes(r.designerType));
+    html += `<div class="card"><h2>Draw the windows</h2>
+        <p class="small muted" style="margin:4px 0 8px"><b>Drag along an outside wall</b> (dashed blue) from one side of the window to the other, as the plan has it. Or click the wall for a 1.2 m window, then type its size. One 2 m or wider goes in as a glass door (2.1 m high).</p>
+        <p class="small muted" style="margin:0 0 10px">The windows set each room's glass: how much there is, and which way it faces the sun. ${wins} drawn so far.</p>
+        <div class="actions-row"><button class="btn${guide ? '2' : ''}" id="win-done">Done</button></div></div>
+      ${guide}
+      <div class="card"><h2>${typical.length ? 'No windows yet' : 'Every room has its windows'}</h2>
+        ${typical.length ? `<p class="small muted" style="margin:2px 0 6px">Counted as typical glass until they're drawn:</p>${typical.map((r) => `<div class="kv"><span>${esc(r.name)}</span><span class="muted small">${area(r.area)}</span></div>`).join('')}`
+          : '<p class="small muted" style="margin:2px 0 0">The living rooms and bedrooms all have windows drawn.</p>'}</div>`;
   } else if (sel?.kind === 'room' && ed.room(sel.id)) {
     const r = ed.room(sel.id), n = r.polygon.length;
     let corner = '', wall = '';
@@ -1389,12 +1426,13 @@ function edPanel() {
     if (sel.edge != null && sel.edge < n) {
       const a = r.polygon[sel.edge], b = r.polygon[(sel.edge + 1) % n];
       const inside = ed.rooms.some((m) => m.id !== r.id && m.polygon.some((q, i) => onLine(a, b, q, m.polygon[(i + 1) % m.polygon.length])));
-      const wins = wallWindows(r, sel.edge);
+      const onWall = wallWindows(r, sel.edge);
       wall = `<div class="card"><h2>Wall · ${metres(Math.hypot(b.x - a.x, b.y - a.y))}</h2>
         <p class="small muted" style="margin:2px 0 8px">${inside ? 'An inside wall: the room next door is on the other side.' : 'An outside wall.'} Drag it to move it.</p>
-        ${wins.map(({ w, n: k }) => `<div class="kv"><span>Window · ${metres(Math.hypot(w[1].x - w[0].x, w[1].y - w[0].y))}</span><button class="link" data-unwin="${k}">Remove</button></div>`).join('')}
+        ${onWall.map(({ w, n: k }) => `<div class="kv"><button class="link" data-pickwin="${k}">${(r.glass?.[k]?.height ?? 1.2) >= 2 ? 'Glass door' : 'Window'} · ${metres(Math.hypot(w[1].x - w[0].x, w[1].y - w[0].y))}</button><button class="link" data-unwin="${k}">Remove</button></div>`).join('')}
         ${inside ? '' : `<span class="eyebrow" style="display:block;margin-top:8px">Add a window</span>
-          <div class="seg" style="flex-wrap:wrap">${[0.6, 1.2, 1.8, 2.4, 3.0].map((wd) => `<button data-win="${wd}">${wd.toFixed(1)} m</button>`).join('')}</div>`}</div>`;
+          <div class="seg" style="flex-wrap:wrap">${[0.6, 1.2, 1.8, 2.4, 3.0].map((wd) => `<button data-win="${wd}">${wd.toFixed(1)} m</button>`).join('')}</div>
+          <p class="small muted" style="margin:6px 0 0">Or use <b>Windows</b> up top to draw one where the plan has it.</p>`}</div>`;
     }
     html += `<div class="card"><div class="insp-head"><h2>${esc(r.name)}</h2>${close}</div>
         <div class="insp-sub">${area(r.area)} · ${shapeWord(r)} · ${r.windows.length} window${r.windows.length === 1 ? '' : 's'}</div>
@@ -1415,8 +1453,9 @@ function edPanel() {
         <li>Drag any wall to move it — the room on the other side comes too.</li>
         <li>Pick a room, then drag its corners, or drag a + to put a corner in a wall (rooms needn't be rectangles).</li>
         <li><b>Draw a room</b> to add one the reading missed, corner by corner.</li>
+        <li><b>Windows</b>: drag along an outside wall to draw a window or glass door where the plan has it.</li>
         <li><b>Set the size</b> if the sizes are out: click a wall you know the length of and type it.</li></ul>
-      <div class="actions-row"><button class="btn" id="ed-draw">Draw a room</button></div></div>
+      <div class="actions-row"><button class="btn" id="ed-draw">Draw a room</button><button class="btn2" id="ed-win">Draw windows</button></div></div>
       ${v.rooms.length ? `<div class="card"><h2>${v.rooms.length} rooms${unsized ? '' : ' · ' + g(v.totals.area) + ' m²'}</h2>
         ${v.rooms.map((r) => `<button class="kv" data-pick="${r.id}" style="width:100%;border:0;background:none;cursor:pointer;text-align:left"><span>${esc(r.name)}</span><b>${area(r.area)}</b></button>`).join('')}</div>`
       : '<div class="card"><p class="small muted" style="margin:0">No rooms yet. Pick <b>Draw a room</b> and click round the first room\'s corners.</p></div>'}`;
@@ -1425,6 +1464,20 @@ function edPanel() {
   const room = () => (sel?.kind === 'room' ? ed.room(sel.id) : null);
   $('#ed-close', el)?.addEventListener('click', () => { ed.sel = null; edPanel(); st.plan?.draw(); });
   $('#ed-draw', el)?.addEventListener('click', () => ed.setMode('draw'));
+  $('#ed-win', el)?.addEventListener('click', () => ed.setMode('window'));
+  $('#dr-win', el)?.addEventListener('click', () => ed.setMode('window'));
+  $('#dr-rooms', el)?.addEventListener('click', () => ed.setMode('draw'));
+  $('#win-done', el)?.addEventListener('click', () => ed.setMode('edit'));
+  $('#win-more', el)?.addEventListener('click', () => ed.setMode('window'));
+  if (sel?.kind === 'window') {
+    const { room: wr, n: wn } = sel;
+    const mm = (v) => { const n = parseFloat(v); return n > 0 ? (n > 20 ? n / 1000 : n) : null; };
+    $('#win-h', el)?.addEventListener('change', (e) => { const h = mm(e.target.value); if (h) edEdit('resizeWindow', { room: wr, n: wn, height: h }); });
+    $('#win-w', el)?.addEventListener('change', (e) => { const w = mm(e.target.value); if (w) edEdit('resizeWindow', { room: wr, n: wn, width: w }); });
+    el.querySelectorAll('[data-wh]').forEach((b) => (b.onclick = () => edEdit('resizeWindow', { room: wr, n: wn, height: +b.dataset.wh / 1000 })));
+    $('#win-del', el)?.addEventListener('click', () => { ed.sel = null; edEdit('removeWindow', { room: wr, n: wn }); });
+  }
+  el.querySelectorAll('[data-pickwin]').forEach((b) => (b.onclick = () => { const r = room(); if (r) { ed.sel = { kind: 'window', room: r.id, n: +b.dataset.pickwin }; edPanel(); st.plan?.draw(); } }));
   el.querySelectorAll('[data-pick]').forEach((b) => (b.onclick = () => { ed.sel = { kind: 'room', id: b.dataset.pick }; edPanel(); st.plan?.draw(); }));
   $('#dr-finish', el)?.addEventListener('click', () => ed.finish());
   $('#dr-back', el)?.addEventListener('click', () => ed.undoPoint());
@@ -1522,7 +1575,7 @@ function mountPlan(cv, opts) {
   const plan = new Plan(cv, handlers ?? {});
   plan.set({
     project: app.project, view: app.view, layout: layout === false ? null : app.layout, air: app.air, backdrop: app.backdrop,
-    showPlan: true, allSizes: app.layers.allSizes, showAir: false, selection: null, ...rest,
+    showPlan: true, allSizes: app.layers.allSizes, zoneCards: app.layers.zones, showAir: false, selection: null, ...rest,
   });
   return plan;
 }
@@ -1600,13 +1653,14 @@ function layersMenu(anchor) {
   const r = anchor.getBoundingClientRect();
   m.style.left = r.right + 8 + 'px'; m.style.top = r.top + 'px'; m.style.position = 'fixed';
   m.innerHTML = `<label><input type="checkbox" data-l="allSizes" ${app.layers.allSizes ? 'checked' : ''}> All duct sizes</label>
+    <label><input type="checkbox" data-l="zones" ${app.layers.zones ? 'checked' : ''}> Zone cards (kW, L/s, m²)</label>
     <label><input type="checkbox" data-l="air" ${app.layers.air ? 'checked' : ''}> Airflow</label>`;
   document.body.append(m);
   m.onchange = async (e) => {
     const k = e.target.dataset.l;
     app.layers[k] = e.target.checked; saveLayers();
     if (k === 'air' && app.layers.air && !app.air) app.air = await call('air', { project: app.project, closed: [...app.closed], balanced: app.balanced });
-    app.plan?.set({ allSizes: app.layers.allSizes, showAir: app.layers.air, air: app.air });
+    app.plan?.set({ allSizes: app.layers.allSizes, zoneCards: app.layers.zones, showAir: app.layers.air, air: app.air });
   };
   setTimeout(() => document.addEventListener('pointerdown', function off(e) { if (!m.contains(e.target)) { m.remove(); document.removeEventListener('pointerdown', off); render(); } }), 0);
 }
@@ -1959,7 +2013,7 @@ function openReport(kind) {
   const close = () => o.remove();
   $('#rp-close', o).onclick = close;
   o.addEventListener('keydown', (e) => e.key === 'Escape' && close());
-  import('./reports.js?v=8589d9f-202610131323').then(async (m) => {
+  import('./reports.js?v=cea6cc5-202610131457').then(async (m) => {
     // Reports are always the design as installed: every zone open, balanced.
     app.designLayout = await call('route', { project: app.project, closed: [], balanced: true });
     const r = await m.build(kind, { app, call, Plan });

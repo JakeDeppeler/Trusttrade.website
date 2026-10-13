@@ -38,6 +38,36 @@ export function pointInPolygon(p, poly) {
   return inside;
 }
 
+/// Flex as it's drawn: its insulated size (the bore and 50 mm of jacket) to scale, never thinner than a line you can see.
+export const ductWidth = (mm, s) => Math.min(Math.max((mm + 50) / 1000 * s, 3), 30);
+
+/// A window in its wall as a plan draws one: a frame across the wall, the glass down the middle; a glass door shows its
+/// two panes side by side, as a slider. `on`: picked.
+export function drawWindowMark(g, a, b, { door = false, s = 40, on = false } = {}) {
+  const len = Math.hypot(b.x - a.x, b.y - a.y);
+  if (len < 2) return;
+  const ux = (b.x - a.x) / len, uy = (b.y - a.y) / len, nx = -uy, ny = ux;
+  const t = Math.min(Math.max(0.16 * s, 5), 12) / 2;
+  const glass = '#2E86C1';
+  g.save();
+  g.beginPath();
+  g.moveTo(a.x + nx * t, a.y + ny * t); g.lineTo(b.x + nx * t, b.y + ny * t);
+  g.lineTo(b.x - nx * t, b.y - ny * t); g.lineTo(a.x - nx * t, a.y - ny * t); g.closePath();
+  g.fillStyle = on ? T.accentSoft : '#fff'; g.fill();
+  g.strokeStyle = on ? T.accentDeep : glass; g.lineWidth = on ? 2.2 : 1.2; g.stroke();
+  g.strokeStyle = glass; g.lineWidth = 1.6; g.lineCap = 'butt';
+  g.beginPath();
+  if (door) {
+    const o = t * 0.42, k = len * 0.56;
+    g.moveTo(a.x + nx * o, a.y + ny * o); g.lineTo(a.x + ux * k + nx * o, a.y + uy * k + ny * o);
+    g.moveTo(b.x - nx * o, b.y - ny * o); g.lineTo(b.x - ux * k - nx * o, b.y - uy * k - ny * o);
+  } else {
+    g.moveTo(a.x, a.y); g.lineTo(b.x, b.y);
+  }
+  g.stroke();
+  g.restore();
+}
+
 function segDist(p, a, b) {
   const ex = b.x - a.x, ey = b.y - a.y, l2 = ex * ex + ey * ey;
   const t = l2 > 0 ? Math.max(0, Math.min(1, ((p.x - a.x) * ex + (p.y - a.y) * ey) / l2)) : 0;
@@ -189,6 +219,7 @@ export class Plan {
     this.drawRooms(g, x, view, layout);
     if (d.showPlan !== false && d.backdrop && d.project?.backdrop) this.drawBackdrop(g, x, d.project.backdrop, d.backdrop, dpr);
     if (d.gaps) this.drawGaps(g, x, d.gaps);
+    this.drawWindows(g, x, view, d.editor?.pickedWindow?.());
     if (layout) {
       if (d.showAir && d.air) this.drawThrow(g, x, d.view, layout, d.air);
       if (layout.outdoor) this.drawPipes(g, x, layout.unit, layout.outdoor);
@@ -197,9 +228,9 @@ export class Plan {
       if (sel?.kind === 'feed') {
         for (const r of layout.runs) {
           if (r.keyBox !== sel.id) continue;
-          const w = Math.min(Math.max(r.sizeMM / 1000 * x.s * 0.9, 3), 22);
-          this.stroke(g, r.path.map(x.pt), T.accent, w + 7);
-          this.stroke(g, r.path.map(x.pt), ductColour(r.sizeMM), w);
+          const w = ductWidth(r.sizeMM, x.s), bend = this.bend(w, x.s);
+          this.stroke(g, r.path.map(x.pt), T.accent, w + 7, 'round', null, bend);
+          this.stroke(g, r.path.map(x.pt), ductColour(r.sizeMM), w, 'round', null, bend);
         }
       }
     }
@@ -207,7 +238,9 @@ export class Plan {
       const r = d.view.rooms.find((r) => r.id === d.selection.id);
       if (r) { this.path(g, r.polygon.map(x.pt), true); g.strokeStyle = T.accent; g.lineWidth = 3; g.stroke(); }
     }
-    if (d.labels !== false) this.drawLabels(g, x, view, layout, d.compact !== false);
+    const zoneCards = !!layout && !d.editor && !d.report && d.zoneCards !== false && (layout.zones?.length ?? 0) >= 2;
+    if (d.labels !== false) this.drawLabels(g, x, view, layout, d.compact !== false, zoneCards);
+    if (zoneCards && d.labels !== false) this.drawZoneCards(g, x, view, layout);
     if (layout && d.report) this.drawReportMarks(g, x, layout);
     else if (layout && !d.editor) this.drawMarkers(g, x, layout, d);
     d.editor?.overlay(g, x);
@@ -219,13 +252,26 @@ export class Plan {
     if (close) g.closePath();
   }
 
-  stroke(g, pts, colour, w, cap = 'round', dash = null) {
-    this.path(g, pts, false);
+  /// A line through the points; with `bend`, round each corner (flex sweeps round, it doesn't kink).
+  stroke(g, pts, colour, w, cap = 'round', dash = null, bend = 0) {
+    if (bend > 0 && pts.length > 2) {
+      g.beginPath();
+      g.moveTo(pts[0].x, pts[0].y);
+      for (let i = 1; i < pts.length - 1; i++) {
+        const a = pts[i - 1], p = pts[i], b = pts[i + 1];
+        const r = Math.min(bend, Math.hypot(p.x - a.x, p.y - a.y) / 2, Math.hypot(b.x - p.x, b.y - p.y) / 2);
+        if (r > 0.5) g.arcTo(p.x, p.y, b.x, b.y, r); else g.lineTo(p.x, p.y);
+      }
+      g.lineTo(pts[pts.length - 1].x, pts[pts.length - 1].y);
+    } else this.path(g, pts, false);
     g.strokeStyle = colour; g.lineWidth = w; g.lineCap = cap; g.lineJoin = 'round';
     g.setLineDash(dash || []);
     g.stroke();
     g.setLineDash([]);
   }
+
+  /// How round a run's bends are: a couple of its widths, or half a metre on a big plan.
+  bend(w, s) { return Math.min(Math.max(w * 2.2, 0.55 * s), 70); }
 
   drawRooms(g, x, view, layout) {
     const zoneOf = {};
@@ -237,9 +283,17 @@ export class Plan {
       const z = zoneOf[r.id];
       const fill = z !== undefined ? (closed.has(z) ? T.line : zoneColour(z)) : roomFill(r);
       this.path(g, pts, true);
-      g.fillStyle = rgba(fill, 0.14); g.fill();
+      g.fillStyle = rgba(fill, layout && z !== undefined && !closed.has(z) ? 0.22 : 0.14); g.fill();
       g.strokeStyle = rgba(T.ink, 0.55); g.lineWidth = 1.5; g.stroke();
-      for (const w of r.windows) this.stroke(g, [x.pt(w[0]), x.pt(w[1])], T.window, 4, 'butt');
+    }
+  }
+
+  /// The windows and glass doors, over the plan image so they read as the drawing's own.
+  drawWindows(g, x, view, picked) {
+    for (const r of view.rooms) {
+      (r.windows ?? []).forEach((w, k) => drawWindowMark(g, x.pt(w[0]), x.pt(w[1]), {
+        door: (r.glass?.[k]?.height ?? 1.2) >= 2, s: x.s, on: picked?.room === r.id && picked.n === k,
+      }));
     }
   }
 
@@ -301,40 +355,56 @@ export class Plan {
     const runs = [...l.runs].sort((a, b) => (a.kind === 'return' ? 0 : 1) - (b.kind === 'return' ? 0 : 1));
     for (const r of runs) {
       const pts = r.path.map(x.pt);
-      const w = Math.min(Math.max(r.sizeMM / 1000 * x.s * 0.9, 3), 22);
+      const w = ductWidth(r.sizeMM, x.s), bend = this.bend(w, x.s);
       const alpha = r.open ? 1 : 0.3;
-      this.stroke(g, pts, `rgba(255,255,255,${alpha})`, w + 2.5);
-      this.stroke(g, pts, rgba(ductColour(r.sizeMM), alpha), w);
+      this.stroke(g, pts, `rgba(255,255,255,${alpha})`, w + 2.5, 'round', null, bend);
+      this.stroke(g, pts, rgba(ductColour(r.sizeMM), alpha), w, 'round', null, bend);
       if (w >= 4) {
-        this.stroke(g, pts, `rgba(0,0,0,${0.13 * alpha})`, w, 'butt', [1.1, Math.max(2.2, w * 0.32)]);
-        this.stroke(g, pts, `rgba(255,255,255,${0.28 * alpha})`, w * 0.3);
+        this.stroke(g, pts, `rgba(0,0,0,${0.13 * alpha})`, w, 'butt', [1.1, Math.max(2.2, w * 0.32)], bend);
+        this.stroke(g, pts, `rgba(255,255,255,${0.28 * alpha})`, w * 0.3, 'round', null, bend);
       }
     }
     // Sizes: a little off the duct near the middle of each run (only trunks and BDO feeds unless asked).
-    const placed = [];
-    g.font = `600 9.5px ${FONT}`; g.textAlign = 'center'; g.textBaseline = 'middle';
+    this.sizeSpots = [];
+    const ra = x.pt(l.returnGrille);
+    const placed = [{ x: ra.x, y: ra.y + 22 }, { x: ra.x - 18, y: ra.y + 22 }, { x: ra.x + 18, y: ra.y + 22 }, x.pt(l.unit),
+      ...l.outlets.map((o) => x.pt(o.pos)), ...l.boxes.map((b) => x.pt(b.pos))];
+    g.font = `700 10px ${FONT}`; g.textAlign = 'center'; g.textBaseline = 'middle';
     for (const r of l.runs) {
       if (!(legSizes || r.outlet == null)) continue;
       const pts = r.path.map(x.pt);
       let len = 0;
       for (let i = 1; i < pts.length; i++) len += Math.hypot(pts[i].x - pts[i - 1].x, pts[i].y - pts[i - 1].y);
       if (len <= 55 || pts.length < 2) continue;
-      let acc = 0;
-      for (let i = 1; i < pts.length; i++) {
-        const a = pts[i - 1], b = pts[i], dd = Math.hypot(b.x - a.x, b.y - a.y);
-        if (acc + dd >= len * 0.5 && dd > 0) {
-          const t = (len * 0.5 - acc) / dd;
-          const m = { x: a.x + (b.x - a.x) * t, y: a.y + (b.y - a.y) * t }, n = { x: -(b.y - a.y) / dd, y: (b.x - a.x) / dd };
-          const off = r.sizeMM / 1000 * x.s * 0.45 + 8;
-          const at = { x: m.x + n.x * off, y: m.y + n.y * off };
-          if (placed.some((p) => Math.hypot(p.x - at.x, p.y - at.y) < 30)) break;
-          placed.push(at);
-          g.fillStyle = rgba(T.ductLabel, r.open ? 1 : 0.4);
-          g.fillText('ø' + r.sizeMM, at.x, at.y);
-          break;
+      // Near the middle, else a little either way or the other side of the duct: wherever it's clear of the others.
+      const spot = (f, side) => {
+        let acc = 0;
+        for (let i = 1; i < pts.length; i++) {
+          const a = pts[i - 1], b = pts[i], dd = Math.hypot(b.x - a.x, b.y - a.y);
+          if (acc + dd >= len * f && dd > 0) {
+            const t = (len * f - acc) / dd, off = (ductWidth(r.sizeMM, x.s) / 2 + 8) * side;
+            return { x: a.x + (b.x - a.x) * t - (b.y - a.y) / dd * off, y: a.y + (b.y - a.y) * t + (b.x - a.x) / dd * off };
+          }
+          acc += dd;
         }
-        acc += dd;
+        return null;
+      };
+      let at = null;
+      for (const f of [0.5, 0.38, 0.62, 0.28, 0.72]) {
+        for (const side of [1, -1]) {
+          const c = spot(f, side);
+          if (c && !placed.some((p) => Math.hypot(p.x - c.x, p.y - c.y) < 30)) { at = c; break; }
+        }
+        if (at) break;
       }
+      if (!at) continue;
+      placed.push(at);
+      this.sizeSpots.push(at);
+      const text = 'ø' + r.sizeMM, tw = g.measureText(text).width;
+      g.fillStyle = `rgba(255,255,255,${r.open ? 0.8 : 0.4})`;
+      g.beginPath(); g.roundRect(at.x - tw / 2 - 2.5, at.y - 6.5, tw + 5, 13, 3); g.fill();
+      g.fillStyle = rgba(T.ductLabel, r.open ? 1 : 0.4);
+      g.fillText(text, at.x, at.y);
     }
     // Moving dots along each open run (supply out, return back).
     if (flow != null) {
@@ -375,7 +445,9 @@ export class Plan {
     }
   }
 
-  drawLabels(g, x, view, layout, compact) {
+  /// Each room's name where it sits clear of the ducts and vents, and its load under it — unless the zones' cards carry
+  /// the loads (`namesOnly`), as a duct layout drawing has them.
+  drawLabels(g, x, view, layout, compact, namesOnly = false) {
     const zoneOf = {};
     for (const z of layout?.zones ?? []) for (const id of z.roomIds) zoneOf[id] = z.number;
     const closed = new Set((layout?.zones ?? []).filter((z) => !z.open).map((z) => z.number));
@@ -392,7 +464,15 @@ export class Plan {
       for (const b of layout.boxes) busy.push({ p: x.pt(b.pos), r: 10, w: BLOCKED });
       for (const o of layout.outlets) busy.push({ p: x.pt(o.pos), r: 11, w: BLOCKED });
       busy.push({ p: x.pt(layout.unit), r: layout.unitWidth / 2 * x.s, w: BLOCKED });
+      busy.push({ p: x.pt(layout.returnGrille), r: 16, w: BLOCKED });
+      for (const p of this.sizeSpots ?? []) busy.push({ p, r: 16, w: 20 });     // the ducts' sizes stay readable
+      if (layout.outdoor) {
+        const c = x.pt(layout.outdoor[2]);
+        busy.push({ p: c, r: 22, w: BLOCKED }, { p: { x: c.x, y: c.y + 26 }, r: 14, w: BLOCKED });
+      }
     }
+    this.busy = busy;
+    this.labelRects = [];
     const measure = (text, font) => { g.font = font; return g.measureText(text).width; };
     for (const r of view.rooms) {
       const poly = r.polygon;
@@ -416,7 +496,7 @@ export class Plan {
       const tone = z !== undefined ? (closed.has(z) ? T.faint : zoneColour(z)) : T.muted;
       const detailFont = `600 10.5px ${FONT}`;
       let detail = null;
-      if (r.conditioned) {
+      if (r.conditioned && !namesOnly) {
         detail = compact ? `${r.kw.toFixed(1)} kW`
           : widthPx > 150 ? `${r.kw.toFixed(2)} kW · ${Math.round(r.lps)} L/s · ${r.area.toFixed(1)} m²`
           : widthPx > 95 ? `${r.kw.toFixed(1)} kW · ${Math.round(r.lps)} L/s` : `${r.kw.toFixed(1)} kW`;
@@ -447,11 +527,98 @@ export class Plan {
         if (cost3 < cost - 0.5) { card = card3; cost = cost3; detail = null; }
       }
       if (cost >= 1000 || (compact && cost >= BLOCKED)) continue;
+      this.labelRects.push(card);
       g.fillStyle = 'rgba(255,255,255,0.78)';
       g.beginPath(); g.roundRect(card.x, card.y, card.w, card.h, 5); g.fill();
       g.textAlign = 'left'; g.textBaseline = 'top';
       g.font = nameFont; g.fillStyle = nameColour; g.fillText(name, card.x + 4, card.y + 2.5);
       if (detail) { g.font = detailFont; g.fillStyle = tone; g.fillText(detail, card.x + 4, card.y + 3 + nameH, card.w - 6); }
+    }
+  }
+
+  /// A card for each zone, as a duct layout drawing has them: the zone in its colour, its load, its air and its floor.
+  /// Each sits by its zone — off the house where there's room, clear of the rooms' names, the vents and the other
+  /// cards — with a line to the zone when it's had to go further out.
+  drawZoneCards(g, x, view, layout) {
+    const W = this.canvas.clientWidth, H = this.canvas.clientHeight - (this.data?.insetBottom ?? 0);
+    const rooms = view.rooms.filter((r) => r.polygon.length >= 3).map((r) => {
+      const pts = r.polygon.map(x.pt), xs = pts.map((p) => p.x), ys = pts.map((p) => p.y);
+      return { r, pts, box: [Math.min(...xs), Math.min(...ys), Math.max(...xs), Math.max(...ys)] };
+    });
+    const inRoom = (p, only = null) => rooms.find((m) => (!only || only.has(m.r.id)) && p.x >= m.box[0] && p.x <= m.box[2]
+      && p.y >= m.box[1] && p.y <= m.box[3] && pointInPolygon(p, m.pts));
+    const byId = Object.fromEntries(view.rooms.map((r) => [r.id, r]));
+    const placed = [], cards = [];
+    const zones = [...layout.zones].filter((z) => z.roomIds.some((id) => byId[id]))
+      .sort((a, b) => (a.number === 0) - (b.number === 0) || a.number - b.number);
+    for (const z of zones) {
+      const mine = z.roomIds.map((id) => byId[id]).filter(Boolean);
+      const ids = new Set(mine.map((r) => r.id));
+      const kw = mine.reduce((t, r) => t + r.kw, 0), m2 = mine.reduce((t, r) => t + r.area, 0);
+      const lines = [[z.number === 0 ? 'Always on' : `Zone ${z.number}`, `800 11.5px ${FONT}`],
+        [`${kw.toFixed(2)} kW`, `600 10.5px ${FONT}`], [`${Math.round(z.designLps)} L/s`, `600 10.5px ${FONT}`],
+        [`${m2.toFixed(1)} m²`, `600 10.5px ${FONT}`]];
+      let tw = 0;
+      for (const [t, f] of lines) { g.font = f; tw = Math.max(tw, g.measureText(t).width); }
+      const w = Math.ceil(tw) + 18, h = 13 * lines.length + 9;
+      // Where the zone is: the middle of its biggest room's floor.
+      const big = mine.reduce((a, b) => (b.area > a.area ? b : a));
+      const anchor = x.pt(big.centroid ?? big.polygon[0]);
+      const cost = (c) => {
+        if (c.x < 6 || c.y < 6 || c.x + c.w > W - 6 || c.y + c.h > H - 6) return Infinity;
+        let n = 0;
+        for (let i = 0; i <= 2; i++) for (let j = 0; j <= 2; j++) {
+          const p = { x: c.x + c.w * i / 2, y: c.y + c.h * j / 2 }, m = inRoom(p);
+          if (m) n += ids.has(m.r.id) ? 12 : m.r.conditioned ? 30 : 5;     // a garage or a robe's fine to sit over
+        }
+        const pad = 5;
+        for (const o of placed) if (c.x < o.x + o.w + pad && c.x + c.w + pad > o.x && c.y < o.y + o.h + pad && c.y + c.h + pad > o.y) n += 500;
+        for (const o of this.labelRects ?? []) if (c.x < o.x + o.w && c.x + c.w > o.x && c.y < o.y + o.h && c.y + c.h > o.y) n += 120;
+        for (const b of this.busy ?? []) if (b.p.x >= c.x - b.r && b.p.x <= c.x + c.w + b.r && b.p.y >= c.y - b.r && b.p.y <= c.y + c.h + b.r) n += b.w > 1 ? 60 : 5;
+        for (const p of this.sizeSpots ?? []) if (p.x >= c.x - 16 && p.x <= c.x + c.w + 16 && p.y >= c.y - 7 && p.y <= c.y + c.h + 7) n += 60;
+        // Close to the zone, and a short line back to it that doesn't cut across other zones' rooms.
+        const cx = Math.max(c.x, Math.min(anchor.x, c.x + c.w)), cy = Math.max(c.y, Math.min(anchor.y, c.y + c.h));
+        const reach = Math.hypot(cx - anchor.x, cy - anchor.y);
+        for (let k = 1, steps = Math.floor(reach / 10); k < steps; k++) {
+          const m = inRoom({ x: anchor.x + (cx - anchor.x) * k / steps, y: anchor.y + (cy - anchor.y) * k / steps });
+          if (m && !ids.has(m.r.id) && m.r.conditioned) n += 4;
+        }
+        return n + reach * 0.5;
+      };
+      let best = null, bestCost = Infinity;
+      for (let rad = 0; rad <= 420; rad += 14) {
+        const steps = rad ? 16 : 1;
+        for (let k = 0; k < steps; k++) {
+          const a = k / steps * Math.PI * 2;
+          const c = { x: anchor.x + Math.cos(a) * rad - w / 2, y: anchor.y + Math.sin(a) * rad - h / 2, w, h };
+          const v = cost(c);
+          if (v < bestCost) { bestCost = v; best = c; }
+        }
+      }
+      if (!best || bestCost >= 500) continue;
+      placed.push(best);
+      cards.push({ z, c: best, lines, anchor, ids });
+    }
+    for (const { z, c, lines, anchor, ids } of cards) {
+      const tone = z.open ? zoneColour(z.number) : T.faint;
+      // A line back to the zone when the card's off it.
+      const mid = { x: c.x + c.w / 2, y: c.y + c.h / 2 };
+      if (!inRoom(mid, ids)) {
+        const ex = Math.max(c.x, Math.min(anchor.x, c.x + c.w)), ey = Math.max(c.y, Math.min(anchor.y, c.y + c.h));
+        if (Math.hypot(ex - anchor.x, ey - anchor.y) > 26) {
+          g.strokeStyle = rgba(tone, 0.75); g.lineWidth = 1.2;
+          g.beginPath(); g.moveTo(ex, ey); g.lineTo(anchor.x, anchor.y); g.stroke();
+          g.beginPath(); g.arc(anchor.x, anchor.y, 2.6, 0, Math.PI * 2); g.fillStyle = tone; g.fill();
+        }
+      }
+      g.save();
+      g.shadowColor = 'rgba(0,0,0,0.14)'; g.shadowBlur = 4; g.shadowOffsetY = 1;
+      g.beginPath(); g.roundRect(c.x, c.y, c.w, c.h, 6); g.fillStyle = '#fff'; g.fill();
+      g.restore();
+      g.beginPath(); g.roundRect(c.x, c.y, c.w, c.h, 6); g.strokeStyle = rgba(tone, 0.55); g.lineWidth = 1; g.stroke();
+      g.fillStyle = tone; g.fillRect(c.x, c.y + 5, 3, c.h - 10);
+      g.textAlign = 'left'; g.textBaseline = 'top';
+      lines.forEach(([t, f], i) => { g.font = f; g.fillStyle = i ? (z.open ? T.body : T.faint) : tone; g.fillText(t, c.x + 9, c.y + 5 + i * 13); });
     }
   }
 
@@ -489,16 +656,27 @@ export class Plan {
       this.hits.push({ item: { kind: 'outdoor' }, x: c.x, y: c.y, r: 22 });
     }
     // Return grille + its size, sitting just below its spot (as the app's marker).
+    // Return grille to its size (as the take-off orders it), its long side across the fan coil's, with its slats.
     {
       const c = at('ret', null, x.pt(l.returnGrille));
+      const [gw, gh] = l.returnGrilleSize?.length === 2 ? l.returnGrilleSize : [600, 600];
+      const long = Math.max(Math.max(gw, gh) / 1000 * x.s, 30), short = Math.max(Math.min(gw, gh) / 1000 * x.s, 18);
+      const turn = -Math.atan2(l.unitDir.y, l.unitDir.x);
       shadow(() => {
-        g.beginPath(); g.roundRect(c.x - 13, c.y - 11.5, 26, 26, 3); g.fillStyle = T.returnAir; g.fill();
-        g.fillStyle = 'rgba(255,255,255,0.7)';
-        for (let i = 0; i < 4; i++) g.fillRect(c.x - 8, c.y - 6.75 + i * 4.5, 16, 1.5);
-        this.tag(g, 'RA Ø' + l.returnMM, c.x, c.y + 24.5, T.returnAir);
+        g.save(); g.translate(c.x, c.y); g.rotate(turn);
+        g.beginPath(); g.roundRect(-short / 2, -long / 2, short, long, 3); g.fillStyle = T.returnAir; g.fill();
+        g.strokeStyle = 'rgba(255,255,255,0.7)'; g.lineWidth = 1.4;
+        const n = Math.max(3, Math.min(14, Math.round(long / 6)));
+        for (let i = 1; i < n; i++) {
+          const y = -long / 2 + long * i / n;
+          g.beginPath(); g.moveTo(-short / 2 + 3.5, y); g.lineTo(short / 2 - 3.5, y); g.stroke();
+        }
+        if (sel?.kind === 'ret') { g.beginPath(); g.roundRect(-short / 2 - 4, -long / 2 - 4, short + 8, long + 8, 5); g.strokeStyle = T.accent; g.lineWidth = 3; g.stroke(); }
+        g.restore();
+        const below = Math.abs(Math.sin(turn)) * short / 2 + Math.abs(Math.cos(turn)) * long / 2;
+        this.tag(g, 'RA Ø' + l.returnMM, c.x, c.y + below + 11, T.returnAir);
       });
-      if (sel?.kind === 'ret') { g.beginPath(); g.roundRect(c.x - 17, c.y - 15.5, 34, 34, 5); g.strokeStyle = T.accent; g.lineWidth = 3; g.stroke(); }
-      this.hits.push({ item: { kind: 'ret' }, x: c.x, y: c.y + 1.5, r: 18 });
+      this.hits.push({ item: { kind: 'ret' }, x: c.x, y: c.y, r: Math.max(18, Math.min(long, 60) / 2 + 4) });
     }
     // Fan coil, sideways as they are: wide and skinny (the engine's 1.6 × 0.7 m), its plenum along the long side the
     // supply faces, where the ducts come off. To scale, never smaller than a mark you can grab.
@@ -544,10 +722,11 @@ export class Plan {
     }
     // Outlets: the grille alone (its size is its leg's colour, and on its card).
     for (const o of l.outlets) {
-      const c = at('outlet', o.id, x.pt(o.pos));
-      shadow(() => this.drawGrille(g, c, 15));
-      if (sel?.kind === 'outlet' && sel.id === o.id) { g.beginPath(); g.roundRect(c.x - 13, c.y - 13, 26, 26, 5); g.strokeStyle = T.accent; g.lineWidth = 3; g.stroke(); }
-      this.hits.push({ item: { kind: 'outlet', id: o.id }, x: c.x, y: c.y, r: 17 });
+      const c = at('outlet', o.id, x.pt(o.pos)), size = Math.min(Math.max((o.sizeMM + 150) / 1000 * x.s, 15), 34);
+      shadow(() => this.drawGrille(g, c, size));
+      const ring = size / 2 + 5;
+      if (sel?.kind === 'outlet' && sel.id === o.id) { g.beginPath(); g.roundRect(c.x - ring, c.y - ring, ring * 2, ring * 2, 5); g.strokeStyle = T.accent; g.lineWidth = 3; g.stroke(); }
+      this.hits.push({ item: { kind: 'outlet', id: o.id }, x: c.x, y: c.y, r: Math.max(17, ring) });
     }
   }
 
@@ -587,7 +766,7 @@ export class Plan {
         if (r.kind === 'return') continue;
         const key = r.keyBox != null ? { kind: 'feed', id: r.keyBox } : r.keyOutlet != null ? { kind: 'outlet', id: r.keyOutlet } : null;
         if (!key) continue;
-        const pts = r.path.map(x.pt), w = Math.min(Math.max(r.sizeMM / 1000 * x.s * 0.9, 3), 22);
+        const pts = r.path.map(x.pt), w = ductWidth(r.sizeMM, x.s);
         for (let i = 1; i < pts.length; i++) {
           const dd = segDist(q, pts[i - 1], pts[i]);
           if (dd <= Math.max(14, w / 2 + 8) && (!best || dd < best.d)) best = { key, d: dd };

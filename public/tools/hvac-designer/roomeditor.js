@@ -1,10 +1,11 @@
 // The room editor ("Edit the rooms"): the house's rooms over the builder's drawing, to put right what the plan reading
 // got wrong or to draw the house by hand. Drag a corner or a wall (the room next door comes too), drag a wall's + to put
-// a corner in it, draw a room corner by corner, set the scale from a length you know. It runs on the plan canvas
+// a corner in it, draw a room corner by corner, draw the windows along the outside walls, set the scale from a length
+// you know. It runs on the plan canvas
 // (plan.js calls down/move/up/tap/hover and draws underlay/overlay); every change goes through the engine's edits
 // (JobEdits — the ones the app's plan editor makes), so the house stays one the designer can lay ducts in.
 
-import { T, pointInPolygon } from './plan.js?v=8589d9f-202610131323';
+import { T, pointInPolygon, drawWindowMark } from './plan.js?v=cea6cc5-202610131457';
 
 const FONT = '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif';
 const dist = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
@@ -68,7 +69,7 @@ export class RoomEditor {
   constructor(hooks) {
     this.h = hooks;
     this.mode = 'edit';
-    this.sel = null;           // {kind: 'room', id, corner?, edge?} | {kind: 'gap', key}
+    this.sel = null;           // {kind: 'room', id, corner?, edge?} | {kind: 'gap', key} | {kind: 'window', room, n}
     this.rooms = [];
     this.gaps = [];
     this.live = null;          // rooms as they're being dragged
@@ -82,6 +83,7 @@ export class RoomEditor {
     /// False while a hand-drawn plan hasn't had its size set: its lengths mean nothing yet, so none are shown.
     this.sized = true;
     this.hoverWall = null;
+    this.winDrag = null;       // a window being drawn: {room, edge, a, b}
   }
 
   set({ rooms, gaps, hasImage, canvas, sized }) {
@@ -99,7 +101,11 @@ export class RoomEditor {
         if (this.sel.edge != null && this.sel.edge >= r.polygon.length) delete this.sel.edge;
       }
     } else if (this.sel?.kind === 'gap' && !this.gaps.some((g) => g.key === this.sel.key)) this.sel = null;
+    else if (this.sel?.kind === 'window' && !this.room(this.sel.room)?.windows?.[this.sel.n]) this.sel = null;
   }
+
+  /// The window that's picked, for the plan to show it.
+  pickedWindow() { return this.sel?.kind === 'window' ? this.sel : null; }
 
   liveRooms() { return this.live ?? this.rooms; }
   room(id) { return this.rooms.find((r) => r.id === id); }
@@ -112,8 +118,9 @@ export class RoomEditor {
     this.hoverPt = null;
     this.hoverWall = null;
     this.guides = [];
-    if (mode !== 'edit') this.sel = null;
-    if (this.canvas) this.canvas.style.cursor = mode === 'edit' ? '' : 'crosshair';
+    this.winDrag = null;
+    if (mode !== 'edit' && !(mode === 'window' && this.sel?.kind === 'window')) this.sel = null;
+    if (this.canvas) this.canvas.style.cursor = mode === 'edit' || mode === 'window' ? '' : 'crosshair';
     this.h.changed();
     this.h.redraw();
   }
@@ -206,10 +213,62 @@ export class RoomEditor {
     return best;
   }
 
+  /// The outside wall under a point (where a window can go): the room, its outline's edge, and the spot on the wall.
+  outsideAt(q, x) {
+    let best = null;
+    for (const r of this.rooms) {
+      const n = r.polygon.length;
+      for (let e = 0; e < n; e++) {
+        if (!r.outside?.[e]) continue;
+        const a = r.polygon[e], b = r.polygon[(e + 1) % n], p = nearest(x.world(q), a, b);
+        const d = dist(x.pt(p), q);
+        if (d <= 12 && (!best || d < best.d)) best = { room: r.id, edge: e, p, d };
+      }
+    }
+    return best;
+  }
+
+  /// The window under a point.
+  windowAt(q, x) {
+    let best = null;
+    for (const r of this.rooms) {
+      (r.windows ?? []).forEach((w, n) => {
+        const d = dist(nearest(q, x.pt(w[0]), x.pt(w[1])), q);
+        if (d <= 7 && (!best || d < best.d)) best = { room: r.id, n, d };
+      });
+    }
+    return best;
+  }
+
+  /// A spot on a wall, to the centimetre along it (5 cm drawing on a grid).
+  onWall(room, edge, p) {
+    const r = this.room(room), n = r.polygon.length, a = r.polygon[edge], b = r.polygon[(edge + 1) % n];
+    const l = Math.max(dist(a, b), 1e-9), step = this.hasImage ? 0.01 : 0.05;
+    const t = Math.max(0, Math.min(l, round(((p.x - a.x) * (b.x - a.x) + (p.y - a.y) * (b.y - a.y)) / l, step)));
+    return { x: a.x + (b.x - a.x) / l * t, y: a.y + (b.y - a.y) / l * t };
+  }
+
+  /// A window drawn (a tap when `b` is `a`): in it goes, and it's the one picked, to type its size.
+  async drawWindow(room, edge, a, b) {
+    this.busy = true;
+    const reply = await this.h.commit('drawWindow', { room, edge, pos: a, to: b });
+    this.busy = false;
+    this.winDrag = null;
+    const r = this.room(room);
+    if (reply && r?.windows?.length) this.sel = { kind: 'window', room, n: r.windows.length - 1 };
+    this.h.changed();
+    this.h.redraw();
+  }
+
   // MARK: Pointer (plan.js)
 
   down(q, x) {
-    if (this.mode !== 'edit' || this.busy) return null;
+    if (this.busy) return null;
+    if (this.mode === 'window') {
+      const w = this.outsideAt(q, x);
+      return w ? { type: 'window', room: w.room, edge: w.edge, a: this.onWall(w.room, w.edge, w.p) } : null;
+    }
+    if (this.mode !== 'edit') return null;
     const r = this.selRoom(), h = r && this.handleAt(q, x);
     if (h) return { ...h, room: r.id, start: x.world(q) };
     const w = this.wallAt(q, x);
@@ -224,7 +283,10 @@ export class RoomEditor {
     const r = this.room(h.room);
     if (!r) return;
     const free = e.shiftKey, w = x.world(q), n = r.polygon.length;
-    if (h.type === 'corner') {
+    if (h.type === 'window') {
+      h.b = this.onWall(h.room, h.edge, w);
+      this.winDrag = { room: h.room, edge: h.edge, a: h.a, b: h.b };
+    } else if (h.type === 'corner') {
       const from = r.polygon[h.i];
       const skip = new Set();
       for (const rm of this.rooms) rm.polygon.forEach((v, i) => { if ((rm === r && i === h.i) || (rm !== r && dist(v, from) < 0.1)) skip.add(rm.id + ':' + i); });
@@ -270,6 +332,11 @@ export class RoomEditor {
     const r = this.room(h.room);
     this.guides = [];
     if (!r) { this.live = null; return; }
+    if (h.type === 'window') {
+      if (h.b && dist(h.a, h.b) >= 0.25) await this.drawWindow(h.room, h.edge, h.a, h.b);
+      else { this.winDrag = null; this.h.redraw(); }
+      return;
+    }
     let reply = null;
     this.busy = true;
     if (h.type === 'corner' && h.to && dist(h.to, r.polygon[h.i]) > 0.004) {
@@ -288,6 +355,16 @@ export class RoomEditor {
   tap(q, x, e) {
     if (this.busy) return;
     const w = x.world(q);
+    if (this.mode === 'window') {
+      // A window clicked: it's picked, to size it or take it out. A wall clicked: a 1.2 m window there.
+      const win = this.windowAt(q, x);
+      if (win) { this.sel = { kind: 'window', room: win.room, n: win.n }; this.h.changed(); return; }
+      const wall = this.outsideAt(q, x);
+      if (wall) { const p = this.onWall(wall.room, wall.edge, wall.p); this.drawWindow(wall.room, wall.edge, p, p); return; }
+      this.sel = null;
+      this.h.changed();
+      return;
+    }
     if (this.mode === 'draw') {
       const first = this.draft[0];
       if (this.draft.length >= 3 && first && dist(x.pt(first), q) <= 12) { this.finish(); return; }
@@ -314,8 +391,9 @@ export class RoomEditor {
       this.h.changed();
       return;
     }
-    const r = this.selRoom(), h = r && this.handleAt(q, x);
+    const r = this.selRoom(), h = r && this.handleAt(q, x), win = !h && this.windowAt(q, x);
     if (h?.type === 'corner') this.sel = { kind: 'room', id: r.id, corner: h.i };
+    else if (win && win.d <= 5) this.sel = { kind: 'window', room: win.room, n: win.n };
     else {
       const wall = this.wallAt(q, x);
       if (wall) this.sel = { kind: 'room', id: wall.room, edge: wall.edge };
@@ -329,6 +407,13 @@ export class RoomEditor {
   }
 
   hover(q, x, e) {
+    if (this.mode === 'window') {
+      const win = this.windowAt(q, x), wall = !win && this.outsideAt(q, x);
+      this.hoverWall = wall || null;
+      this.hoverPt = wall ? this.onWall(wall.room, wall.edge, wall.p) : null;
+      if (this.canvas) this.canvas.style.cursor = win ? 'pointer' : wall ? 'crosshair' : '';
+      return;
+    }
     if (this.mode === 'draw' || this.mode === 'measure') {
       const refs = this.mode === 'draw' ? [this.draft[this.draft.length - 1], this.draft[0]].filter(Boolean) : this.measure.slice(-1);
       this.hoverWall = this.mode === 'measure' && !this.measure.length && !e.shiftKey ? this.wallAt(q, x) : null;
@@ -361,7 +446,8 @@ export class RoomEditor {
   }
   undoPoint() { this.draft.pop(); this.h.changed(); this.h.redraw(); }
   escape() {
-    if (this.mode !== 'edit') this.setMode('edit');
+    if (this.sel?.kind === 'window') { this.sel = null; this.h.changed(); this.h.redraw(); }
+    else if (this.mode !== 'edit') this.setMode('edit');
     else { this.sel = null; this.h.changed(); this.h.redraw(); }
   }
 
@@ -467,6 +553,38 @@ export class RoomEditor {
         g.fillStyle = on ? T.accent : '#fff'; g.fill();
         g.strokeStyle = T.ink; g.lineWidth = 2; g.stroke();
       });
+    }
+    // Drawing windows: the outside walls dashed (where they can go), the one under the pointer, the window being drawn.
+    if (this.mode === 'window') {
+      g.save();
+      g.setLineDash([7, 5]); g.strokeStyle = 'rgba(46,134,193,0.9)'; g.lineWidth = 3.5; g.lineCap = 'butt';
+      for (const r of rooms) {
+        const n = r.polygon.length;
+        for (let e = 0; e < n; e++) {
+          if (!r.outside?.[e]) continue;
+          const a = x.pt(r.polygon[e]), b = x.pt(r.polygon[(e + 1) % n]);
+          g.beginPath(); g.moveTo(a.x, a.y); g.lineTo(b.x, b.y); g.stroke();
+        }
+      }
+      g.restore();
+      // The windows back over the dashes.
+      for (const r of rooms) {
+        (r.windows ?? []).forEach((w, k) => drawWindowMark(g, x.pt(w[0]), x.pt(w[1]), {
+          door: (r.glass?.[k]?.height ?? 1.2) >= 2, s: x.s, on: this.sel?.kind === 'window' && this.sel.room === r.id && this.sel.n === k,
+        }));
+      }
+      const hw = !this.winDrag && this.hoverWall && this.room(this.hoverWall.room);
+      if (hw) {
+        const n = hw.polygon.length, a = x.pt(hw.polygon[this.hoverWall.edge]), b = x.pt(hw.polygon[(this.hoverWall.edge + 1) % n]);
+        g.beginPath(); g.moveTo(a.x, a.y); g.lineTo(b.x, b.y); g.strokeStyle = 'rgba(46,134,193,0.9)'; g.lineWidth = 4; g.lineCap = 'round'; g.stroke();
+        if (this.hoverPt) { const c = x.pt(this.hoverPt); g.beginPath(); g.arc(c.x, c.y, 4, 0, Math.PI * 2); g.fillStyle = '#2E86C1'; g.fill(); }
+      }
+      if (this.winDrag) {
+        const { a, b } = this.winDrag, pa = x.pt(a), pb = x.pt(b);
+        drawWindowMark(g, pa, pb, { door: dist(a, b) >= 2, s: x.s, on: true });
+        for (const c of [pa, pb]) { g.beginPath(); g.arc(c.x, c.y, 4, 0, Math.PI * 2); g.fillStyle = T.accentDeep; g.fill(); }
+        if (this.sized) this.tag(g, metres(dist(a, b)), (pa.x + pb.x) / 2, (pa.y + pb.y) / 2 - 16, T.accent, T.ink);
+      }
     }
     // Where a drag or a click lands.
     for (const gd of this.guides) {

@@ -1,7 +1,7 @@
 // The printable reports: the customer's design report, the install sheet and the materials list, laid out as A4 pages
 // from the engine's report blocks (ReportText.swift — the app's wording). The browser's print window saves them as PDF.
 
-import * as store from './store.js?v=98ba130-202610121526';
+import * as store from './store.js?v=ffe7aa9-202610131146';
 
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const DUCT = (mm) => mm <= 150 ? '#E0342F' : mm <= 200 ? '#6A8DDB' : mm <= 250 ? '#F0CB2E' : mm <= 300 ? '#7DC242' : mm <= 350 ? '#BFC4C9' : mm <= 400 ? '#D35FD0' : '#7B3FE4';

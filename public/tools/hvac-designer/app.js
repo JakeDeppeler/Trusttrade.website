@@ -1,10 +1,10 @@
 // Trust Trade Pro — the HVAC Designer in the browser. The same five steps as the app (House · Capture · Check · Design ·
 // Send) on the app's own engine (engine.wasm, run in a worker): the same loads, zones, ducts, checks and materials.
 
-import { call, latest } from './engine.js?v=98ba130-202610121526';
-import * as store from './store.js?v=98ba130-202610121526';
-import { Plan, inkImage, zoneColour, ductColour, T, pointInPolygon, movesOnly, wheelMoves, ZOOM_MAX } from './plan.js?v=98ba130-202610121526';
-import { RoomEditor, metres, signedArea, onLine } from './roomeditor.js?v=98ba130-202610121526';
+import { call, latest } from './engine.js?v=ffe7aa9-202610131146';
+import * as store from './store.js?v=ffe7aa9-202610131146';
+import { Plan, inkImage, zoneColour, ductColour, T, pointInPolygon, movesOnly, wheelMoves, ZOOM_MAX } from './plan.js?v=ffe7aa9-202610131146';
+import { RoomEditor, metres, signedArea, onLine } from './roomeditor.js?v=ffe7aa9-202610131146';
 
 // MARK: Helpers
 
@@ -592,19 +592,64 @@ async function choosePlan(file) {
     x.fillStyle = '#fff'; x.fillRect(0, 0, cv.width, cv.height); x.drawImage(bmp, 0, 0, cv.width, cv.height);
     return { blob: await cv.convertToBlob({ type: 'image/jpeg', quality: q }), w: cv.width, h: cv.height };
   };
-  const keep = await jpeg(2400, 0.88), send = await jpeg(1568, 0.9);
+  // One JPEG: kept for the job, and read at full size (Opus reads up to 2576 px 1:1, so its pixel coordinates are ours).
+  const keep = await jpeg(2400, 0.88);
   const fileName = 'plans/' + uuid() + '.jpg';
   app.read = { status: 'chosen', url: URL.createObjectURL(keep.blob), keep, send, fileName, result: null, error: null, north: null,
-    measure: { pts: [], mm: '' }, view: null };
+    measure: { pts: [], mm: '' }, view: null, fitted: false };
   go('capture');
   render();
+}
+
+/// A safety net on the reading: rooms can't spread wider (or taller) than anything drawn on the image. If they do — the
+/// reading stretched the house across the plan's white margins — they're mapped back over the drawing's own ink, that
+/// axis only. Returns the corrected result, or null when it's already inside the drawing.
+async function fitToInk(result, blob) {
+  const bmp = await createImageBitmap(blob);
+  const k = Math.min(1, 900 / Math.max(bmp.width, bmp.height));
+  const w = Math.max(1, Math.round(bmp.width * k)), h = Math.max(1, Math.round(bmp.height * k));
+  const g2 = new OffscreenCanvas(w, h).getContext('2d');
+  g2.drawImage(bmp, 0, 0, w, h);
+  const px = g2.getImageData(0, 0, w, h).data;
+  const cols = new Float64Array(w), rows = new Float64Array(h);
+  let total = 0;
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+    const i = (y * w + x) * 4;
+    if (0.299 * px[i] + 0.587 * px[i + 1] + 0.114 * px[i + 2] < 205) { cols[x]++; rows[y]++; total++; }
+  }
+  if (total < 200) return null;
+  // The ink's extent, ignoring the odd speck: from the first 0.2% of it to the last.
+  const span = (hist, n) => {
+    let acc = 0, lo = 0, hi = n - 1;
+    for (let i = 0; i < n; i++) { acc += hist[i]; if (acc >= total * 0.002) { lo = i; break; } }
+    acc = 0;
+    for (let i = n - 1; i >= 0; i--) { acc += hist[i]; if (acc >= total * 0.002) { hi = i; break; } }
+    return [lo / n, (hi + 1) / n];
+  };
+  const ink = { x: span(cols, w), y: span(rows, h) };
+  const pts = result.rooms.flatMap((r) => r.points ?? []);
+  if (!pts.length) return null;
+  const read = { x: [Math.min(...pts.map((p) => p.x)), Math.max(...pts.map((p) => p.x))], y: [Math.min(...pts.map((p) => p.y)), Math.max(...pts.map((p) => p.y))] };
+  const fit = {};
+  for (const ax of ['x', 'y']) {
+    const rs = read[ax][1] - read[ax][0], is = ink[ax][1] - ink[ax][0];
+    if (rs > 0.05 && is > 0.05 && rs > is * 1.08) fit[ax] = (v) => ink[ax][0] + (v - read[ax][0]) * is / rs;
+  }
+  if (!fit.x && !fit.y) return null;
+  const mapP = (p) => ({ x: fit.x ? fit.x(p.x) : p.x, y: fit.y ? fit.y(p.y) : p.y });
+  return { ...result, rooms: result.rooms.map((r) => {
+    const points = (r.points ?? []).map(mapP);
+    if (!points.length) return r;
+    const xs = points.map((p) => p.x), ys = points.map((p) => p.y);
+    return { ...r, points, x: Math.min(...xs), y: Math.min(...ys), w: Math.max(...xs) - Math.min(...xs), h: Math.max(...ys) - Math.min(...ys) };
+  }) };
 }
 
 /// The plan read by AI (read-plan-web, up to 10 a day): its rooms, shapes, sizes and windows.
 async function readPlan() {
   const r = app.read;
   if (!r) return;
-  const { send } = r;
+  const send = r.keep;
   r.status = 'reading';
   render();
   try {
@@ -622,7 +667,9 @@ async function readPlan() {
     })[data.error] || ('The plan couldn\'t be read' + (res.status ? ' (' + res.status + ')' : '') + '.'));
     const result = data.result;
     if (!result?.rooms?.length) throw new Error('No rooms came back — is that definitely a floor plan?');
-    app.read.result = result;
+    const fitted = await fitToInk(result, r.keep.blob).catch(() => null);
+    app.read.fitted = !!fitted;
+    app.read.result = fitted ?? result;
     app.read.north = result.north;
     await importRead();
   } catch (e) {
@@ -684,6 +731,7 @@ function renderCapture(c) {
         ${r.status === 'noscale' ? `<p class="small muted" style="margin:10px 0 6px">The plan has no printed room sizes to scale from. How long is the house, end to end?</p>
           <div style="display:flex;gap:8px"><input class="text" id="len" type="number" min="4" max="60" step="0.1" placeholder="Metres, e.g. 18.5"><button class="btn2" id="uselen">Use it</button></div>
           <p class="small muted" style="margin:10px 0 6px">Or measure a length you know on the plan — a dimension line or the scale bar.</p><button class="btn2" id="measure">Measure it on the plan</button>` : ''}
+        ${r.fitted ? '<p class="small" style="margin:10px 0 0;color:var(--accent-deep);font-weight:600">The reading had spread the rooms past the drawing; they\'ve been pulled back over it. Check them over with Fix the rooms.</p>' : ''}
         ${r.result?.notes ? `<p class="small muted" style="margin:10px 0 0">${esc(r.result.notes)}</p>` : ''}
       </div>` : ''}
       ${r?.result ? `<div class="card"><span class="eyebrow">Where does north point on the plan?</span>
@@ -1401,19 +1449,24 @@ function edPanel() {
 function newRoomDialog(pts) {
   const st = app.editorOpen;
   if (!st) return;
-  const kinds = [['Bedroom', 'bedroom'], ['Living', 'living'], ['Family', 'family'], ['Kitchen', 'kitchen'], ['Dining', 'dining'],
-    ['Study', 'study'], ['Bathroom', 'bathroom'], ['Laundry', 'laundry'], ['Hallway', 'hallway'], ['Garage', 'garage']];
-  let pick = kinds[0];
+  // Bedrooms number on from Bed 2 (Bed 1 is the master on most plans): Bed 2, Bed 3…
+  const nums = app.view.rooms.map((x) => /^bed(?:room)?\s*(\d+)$/i.exec(x.name.trim())?.[1]).filter(Boolean).map(Number);
+  const nextBed = `Bed ${Math.max(1, ...nums) + 1}`;
+  const kinds = [['Master bedroom', 'bedroom', 'Master Bedroom'], ['Bedroom', 'bedroom', nextBed], ['Living', 'living'], ['Family', 'family'],
+    ['Kitchen', 'kitchen'], ['Dining', 'dining'], ['Study', 'study'], ['Bathroom', 'bathroom'], ['Laundry', 'laundry'], ['Hallway', 'hallway'],
+    ['Garage', 'garage']];
+  let pick = kinds[1];
+  const nameFor = (k) => k[2] ?? k[0];
   const area = Math.abs(signedArea(pts));
   const d = dialog(`<h2>The new room${isUnsized() ? '' : ' · ' + fmt(area, 1) + ' m²'}</h2><p class="muted small" style="margin:0 0 10px">What is it?</p>
-    <div class="pills" id="nr-kinds">${kinds.map(([l], i) => `<button data-k="${i}" class="${i === 0 ? 'on' : ''}">${l}</button>`).join('')}</div>
+    <div class="pills" id="nr-kinds">${kinds.map(([l], i) => `<button data-k="${i}" class="${i === 1 ? 'on' : ''}">${l}</button>`).join('')}</div>
     <p class="small muted" style="margin:8px 0 0">Garage takes in anything not air conditioned (robe, pantry, store).</p>
-    <label class="field" style="margin-top:12px"><span>Name</span><input id="nr-name" placeholder="Bedroom" autofocus></label>
+    <label class="field" style="margin-top:12px"><span>Name</span><input id="nr-name" placeholder="${esc(nameFor(kinds[1]))}" autofocus></label>
     <label class="field" id="nr-zonef"><span>Zone</span><select id="nr-zone">${zoneOptions(null, '')}</select>
       <small class="muted" style="display:block;margin-top:4px">Its own zone, on a zone with other rooms, or no zone (always on). Change it later on the room.</small></label>`,
   [{ label: 'Cancel', run: () => { st.plan?.draw(); edPanel(); } },
     { label: 'Add the room', primary: true, run: async (o) => {
-      const name = $('#nr-name', o).value.trim();
+      const name = $('#nr-name', o).value.trim() || nameFor(pick);
       const zone = pick[1] === 'garage' ? null : ($('#nr-zone', o).value || null);
       const r = await edEdit('addRoom', { outline: pts, name, type: pick[1], choice: zone });
       if (r?.id) toast((app.view.rooms.find((x) => x.id === r.id)?.name ?? pick[0]) + (isUnsized() ? ' added — draw the rest, then set the size' : ' added — draw the next room, or Select to fix one'));
@@ -1426,7 +1479,7 @@ function newRoomDialog(pts) {
     e.stopPropagation();
     pick = kinds[+b.dataset.k];
     d.querySelectorAll('#nr-kinds button').forEach((x) => x.classList.toggle('on', x === b));
-    $('#nr-name', d).placeholder = pick[0];
+    $('#nr-name', d).placeholder = nameFor(pick);
     $('#nr-zonef', d).style.display = pick[1] === 'garage' ? 'none' : '';
   });
   edPanel();
@@ -1888,7 +1941,7 @@ function openReport(kind) {
   const close = () => o.remove();
   $('#rp-close', o).onclick = close;
   o.addEventListener('keydown', (e) => e.key === 'Escape' && close());
-  import('./reports.js?v=98ba130-202610121526').then(async (m) => {
+  import('./reports.js?v=ffe7aa9-202610131146').then(async (m) => {
     // Reports are always the design as installed: every zone open, balanced.
     app.designLayout = await call('route', { project: app.project, closed: [], balanced: true });
     const r = await m.build(kind, { app, call, Plan });

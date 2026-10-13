@@ -1,10 +1,10 @@
 // Trust Trade Pro — the HVAC Designer in the browser. The same five steps as the app (House · Capture · Check · Design ·
 // Send) on the app's own engine (engine.wasm, run in a worker): the same loads, zones, ducts, checks and materials.
 
-import { call, latest } from './engine.js?v=c3cdcc6-202610131240';
-import * as store from './store.js?v=c3cdcc6-202610131240';
-import { Plan, inkImage, zoneColour, ductColour, T, pointInPolygon, movesOnly, wheelMoves, ZOOM_MAX } from './plan.js?v=c3cdcc6-202610131240';
-import { RoomEditor, metres, signedArea, onLine } from './roomeditor.js?v=c3cdcc6-202610131240';
+import { call, latest } from './engine.js?v=225a56c-202610131259';
+import * as store from './store.js?v=225a56c-202610131259';
+import { Plan, inkImage, zoneColour, ductColour, T, pointInPolygon, movesOnly, wheelMoves, ZOOM_MAX } from './plan.js?v=225a56c-202610131259';
+import { RoomEditor, metres, signedArea, onLine } from './roomeditor.js?v=225a56c-202610131259';
 
 // MARK: Helpers
 
@@ -841,6 +841,9 @@ function pickOpenArea(c) {
   return d;
 }
 
+/// The unit's too big for a single-phase house (20 kW and up are three phase only).
+function needsThreePhase(t, site) { return !!t.unit && t.unit.kw > 18 && !site.threePhasePref; }
+
 /// The biggest ducted unit on the list (the engine's Designer.units).
 function biggestUnitKW() { return Math.max(...app.options.units.map((u) => u.kw)); }
 
@@ -854,6 +857,7 @@ function unitOptions(t, site) {
   if (ch.zoned && ch.zoned.kw !== ch.wholeHome?.kw) html += opt('zoned', `${g(ch.zoned.kw)} kW · zoned use only`, `${fmt(t.designKW, 1)} kW: never every zone on at once (${(app.options.zonings.find((z) => z.id === (site.zoningPref ?? 'perroom'))?.label ?? '').toLowerCase()} zoning, ${fmt(t.diversity * 100)}% diversity).`);
   html += `<label class="rowpick" style="border-top:0"><label>${t.byHand ? `Picked by hand: ${g(t.unit?.kw ?? 0)} kW` : 'Pick another size…'}</label>
     <select id="unitkw"><option value="">${t.byHand ? 'Back to the recommended' : 'Choose…'}</option>${app.options.units.map((u) => `<option value="${u.kw}" ${t.byHand && t.unit?.kw === u.kw ? 'selected' : ''}>${esc(u.label)}</option>`).join('')}</select></label>
+    ${needsThreePhase(t, site) ? `<p style="color:var(--danger);font-weight:600;font-size:12.5px;margin:8px 0 0">${g(t.unit.kw)} kW needs a three-phase supply — 18 kW is the biggest Mitsubishi Electric ducted unit on single phase. Check the switchboard, or split the house into two systems.</p>` : ''}
     <span class="eyebrow" style="display:block;margin-top:6px">Power supply</span>
     <div class="seg"><button data-phase="0" class="${site.threePhasePref ? '' : 'on'}">Single phase</button><button data-phase="1" class="${site.threePhasePref ? 'on' : ''}">Three phase</button></div>
     <p class="small muted" style="margin:6px 0 0">Most homes are single phase. Pick three phase only if the switchboard has it.</p>`;
@@ -1766,6 +1770,7 @@ function sizeBreakdown() {
   const lows = [];
   const big = biggestUnitKW();
   if (t.wholeHomeKW > big * 1.06) lows.push(`<b>The full open home needs ${fmt(t.wholeHomeKW, 1)} kW — more than the biggest ducted unit (${g(big)} kW).</b> Split it into two systems (say living and sleeping), or size it for zoned use and tell the customer it won't run every room flat out at once on the hottest day.`);
+  if (needsThreePhase(t, p.site)) lows.push(`<b>${g(t.unit.kw)} kW needs a three-phase supply.</b> 18 kW is the biggest Mitsubishi Electric ducted unit on single phase; 20 and 24.5 kW are three phase only. Check the switchboard (and set it on the Check page), or split the house into two systems.`);
   if (noGlass.length) lows.push(`<b>${noGlass.length} of ${live.length} rooms have no windows drawn.</b> They count as typical glass (× 1.00) facing no particular way — a west-facing room is × 1.16 and a glassy one × 1.22. Add the windows for a truer size: Edit the rooms → pick a wall → Add a window.`);
   if (/good/.test(insul?.[0] ?? '')) lows.push(`<b>Ceiling insulation R3.5 or better</b> takes 15% off every room (× 0.85). Check it on the House step if you're not sure what's up there.`);
   lows.push(`<b>People and appliances are in each room's W/m² rate</b> (a typical household), not added on top. Bedrooms are × 0.92 because they're mostly used at night; a home office, a gym or a west-facing bedroom may want a size up.`);
@@ -1946,7 +1951,7 @@ function openReport(kind) {
   const close = () => o.remove();
   $('#rp-close', o).onclick = close;
   o.addEventListener('keydown', (e) => e.key === 'Escape' && close());
-  import('./reports.js?v=c3cdcc6-202610131240').then(async (m) => {
+  import('./reports.js?v=225a56c-202610131259').then(async (m) => {
     // Reports are always the design as installed: every zone open, balanced.
     app.designLayout = await call('route', { project: app.project, closed: [], balanced: true });
     const r = await m.build(kind, { app, call, Plan });

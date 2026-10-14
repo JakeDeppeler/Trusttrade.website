@@ -1,10 +1,10 @@
 // Trust Trade Pro — the HVAC Designer in the browser. The same five steps as the app (House · Capture · Check · Design ·
 // Send) on the app's own engine (engine.wasm, run in a worker): the same loads, zones, ducts, checks and materials.
 
-import { call, latest } from './engine.js?v=cea6cc5-202610131457';
-import * as store from './store.js?v=cea6cc5-202610131457';
-import { Plan, inkImage, zoneColour, ductColour, T, pointInPolygon, movesOnly, wheelMoves, ZOOM_MAX } from './plan.js?v=cea6cc5-202610131457';
-import { RoomEditor, metres, signedArea, onLine } from './roomeditor.js?v=cea6cc5-202610131457';
+import { call, latest } from './engine.js?v=9738090-202610150856';
+import * as store from './store.js?v=9738090-202610150856';
+import { Plan, inkImage, zoneColour, ductColour, T, pointInPolygon, movesOnly, wheelMoves, ZOOM_MAX } from './plan.js?v=9738090-202610150856';
+import { RoomEditor, metres, signedArea, onLine } from './roomeditor.js?v=9738090-202610150856';
 
 // MARK: Helpers
 
@@ -1512,15 +1512,17 @@ function newRoomDialog(pts) {
   // Bedrooms number on from Bed 2 (Bed 1 is the master on most plans): Bed 2, Bed 3…
   const nums = app.view.rooms.map((x) => /^bed(?:room)?\s*(\d+)$/i.exec(x.name.trim())?.[1]).filter(Boolean).map(Number);
   const nextBed = `Bed ${Math.max(1, ...nums) + 1}`;
-  const kinds = [['Master bedroom', 'bedroom', 'Master Bedroom'], ['Bedroom', 'bedroom', nextBed], ['Living', 'living'], ['Family', 'family'],
-    ['Kitchen', 'kitchen'], ['Dining', 'dining'], ['Study', 'study'], ['Bathroom', 'bathroom'], ['Laundry', 'laundry'], ['Hallway', 'hallway'],
-    ['Garage', 'garage']];
+  // An ensuite goes with the bedroom it opens off (its zone too); a second one is Ensuite 2.
+  const ens = app.view.rooms.filter((x) => /^ens/i.test(x.name.trim())).length;
+  const kinds = [['Master bedroom', 'bedroom', 'Master Bedroom'], ['Bedroom', 'bedroom', nextBed], ['Ensuite', 'bathroom', ens ? `Ensuite ${ens + 1}` : 'Ensuite'],
+    ['Living', 'living'], ['Family', 'family'], ['Kitchen', 'kitchen'], ['Dining', 'dining'], ['Study', 'study'], ['Bathroom', 'bathroom'],
+    ['Laundry', 'laundry'], ['Hallway', 'hallway'], ['Garage', 'garage']];
   let pick = kinds[1];
   const nameFor = (k) => k[2] ?? k[0];
   const area = Math.abs(signedArea(pts));
   const d = dialog(`<h2>The new room${isUnsized() ? '' : ' · ' + fmt(area, 1) + ' m²'}</h2><p class="muted small" style="margin:0 0 10px">What is it?</p>
     <div class="pills" id="nr-kinds">${kinds.map(([l], i) => `<button data-k="${i}" class="${i === 1 ? 'on' : ''}">${l}</button>`).join('')}</div>
-    <p class="small muted" style="margin:8px 0 0">Garage takes in anything not air conditioned (robe, pantry, store).</p>
+    <p class="small muted" style="margin:8px 0 0">An ensuite goes on the zone of the bedroom it opens off. Garage takes in anything not air conditioned (robe, pantry, store).</p>
     <label class="field" style="margin-top:12px"><span>Name</span><input id="nr-name" placeholder="${esc(nameFor(kinds[1]))}" autofocus></label>
     <label class="field" id="nr-zonef"><span>Zone</span><select id="nr-zone">${zoneOptions(null, '')}</select>
       <small class="muted" style="display:block;margin-top:4px">Its own zone, on a zone with other rooms, or no zone (always on). Change it later on the room.</small></label>`,
@@ -2013,7 +2015,7 @@ function openReport(kind) {
   const close = () => o.remove();
   $('#rp-close', o).onclick = close;
   o.addEventListener('keydown', (e) => e.key === 'Escape' && close());
-  import('./reports.js?v=cea6cc5-202610131457').then(async (m) => {
+  import('./reports.js?v=9738090-202610150856').then(async (m) => {
     // Reports are always the design as installed: every zone open, balanced.
     app.designLayout = await call('route', { project: app.project, closed: [], balanced: true });
     const r = await m.build(kind, { app, call, Plan });

@@ -68,6 +68,26 @@ export function drawWindowMark(g, a, b, { door = false, s = 40, on = false } = {
   g.restore();
 }
 
+/// A routed path with its grid steps taken out (Ramer–Douglas–Peucker, `eps` metres): the turns that matter.
+function simplify(pts, eps) {
+  if (pts.length < 3) return pts.slice();
+  const keep = new Uint8Array(pts.length);
+  keep[0] = keep[pts.length - 1] = 1;
+  const stack = [[0, pts.length - 1]];
+  while (stack.length) {
+    const [i, j] = stack.pop();
+    let far = -1, fd = eps;
+    for (let k = i + 1; k < j; k++) {
+      const d = segDist(pts[k], pts[i], pts[j]);
+      if (d > fd) { fd = d; far = k; }
+    }
+    if (far >= 0) { keep[far] = 1; stack.push([i, far], [far, j]); }
+  }
+  return pts.filter((_, k) => keep[k]);
+}
+
+const unitVec = (v) => { const n = Math.hypot(v.x, v.y); return n > 1e-9 ? { x: v.x / n, y: v.y / n } : null; };
+
 function segDist(p, a, b) {
   const ex = b.x - a.x, ey = b.y - a.y, l2 = ex * ex + ey * ey;
   const t = l2 > 0 ? Math.max(0, Math.min(1, ((p.x - a.x) * ex + (p.y - a.y) * ey) / l2)) : 0;
@@ -114,6 +134,32 @@ export function wheelMoves(e) {
 }
 
 export const ZOOM_MAX = 12;
+
+/// Flex comes in 6 m lengths: a run past that is joined, so it's flagged.
+const LENGTH_M = 6;
+
+function nearestOn(p, a, b) {
+  const ex = b.x - a.x, ey = b.y - a.y, l2 = ex * ex + ey * ey;
+  const t = l2 > 0 ? Math.max(0, Math.min(1, ((p.x - a.x) * ex + (p.y - a.y) * ey) / l2)) : 0;
+  return { x: a.x + ex * t, y: a.y + ey * t };
+}
+
+/// The point a fraction `f` of the way along a polyline (screen points).
+function pointAlong(pts, f) {
+  let len = 0;
+  for (let i = 1; i < pts.length; i++) len += Math.hypot(pts[i].x - pts[i - 1].x, pts[i].y - pts[i - 1].y);
+  if (!(len > 0)) return pts[0] ?? null;
+  let acc = 0;
+  for (let i = 1; i < pts.length; i++) {
+    const d = Math.hypot(pts[i].x - pts[i - 1].x, pts[i].y - pts[i - 1].y);
+    if (acc + d >= len * f && d > 0) {
+      const t = (len * f - acc) / d;
+      return { x: pts[i - 1].x + (pts[i].x - pts[i - 1].x) * t, y: pts[i - 1].y + (pts[i].y - pts[i - 1].y) * t };
+    }
+    acc += d;
+  }
+  return pts[pts.length - 1];
+}
 
 export class Plan {
   /// `on`: select(item|null), drop(item, pos), dragMove(item, pos), add(pos), changed() (zoom/pan).
@@ -226,12 +272,13 @@ export class Plan {
       this.drawDucts(g, x, layout, { legSizes: !!d.allSizes, flow: d.showAir ? this.flow : null });
       const sel = d.selection;
       if (sel?.kind === 'feed') {
-        for (const r of layout.runs) {
-          if (r.keyBox !== sel.id) continue;
-          const w = ductWidth(r.sizeMM, x.s), bend = this.bend(w, x.s);
-          this.stroke(g, r.path.map(x.pt), T.accent, w + 7, 'round', null, bend);
-          this.stroke(g, r.path.map(x.pt), ductColour(r.sizeMM), w, 'round', null, bend);
-        }
+        const curves = this.curves(layout);
+        layout.runs.forEach((r, i) => {
+          if (r.keyBox !== sel.id) return;
+          const w = ductWidth(r.sizeMM, x.s), pts = curves[i].map(x.pt);
+          this.stroke(g, pts, T.accent, w + 7);
+          this.stroke(g, pts, ductColour(r.sizeMM), w);
+        });
       }
     }
     if (d.selection?.kind === 'room') {
@@ -343,6 +390,44 @@ export class Plan {
     this.stroke(g, [x.pt(unit), x.pt(point), x.pt(condenser)], T.pipe, 2.5, 'round', [6, 4]);
   }
 
+  /// Flex as it lies, as a duct layout drawing has it (Jake, 15 Oct: "I like how the ducts curve on their drawing"):
+  /// each run's routed path smoothed into sweeping curves — out of a BDO the way its leg points, off the plenum square
+  /// to it, into a BDO along its inlet. World points per run, worked out once per layout.
+  curves(l) {
+    if (this._curves?.l === l) return this._curves.c;
+    const start = {}, end = {};
+    for (const b of l.boxes) {
+      (b.legRuns ?? []).forEach((ri, k) => { if (b.legDirs?.[k]) start[ri] = b.legDirs[k]; });
+      if (b.inlet != null && b.inlet >= 0 && b.axis) end[b.inlet] = b.axis;
+    }
+    const c = l.runs.map((r, i) => {
+      const pts = simplify(r.path, 0.12), n = pts.length;
+      if (n < 2) return r.path;
+      const first = unitVec({ x: pts[1].x - pts[0].x, y: pts[1].y - pts[0].y }) ?? { x: 1, y: 0 };
+      const last = unitVec({ x: pts[n - 1].x - pts[n - 2].x, y: pts[n - 1].y - pts[n - 2].y }) ?? first;
+      const along = (t, ref) => (t && t.x * ref.x + t.y * ref.y < -0.3 ? { x: -t.x, y: -t.y } : t);
+      const collar = r.parent == null ? l.collars.find((cl) => Math.hypot(cl.pos.x - pts[0].x, cl.pos.y - pts[0].y) < 0.4) : null;
+      const t0 = r.kind === 'return' ? first : along(unitVec(start[i] ?? collar?.dir ?? first) ?? first, first);
+      const tN = r.kind === 'return' || !end[i] ? last : along(unitVec(end[i]) ?? last, last);
+      const tan = pts.map((p, k) => (k === 0 ? t0 : k === n - 1 ? tN
+        : unitVec({ x: pts[k + 1].x - pts[k - 1].x, y: pts[k + 1].y - pts[k - 1].y }) ?? first));
+      const out = [pts[0]];
+      for (let k = 0; k < n - 1; k++) {
+        const a = pts[k], b = pts[k + 1], d = Math.hypot(b.x - a.x, b.y - a.y) * 0.38;
+        const c1 = { x: a.x + tan[k].x * d, y: a.y + tan[k].y * d }, c2 = { x: b.x - tan[k + 1].x * d, y: b.y - tan[k + 1].y * d };
+        const steps = Math.max(4, Math.min(18, Math.ceil(d / 0.1)));
+        for (let st = 1; st <= steps; st++) {
+          const t = st / steps, u = 1 - t;
+          out.push({ x: u * u * u * a.x + 3 * u * u * t * c1.x + 3 * u * t * t * c2.x + t * t * t * b.x,
+            y: u * u * u * a.y + 3 * u * u * t * c1.y + 3 * u * t * t * c2.y + t * t * t * b.y });
+        }
+      }
+      return out;
+    });
+    this._curves = { l, c };
+    return c;
+  }
+
   drawDucts(g, x, l, { legSizes, flow }) {
     // Plenum on the unit's supply face.
     const f = l.unitDir, side = { x: f.y, y: -f.x };
@@ -352,11 +437,14 @@ export class Plan {
     this.path(g, corners, true);
     g.fillStyle = '#B9B4AA'; g.fill(); g.strokeStyle = rgba(T.ink, 0.6); g.lineWidth = 1; g.stroke();
 
-    const runs = [...l.runs].sort((a, b) => (a.kind === 'return' ? 0 : 1) - (b.kind === 'return' ? 0 : 1));
-    for (const r of runs) {
-      const pts = r.path.map(x.pt);
-      const w = ductWidth(r.sizeMM, x.s), bend = this.bend(w, x.s);
+    const curves = this.curves(l);
+    const runs = l.runs.map((r, i) => ({ r, i })).sort((a, b) => (a.r.kind === 'return' ? 0 : 1) - (b.r.kind === 'return' ? 0 : 1));
+    for (const { r, i } of runs) {
+      const pts = curves[i].map(x.pt);
+      const w = ductWidth(r.sizeMM, x.s), bend = 0;
       const alpha = r.open ? 1 : 0.3;
+      // Over 6 m: more than a length of flex — a red glow along it (and its length on it, below).
+      if (r.length > LENGTH_M) this.stroke(g, pts, rgba(T.danger, 0.4), w + 9);
       this.stroke(g, pts, `rgba(255,255,255,${alpha})`, w + 2.5, 'round', null, bend);
       this.stroke(g, pts, rgba(ductColour(r.sizeMM), alpha), w, 'round', null, bend);
       if (w >= 4) {
@@ -369,10 +457,20 @@ export class Plan {
     const ra = x.pt(l.returnGrille);
     const placed = [{ x: ra.x, y: ra.y + 22 }, { x: ra.x - 18, y: ra.y + 22 }, { x: ra.x + 18, y: ra.y + 22 }, x.pt(l.unit),
       ...l.outlets.map((o) => x.pt(o.pos)), ...l.boxes.map((b) => x.pt(b.pos))];
+    // A run over 6 m has its length on it, in red, halfway along.
+    const longTags = [];
+    l.runs.forEach((r, i) => {
+      if (!(r.length > LENGTH_M)) return;
+      const at = pointAlong(curves[i].map(x.pt), 0.5);
+      if (!at) return;
+      longTags.push({ at, text: `${r.length.toFixed(1)} m` });
+      placed.push(at, { x: at.x - 18, y: at.y }, { x: at.x + 18, y: at.y });
+      this.sizeSpots.push(at);
+    });
     g.font = `700 10px ${FONT}`; g.textAlign = 'center'; g.textBaseline = 'middle';
-    for (const r of l.runs) {
+    for (const [i, r] of l.runs.entries()) {
       if (!(legSizes || r.outlet == null)) continue;
-      const pts = r.path.map(x.pt);
+      const pts = curves[i].map(x.pt);
       let len = 0;
       for (let i = 1; i < pts.length; i++) len += Math.hypot(pts[i].x - pts[i - 1].x, pts[i].y - pts[i - 1].y);
       if (len <= 55 || pts.length < 2) continue;
@@ -406,12 +504,19 @@ export class Plan {
       g.fillStyle = rgba(T.ductLabel, r.open ? 1 : 0.4);
       g.fillText(text, at.x, at.y);
     }
+    for (const t of longTags) {
+      g.font = `800 10px ${FONT}`;
+      const tw = g.measureText(t.text).width + 10;
+      g.beginPath(); g.roundRect(t.at.x - tw / 2, t.at.y - 7.5, tw, 15, 7.5); g.fillStyle = T.danger; g.fill();
+      g.strokeStyle = '#fff'; g.lineWidth = 1.5; g.stroke();
+      g.fillStyle = '#fff'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(t.text, t.at.x, t.at.y + 0.5);
+    }
     // Moving dots along each open run (supply out, return back).
     if (flow != null) {
       g.fillStyle = '#fff';
-      for (const r of l.runs) {
+      for (const [ri, r] of l.runs.entries()) {
         if (!r.open) continue;
-        const pts = r.path.map(x.pt), segs = [0];
+        const pts = curves[ri].map(x.pt), segs = [0];
         for (let i = 1; i < pts.length; i++) segs.push(segs[i - 1] + Math.hypot(pts[i].x - pts[i - 1].x, pts[i].y - pts[i - 1].y));
         const total = segs[segs.length - 1];
         if (!(total > 4)) continue;
@@ -429,7 +534,15 @@ export class Plan {
     }
     // Zone motors: a dark collar across the duct; red with a cross when shut.
     for (const dm of l.dampers) {
-      const c = x.pt(dm.pos), n = { x: -dm.dir.y, y: -dm.dir.x };
+      // On the duct as it's drawn (the curve can sit a little off the routed line).
+      let c = x.pt(dm.pos), dir = { x: dm.dir.x, y: -dm.dir.y }, bestD = 1.2 * x.s;
+      for (const cv of curves) {
+        for (let k = 1; k < cv.length; k++) {
+          const a = x.pt(cv[k - 1]), b = x.pt(cv[k]), d = segDist(x.pt(dm.pos), a, b);
+          if (d < bestD) { bestD = d; c = nearestOn(x.pt(dm.pos), a, b); dir = unitVec({ x: b.x - a.x, y: b.y - a.y }) ?? dir; }
+        }
+      }
+      const n = { x: -dir.y, y: dir.x };
       const len = Math.max(dm.sizeMM / 1000 * x.s * 0.55, 5);
       this.stroke(g, [{ x: c.x - n.x * len, y: c.y - n.y * len }, { x: c.x + n.x * len, y: c.y + n.y * len }], dm.open ? '#3A3F45' : T.danger, 3);
       if (!dm.open) {
@@ -548,11 +661,16 @@ export class Plan {
     const inRoom = (p, only = null) => rooms.find((m) => (!only || only.has(m.r.id)) && p.x >= m.box[0] && p.x <= m.box[2]
       && p.y >= m.box[1] && p.y <= m.box[3] && pointInPolygon(p, m.pts));
     const byId = Object.fromEntries(view.rooms.map((r) => [r.id, r]));
+    // The rooms a zone feeds: those with vents, and their open area's others (the kitchen) — not a hallway with none.
+    const vented = new Set(layout.outlets.map((o) => o.roomId));
+    const fedAreas = new Set(view.rooms.filter((r) => vented.has(r.id) && r.openArea).map((r) => r.openArea));
+    const fed = (r) => vented.has(r.id) || (r.openArea && fedAreas.has(r.openArea));
     const placed = [], cards = [];
     const zones = [...layout.zones].filter((z) => z.roomIds.some((id) => byId[id]))
       .sort((a, b) => (a.number === 0) - (b.number === 0) || a.number - b.number);
     for (const z of zones) {
-      const mine = z.roomIds.map((id) => byId[id]).filter(Boolean);
+      const all = z.roomIds.map((id) => byId[id]).filter(Boolean);
+      const mine = all.some(fed) ? all.filter(fed) : all;
       const ids = new Set(mine.map((r) => r.id));
       const kw = mine.reduce((t, r) => t + r.kw, 0), m2 = mine.reduce((t, r) => t + r.area, 0);
       const lines = [[z.number === 0 ? 'Always on' : `Zone ${z.number}`, `800 11.5px ${FONT}`],
@@ -579,9 +697,20 @@ export class Plan {
         // Close to the zone, and a short line back to it that doesn't cut across other zones' rooms.
         const cx = Math.max(c.x, Math.min(anchor.x, c.x + c.w)), cy = Math.max(c.y, Math.min(anchor.y, c.y + c.h));
         const reach = Math.hypot(cx - anchor.x, cy - anchor.y);
+        const inCard = (p, o) => p.x > o.x && p.x < o.x + o.w && p.y > o.y && p.y < o.y + o.h;
         for (let k = 1, steps = Math.floor(reach / 10); k < steps; k++) {
-          const m = inRoom({ x: anchor.x + (cx - anchor.x) * k / steps, y: anchor.y + (cy - anchor.y) * k / steps });
+          const q = { x: anchor.x + (cx - anchor.x) * k / steps, y: anchor.y + (cy - anchor.y) * k / steps };
+          const m = inRoom(q);
           if (m && !ids.has(m.r.id) && m.r.conditioned) n += 4;
+          if (placed.some((o) => inCard(q, o))) n += 40;                  // its line through another card
+        }
+        // Nor over another card's line.
+        for (const o of placed) {
+          if (!o.line) continue;
+          for (let k = 1; k < 12; k++) {
+            const q = { x: o.line[0].x + (o.line[1].x - o.line[0].x) * k / 12, y: o.line[0].y + (o.line[1].y - o.line[0].y) * k / 12 };
+            if (inCard(q, c)) { n += 40; break; }
+          }
         }
         return n + reach * 0.5;
       };
@@ -596,7 +725,8 @@ export class Plan {
         }
       }
       if (!best || bestCost >= 500) continue;
-      placed.push(best);
+      const ex = Math.max(best.x, Math.min(anchor.x, best.x + best.w)), ey = Math.max(best.y, Math.min(anchor.y, best.y + best.h));
+      placed.push({ ...best, line: Math.hypot(ex - anchor.x, ey - anchor.y) > 26 ? [anchor, { x: ex, y: ey }] : null });
       cards.push({ z, c: best, lines, anchor, ids });
     }
     for (const { z, c, lines, anchor, ids } of cards) {
@@ -762,11 +892,12 @@ export class Plan {
     const l = this.data?.layout, x = this.x;
     if (l && x) {
       let best = null;
-      for (const r of l.runs) {
+      const curves = this.curves(l);
+      for (const [ri, r] of l.runs.entries()) {
         if (r.kind === 'return') continue;
         const key = r.keyBox != null ? { kind: 'feed', id: r.keyBox } : r.keyOutlet != null ? { kind: 'outlet', id: r.keyOutlet } : null;
         if (!key) continue;
-        const pts = r.path.map(x.pt), w = ductWidth(r.sizeMM, x.s);
+        const pts = curves[ri].map(x.pt), w = ductWidth(r.sizeMM, x.s);
         for (let i = 1; i < pts.length; i++) {
           const dd = segDist(q, pts[i - 1], pts[i]);
           if (dd <= Math.max(14, w / 2 + 8) && (!best || dd < best.d)) best = { key, d: dd };

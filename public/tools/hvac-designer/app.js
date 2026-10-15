@@ -1,10 +1,10 @@
 // Trust Trade Pro — the HVAC Designer in the browser. The same five steps as the app (House · Capture · Check · Design ·
 // Send) on the app's own engine (engine.wasm, run in a worker): the same loads, zones, ducts, checks and materials.
 
-import { call, latest } from './engine.js?v=a650aa1-202610151309';
-import * as store from './store.js?v=a650aa1-202610151309';
-import { Plan, inkImage, zoneColour, ductColour, T, pointInPolygon, movesOnly, wheelMoves, ZOOM_MAX } from './plan.js?v=a650aa1-202610151309';
-import { RoomEditor, metres, signedArea, onLine } from './roomeditor.js?v=a650aa1-202610151309';
+import { call, latest } from './engine.js?v=a83ea6a-202610151342';
+import * as store from './store.js?v=a83ea6a-202610151342';
+import { Plan, inkImage, zoneColour, ductColour, T, pointInPolygon, movesOnly, wheelMoves, ZOOM_MAX } from './plan.js?v=a83ea6a-202610151342';
+import { RoomEditor, metres, signedArea, onLine } from './roomeditor.js?v=a83ea6a-202610151342';
 
 // MARK: Helpers
 
@@ -2081,7 +2081,7 @@ function openReport(kind) {
   const close = () => o.remove();
   $('#rp-close', o).onclick = close;
   o.addEventListener('keydown', (e) => e.key === 'Escape' && close());
-  import('./reports.js?v=a650aa1-202610151309').then(async (m) => {
+  import('./reports.js?v=a83ea6a-202610151342').then(async (m) => {
     // Reports are always the design as installed: every zone open, balanced.
     app.designLayout = await call('route', { project: app.project, closed: [], balanced: true });
     const r = await m.build(kind, { app, call, Plan });

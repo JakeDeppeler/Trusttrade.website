@@ -1,10 +1,10 @@
 // Trust Trade Pro — the HVAC Designer in the browser. The same five steps as the app (House · Capture · Check · Design ·
 // Send) on the app's own engine (engine.wasm, run in a worker): the same loads, zones, ducts, checks and materials.
 
-import { call, latest } from './engine.js?v=9738090-202610150856';
-import * as store from './store.js?v=9738090-202610150856';
-import { Plan, inkImage, zoneColour, ductColour, T, pointInPolygon, movesOnly, wheelMoves, ZOOM_MAX } from './plan.js?v=9738090-202610150856';
-import { RoomEditor, metres, signedArea, onLine } from './roomeditor.js?v=9738090-202610150856';
+import { call, latest } from './engine.js?v=a650aa1-202610151309';
+import * as store from './store.js?v=a650aa1-202610151309';
+import { Plan, inkImage, zoneColour, ductColour, T, pointInPolygon, movesOnly, wheelMoves, ZOOM_MAX } from './plan.js?v=a650aa1-202610151309';
+import { RoomEditor, metres, signedArea, onLine } from './roomeditor.js?v=a650aa1-202610151309';
 
 // MARK: Helpers
 
@@ -513,8 +513,8 @@ function renderHouse(c) {
 function getHouseIn() {
   return `<div class="card"><span class="eyebrow">Get the house in</span>
     <div class="drop" id="drop">${icon('upload')}<h3>Drop the builder's plan here</h3>
-      <p class="small muted">A JPEG or PNG of the floor plan (a screenshot of a PDF works). AI reads the rooms, or you draw them over it.</p>
-      <label class="btn ink" style="margin-top:10px;height:42px">Choose a file<input type="file" id="planfile" accept="image/png,image/jpeg,image/webp" hidden></label></div>
+      <p class="small muted">The builder's PDF, or a JPEG or PNG of the floor plan. AI reads the rooms, or you draw them over it.</p>
+      <label class="btn ink" style="margin-top:10px;height:42px">Choose a file<input type="file" id="planfile" accept="${PLAN_TYPES}" hidden></label></div>
     <p class="small muted" style="text-align:center;margin:12px 0 0">or <button class="link" id="demo" style="padding:0;color:var(--accent-deep)">try the demo house</button>
       · no plan? <button class="link" id="grid" style="padding:0;color:var(--accent-deep)">draw the rooms on a grid</button></p>
     <p class="small muted" style="margin:14px 0 0">Scanning on site? Open the job in Trust Trade Pro on an iPhone Pro.</p></div>`;
@@ -566,7 +566,7 @@ function bindUpload(c) {
 function pickPlan(replacing) {
   const go2 = () => {
     const i = document.createElement('input');
-    i.type = 'file'; i.accept = 'image/png,image/jpeg,image/webp';
+    i.type = 'file'; i.accept = PLAN_TYPES;
     i.onchange = () => i.files[0] && choosePlan(i.files[0]);
     i.click();
   };
@@ -586,11 +586,77 @@ function installId() {
   } catch (_) { return crypto.randomUUID(); }
 }
 
-/// A plan picked: kept as a JPEG, then read by AI or measured and drawn over by hand (the tradie picks).
+const PLAN_TYPES = 'application/pdf,.pdf,image/png,image/jpeg,image/webp';
+const PDFJS = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/';
+let pdfjsLoad = null;
+
+/// A builder's PDF: the page with the floor plan (asked when there's more than one) drawn at about 2400 px across.
+async function pdfPlan(file) {
+  pdfjsLoad ??= new Promise((ok, fail) => {
+    const s = document.createElement('script');
+    s.src = PDFJS + 'pdf.min.js';
+    s.onload = () => { window.pdfjsLib.GlobalWorkerOptions.workerSrc = PDFJS + 'pdf.worker.min.js'; ok(window.pdfjsLib); };
+    s.onerror = () => { pdfjsLoad = null; fail(new Error('The PDF reader didn\'t load — check the connection and try again.')); };
+    document.head.append(s);
+  });
+  const pdfjs = await pdfjsLoad;
+  const doc = await pdfjs.getDocument({ data: await file.arrayBuffer() }).promise;
+  const n = doc.numPages === 1 ? 1 : await pickPdfPage(doc);
+  if (!n) return null;
+  const page = await doc.getPage(n), base = page.getViewport({ scale: 1 });
+  const vp = page.getViewport({ scale: Math.min(2400 / Math.max(base.width, base.height), 8) });
+  const cv = document.createElement('canvas');
+  cv.width = Math.round(vp.width); cv.height = Math.round(vp.height);
+  const g = cv.getContext('2d');
+  g.fillStyle = '#fff'; g.fillRect(0, 0, cv.width, cv.height);
+  await page.render({ canvasContext: g, viewport: vp }).promise;
+  return createImageBitmap(cv);
+}
+
+/// Which page of a builder's set has the floor plan: each page small, tap one.
+function pickPdfPage(doc) {
+  return new Promise((resolve) => {
+    const n = Math.min(doc.numPages, 24);
+    const d = dialog(`<h2>Which page is the floor plan?</h2>
+      <p class="muted small" style="margin:0 0 12px">${doc.numPages} pages in this PDF${doc.numPages > n ? ` (the first ${n} shown)` : ''}. Tap the one with the rooms on it.</p>
+      <div id="pdf-pages" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:10px">${Array.from({ length: n }, (_, i) =>
+        `<button data-pg="${i + 1}" style="border:1px solid var(--line);border-radius:12px;background:#fff;padding:6px;cursor:pointer;text-align:center"><canvas style="width:100%;display:block;background:var(--tile);border-radius:6px;aspect-ratio:1.414"></canvas><span class="small" style="display:block;margin-top:4px;font-weight:700">Page ${i + 1}</span></button>`).join('')}</div>`,
+    [{ label: 'Cancel', run: () => resolve(null) }]);
+    d.querySelector('.dialog').classList.add('wide');
+    d.addEventListener('click', (e) => { if (e.target === d) resolve(null); });
+    d.querySelector('#pdf-pages').addEventListener('click', (e) => {
+      const b = e.target.closest('[data-pg]');
+      if (!b) return;
+      e.stopPropagation();
+      d.remove();
+      resolve(+b.dataset.pg);
+    });
+    (async () => {
+      for (const b of d.querySelectorAll('[data-pg]')) {
+        if (!d.isConnected) return;
+        const page = await doc.getPage(+b.dataset.pg), base = page.getViewport({ scale: 1 });
+        const vp = page.getViewport({ scale: 260 / Math.max(base.width, base.height) }), cv = b.querySelector('canvas');
+        cv.width = Math.round(vp.width); cv.height = Math.round(vp.height); cv.style.aspectRatio = `${vp.width} / ${vp.height}`;
+        await page.render({ canvasContext: cv.getContext('2d'), viewport: vp }).promise.catch(() => {});
+      }
+    })();
+  });
+}
+
+/// A plan picked (a PDF or an image): kept as a JPEG, then read by AI or measured and drawn over by hand (the tradie
+/// picks).
 async function choosePlan(file) {
-  if (!/^image\//.test(file.type)) { toast('Use a JPEG or PNG of the plan (a screenshot of a PDF works).'); return; }
-  const bmp = await createImageBitmap(file).catch(() => null);
-  if (!bmp) { toast('That image couldn\'t be opened.'); return; }
+  const pdf = file.type === 'application/pdf' || /\.pdf$/i.test(file.name);
+  if (!pdf && !/^image\//.test(file.type)) { toast('Use the builder\'s PDF, or a JPEG or PNG of the floor plan.'); return; }
+  let bmp = null;
+  try {
+    bmp = pdf ? await pdfPlan(file) : await createImageBitmap(file);
+  } catch (e) {
+    toast(pdf ? (e?.message?.startsWith('The PDF reader') ? e.message : 'That PDF couldn\'t be opened — try a screenshot of the floor plan page.')
+      : 'That image couldn\'t be opened (a HEIC photo? Save it as a JPEG).');
+    return;
+  }
+  if (!bmp) return;
   // The plan kept for the job (≤2400 px) and the copy sent to be read (≤1568 px), both JPEG on white.
   const jpeg = async (max, q) => {
     const k = Math.min(1, max / Math.max(bmp.width, bmp.height));
@@ -601,7 +667,7 @@ async function choosePlan(file) {
   // One JPEG: kept for the job, and read at full size (Opus reads up to 2576 px 1:1, so its pixel coordinates are ours).
   const keep = await jpeg(2400, 0.88);
   const fileName = 'plans/' + uuid() + '.jpg';
-  app.read = { status: 'chosen', url: URL.createObjectURL(keep.blob), keep, send, fileName, result: null, error: null, north: null,
+  app.read = { status: 'chosen', url: URL.createObjectURL(keep.blob), keep, fileName, result: null, error: null, north: null,
     measure: { pts: [], mm: '' }, view: null, fitted: false };
   go('capture');
   render();
@@ -2015,7 +2081,7 @@ function openReport(kind) {
   const close = () => o.remove();
   $('#rp-close', o).onclick = close;
   o.addEventListener('keydown', (e) => e.key === 'Escape' && close());
-  import('./reports.js?v=9738090-202610150856').then(async (m) => {
+  import('./reports.js?v=a650aa1-202610151309').then(async (m) => {
     // Reports are always the design as installed: every zone open, balanced.
     app.designLayout = await call('route', { project: app.project, closed: [], balanced: true });
     const r = await m.build(kind, { app, call, Plan });

@@ -289,6 +289,7 @@ export class Plan {
       if (r) { this.path(g, r.polygon.map(x.pt), true); g.strokeStyle = T.accent; g.lineWidth = 3; g.stroke(); }
     }
     const split = !layout && !d.editor ? d.split : null;
+    if (split && d.splitAir !== false && !d.report) this.drawSplitAir(g, x, view, split, d);
     if (split) this.drawSplitPipes(g, x, split);
     const zoneCards = !!layout && !d.editor && !d.report && d.zoneCards !== false && (layout.zones?.length ?? 0) >= 2;
     if (d.labels !== false) this.drawLabels(g, x, view, layout, d.compact !== false, zoneCards);
@@ -596,7 +597,14 @@ export class Plan {
       for (const h of sp.heads) {
         const c = x.pt(h.pos), ang = Math.atan2(-h.blow.y, h.blow.x), reach = Math.max(0.7 * x.s, 18);
         busy.push({ p: c, r: Math.max((h.widthMM ?? 800) / 2000 * x.s, 14), w: BLOCKED });
-        busy.push({ p: { x: c.x + Math.cos(ang) * (reach + 26), y: c.y + Math.sin(ang) * (reach + 26) }, r: 18, w: 12 });
+        // Its tag, along the whole of its width: rather not under a name, but no reason to drop one.
+        const t = { x: c.x + Math.cos(ang) * (reach + 26), y: c.y + Math.sin(ang) * (reach + 26) };
+        const tag = this.headTag(h, this.data, x);
+        g.font = `800 9px ${FONT}`;
+        const half = (g.measureText(tag).width + 10) / 2;
+        const n = Math.max(1, Math.round(half / 9));
+        for (let k = 0; k <= n; k++) busy.push({ p: { x: t.x - half + 9 + (2 * half - 18) * k / n, y: t.y }, r: 11, w: Math.min(12, 24 / (n + 1)) });
+        if (h.reachShort && this.data?.splitAir !== false) busy.push({ p: this.reachLabelAt(h, x), r: 18, w: 12 });
       }
       for (const o of sp.outdoors) busy.push({ p: x.pt(this.splitOutdoorAt(o)), r: 26, w: BLOCKED });
     }
@@ -773,6 +781,49 @@ export class Plan {
   /// Where an outdoor unit sits on the plan: on its pad just off the wall.
   splitOutdoorAt(o) { return { x: o.pos.x + o.out.x * 0.45, y: o.pos.y + o.out.y * 0.45 }; }
 
+  /// How far each wall head's air carries on high fan before it slows to 0.25 m/s (an estimate: the brands don't publish
+  /// air throw): a fan of air the way the head blows, fading to its reach, kept inside the space it serves — a dashed
+  /// edge where it stops, red when that's short of the far wall.
+  drawSplitAir(g, x, view, sp, d) {
+    const drag = this.drag?.active ? this.drag : null;
+    for (const h of sp.heads) {
+      if (!h.reachM || (drag?.item.kind === 'head' && drag.item.id === h.id)) continue;
+      const rooms = view.rooms.filter((r) => (h.spaceRooms ?? [h.room]).includes(r.id) && r.polygon.length >= 3);
+      if (!rooms.length) continue;
+      const c = x.pt(h.pos), r = h.reachM * x.s, ang = Math.atan2(-h.blow.y, h.blow.x), spread = 0.6;
+      const tone = h.outdoor >= 0 ? splitColour(h.outdoor) : T.danger;
+      const picked = d.selection?.kind === 'head' && d.selection.id === h.id;
+      g.save();
+      g.beginPath();
+      for (const rm of rooms) { rm.polygon.map(x.pt).forEach((p, i) => (i ? g.lineTo(p.x, p.y) : g.moveTo(p.x, p.y))); g.closePath(); }
+      g.clip();
+      const grad = g.createRadialGradient(c.x, c.y, 0, c.x, c.y, Math.max(r, 1));
+      grad.addColorStop(0, rgba(tone, picked ? 0.36 : 0.22)); grad.addColorStop(1, rgba(tone, 0.03));
+      g.beginPath(); g.moveTo(c.x, c.y); g.arc(c.x, c.y, r, ang - spread, ang + spread); g.closePath();
+      g.fillStyle = grad; g.fill();
+      g.beginPath(); g.arc(c.x, c.y, r, ang - spread, ang + spread);
+      g.setLineDash([5, 4]); g.strokeStyle = h.reachShort ? T.danger : rgba(tone, 0.75); g.lineWidth = h.reachShort ? 2 : 1.4; g.stroke(); g.setLineDash([]);
+      g.restore();
+    }
+  }
+
+  /// A head's tag: its model and size, and how far its air reaches when that fits across its room (zoom in for the
+  /// small rooms' — their names come first). Short of the far wall, the reach is in red by the edge of the air instead.
+  headTag(h, d, x) {
+    const base = `${h.model.replace(/(VGKD2|VGD)-A\d$/, '').replace(/^MSZ-/, '')} · ${h.coolKW} kW`;
+    if (!h.reachM || d?.splitAir === false || d?.report || h.reachShort) return base;
+    const full = `${base} · air ${h.reachM.toFixed(1)} m`;
+    const xs = d.view?.rooms.find((r) => r.id === h.room)?.polygon.map((p) => p.x) ?? [];
+    this.ctx.font = `800 9px ${FONT}`;
+    return !xs.length || this.ctx.measureText(full).width + 10 <= 0.9 * (Math.max(...xs) - Math.min(...xs)) * x.s ? full : base;
+  }
+
+  /// Where a head's reach is written when it falls short of the far wall: just past its dashed edge.
+  reachLabelAt(h, x) {
+    const c = x.pt(h.pos), ang = Math.atan2(-h.blow.y, h.blow.x), m = h.reachM + 0.4;
+    return { x: c.x + Math.cos(ang) * m * x.s, y: c.y + Math.sin(ang) * m * x.s };
+  }
+
   /// Each head's pipe run back to its outdoor unit, in the unit's colour: solid along the outside wall (a head on an
   /// outside wall), dashed through the roof (one on an internal wall). Its length halfway.
   drawSplitPipes(g, x, sp) {
@@ -839,9 +890,12 @@ export class Plan {
       }
       if (h.pinned) { g.beginPath(); g.arc(at.x + Math.cos(ang) * -(dep / 2 + 6), at.y + Math.sin(ang) * -(dep / 2 + 6), 2.6, 0, Math.PI * 2); g.fillStyle = T.accentDeep; g.fill(); }
       if (!drag) {
-        const label = `${h.model.replace(/(VGKD2|VGD)-A\d$/, '').replace(/^MSZ-/, '')} · ${h.coolKW} kW`;
         const lp = { x: at.x + Math.cos(ang) * (dep / 2 + reach + 22), y: at.y + Math.sin(ang) * (dep / 2 + reach + 22) };
-        this.tag(g, label, lp.x, lp.y, tone);
+        this.tag(g, this.headTag(h, d, x), lp.x, lp.y, tone);
+        if (h.reachM && d.splitAir !== false && !d.report && h.reachShort) {
+          const rp = this.reachLabelAt(h, x);
+          this.tag(g, `air reaches ${h.reachM.toFixed(1)} m`, rp.x, rp.y, T.danger);
+        }
       }
       this.hits.push({ item: { kind: 'head', id: h.id }, x: at.x, y: at.y, r: Math.max(len / 2, 16) });
     }

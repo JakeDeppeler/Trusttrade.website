@@ -1,7 +1,7 @@
 // The printable reports: the customer's design report, the install sheet and the materials list, laid out as A4 pages
 // from the engine's report blocks (ReportText.swift — the app's wording). The browser's print window saves them as PDF.
 
-import * as store from './store.js?v=a83ea6a-202610151342';
+import * as store from './store.js?v=1c6a8d7-202610271230';
 
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const DUCT = (mm) => mm <= 150 ? '#E0342F' : mm <= 200 ? '#6A8DDB' : mm <= 250 ? '#F0CB2E' : mm <= 300 ? '#7DC242' : mm <= 350 ? '#BFC4C9' : mm <= 400 ? '#D35FD0' : '#7B3FE4';
@@ -12,7 +12,8 @@ function planImage(app, Plan, w, h) {
   cv.style.cssText = `position:fixed;left:-10000px;top:0;width:${w}px;height:${h}px`;
   document.body.append(cv);
   const plan = new Plan(cv, {});
-  plan.set({ project: app.project, view: app.view, layout: app.designLayout ?? app.layout, showPlan: false, interactive: false,
+  const split = app.project?.system === 'multiSplit';
+  plan.set({ project: app.project, view: app.view, layout: split ? null : app.designLayout ?? app.layout, split: split ? app.split : null, showPlan: false, interactive: false,
     labels: true, compact: false, report: true, dpr: 2 });
   plan.draw();
   const g = cv.getContext('2d');

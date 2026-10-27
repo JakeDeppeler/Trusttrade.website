@@ -1,10 +1,10 @@
 // Trust Trade Pro — the HVAC Designer in the browser. The same five steps as the app (House · Capture · Check · Design ·
 // Send) on the app's own engine (engine.wasm, run in a worker): the same loads, zones, ducts, checks and materials.
 
-import { call, latest } from './engine.js?v=a83ea6a-202610151342';
-import * as store from './store.js?v=a83ea6a-202610151342';
-import { Plan, inkImage, zoneColour, ductColour, T, pointInPolygon, movesOnly, wheelMoves, ZOOM_MAX } from './plan.js?v=a83ea6a-202610151342';
-import { RoomEditor, metres, signedArea, onLine } from './roomeditor.js?v=a83ea6a-202610151342';
+import { call, latest } from './engine.js?v=1c6a8d7-202610271230';
+import * as store from './store.js?v=1c6a8d7-202610271230';
+import { Plan, inkImage, zoneColour, ductColour, splitColour, T, pointInPolygon, movesOnly, wheelMoves, ZOOM_MAX } from './plan.js?v=1c6a8d7-202610271230';
+import { RoomEditor, metres, signedArea, onLine } from './roomeditor.js?v=1c6a8d7-202610271230';
 
 // MARK: Helpers
 
@@ -113,12 +113,18 @@ async function refresh() {
   const p = app.project;
   if (!p) return;
   const viewP = call('view', { project: p });
-  const layoutP = p.design ? call('route', { project: p, closed: [...app.closed], balanced: app.balanced }) : Promise.resolve(null);
-  const [view, layout] = await Promise.all([viewP, layoutP.catch(() => null)]);
+  const split = isSplit();
+  const layoutP = p.design && !split ? call('route', { project: p, closed: [...app.closed], balanced: app.balanced }) : Promise.resolve(null);
+  const splitP = split && p.rooms.length ? call('splitPlan', { project: p }) : Promise.resolve(null);
+  const [view, layout, sp] = await Promise.all([viewP, layoutP.catch(() => null), splitP.catch(() => null)]);
   app.view = view;
   app.layout = layout;
+  app.split = sp;
   app.air = layout ? await call('air', { project: p, closed: [...app.closed], balanced: app.balanced }).catch(() => null) : null;
 }
+
+/// A multi-head split job (wall heads on outdoor units), not ducted.
+const isSplit = () => app.project?.system === 'multiSplit';
 
 /// A changed project: kept (with an undo step for design edits), saved, and the screen redrawn.
 async function commit(project, { undoable = false, rerender = true } = {}) {
@@ -179,7 +185,7 @@ async function openJob(id, step) {
   const want = STEPS.findIndex((s) => s.k === step);
   const up = app.view?.upTo ?? 4;
   app.step = STEPS[want >= 0 ? Math.min(want, reach) : Math.min(up, reach)].k;
-  if (app.step === 'design' && !app.project.design && app.view?.planChecked) designNow();
+  if (app.step === 'design' && !app.project.design && app.view?.planChecked && !isSplit()) designNow();
 }
 
 /// A plan drawn by hand over an image that hasn't been sized yet (drawn first, sized after from a wall you know).
@@ -280,9 +286,11 @@ function primaryAction() {
   switch (app.step) {
     case 'house': return { label: hasRooms ? 'Next: Check →' : 'Next: Capture →', run: () => go(hasRooms ? 'check' : 'capture') };
     case 'capture': return { label: 'Check the rooms →', disabled: !hasRooms, run: () => go('check') };
-    case 'check': return { label: 'Design the ducts →', disabled: !hasRooms, run: confirmPlan };
-    case 'design': return { label: 'Check & send →', disabled: !app.layout?.outlets?.length, run: () => go('send') };
-    case 'send': return { label: 'Customer report', disabled: !app.layout?.outlets?.length, run: () => openReport('customer') };
+    case 'check': return { label: isSplit() ? 'Lay out the heads →' : 'Design the ducts →', disabled: !hasRooms, run: confirmPlan };
+    case 'design': return { label: 'Check & send →', disabled: isSplit() ? !app.split?.heads?.length : !app.layout?.outlets?.length, run: () => go('send') };
+    case 'send':
+      if (isSplit()) return { label: 'Install sheet', disabled: !app.split?.heads?.length, run: () => openReport('install') };
+      return { label: 'Customer report', disabled: !app.layout?.outlets?.length, run: () => openReport('customer') };
   }
   return null;
 }
@@ -772,6 +780,7 @@ async function importRead(overallMetres, mpp) {
 
 function renderCapture(c) {
   const r = app.read, v = app.view;
+  if (!v) return;                                     // drawn again once the job's view is in
   if (r && (r.status === 'chosen' || r.status === 'measure')) { renderPlanStart(c); return; }
   if (!r && !v.rooms.length && app.project.backdrop) {
     c.innerHTML = `<div class="card" style="max-width:560px;margin:20px auto"><h2>No rooms drawn yet</h2>
@@ -1652,6 +1661,7 @@ let liveRoute = latest();
 
 function renderDesign(c) {
   const l = app.layout, v = app.view, p = app.project;
+  if (isSplit() && v.planChecked) { renderSplitDesign(c); return; }
   if (!v.planChecked && !p.design) {
     c.innerHTML = `<div class="card empty" style="max-width:560px;margin:20px auto"><h2>Check the plan first</h2><p>The ducts are laid out once the rooms, open areas and ensuite are checked.</p><button class="btn" data-go="check" style="margin-top:12px">Check the plan</button></div>`;
     c.querySelector('[data-go]').onclick = () => go('check');
@@ -1676,6 +1686,7 @@ function renderDesign(c) {
         <button class="btn2 small" id="b-undo" title="Undo the last change" ${app.undo.length ? '' : 'disabled'}>${icon('undo').replace('<svg', '<svg width="15" height="15"')} Back</button>
         <button class="btn2 small" id="b-redo" title="Redo it" ${app.redo.length ? '' : 'disabled'}>Forward ${icon('redo').replace('<svg', '<svg width="15" height="15"')}</button>
         <div class="seg"><button data-mode="plan" class="${app.layers.air ? '' : 'on'}">Plan</button><button data-mode="air" class="${app.layers.air ? 'on' : ''}">Air</button></div>
+        ${systemSwitch()}
       </div>
       <div class="canvas-card"><canvas id="cv"></canvas>${zoomCtl()}
         <div class="north">${'<svg width="14" height="16" viewBox="0 0 14 16"><path d="M7 0l6 16-6-4-6 4z" fill="#E0342F"/></svg>'}<div>N</div></div>
@@ -1707,6 +1718,7 @@ function renderDesign(c) {
   $('#t-fit', c).onclick = () => plan.fit();
   $('#t-layers', c).onclick = (e) => layersMenu(e.currentTarget);
   $('#cancel-join', c)?.addEventListener('click', () => { app.joining = null; render(); });
+  bindSystemSwitch(c);
   c.querySelectorAll('[data-mode]').forEach((b) => (b.onclick = async () => {
     app.layers.air = b.dataset.mode === 'air'; saveLayers();
     if (app.layers.air && !app.air && app.layout) app.air = await call('air', { project: app.project, closed: [...app.closed], balanced: app.balanced });
@@ -1743,7 +1755,7 @@ function select(item) {
   }
   app.selection = item;
   app.plan?.set({ selection: item });
-  renderInspector();
+  if (isSplit()) renderSplitInspector(); else renderInspector();
 }
 
 async function addVent(pos) {
@@ -1753,6 +1765,7 @@ async function addVent(pos) {
 
 /// While dragging: the design as if dropped here, routed (the quick route for the fan coil), drawn as it comes back.
 function dragMove(item, pos) {
+  if (item.kind === 'head' || item.kind === 'odu') return;             // drawn where the pointer is; placed on the drop
   const d = structuredClone(app.project.design);
   if (!d) return;
   if (item.kind === 'unit') d.unit = pos;
@@ -1766,6 +1779,16 @@ function dragMove(item, pos) {
 }
 
 async function drop(item, pos) {
+  if (item.kind === 'head') {
+    const h = app.split?.heads.find((x) => x.id === item.id);
+    if (h && !(await edit('moveHead', { room: h.room, n: h.nth, pos }))) app.plan?.set({ split: app.split });
+    return;
+  }
+  if (item.kind === 'odu') {
+    const o = app.split?.outdoors[item.id];
+    if (o && !(await edit('moveSplitOutdoor', { rooms: o.rooms, pos }))) app.plan?.set({ split: app.split });
+    return;
+  }
   const ops = { unit: ['dropUnit', {}], ret: ['dropReturn', {}], outdoor: ['dropOutdoor', {}], box: ['dropBox', { bid: item.id }], outlet: ['dropOutlet', { id: item.id }] };
   const op = ops[item.kind];
   if (!op) return;
@@ -2008,6 +2031,7 @@ function bindInspector(el) {
 
 async function renderSend(c) {
   const l = app.layout;
+  if (isSplit()) { renderSplitSend(c); return; }
   if (!l?.outlets?.length) {
     c.innerHTML = '<div class="card empty" style="max-width:560px;margin:20px auto"><h2>Design the ducts first</h2><p>The report, materials and install sheet are made once the ducts are designed.</p></div>';
     return;
@@ -2043,6 +2067,183 @@ async function renderSend(c) {
   $('#unquote', c)?.addEventListener('click', () => commit({ ...p, status: null }));
 }
 
+// MARK: Multi-head split
+
+/// Ducted or a multi-head split, on the Design step's bar.
+function systemSwitch() {
+  const split = isSplit();
+  return `<div class="seg" title="The kind of system"><button data-sys="ducted" class="${split ? '' : 'on'}">Ducted</button><button data-sys="multiSplit" class="${split ? 'on' : ''}">Multi-head</button></div>`;
+}
+
+function bindSystemSwitch(c) {
+  c.querySelectorAll('[data-sys]').forEach((b) => (b.onclick = async () => {
+    if ((b.dataset.sys === 'multiSplit') === isSplit()) return;
+    app.selection = null;
+    await edit('setSystem', { system: b.dataset.sys });
+    if (!isSplit() && !app.project.design && app.view?.planChecked) designNow();
+  }));
+}
+
+const shortModel = (m) => m.replace(/(VGKD2|VGD)-A\d$/, '');
+
+/// The Design step for a multi-head split: the heads on their walls, the outdoor units and the pipe runs on the plan;
+/// the system, each head and each outdoor unit on the right.
+function renderSplitDesign(c) {
+  const sp = app.split, v = app.view;
+  const heads = sp?.heads ?? [], pumps = heads.filter((h) => h.pump).length;
+  const kw = heads.reduce((t, h) => t + h.coolKW, 0);
+  c.innerHTML = `<div class="work with-rail">
+    <div class="rail">
+      <button id="t-select" class="on">${icon('cursor')}<span class="tip">Select and drag</span></button>
+      <button id="t-undo" ${app.undo.length ? '' : 'disabled'}>${icon('undo')}<span class="tip">Undo</span></button>
+      <button id="t-redo" ${app.redo.length ? '' : 'disabled'}>${icon('redo')}<span class="tip">Redo</span></button>
+      <button id="t-fit">${icon('fit')}<span class="tip">Fit the plan</span></button>
+    </div>
+    <div class="stage">
+      <div class="bar">
+        <div class="stats"><div><b>${heads.length || '—'}</b><span>heads</span></div><div><b>${sp?.outdoors.length || '—'}</b><span>outdoor</span></div>
+          <div><b>${kw ? g(Math.round(kw * 10) / 10) + ' kW' : '—'}</b><span>of heads</span></div><div><b>${pumps}</b><span>pumps</span></div></div>
+        <div class="spacer" style="flex:1"></div>
+        <button class="btn2 small" id="b-undo" title="Undo the last change" ${app.undo.length ? '' : 'disabled'}>${icon('undo').replace('<svg', '<svg width="15" height="15"')} Back</button>
+        <button class="btn2 small" id="b-redo" title="Redo it" ${app.redo.length ? '' : 'disabled'}>Forward ${icon('redo').replace('<svg', '<svg width="15" height="15"')}</button>
+        ${systemSwitch()}
+      </div>
+      <div class="canvas-card"><canvas id="cv"></canvas>${zoomCtl()}
+        <div class="north">${'<svg width="14" height="16" viewBox="0 0 14 16"><path d="M7 0l6 16-6-4-6 4z" fill="#E0342F"/></svg>'}<div>N</div></div>
+        ${sp ? '' : '<div class="busy"><div><div class="spinner"></div>Laying out the heads…</div></div>'}
+      </div>
+      <div class="hint">Drag a head along its room's walls — on an outside wall its pipes and drain go straight out; on an internal wall it needs a pump. Drag an outdoor unit along the outside walls. Tap one to see it on the right.</div>
+    </div>
+    <div class="panel" id="insp"></div>
+  </div>`;
+  const plan = mountPlan($('#cv', c), {
+    layout: false, split: sp, selection: app.selection, interactive: true, labels: true, compact: true,
+    handlers: { select: (item) => select(item), dragMove: () => {}, drop: (item, pos) => drop(item, pos) },
+  });
+  app.plan = plan;
+  renderSplitInspector();
+  for (const id of ['#t-undo', '#b-undo']) $(id, c).onclick = undo;
+  for (const id of ['#t-redo', '#b-redo']) $(id, c).onclick = redo;
+  $('#t-fit', c).onclick = () => plan.fit();
+  bindZoomCtl(c, { zoomBy: (k) => plan.zoomBy(k), fit: () => plan.fit(), setHand: (on) => plan.setHand(on) });
+  bindSystemSwitch(c);
+}
+
+function renderSplitInspector() {
+  const el = $('#insp');
+  if (!el) return;
+  const sp = app.split, s = app.selection, v = app.view;
+  if (!sp) { el.innerHTML = '<div class="card"><p class="small muted" style="margin:0">Laying out the heads…</p></div>'; return; }
+  const close = `<button class="iconbtn close" id="insp-close">${icon('x')}</button>`;
+  const roomName = (id) => v.rooms.find((r) => r.id === id)?.name ?? '';
+  let html = '';
+  const h = s?.kind === 'head' ? sp.heads.find((x) => x.id === s.id) : null;
+  const o = s?.kind === 'odu' ? sp.outdoors[s.id] : null;
+  const roomPick = s?.kind === 'room' ? v.rooms.find((r) => r.id === s.id) : null;
+  if (h) {
+    const auto = !h.sizedByHand;
+    const tone = splitColour(h.outdoor);
+    const enough = h.coolKW * 1.06 >= h.loadKW;
+    html = `<div class="card"><div class="insp-head"><h2>${esc(h.roomName)}</h2>${close}</div>
+      <div class="insp-sub">${esc(shortModel(h.model))} · ${g(h.coolKW)} kW ${h.wall ? 'wall head' : 'bulkhead head'}${h.outdoor >= 0 ? ` · <span style="color:${tone};font-weight:700">outdoor ${h.outdoor + 1}</span>` : ''}</div>
+      <label class="field"><span>Head size</span><select id="hs-size">
+        <option value="0" ${auto ? 'selected' : ''}>Auto — sized to the room</option>
+        ${sp.headModels.map((m) => `<option value="${m.kw}" ${!auto && Math.abs(m.kw - h.coolKW) < 0.01 ? 'selected' : ''}>${esc(shortModel(m.model))} · ${g(m.kw)} kW${m.handOnly ? ' (small)' : ''}</option>`).join('')}</select></label>
+      <div class="kv"><span>Room load</span><b style="color:${enough ? 'inherit' : 'var(--danger)'}">${fmt(h.loadKW, 2)} kW${h.space !== h.roomName ? ` <span class="muted small">(${esc(h.space)})</span>` : ''}</b></div>
+      <div class="kv"><span>Airflow</span><b>${h.airflowLps ? `up to ${Math.round(h.airflowLps)} L/s` : '—'} <span class="muted small">· room ${Math.round(h.needLps)} L/s</span></b></div>
+      ${h.soundDB ? `<div class="kv"><span>Sound</span><b>${h.soundDB[0]}–${h.soundDB[1]} dB(A)</b></div>` : ''}
+      ${h.widthMM ? `<div class="kv"><span>Size</span><b>${h.widthMM} wide × ${h.heightMM ?? '—'} high</b></div>` : ''}
+    </div>
+    <div class="card"><h2>Where it goes</h2>
+      <div class="kv"><span>Wall</span><b>${h.wall ? (h.onOutside ? 'Outside wall' : 'Internal wall') : 'Bulkhead'}</b></div>
+      <div class="kv"><span>Pipe run</span><b>${fmt(h.pipeM, 1)} m · ${esc(h.pipes)}</b></div>
+      <div class="kv"><span>Drain</span><b>${fmt(h.drainM, 1)} m${h.pump ? ' · <span style="color:var(--cool)">pumped</span>' : ''}</b></div>
+      <p class="small muted" style="margin:8px 0 0">${h.wall ? (h.onOutside ? 'Pipes, cable and drain go straight out through the wall behind it, then along the outside wall in duct cover to the outdoor unit.'
+        : 'On an internal wall: the pipes go up into the roof and across, and the drain needs a condensate pump. Drag it onto an outside wall to do without.') : 'In a bulkhead: pipes and drain across the roof.'}</p>
+      <div class="actions-row">${h.pinned ? '<button class="btn2" id="hs-back">Put it back</button>' : ''}<button class="btn2" id="hs-none">No head in this room</button></div></div>`;
+  } else if (o) {
+    const tone = splitColour(s.id);
+    html = `<div class="card"><div class="insp-head"><h2><span style="color:${tone}">Outdoor ${s.id + 1}</span> · ${esc(o.model)}</h2>${close}</div>
+      <div class="insp-sub">${g(o.coolKW)} kW · ${o.ports} heads · ${esc(o.phase)} · on the ${esc(o.room)} wall${o.pinned ? ' (moved)' : ''}</div>
+      <div class="kv"><span>Heads</span><b>${o.heads.map((i) => esc(sp.heads[i]?.roomName ?? '')).join(', ')}</b></div>
+      <div class="kv"><span>Heads' size</span><b>${fmt(o.connectedKW, 1)} kW on a ${g(o.coolKW)} kW unit</b></div>
+      <div class="kv"><span>Pipe</span><b>${Math.round(o.pipeTotalM)} of ${o.maxPipeTotal} m · each up to ${o.maxPipePerHead} m</b></div>
+      ${o.pinned ? '<div class="actions-row"><button class="btn2" id="od-back">Put it back</button></div>' : ''}</div>`;
+  } else if (roomPick) {
+    const has = sp.heads.some((x) => x.room === roomPick.id), off = sp.noHead.includes(roomPick.id);
+    html = `<div class="card"><div class="insp-head"><h2>${esc(roomPick.name)}</h2>${close}</div>
+      <div class="insp-sub">${fmt(roomPick.area, 1)} m² · ${fmt(roomPick.kw, 2)} kW</div>
+      <p class="small muted" style="margin:6px 0 10px">${has ? 'Has a head.' : off ? 'No head of its own.' : 'Shares a head with its open area.'}</p>
+      <div class="actions-row">${has ? '<button class="btn2" id="rm-off">No head here</button>' : `<button class="btn" id="rm-on">Give it a head</button>`}
+        <button class="link" id="rm-auto">As the plan has it</button></div></div>`;
+  } else {
+    const groups = [['Wall-mounted heads', sp.ranges.filter((r) => r.wall)], ['Ducted heads in a bulkhead', sp.ranges.filter((r) => !r.wall)]];
+    const noHead = sp.noHead.map(roomName).filter(Boolean);
+    html = `<div class="card"><h2>Multi-head split</h2>
+        <label class="field"><span>Range</span><select id="sp-range">${groups.map(([label, rs]) => `<optgroup label="${label}">${rs.map((r) => `<option value="${r.id}" ${r.id === sp.range.id ? 'selected' : ''}>${esc(r.brand)} — ${esc(r.name)}</option>`).join('')}</optgroup>`).join('')}</select></label>
+        <p class="small muted" style="margin:0">Each bedroom and living area gets a head sized to its load; the heads go on the fewest outdoor units that take them, each where its pipes are shortest.</p>
+        <div class="actions-row"><button class="link" id="sp-reset">Start the heads again</button></div></div>
+      <div class="card"><h2>${sp.heads.length} heads</h2>
+        ${sp.heads.map((x) => `<button class="kv" data-head="${x.id}" style="width:100%;border:0;background:none;cursor:pointer;text-align:left">
+          <span><span style="display:inline-block;width:8px;height:8px;border-radius:4px;background:${splitColour(x.outdoor)};margin-right:6px"></span>${esc(x.roomName)}${x.pump ? ' <span class="chip" style="background:var(--cool-bg);color:var(--cool)">pump</span>' : ''}</span>
+          <b>${esc(shortModel(x.model))} · ${g(x.coolKW)} kW</b></button>`).join('')}
+        ${noHead.length ? `<p class="small muted" style="margin:8px 0 0">No head: ${noHead.map(esc).join(', ')}. Tap a room on the plan to give it one.</p>` : ''}</div>
+      <div class="card"><h2>${sp.outdoors.length} outdoor unit${sp.outdoors.length === 1 ? '' : 's'}</h2>
+        ${sp.outdoors.map((x, i) => `<button class="kv" data-odu="${i}" style="width:100%;border:0;background:none;cursor:pointer;text-align:left">
+          <span style="color:${splitColour(i)};font-weight:700">${i + 1} · ${esc(x.model)}</span><b>${x.heads.length} heads · ${Math.round(x.pipeTotalM)} m pipe</b></button>`).join('')}</div>
+      <div class="card"><h2>Checks</h2><div class="checklist">${sp.checks.map(checkItem).join('')}</div></div>`;
+  }
+  el.innerHTML = html;
+  $('#insp-close', el)?.addEventListener('click', () => select(null));
+  el.querySelectorAll('[data-head]').forEach((b) => (b.onclick = () => select({ kind: 'head', id: +b.dataset.head })));
+  el.querySelectorAll('[data-odu]').forEach((b) => (b.onclick = () => select({ kind: 'odu', id: +b.dataset.odu })));
+  $('#sp-range', el)?.addEventListener('change', (e) => edit('setSplitRange', { key: e.target.value }));
+  $('#sp-reset', el)?.addEventListener('click', () => confirmDialog('Start the heads again?', 'Every head and outdoor unit goes back where the plan puts it, at the size it picks. You can undo this.', 'Start again', () => edit('resetSplit')));
+  if (h) {
+    $('#hs-size', el).onchange = (e) => edit('setHeadSize', { room: h.room, kw: +e.target.value || null });
+    $('#hs-back', el)?.addEventListener('click', () => edit('moveHead', { room: h.room, n: h.nth, pos: null }));
+    $('#hs-none', el).onclick = () => { app.selection = null; edit('setHeadRoom', { room: h.room, choice: 'off' }); };
+  }
+  if (o) $('#od-back', el)?.addEventListener('click', () => edit('moveSplitOutdoor', { rooms: o.rooms, pos: null }));
+  if (roomPick) {
+    $('#rm-on', el)?.addEventListener('click', () => edit('setHeadRoom', { room: roomPick.id, choice: 'on' }));
+    $('#rm-off', el)?.addEventListener('click', () => edit('setHeadRoom', { room: roomPick.id, choice: 'off' }));
+    $('#rm-auto', el)?.addEventListener('click', () => edit('setHeadRoom', { room: roomPick.id, choice: null }));
+  }
+}
+
+/// The Send step for a multi-head split: its checks, the install sheet and drawing, the materials.
+async function renderSplitSend(c) {
+  const sp = app.split;
+  if (!sp?.heads?.length) {
+    c.innerHTML = '<div class="card empty" style="max-width:560px;margin:20px auto"><h2>Lay out the heads first</h2><p>The install sheet and materials are made once the heads are laid out.</p></div>';
+    return;
+  }
+  const p = app.project, v = app.view;
+  const warn = sp.checks.filter((x) => x.level !== 'ok'), ok = sp.checks.filter((x) => x.level === 'ok');
+  c.innerHTML = `<div class="send-grid">
+    <div>
+      <div class="card"><span class="eyebrow">Checks</span><div class="checklist">${ok.map(checkItem).join('') || '<p class="small muted">—</p>'}</div></div>
+      ${warn.length ? `<div class="card"><span class="eyebrow">${warn.length === 1 ? 'One thing to know' : warn.length + ' things to know'}</span><div class="checklist">${warn.map(checkItem).join('')}</div></div>` : ''}
+    </div>
+    <div class="card"><span class="eyebrow">Job file</span>
+      <div class="file"><div class="ic">${icon('print')}</div><div><b>Install sheet</b><span>The plan, each head's wall, pipe, drain and pump</span></div><div class="go"><button class="btn2 small" data-report="install">Open</button></div></div>
+      <div class="file"><div class="ic">${icon('aircon')}</div><div><b>Head layout</b><span>Heads, outdoor units, pipe runs</span></div><div class="go"><button class="btn2 small" id="png">PNG</button></div></div>
+      <div class="file"><div class="ic">${icon('ruler')}</div><div><b>Materials</b><span>Heads, outdoor units, pipe, drains, pumps</span></div><div class="go"><button class="btn2 small" data-report="materials">Print</button><button class="btn2 small" id="csv">CSV</button></div></div>
+      <p class="small muted" style="margin:10px 0 0">Each file is made from the layout as it is now. The customer report is for ducted jobs for now.</p>
+      <div class="actions-row">${(p.status ?? 'inProgress') === 'inProgress' ? '<button class="btn2" id="quoted">Mark as quoted</button>' : `<span class="chip ok">Quoted</span><button class="link" id="unquote">Back to in progress</button>`}</div>
+    </div>
+    <div class="card"><span class="eyebrow">Materials</span>
+      <table class="mat">${sp.groups.map((grp) => `<tr><th colspan="2">${esc(grp.name)}</th></tr>${grp.lines.map((ln) => `<tr><td>${esc(ln.desc)}${ln.note ? `<div class="small muted">${esc(ln.note)}</div>` : ''}</td><td class="qty">${esc(ln.qtyText)} <a href="${esc(ln.url)}" target="_blank" rel="noopener" title="Search Reece">↗</a></td></tr>`).join('')}`).join('')}</table>
+      <p class="small muted" style="margin:10px 0 0">A first-pass ordering list from the layout — check quantities before you buy. The arrows open a Reece search.</p></div>
+  </div>`;
+  c.querySelectorAll('[data-report]').forEach((b) => (b.onclick = () => openReport(b.dataset.report)));
+  $('#csv', c).onclick = () => download(`${v.title} — materials.csv`, new Blob([sp.csv], { type: 'text/csv' }));
+  $('#png', c).onclick = drawingPNG;
+  $('#quoted', c)?.addEventListener('click', () => commit({ ...p, status: 'quoted' }));
+  $('#unquote', c)?.addEventListener('click', () => commit({ ...p, status: null }));
+}
+
 function checkItem(x) {
   return `<div class="item ${x.level}"><div class="mark">${x.level === 'ok' ? '✓' : x.level === 'warn' ? '!' : 'i'}</div><div><b>${esc(x.title)}</b><p>${esc(x.detail)}</p></div></div>`;
 }
@@ -2061,11 +2262,12 @@ async function drawingPNG() {
   cv.style.cssText = 'position:fixed;left:-9999px;top:0;width:1600px;height:1100px';
   document.body.append(cv);
   const plan = new Plan(cv, {});
-  plan.set({ project: app.project, view: app.view, layout: app.layout, showPlan: false, interactive: false, labels: true, compact: false });
+  plan.set({ project: app.project, view: app.view, layout: isSplit() ? null : app.layout, split: isSplit() ? app.split : null,
+    showPlan: false, interactive: false, labels: true, compact: false });
   plan.draw();
   const ctx = cv.getContext('2d');
   ctx.globalCompositeOperation = 'destination-over'; ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, cv.width, cv.height);
-  cv.toBlob((b) => { download(`${app.view.title} — duct drawing.png`, b); cv.remove(); }, 'image/png');
+  cv.toBlob((b) => { download(`${app.view.title} — ${isSplit() ? 'head layout' : 'duct drawing'}.png`, b); cv.remove(); }, 'image/png');
 }
 
 // MARK: Reports (printable pages)
@@ -2081,7 +2283,7 @@ function openReport(kind) {
   const close = () => o.remove();
   $('#rp-close', o).onclick = close;
   o.addEventListener('keydown', (e) => e.key === 'Escape' && close());
-  import('./reports.js?v=a83ea6a-202610151342').then(async (m) => {
+  import('./reports.js?v=1c6a8d7-202610271230').then(async (m) => {
     // Reports are always the design as installed: every zone open, balanced.
     app.designLayout = await call('route', { project: app.project, closed: [], balanced: true });
     const r = await m.build(kind, { app, call, Plan });

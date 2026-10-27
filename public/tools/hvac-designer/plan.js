@@ -11,6 +11,9 @@ export const T = {
 };
 const ZONES = ['#E9A21C', '#2B6CB0', '#1B8A5A', '#8B5CF6', '#D9467A', '#0F9A9A', '#A16207', '#64748B'];
 export const zoneColour = (n) => n === 0 ? '#4B5563' : ZONES[(Math.max(n, 1) - 1) % ZONES.length];
+/// An outdoor unit's colour (its heads and pipes share it).
+const SPLITS = ['#2B6CB0', '#B0703A', '#1B8A5A', '#8B5CF6', '#D9467A', '#0F9A9A'];
+export const splitColour = (i) => SPLITS[Math.max(i, 0) % SPLITS.length];
 export function ductColour(mm) {
   if (mm <= 150) return '#E0342F';
   if (mm <= 200) return '#6A8DDB';
@@ -285,8 +288,11 @@ export class Plan {
       const r = d.view.rooms.find((r) => r.id === d.selection.id);
       if (r) { this.path(g, r.polygon.map(x.pt), true); g.strokeStyle = T.accent; g.lineWidth = 3; g.stroke(); }
     }
+    const split = !layout && !d.editor ? d.split : null;
+    if (split) this.drawSplitPipes(g, x, split);
     const zoneCards = !!layout && !d.editor && !d.report && d.zoneCards !== false && (layout.zones?.length ?? 0) >= 2;
     if (d.labels !== false) this.drawLabels(g, x, view, layout, d.compact !== false, zoneCards);
+    if (split) this.drawSplitMarks(g, x, split, d);
     if (zoneCards && d.labels !== false) this.drawZoneCards(g, x, view, layout);
     if (layout && d.report) this.drawReportMarks(g, x, layout);
     else if (layout && !d.editor) this.drawMarkers(g, x, layout, d);
@@ -584,6 +590,16 @@ export class Plan {
         busy.push({ p: c, r: 22, w: BLOCKED }, { p: { x: c.x, y: c.y + 26 }, r: 14, w: BLOCKED });
       }
     }
+    // A multi-head split's heads and outdoor units (and the tags beside them) are kept clear too.
+    const sp = !layout ? this.data?.split : null;
+    if (sp) {
+      for (const h of sp.heads) {
+        const c = x.pt(h.pos), ang = Math.atan2(-h.blow.y, h.blow.x), reach = Math.max(0.7 * x.s, 18);
+        busy.push({ p: c, r: Math.max((h.widthMM ?? 800) / 2000 * x.s, 14), w: BLOCKED });
+        busy.push({ p: { x: c.x + Math.cos(ang) * (reach + 26), y: c.y + Math.sin(ang) * (reach + 26) }, r: 18, w: 12 });
+      }
+      for (const o of sp.outdoors) busy.push({ p: x.pt(this.splitOutdoorAt(o)), r: 26, w: BLOCKED });
+    }
     this.busy = busy;
     this.labelRects = [];
     const measure = (text, font) => { g.font = font; return g.measureText(text).width; };
@@ -749,6 +765,85 @@ export class Plan {
       g.fillStyle = tone; g.fillRect(c.x, c.y + 5, 3, c.h - 10);
       g.textAlign = 'left'; g.textBaseline = 'top';
       lines.forEach(([t, f], i) => { g.font = f; g.fillStyle = i ? (z.open ? T.body : T.faint) : tone; g.fillText(t, c.x + 9, c.y + 5 + i * 13); });
+    }
+  }
+
+  // MARK: Multi-head split
+
+  /// Where an outdoor unit sits on the plan: on its pad just off the wall.
+  splitOutdoorAt(o) { return { x: o.pos.x + o.out.x * 0.45, y: o.pos.y + o.out.y * 0.45 }; }
+
+  /// Each head's pipe run back to its outdoor unit, in the unit's colour: solid along the outside wall (a head on an
+  /// outside wall), dashed through the roof (one on an internal wall). Its length halfway.
+  drawSplitPipes(g, x, sp) {
+    const drag = this.drag?.active ? this.drag : null;
+    g.font = `700 10px ${FONT}`; g.textAlign = 'center'; g.textBaseline = 'middle';
+    for (const h of sp.heads) {
+      const o = sp.outdoors[h.outdoor];
+      if (!o) continue;
+      const tone = splitColour(h.outdoor);
+      const a = drag?.item.kind === 'odu' && drag.item.id === h.outdoor ? drag.screen : x.pt(this.splitOutdoorAt(o));
+      const b = drag?.item.kind === 'head' && drag.item.id === h.id ? drag.screen : x.pt(h.pos);
+      // Square to the house, the way the pipes go: along one way, then the other.
+      const mid = Math.abs(b.x - a.x) > Math.abs(b.y - a.y) ? { x: b.x, y: a.y } : { x: a.x, y: b.y };
+      this.stroke(g, [a, mid, b], 'rgba(255,255,255,0.9)', 5.5, 'round');
+      this.stroke(g, [a, mid, b], tone, 2.5, 'round', h.onOutside || !h.wall ? null : [7, 5]);
+      const m = pointAlong([a, mid, b], 0.5);
+      if (m && !drag) {
+        const t = `${h.pipeM.toFixed(1)} m`, tw = g.measureText(t).width + 8;
+        g.fillStyle = 'rgba(255,255,255,0.88)'; g.beginPath(); g.roundRect(m.x - tw / 2, m.y - 7, tw, 14, 4); g.fill();
+        g.fillStyle = tone; g.fillText(t, m.x, m.y + 0.5);
+      }
+    }
+  }
+
+  /// The heads (wall units to scale on their wall, blowing into the room; a P where the drain needs a pump) and the
+  /// outdoor units (numbered, on their pads) — each in its outdoor unit's colour, tappable and draggable.
+  drawSplitMarks(g, x, sp, d) {
+    const sel = d.selection, drag = this.drag?.active ? this.drag : null;
+    sp.outdoors.forEach((o, i) => {
+      const at = drag?.item.kind === 'odu' && drag.item.id === i ? drag.screen : x.pt(this.splitOutdoorAt(o));
+      const tone = splitColour(i), w = Math.max(0.9 * x.s, 30), dep = Math.max(0.35 * x.s, 13);
+      g.save(); g.translate(at.x, at.y); g.rotate(-Math.atan2(o.out.y, o.out.x) + Math.PI / 2);
+      g.beginPath(); g.roundRect(-w / 2, -dep / 2, w, dep, 3); g.fillStyle = '#fff'; g.fill();
+      g.strokeStyle = tone; g.lineWidth = 2.5; g.stroke();
+      g.beginPath(); g.arc(w * 0.18, 0, dep * 0.32, 0, Math.PI * 2); g.lineWidth = 1.5; g.stroke();
+      if (sel?.kind === 'odu' && sel.id === i) { g.beginPath(); g.roundRect(-w / 2 - 4, -dep / 2 - 4, w + 8, dep + 8, 6); g.strokeStyle = T.accent; g.lineWidth = 3; g.stroke(); }
+      g.restore();
+      this.tag(g, `${i + 1} · ${o.model}`, at.x, at.y + dep / 2 + 14, tone);
+      this.hits.push({ item: { kind: 'odu', id: i }, x: at.x, y: at.y, r: Math.max(w / 2, 20) });
+    });
+    for (const h of sp.heads) {
+      const at = drag?.item.kind === 'head' && drag.item.id === h.id ? drag.screen : x.pt(h.pos);
+      const tone = h.outdoor >= 0 ? splitColour(h.outdoor) : T.danger;
+      const len = Math.max((h.widthMM ?? 800) / 1000 * x.s, 26), dep = Math.max(0.22 * x.s, 9);
+      const ang = Math.atan2(-h.blow.y, h.blow.x);            // the way it blows, on screen
+      g.save(); g.translate(at.x, at.y); g.rotate(ang);
+      // The unit along its wall (long side across the way it blows), louvres on the room side.
+      g.beginPath(); g.roundRect(-dep / 2, -len / 2, dep, len, 3); g.fillStyle = '#fff'; g.fill();
+      g.strokeStyle = tone; g.lineWidth = 2.2; g.stroke();
+      g.strokeStyle = rgba(tone, 0.7); g.lineWidth = 1.2;
+      g.beginPath(); g.moveTo(dep * 0.25, -len / 2 + 4); g.lineTo(dep * 0.25, len / 2 - 4); g.stroke();
+      // Its air, into the room.
+      const reach = Math.max(0.7 * x.s, 18);
+      g.strokeStyle = rgba(tone, 0.55); g.lineWidth = 1.6; g.setLineDash([3, 3]);
+      g.beginPath(); g.moveTo(dep / 2 + 2, 0); g.lineTo(dep / 2 + reach, 0); g.stroke(); g.setLineDash([]);
+      g.beginPath(); g.moveTo(dep / 2 + reach + 5, 0); g.lineTo(dep / 2 + reach - 2, -4.5); g.lineTo(dep / 2 + reach - 2, 4.5); g.closePath();
+      g.fillStyle = rgba(tone, 0.75); g.fill();
+      if (sel?.kind === 'head' && sel.id === h.id) { g.beginPath(); g.roundRect(-dep / 2 - 4, -len / 2 - 4, dep + 8, len + 8, 6); g.strokeStyle = T.accent; g.lineWidth = 3; g.stroke(); }
+      g.restore();
+      if (h.pump) {
+        const p = { x: at.x - Math.sin(ang) * (len / 2 + 9), y: at.y + Math.cos(ang) * (len / 2 + 9) };
+        g.beginPath(); g.arc(p.x, p.y, 7.5, 0, Math.PI * 2); g.fillStyle = T.cool; g.fill();
+        g.font = `800 9px ${FONT}`; g.fillStyle = '#fff'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText('P', p.x, p.y + 0.5);
+      }
+      if (h.pinned) { g.beginPath(); g.arc(at.x + Math.cos(ang) * -(dep / 2 + 6), at.y + Math.sin(ang) * -(dep / 2 + 6), 2.6, 0, Math.PI * 2); g.fillStyle = T.accentDeep; g.fill(); }
+      if (!drag) {
+        const label = `${h.model.replace(/(VGKD2|VGD)-A\d$/, '').replace(/^MSZ-/, '')} · ${h.coolKW} kW`;
+        const lp = { x: at.x + Math.cos(ang) * (dep / 2 + reach + 22), y: at.y + Math.sin(ang) * (dep / 2 + reach + 22) };
+        this.tag(g, label, lp.x, lp.y, tone);
+      }
+      this.hits.push({ item: { kind: 'head', id: h.id }, x: at.x, y: at.y, r: Math.max(len / 2, 16) });
     }
   }
 
@@ -931,7 +1026,7 @@ export class Plan {
         return;
       }
       const interactive = this.data?.interactive !== false;
-      const item = interactive && this.data?.layout ? this.hitMarker(q) : null;
+      const item = interactive && (this.data?.layout || this.data?.split) ? this.hitMarker(q) : null;
       this.drag = { start: q, last: q, item, active: false, pan: { ...this.pan } };
     });
     c.addEventListener('pointermove', (e) => {

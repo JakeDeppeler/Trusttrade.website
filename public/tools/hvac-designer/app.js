@@ -1,10 +1,10 @@
 // Trust Trade Pro — the HVAC Designer in the browser. The same five steps as the app (House · Capture · Check · Design ·
 // Send) on the app's own engine (engine.wasm, run in a worker): the same loads, zones, ducts, checks and materials.
 
-import { call, latest } from './engine.js?v=8d38ac7-202610280852';
-import * as store from './store.js?v=8d38ac7-202610280852';
-import { Plan, inkImage, zoneColour, ductColour, splitColour, T, pointInPolygon, movesOnly, wheelMoves, ZOOM_MAX } from './plan.js?v=8d38ac7-202610280852';
-import { RoomEditor, metres, signedArea, onLine } from './roomeditor.js?v=8d38ac7-202610280852';
+import { call, latest } from './engine.js?v=901de15-202611011212';
+import * as store from './store.js?v=901de15-202611011212';
+import { Plan, inkImage, zoneColour, ductColour, splitColour, T, pointInPolygon, movesOnly, wheelMoves, ZOOM_MAX } from './plan.js?v=901de15-202611011212';
+import { RoomEditor, metres, signedArea, onLine } from './roomeditor.js?v=901de15-202611011212';
 
 // MARK: Helpers
 
@@ -34,6 +34,7 @@ const ICON = {
   house: '<path d="M3.5 11L12 3.5l8.5 7.5M5.5 9.5v10h13v-10"/>', ruler: '<path d="M3 17L17 3l4 4L7 21z"/><path d="M7 13l2 2M10 10l2 2M13 7l2 2"/>',
   pin: '<path d="M12 21v-7"/><circle cx="12" cy="8" r="5"/>', send: '<path d="M4 12l16-8-6 16-2.5-6.5z"/>',
   minus: '<path d="M5 12h14"/>',
+  dropper: '<circle cx="12" cy="5.5" r="2.5"/><path d="M12 8v11M8 15.5l4 4 4-4"/>',
   hand: '<path d="M8 12.5V6a1.5 1.5 0 013 0v5.5M11 11V4.5a1.5 1.5 0 013 0V11M14 11V6a1.5 1.5 0 013 0v7.5c0 4-2.6 7-6.4 7-2.4 0-4.1-1.1-5.3-3.2L3.6 14a1.4 1.4 0 012.3-1.6L8 15"/>',
 };
 const icon = (k, cls = '') => `<svg class="${cls}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${ICON[k]}</svg>`;
@@ -81,7 +82,7 @@ function ago(ms) {
 const app = {
   options: null,
   jobId: null, project: null, view: null, layout: null, air: null, cards: null, checks: null,
-  backdrop: null, backdropFile: null,
+  backdrop: null, backdropFile: null, upperBackdrop: null, upperBackdropFile: null,
   step: 'house', selection: null, closed: new Set(), balanced: true,
   layers: { plan: true, allSizes: true, air: false, zones: true }, addMode: false, joining: null,
   undo: [], redo: [], designing: false, read: null, jobsTab: 'progress', jobsSearch: '', jobsPick: null,
@@ -166,6 +167,8 @@ function editRefusal(op) {
     addWindow: 'Windows go in outside walls, with room to spare.',
     drawWindow: 'Windows go in outside walls (dashed blue), with half a metre of wall for one.',
     rescale: 'That scale doesn\'t look right.',
+    addDropper: 'Droppers are for a two-storey home: read both floors first (House step).',
+    moveDropper: 'A dropper\'s top goes on the upper floor and its foot in a ground floor room.',
   })[op] ?? 'That didn\'t change anything.';
 }
 
@@ -198,14 +201,26 @@ function reachNow() {
   return Math.max(app.view?.reach ?? 0, app.read || app.project?.backdrop ? 1 : 0);
 }
 
+/// The plan images under the rooms: the ground floor's (or the only one) and, two storeys, the upper floor's.
 async function loadBackdrop() {
-  const file = app.project?.backdrop?.file;
-  if (!file) { app.backdrop = null; app.backdropFile = null; return; }
-  if (app.backdropFile === file && app.backdrop) return;
-  const blob = await store.loadImage(file);
-  app.backdrop = blob ? await inkImage(blob).catch(() => null) : null;
-  app.backdropFile = file;
+  for (const [key, fileKey] of [['backdrop', 'backdropFile'], ['upperBackdrop', 'upperBackdropFile']]) {
+    const file = app.project?.[key]?.file;
+    if (!file) { app[key] = null; app[fileKey] = null; continue; }
+    if (app[fileKey] === file && app[key]) continue;
+    // Both floors on one sheet: the same image.
+    const other = key === 'backdrop' ? 'upperBackdrop' : 'backdrop';
+    if (app[other + 'File'] === file && app[other]) { app[key] = app[other]; app[fileKey] = file; continue; }
+    const blob = await store.loadImage(file);
+    app[key] = blob ? await inkImage(blob).catch(() => null) : null;
+    app[fileKey] = file;
+  }
 }
+
+/// A two-storey home: set so on the House step, or both floors drawn.
+const isDouble = () => app.project?.site?.storeysPref === 'double' || !!app.view?.twoStorey;
+const floorName = (lv) => (lv === 1 ? 'upper floor' : 'ground floor');
+/// New ducted, a re-duct onto the unit that's there, or a multi-head split.
+const jobKind = () => (isSplit() ? 'multiSplit' : app.project?.existing ? 'reduct' : 'ducted');
 
 async function designNow(keepOverrides = false) {
   if (app.designing) return;
@@ -510,12 +525,50 @@ function renderHouse(c) {
       ${row('Draughtiness', 'airtightness', o.airtightness, s.airtightness)}
       <p class="small muted" style="margin:8px 0 0">Filled in from the build era. Change anything you can see in the roof space or at the windows.</p>
     </div>
-    <div>${v.rooms.length ? `<div class="card"><span class="eyebrow">The house</span>
+    <div>${jobKindCard()}${floorsCard()}${v.rooms.length ? `<div class="card"><span class="eyebrow">The house</span>
         <h2>${v.rooms.length} rooms</h2><p class="muted small">${g(v.totals.area)} m² · ${fmt(v.totals.connectedKW, 1)} kW connected${p.planConfirmed ? ' · plan checked' : ''}</p>
         <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px"><button class="btn2" data-go="check">Check the rooms</button><button class="btn2" id="replace">Upload a different plan</button></div></div>` : ''}
       ${v.rooms.length ? '' : getHouseIn()}</div>
   </div>`;
   bindHouse(c);
+}
+
+/// What kind of job: a new ducted system, new ducts onto the unit that's there (Jake, 31 Oct: "create re-duct so heater
+/// location say and we are just redoing the duct"), or a multi-head split.
+function jobKindCard() {
+  const k = jobKind(), ex = app.project.existing;
+  const blurb = {
+    ducted: 'A new ducted system: the unit, the outdoor unit, the ducts and the zoning.',
+    reduct: `New ducts onto the ${ex?.kind === 'heater' ? 'gas ducted heater' : 'ducted unit'} that's there. It stays where it is: on the Design step, drag the fan coil to where it is in the roof and Auto-design keeps it there. Pick the size nearest it under Unit size on the Check step, so the ducts suit its fan. No unit, outdoor unit or pipes on the materials.`,
+    multiSplit: 'Wall heads sized room by room, on the fewest outdoor units. How many heads an area gets, and each head\'s size, are set on the Design step.',
+  }[k];
+  return `<div class="card"><span class="eyebrow">What's the job?</span>
+    <div class="seg" style="flex-wrap:wrap">${[['ducted', 'New ducted'], ['reduct', 'Re-duct'], ['multiSplit', 'Multi-head']].map(([id, t]) => `<button data-kind="${id}" class="${k === id ? 'on' : ''}">${t}</button>`).join('')}</div>
+    ${k === 'reduct' ? `<div class="rowpick" style="margin-top:10px"><label>What's there</label><select id="ex-kind">
+      <option value="aircon" ${ex?.kind !== 'heater' ? 'selected' : ''}>Ducted air conditioner</option>
+      <option value="heater" ${ex?.kind === 'heater' ? 'selected' : ''}>Gas ducted heater</option></select></div>` : ''}
+    <p class="small muted" style="margin:8px 0 0">${blurb}</p></div>`;
+}
+
+/// A two-storey home: each floor's plan (Jake, 31 Oct: "if we have two storeys we need to be able to read both floors"),
+/// the upstairs rooms when both floors are on one sheet, and whether the ground floor's ducts are new or joined.
+function floorsCard() {
+  if (!isDouble()) return '';
+  const v = app.view, p = app.project;
+  const n = [0, 1].map((lv) => v.rooms.filter((r) => (r.level ?? 0) === lv).length);
+  const img = [p.backdrop, p.upperBackdrop];
+  const oneSheet = !!(p.upperBackdrop && p.backdrop && p.upperBackdrop.file === p.backdrop.file);
+  const row = (lv) => `<div class="kv"><span><b>${lv ? 'Upper floor' : 'Ground floor'}</b> · ${n[lv] ? `${n[lv]} room${n[lv] === 1 ? '' : 's'}` : img[lv] ? 'plan in, no rooms yet' : 'no plan yet'}</span>
+    <button class="link" data-floor="${lv}" style="padding:0;white-space:nowrap">${n[lv] || img[lv] ? 'New plan' : 'Upload its plan'}</button></div>`;
+  return `<div class="card"><span class="eyebrow">Two storeys</span>
+    ${row(0)}${oneSheet ? `<div class="kv"><span><b>Upper floor</b> · ${n[1]} room${n[1] === 1 ? '' : 's'}</span><span class="muted small">same sheet</span></div>` : row(1)}
+    <p class="small muted" style="margin:8px 0 0">Read each floor's plan.${isSplit() ? '' : ' The fan coil goes in the roof over the upper floor; the ground floor gets its air down droppers, marked on the Design step.'}</p>
+    ${v.rooms.length ? `<details style="margin-top:8px" ${n[1] === 0 ? 'open' : ''}><summary class="small" style="cursor:pointer;font-weight:700">Both floors on one plan? Tap the upstairs rooms</summary>
+      <div class="pills" style="margin-top:8px">${v.rooms.map((r) => `<button data-up="${r.id}" class="${r.level === 1 ? 'on' : ''}">${esc(r.name)}</button>`).join('')}</div></details>` : ''}
+    ${isSplit() ? '' : `<div class="rowpick" style="margin-top:10px"><label>Ground floor ducts</label><select id="downstairs">
+      <option value="1" ${p.twoStorey?.ductDownstairs !== false ? 'selected' : ''}>New ducts</option>
+      <option value="0" ${p.twoStorey?.ductDownstairs === false ? 'selected' : ''}>Join existing droppers</option></select></div>`}
+  </div>`;
 }
 
 function getHouseIn() {
@@ -552,12 +605,17 @@ function bindHouse(c) {
   c.querySelectorAll('[data-site]').forEach((s) => (s.onchange = () => commit({ ...p(), site: { ...p().site, [s.dataset.site]: s.value } })));
   c.querySelectorAll('[data-go]').forEach((b) => (b.onclick = () => go(b.dataset.go)));
   $('#replace', c)?.addEventListener('click', () => pickPlan(true));
+  c.querySelectorAll('[data-kind]').forEach((b) => (b.onclick = () => setJobKind(b.dataset.kind)));
+  $('#ex-kind', c)?.addEventListener('change', (e) => edit('setExisting', { choice: e.target.value }));
+  c.querySelectorAll('[data-floor]').forEach((b) => (b.onclick = () => pickPlan(true, +b.dataset.floor)));
+  c.querySelectorAll('[data-up]').forEach((b) => (b.onclick = () => edit('setRoomLevel', { room: b.dataset.up, level: b.classList.contains('on') ? 0 : 1 })));
+  $('#downstairs', c)?.addEventListener('change', (e) => edit('setDuctDownstairs', { on: e.target.value === '1' }));
   bindUpload(c);
 }
 
 function bindUpload(c) {
   const input = $('#planfile', c), drop = $('#drop', c);
-  input?.addEventListener('change', () => input.files[0] && choosePlan(input.files[0]));
+  input?.addEventListener('change', () => input.files[0] && choosePlan(input.files[0], isDouble() ? 0 : undefined));
   $('#grid', c)?.addEventListener('click', drawOnGrid);
   $('#demo', c)?.addEventListener('click', async () => {
     const { project } = await call('demo', { project: app.project });
@@ -568,18 +626,22 @@ function bindUpload(c) {
   if (!drop) return;
   drop.addEventListener('dragover', (e) => { e.preventDefault(); drop.classList.add('over'); });
   drop.addEventListener('dragleave', () => drop.classList.remove('over'));
-  drop.addEventListener('drop', (e) => { e.preventDefault(); drop.classList.remove('over'); const f = e.dataTransfer.files[0]; if (f) choosePlan(f); });
+  drop.addEventListener('drop', (e) => { e.preventDefault(); drop.classList.remove('over'); const f = e.dataTransfer.files[0]; if (f) choosePlan(f, isDouble() ? 0 : undefined); });
 }
 
-function pickPlan(replacing) {
+/// `level`: two storeys, the floor the plan is (0 ground, 1 upper); a single storey has none.
+function pickPlan(replacing, level) {
+  const lv = level ?? (isDouble() ? (app.read?.level ?? 0) : undefined);
   const go2 = () => {
     const i = document.createElement('input');
     i.type = 'file'; i.accept = PLAN_TYPES;
-    i.onchange = () => i.files[0] && choosePlan(i.files[0]);
+    i.onchange = () => i.files[0] && choosePlan(i.files[0], lv);
     i.click();
   };
-  if (replacing && app.view.rooms.length) {
-    confirmDialog(`This job already has ${app.view.rooms.length} rooms`, 'A new plan replaces them, and the plan\'s checked again.', 'Upload a new plan', go2);
+  const have = lv == null ? app.view.rooms.length : app.view.rooms.filter((r) => (r.level ?? 0) === lv).length;
+  if (replacing && have) {
+    confirmDialog(`This job already has ${have} rooms${lv == null ? '' : ' on the ' + floorName(lv)}`,
+      `A new plan replaces ${lv == null ? 'them' : 'that floor\'s rooms'}, and the plan's checked again.`, 'Upload a new plan', go2);
   } else go2();
 }
 
@@ -653,7 +715,7 @@ function pickPdfPage(doc) {
 
 /// A plan picked (a PDF or an image): kept as a JPEG, then read by AI or measured and drawn over by hand (the tradie
 /// picks).
-async function choosePlan(file) {
+async function choosePlan(file, level) {
   const pdf = file.type === 'application/pdf' || /\.pdf$/i.test(file.name);
   if (!pdf && !/^image\//.test(file.type)) { toast('Use the builder\'s PDF, or a JPEG or PNG of the floor plan.'); return; }
   let bmp = null;
@@ -676,7 +738,7 @@ async function choosePlan(file) {
   const keep = await jpeg(2400, 0.88);
   const fileName = 'plans/' + uuid() + '.jpg';
   app.read = { status: 'chosen', url: URL.createObjectURL(keep.blob), keep, fileName, result: null, error: null, north: null,
-    measure: { pts: [], mm: '' }, view: null, fitted: false };
+    measure: { pts: [], mm: '' }, view: null, fitted: false, level: level ?? (isDouble() ? 0 : undefined) };
   go('capture');
   render();
 }
@@ -758,14 +820,22 @@ async function readPlan() {
   }
 }
 
+/// The plan image a new one replaces, deleted (unless the other floor's on the same sheet).
+function dropOldPlan(level, keep) {
+  const p = app.project;
+  const old = level === 1 ? p.upperBackdrop?.file : p.backdrop?.file;
+  const other = level === 1 ? p.backdrop?.file : level === 0 ? p.upperBackdrop?.file : null;
+  if (old && old !== keep && old !== other) store.deleteImage(old);
+  if (level == null && p.upperBackdrop?.file && p.upperBackdrop.file !== keep && p.upperBackdrop.file !== old) store.deleteImage(p.upperBackdrop.file);
+}
+
 async function importRead(overallMetres, mpp) {
   const r = app.read;
   const result = { ...r.result, north: r.north ?? r.result.north };
   try {
-    const { project } = await call('importPlan', { project: app.project, result, imageWidth: r.keep.w, imageHeight: r.keep.h, file: r.fileName, overallMetres, mpp });
+    const { project } = await call('importPlan', { project: app.project, result, imageWidth: r.keep.w, imageHeight: r.keep.h, file: r.fileName, overallMetres, mpp, level: r.level });
     await store.saveImage(r.fileName, r.keep.blob);
-    const old = app.project.backdrop?.file;
-    if (old && old !== r.fileName) store.deleteImage(old);
+    dropOldPlan(r.level, r.fileName);
     app.selection = null; app.closed = new Set(); app.checkAnswers = null; app.undo = []; app.redo = [];
     await commit(project, { rerender: false });
     await loadBackdrop();
@@ -806,7 +876,7 @@ function renderCapture(c) {
       <div class="canvas-card" id="cap-stage">${r && r.status !== 'done' ? `<img src="${r.url}" alt="" style="width:100%;height:100%;object-fit:contain;background:#fff">` : '<canvas id="cv"></canvas>'}</div>
     </div>
     <div class="panel">
-      ${r ? `<div class="card"><h2>Reading your plan</h2>
+      ${r ? `<div class="card"><h2>Reading ${r.level != null && isDouble() ? `the ${floorName(r.level)}'s plan` : 'your plan'}</h2>
         <div class="checklist" style="margin-top:6px">${steps.map((s) => `<div class="item ${s.ok ? 'ok' : s.wait ? 'info' : 'warn'}"><div class="mark">${s.ok ? '✓' : s.wait ? '<div class="spinner" style="width:12px;height:12px;border-width:2px"></div>' : '!'}</div><div><b>${esc(s.text)}</b></div></div>`).join('')}</div>
         ${r.status === 'error' ? `<p style="color:var(--danger);font-weight:600;margin:10px 0 0">${esc(r.error)}</p><div class="actions-row"><button class="btn2" id="drawit">Draw the rooms myself</button><button class="btn2" id="again">Try another plan</button><button class="btn2" id="demo2">Try the demo house</button></div>` : ''}
         ${r.status === 'noscale' ? `<p class="small muted" style="margin:10px 0 6px">The plan has no printed room sizes to scale from. How long is the house, end to end?</p>
@@ -818,9 +888,12 @@ function renderCapture(c) {
       ${r?.result ? `<div class="card"><span class="eyebrow">Where does north point on the plan?</span>
         <div class="seg">${[['up', '↑ Up'], ['right', '→ Right'], ['down', '↓ Down'], ['left', '← Left']].map(([k, l]) => `<button data-north="${k}" class="${north === k ? 'on' : ''}">${l}</button>`).join('')}</div>
         <p class="small muted" style="margin:8px 0 0">${r.result.north && r.result.north !== 'unknown' ? 'Read off the plan\'s north arrow. Change it if it\'s wrong.' : 'The plan has no north arrow — pick it so the windows face the right way.'}</p></div>` : ''}
+      ${isDouble() && v.rooms.length && (!r || r.status === 'done') && !v.rooms.some((x) => x.level === 1) && !app.project.upperBackdrop ? `<div class="card"><h2>Now the upper floor</h2>
+        <p class="small muted" style="margin:0 0 8px">Read the upper floor's plan as well. If both floors are on this sheet, mark the upstairs rooms on the House step instead.</p>
+        <div class="actions-row"><button class="btn" id="upper">Upload the upper floor's plan</button><button class="btn2" id="markup">Both are on this sheet</button></div></div>` : ''}
       ${v.rooms.length && (!r || r.status === 'done') ? `<div class="card"><h2>${v.rooms.length} rooms</h2><p class="small muted" style="margin:0 0 8px">${g(v.totals.area)} m² · ${fmt(v.totals.connectedKW, 1)} kW connected</p>
         <button class="btn2 small" id="fixrooms" style="margin:0 0 8px">Fix the rooms on the plan</button>
-        ${v.rooms.map((x) => `<div class="kv"><span>${esc(x.name)}</span><b>${x.conditioned ? `${fmt(x.area, 1)} m² · ${fmt(x.kw, 1)} kW` : `${fmt(x.area, 1)} m² · not ducted`}</b></div>`).join('')}</div>` : ''}
+        ${v.rooms.map((x) => `<div class="kv"><span>${esc(x.name)}${v.twoStorey && x.level === 1 ? ' <span class="muted small">upstairs</span>' : ''}</span><b>${x.conditioned ? `${fmt(x.area, 1)} m² · ${fmt(x.kw, 1)} kW` : `${fmt(x.area, 1)} m² · not ducted`}</b></div>`).join('')}</div>` : ''}
     </div></div>`;
   $('#another', c).onclick = () => pickPlan(true);
   $('#again', c)?.addEventListener('click', () => pickPlan(false));
@@ -829,6 +902,8 @@ function renderCapture(c) {
   $('#measure', c)?.addEventListener('click', () => { app.read.status = 'measure'; render(); });
   $('#drawit', c)?.addEventListener('click', () => { app.read.result = null; app.read.status = 'measure'; render(); });
   $('#fixrooms', c)?.addEventListener('click', () => openEditor());
+  $('#upper', c)?.addEventListener('click', () => pickPlan(false, 1));
+  $('#markup', c)?.addEventListener('click', () => go('house'));
   c.querySelectorAll('[data-north]').forEach((b) => (b.onclick = () => { app.read.north = b.dataset.north; importRead(); }));
   const cv = $('#cv', c);
   if (cv) mountPlan(cv, { interactive: false, labels: true, compact: false, zoneCards: false });
@@ -1176,10 +1251,9 @@ async function startDrawing(mpp) {
   if (!mpp) { r.status = 'measure'; render(); return; }                        // the scale comes first
   const guess = false;
   try {
-    const { project } = await call('blankPlan', { project: app.project, file: r.fileName, imageWidth: r.keep.w, imageHeight: r.keep.h, mpp, north: r.north ?? 'up' });
+    const { project } = await call('blankPlan', { project: app.project, file: r.fileName, imageWidth: r.keep.w, imageHeight: r.keep.h, mpp, north: r.north ?? 'up', level: r.level });
     await store.saveImage(r.fileName, r.keep.blob);
-    const old = app.project.backdrop?.file;
-    if (old && old !== r.fileName) store.deleteImage(old);
+    dropOldPlan(r.level, r.fileName);
     app.selection = null; app.closed = new Set(); app.checkAnswers = null; app.undo = []; app.redo = [];
     await commit(project, { rerender: false });
     await loadBackdrop();
@@ -1213,6 +1287,11 @@ function drawOnGrid() {
 /// Where the editor looks: the house (with room round it to draw more), else the whole plan image, else 20 × 14 m of grid.
 function editorBounds() {
   const p = app.project, pts = app.view.rooms.flatMap((r) => r.polygon);
+  const u = p.upperBackdrop;
+  if (pts.length && u && app.upperBackdrop && !app.view.rooms.some((r) => r.level === 1)) {
+    const o = u.origin;
+    pts.push(o, { x: o.x + u.across.x, y: o.y + u.across.y }, { x: o.x + u.down.x, y: o.y + u.down.y }, { x: o.x + u.across.x + u.down.x, y: o.y + u.across.y + u.down.y });
+  }
   if (pts.length) {
     const xs = pts.map((q) => q.x), ys = pts.map((q) => q.y);
     const pad = Math.max(2, 0.12 * Math.max(Math.max(...xs) - Math.min(...xs), Math.max(...ys) - Math.min(...ys)));
@@ -1288,7 +1367,7 @@ async function closeEditor() {
 
 function renderRoomEditor(c) {
   const st = app.editorOpen, p = app.project;
-  const hasImage = !!(p.backdrop && app.backdrop);
+  const hasImage = !!((p.backdrop && app.backdrop) || (p.upperBackdrop && app.upperBackdrop));
   c.innerHTML = `<div class="work">
     <div class="stage">
       <div class="bar">
@@ -1307,7 +1386,7 @@ function renderRoomEditor(c) {
   st.plan = plan;
   st.ed.set({ rooms: app.view.rooms, gaps: st.gaps, hasImage: hasImage && st.showImage, canvas: plan.canvas, sized: !isUnsized() });
   edPanel();                                          // the hint's in place before the first draw, so the canvas doesn't jump
-  plan.set({ project: p, view: app.view, layout: null, backdrop: app.backdrop, showPlan: st.showImage, labels: true, compact: true,
+  plan.set({ project: p, view: app.view, layout: null, backdrop: app.backdrop, upperBackdrop: app.upperBackdrop, showPlan: st.showImage, labels: true, compact: true,
     editor: st.ed, bounds: st.bounds, gaps: st.gaps.map((x) => ({ ...x, on: false })) });
   c.querySelectorAll('[data-tool]').forEach((b) => (b.onclick = () => st.ed.setMode(b.dataset.tool)));
   $('#ed-undo', c).onclick = edUndo;
@@ -1461,7 +1540,7 @@ function edPanel() {
       <div class="card"><h2>Tips</h2><ul class="small muted" style="margin:4px 0 0;padding-left:18px">
         <li>A corner snaps onto a room's corner or wall, and lines up square with the corners either side.</li>
         <li>Rooms you draw over give way — draw the laundry in the kitchen's corner and the kitchen becomes an L round it.</li>
-        <li>${unsized ? 'Then set the size from one wall you know.' : st.showImage && app.backdrop ? 'Sizes out? Set the size from a wall you know.' : 'No plan image: the grid is in metres.'}</li></ul></div>`;
+        <li>${unsized ? 'Then set the size from one wall you know.' : st.showImage && (app.backdrop || app.upperBackdrop) ? 'Sizes out? Set the size from a wall you know.' : 'No plan image: the grid is in metres.'}</li></ul></div>`;
   } else if (ed.mode === 'measure') {
     html = `<div class="card"><h2>Set the size</h2><p class="small muted" style="margin:4px 0 10px"><b>Click a wall you know the length of</b> — it lights up blue — and type how long it really is (the printed size, like 3600). Or click two points on the plan, like the ends of the scale bar.</p>
       <p class="small muted" style="margin:0 0 10px">The rooms and the plan image are sized to match.${app.project.design ? ' The ducts are laid out again after.' : ''}</p>
@@ -1652,7 +1731,7 @@ function mountPlan(cv, opts) {
   const plan = new Plan(cv, handlers ?? {});
   plan.set({
     project: app.project, view: app.view, layout: layout === false ? null : app.layout, air: app.air, backdrop: app.backdrop,
-    showPlan: true, allSizes: app.layers.allSizes, zoneCards: app.layers.zones, showAir: false, selection: null, ...rest,
+    upperBackdrop: app.upperBackdrop, showPlan: true, allSizes: app.layers.allSizes, zoneCards: app.layers.zones, showAir: false, selection: null, ...rest,
   });
   return plan;
 }
@@ -1672,7 +1751,8 @@ function renderDesign(c) {
   c.innerHTML = `<div class="work with-rail">
     <div class="rail">
       <button id="t-select" class="${app.addMode ? '' : 'on'}">${icon('cursor')}<span class="tip">Select and drag</span></button>
-      <button id="t-add" class="${app.addMode ? 'on' : ''}">${icon('addvent')}<span class="tip">${app.addMode ? 'Done adding outlets' : 'Add an outlet'}</span></button>
+      <button id="t-add" class="${app.addMode === true ? 'on' : ''}">${icon('addvent')}<span class="tip">${app.addMode === true ? 'Done adding outlets' : 'Add an outlet'}</span></button>
+      ${v.twoStorey ? `<button id="t-dropper" class="${app.addMode === 'dropper' ? 'on' : ''}">${icon('dropper')}<span class="tip">${app.addMode === 'dropper' ? 'Done adding droppers' : 'Add a dropper'}</span></button>` : ''}
       <button id="t-layers">${icon('layers')}<span class="tip">Layers</span></button>
       <button id="t-undo" ${app.undo.length ? '' : 'disabled'}>${icon('undo')}<span class="tip">Undo</span></button>
       <button id="t-redo" ${app.redo.length ? '' : 'disabled'}>${icon('redo')}<span class="tip">Redo</span></button>
@@ -1681,7 +1761,7 @@ function renderDesign(c) {
     <div class="stage">
       <div class="bar">
         <div class="stats"><div><b>${v.totals.unit ? g(v.totals.unit.kw) + ' kW' : '—'}</b><span>unit</span></div><div><b>${zones || '—'}</b><span>zones</span></div>
-          <div><b>${l ? l.outlets.length : '—'}</b><span>outlets</span></div><div><b>${l ? bags : '—'}</b><span>flex bags</span></div></div>
+          <div><b>${l ? l.outlets.filter((o) => !o.dropper).length : '—'}</b><span>outlets</span></div><div><b>${l ? bags : '—'}</b><span>flex bags</span></div></div>
         <div class="spacer" style="flex:1"></div>
         <button class="btn2 small" id="b-undo" title="Undo the last change" ${app.undo.length ? '' : 'disabled'}>${icon('undo').replace('<svg', '<svg width="15" height="15"')} Back</button>
         <button class="btn2 small" id="b-redo" title="Redo it" ${app.redo.length ? '' : 'disabled'}>Forward ${icon('redo').replace('<svg', '<svg width="15" height="15"')}</button>
@@ -1693,7 +1773,10 @@ function renderDesign(c) {
         ${app.designing ? '<div class="busy"><div><div class="spinner"></div>Designing the ducts…</div></div>' : ''}
       </div>
       <div class="hint">${app.joining ? `Tap the room to join ${esc(v.rooms.find((r) => r.id === app.joining)?.name ?? '')} with. <button class="link" id="cancel-join">Cancel</button>`
-        : app.addMode ? 'Tap inside a room to drop an outlet.' : 'Drag a vent, a BDO, the fan coil or the return and the ducts re-route as you go. Tap a room, vent or duct to see it on the right.'}</div>
+        : app.addMode === 'dropper' ? 'Tap where a dropper goes: on the upper floor where it leaves the roof, or on the ground floor where it comes out.'
+        : app.addMode ? 'Tap inside a room to drop an outlet.'
+        : p.existing ? `Re-duct: drag the fan coil to where the ${p.existing.kind === 'heater' ? 'heater' : 'unit'} is in the roof. Auto-design keeps it there.`
+        : 'Drag a vent, a BDO, the fan coil or the return and the ducts re-route as you go. Tap a room, vent or duct to see it on the right.'}</div>
     </div>
     <div class="panel" id="insp"></div>
   </div>`;
@@ -1701,7 +1784,7 @@ function renderDesign(c) {
     selection: app.selection, showAir: app.layers.air, addMode: app.addMode, interactive: true, labels: true, compact: true,
     handlers: {
       select: (item) => select(item),
-      add: (pos) => addVent(pos),
+      add: (pos) => (app.addMode === 'dropper' ? addDropper(pos) : addVent(pos)),
       dragMove: (item, pos) => dragMove(item, pos),
       drop: (item, pos) => drop(item, pos),
     },
@@ -1709,7 +1792,8 @@ function renderDesign(c) {
   app.plan = plan;
   renderInspector();
   $('#t-select', c).onclick = () => { app.addMode = false; render(); };
-  $('#t-add', c).onclick = () => { app.addMode = !app.addMode; if (app.addMode) app.selection = null; render(); };
+  $('#t-add', c).onclick = () => { app.addMode = app.addMode === true ? false : true; if (app.addMode) app.selection = null; render(); };
+  $('#t-dropper', c)?.addEventListener('click', () => { app.addMode = app.addMode === 'dropper' ? false : 'dropper'; if (app.addMode) app.selection = null; render(); });
   $('#t-undo', c).onclick = undo;
   $('#t-redo', c).onclick = redo;
   $('#b-undo', c).onclick = undo;
@@ -1753,10 +1837,16 @@ function select(item) {
     else render();
     return;
   }
+  if (item?.kind === 'dropTop' || item?.kind === 'dropFoot') item = { kind: 'dropper', id: item.id };
   app.selection = item;
   if (item) app.addingUnit = false;
   app.plan?.set({ selection: item });
   if (isSplit()) renderSplitInspector(); else renderInspector();
+}
+
+async function addDropper(pos) {
+  const r = await edit('addDropper', { pos });
+  if (r?.id) { app.addMode = false; app.selection = { kind: 'dropper', id: r.id }; render(); }
 }
 
 async function addVent(pos) {
@@ -1766,7 +1856,7 @@ async function addVent(pos) {
 
 /// While dragging: the design as if dropped here, routed (the quick route for the fan coil), drawn as it comes back.
 function dragMove(item, pos) {
-  if (item.kind === 'head' || item.kind === 'odu') return;             // drawn where the pointer is; placed on the drop
+  if (item.kind === 'head' || item.kind === 'odu' || item.kind === 'dropTop' || item.kind === 'dropFoot') return;   // placed on the drop
   const d = structuredClone(app.project.design);
   if (!d) return;
   if (item.kind === 'unit') d.unit = pos;
@@ -1788,6 +1878,10 @@ async function drop(item, pos) {
   if (item.kind === 'odu') {
     const o = app.split?.outdoors[item.id];
     if (o && !(await edit('moveSplitOutdoor', { rooms: o.rooms, pos }))) app.plan?.set({ split: app.split });
+    return;
+  }
+  if (item.kind === 'dropTop' || item.kind === 'dropFoot') {
+    if (!(await edit('moveDropper', { id: item.id, pos, choice: item.kind === 'dropFoot' ? 'foot' : 'top' }))) app.plan?.set({ view: app.view });
     return;
   }
   const ops = { unit: ['dropUnit', {}], ret: ['dropReturn', {}], outdoor: ['dropOutdoor', {}], box: ['dropBox', { bid: item.id }], outlet: ['dropOutlet', { id: item.id }] };
@@ -1859,8 +1953,28 @@ function renderInspector() {
     html = `<div class="card"><div class="insp-head"><h2>Flex to the BDO · Ø${r.sizeMM}</h2>${close}</div>
       <div class="insp-sub">${fmt(r.designLps)} L/s · ${fmt(velocity(r.designLps, r.sizeMM), 1)} m/s · ${fmt(len, 1)} m${b ? ` · into a ${b.branches}-way, ${esc(legList(b))}` : ''}${r.manual ? ' · size set' : ''}</div>
       ${b ? feedSizes(b, r) : ''}</div>`;
+  } else if (s?.kind === 'dropper' && v.droppers?.some((x) => x.id === s.id)) {
+    const dr = v.droppers.find((x) => x.id === s.id), o = l?.outlets.find((x) => x.id === dr.id);
+    const run = l?.runs.find((x) => x.outlet === dr.id);
+    const ground = v.rooms.filter((r) => r.level === 0 && r.conditioned && r.designerType !== 'none');
+    const joining = p.twoStorey?.ductDownstairs === false;
+    html = `<div class="card"><div class="insp-head"><h2>${esc(dr.name)}${o ? ` · Ø${o.sizeMM}` : ''}</h2>${close}</div>
+      <div class="insp-sub">${o ? `${fmt(o.designLps)} L/s down to the ground floor` : 'Not in the design yet'}${run ? ` · ${fmt(run.length, 1)} m from the fan coil` : ''} · drag either end to move it</div>
+      <p class="small muted" style="margin:6px 0 8px">${joining ? 'Joined to the dropper that\'s there, on top of the ground floor\'s ceiling.' : 'Down through the house (a robe, a wall cavity or a bulkhead), then new ducts in the ground floor\'s ceiling to its rooms\' outlets.'}</p>
+      <span class="eyebrow">Rooms it feeds${dr.byHand ? ' · picked by hand' : ''}</span>
+      ${ground.map((r) => `<label class="pick-row"><input type="checkbox" data-feed="${r.id}" ${dr.rooms.includes(r.id) ? 'checked' : ''}><span class="grow"><b>${esc(r.name)}</b><small>${fmt(r.lps)} L/s${r.dropper && r.dropper !== dr.id ? ' · on ' + esc(v.droppers.find((x) => x.id === r.dropper)?.name ?? 'another dropper') : ''}</small></span></label>`).join('')}
+      <div class="actions-row">${dr.byHand ? '<button class="btn2" id="dr-auto">The nearest rooms</button>' : ''}<button class="btn2 danger" id="dr-del">${icon('trash').replace('<svg', '<svg width="16" height="16"')} Take this dropper out</button></div></div>`;
   } else if (s?.kind === 'unit' && l) {
     const u = v.totals.unit;
+    if (p.existing) {
+      const heater = p.existing.kind === 'heater';
+      html = `<div class="card"><div class="insp-head"><h2>Existing ${heater ? 'gas ducted heater' : 'ducted unit'}</h2>${close}</div>
+        <div class="insp-sub">It stays. Drag it to where it is in the roof; Auto-design keeps it there.</div>
+        <div class="kv"><span>Ducts sized for</span><b>${fmt(l.fanLps)} L/s${u ? ` · a ${g(u.kw)} kW unit's fan` : ''}</b></div>
+        <div class="kv"><span>Fan static</span><b>${staticLine(l.network)}</b></div>
+        <p class="small muted" style="margin:6px 0 0">Pick the size nearest the unit that's there under Unit size on the Check step, so the ducts suit its fan.</p>
+        <div class="actions-row"><button class="btn2" id="rotate">${icon('rotate').replace('<svg', '<svg width="16" height="16"')} Turn it 90°</button><button class="btn2" data-sizehow>How it's sized</button></div></div>`;
+    } else
     html = `<div class="card"><div class="insp-head"><h2>Fan coil</h2>${close}</div>
       <div class="insp-sub">${u ? `${g(u.kw)} kW, ${fmt(u.lps)} L/s fan` : '—'} · ${fmt(l.totalLps)} L/s now · drag to move · <button class="link" data-sizehow style="padding:0">how it's sized</button></div>
       <div class="kv"><span>Fan static setting</span><b>${staticLine(l.network)}</b></div>
@@ -1978,14 +2092,24 @@ function feedSizes(b, r) {
 function designSummary() {
   const l = app.layout, v = app.view, p = app.project;
   if (!l) return `<div class="card"><h2>Duct design</h2><p class="muted small">${app.designing ? 'Designing the ducts…' : 'No outlets yet.'}</p>${app.designing ? '' : '<button class="btn" id="redesign">Auto-design</button>'}</div>`;
-  const zones = l.zones.filter((z) => z.outlets > 0);
+  const zones = l.zones.filter((z) => z.outlets > 0 || l.outlets.some((o) => o.dropper && o.zone === z.number));
   const zoning = p.site.zoningPref ?? 'perroom';
-  return `<div class="card"><div style="display:flex;align-items:center"><h2 style="flex:1">Zones</h2>${app.closed.size ? '<button class="link" id="openall">Open every zone</button>' : ''}</div>
+  const ex = p.existing;
+  const reduct = ex ? `<div class="card"><h2>Re-duct</h2><p class="small muted" style="margin:0">New ducts onto the ${ex.kind === 'heater' ? 'gas ducted heater' : 'ducted unit'} that's there. Drag the fan coil to where it is; Auto-design keeps it there. No unit, outdoor unit or pipes on the materials.</p></div>` : '';
+  const ds = v.droppers ?? [];
+  const floors = v.twoStorey ? `<div class="card"><h2>Two storeys</h2>
+      ${ds.length ? ds.map((d) => { const o = l.outlets.find((x) => x.id === d.id); return `<div class="zone-row" data-dropper="${d.id}"><span class="dot" style="background:${o ? ductColour(o.sizeMM) : 'var(--ink)'}"></span><b>${esc(d.name)}${o ? ` · Ø${o.sizeMM}` : ''}</b><span>${esc(d.rooms.map((id) => v.rooms.find((r) => r.id === id)?.name).filter(Boolean).slice(0, 3).join(', ') || 'no rooms')}</span></div>`; }).join('')
+        : '<p class="small" style="margin:0 0 6px;color:var(--danger);font-weight:600">No droppers yet: the ground floor has no air.</p>'}
+      <div class="rowpick" style="margin-top:8px"><label>Ground floor ducts</label><select id="downstairs">
+        <option value="1" ${p.twoStorey?.ductDownstairs !== false ? 'selected' : ''}>New ducts</option>
+        <option value="0" ${p.twoStorey?.ductDownstairs === false ? 'selected' : ''}>Join existing droppers</option></select></div>
+      <div class="actions-row"><button class="btn2" id="add-dropper">${icon('dropper').replace('<svg', '<svg width="16" height="16"')} Add a dropper</button></div></div>` : '';
+  return `${reduct}${floors}<div class="card"><div style="display:flex;align-items:center"><h2 style="flex:1">Zones</h2>${app.closed.size ? '<button class="link" id="openall">Open every zone</button>' : ''}</div>
       <p class="small muted" style="margin:2px 0 6px">Tap a zone to shut or open it</p>
       ${zones.map((z) => `<div class="zone-row ${z.open ? '' : 'shut'}" data-zone="${z.number}"><span class="dot" style="background:${zoneColour(z.number)}"></span><b>${z.number === 0 ? 'Constant · ' + esc(z.name) : esc(z.name)}</b><span>${fmt(z.lps)} L/s</span></div>`).join('')}
       <div class="seg" style="margin-top:10px"><button data-bal="1" class="${app.balanced ? 'on' : ''}">Balanced</button><button data-bal="0" class="${app.balanced ? '' : 'on'}">As installed</button></div></div>
     <div class="card"><h2>System &amp; zoning</h2>
-      <div class="kv"><span>Unit</span><b>${esc(v.totals.unit?.label ?? '—')} <button class="link" data-sizehow style="padding:0 0 0 6px">How it's sized</button></b></div>
+      <div class="kv"><span>Unit</span><b>${p.existing ? `Existing ${p.existing.kind === 'heater' ? 'heater' : 'unit'} · ducts for ${g(v.totals.unit?.kw ?? 0)} kW` : esc(v.totals.unit?.label ?? '—')} <button class="link" data-sizehow style="padding:0 0 0 6px">How it's sized</button></b></div>
       <div class="rowpick"><label>Zoning</label><select id="zoning">${app.options.zonings.map((z) => `<option value="${z.id}" ${z.id === zoning ? 'selected' : ''}>${esc(z.label)}</option>`).join('')}</select></div>
       <div class="rowpick"><label>Supply air transition</label><select id="takeoffs">${takeoffOptions()}</select></div>
       <div class="rowpick"><label>Air speed</label><select id="velocity">${app.options.velocities.map((x) => `<option value="${x.id}" ${x.id === (p.site.velocityPref ?? 'standard') ? 'selected' : ''}>${esc(x.label)}</option>`).join('')}</select></div>
@@ -2026,6 +2150,19 @@ function bindInspector(el) {
   $('#takeoffs', el)?.addEventListener('change', (e) => edit('setTakeoffs', { n: e.target.value ? +e.target.value : null }));
   el.querySelectorAll('[data-tko]').forEach((b) => (b.onclick = () => edit('setTakeoffs', { n: b.dataset.tko ? +b.dataset.tko : null })));
   $('#unhand', el)?.addEventListener('click', () => edit('resetHandBoxes'));
+  // Two storeys
+  el.querySelectorAll('[data-dropper]').forEach((r) => (r.onclick = () => select({ kind: 'dropper', id: r.dataset.dropper })));
+  $('#downstairs', el)?.addEventListener('change', (e) => edit('setDuctDownstairs', { on: e.target.value === '1' }));
+  $('#add-dropper', el)?.addEventListener('click', () => { app.addMode = 'dropper'; app.selection = null; render(); });
+  if (s?.kind === 'dropper') {
+    const dr = app.view.droppers?.find((x) => x.id === s.id);
+    el.querySelectorAll('[data-feed]').forEach((b) => (b.onchange = () => {
+      const picked = [...el.querySelectorAll('[data-feed]')].filter((x) => x.checked).map((x) => x.dataset.feed);
+      edit('setDropperRooms', { id: s.id, rooms: picked.length ? picked : null });
+    }));
+    $('#dr-auto', el)?.addEventListener('click', () => edit('setDropperRooms', { id: s.id, rooms: null }));
+    $('#dr-del', el)?.addEventListener('click', () => { app.selection = null; edit('removeDropper', { id: dr?.id ?? s.id }); });
+  }
 }
 
 // MARK: Send
@@ -2070,19 +2207,26 @@ async function renderSend(c) {
 
 // MARK: Multi-head split
 
-/// Ducted or a multi-head split, on the Design step's bar.
+/// New ducted, a re-duct or a multi-head split, on the Design step's bar.
 function systemSwitch() {
-  const split = isSplit();
-  return `<div class="seg" title="The kind of system"><button data-sys="ducted" class="${split ? '' : 'on'}">Ducted</button><button data-sys="multiSplit" class="${split ? 'on' : ''}">Multi-head</button></div>`;
+  const k = jobKind();
+  return `<div class="seg" title="The kind of job">${[['ducted', 'Ducted'], ['reduct', 'Re-duct'], ['multiSplit', 'Multi-head']].map(([id, t]) =>
+    `<button data-sys="${id}" class="${k === id ? 'on' : ''}">${t}</button>`).join('')}</div>`;
 }
 
 function bindSystemSwitch(c) {
-  c.querySelectorAll('[data-sys]').forEach((b) => (b.onclick = async () => {
-    if ((b.dataset.sys === 'multiSplit') === isSplit()) return;
-    app.selection = null;
-    await edit('setSystem', { system: b.dataset.sys });
-    if (!isSplit() && !app.project.design && app.view?.planChecked) designNow();
-  }));
+  c.querySelectorAll('[data-sys]').forEach((b) => (b.onclick = () => setJobKind(b.dataset.sys)));
+}
+
+/// Switch the job: a re-duct is a ducted job with the unit that's there kept (an air conditioner unless said otherwise).
+async function setJobKind(kind) {
+  if (kind === jobKind()) return;
+  app.selection = null;
+  if (kind === 'multiSplit') { await edit('setSystem', { system: 'multiSplit' }); return; }
+  if (isSplit()) await edit('setSystem', { system: 'ducted' });
+  await edit('setExisting', { choice: kind === 'reduct' ? (app.project.existing?.kind ?? 'aircon') : null });
+  if (kind === 'reduct') toast('Re-duct: drag the fan coil to where the unit is. Auto-design keeps it there.', 4500);
+  if (!app.project.design && app.view?.planChecked && app.step === 'design') designNow();
 }
 
 const shortModel = (m) => m.replace(/(VGKD2|VGD)-A\d$/, '');
@@ -2159,6 +2303,9 @@ function renderSplitInspector() {
       <label class="field"><span>Head size</span><select id="hs-size">
         <option value="0" ${auto ? 'selected' : ''}>Auto — sized to the room</option>
         ${sp.headModels.map((m) => `<option value="${m.kw}" ${!auto && Math.abs(m.kw - h.coolKW) < 0.01 ? 'selected' : ''}>${esc(shortModel(m.model))} · ${g(m.kw)} kW${m.handOnly ? ' (small)' : ''}</option>`).join('')}</select></label>
+      ${true ? `<label class="field"><span>Heads in ${h.spaceRooms.length > 1 ? 'this area' : 'this room'}</span><select id="hs-count">
+        <option value="0" ${h.countByHand ? '' : 'selected'}>Auto — ${h.autoHeads} for its load</option>
+        ${[1, 2, 3, 4].map((n) => `<option value="${n}" ${h.countByHand && h.spaceHeads === n ? 'selected' : ''}>${n} head${n === 1 ? '' : 's'}</option>`).join('')}</select></label>` : ''}
       <label class="field"><span>Outdoor unit</span><select id="hs-unit">${outdoorOptions(sp, h.outdoor, true)}</select></label>
       <div class="kv"><span>Room load</span><b style="color:${enough ? 'inherit' : 'var(--danger)'}">${fmt(h.loadKW, 2)} kW${h.space !== h.roomName ? ` <span class="muted small">(${esc(h.space)})</span>` : ''}</b></div>
       <div class="kv"><span>Airflow</span><b>${h.airflowLps ? `up to ${Math.round(h.airflowLps)} L/s` : '—'} <span class="muted small">· room ${Math.round(h.needLps)} L/s</span></b></div>
@@ -2227,6 +2374,8 @@ function renderSplitInspector() {
   $('#sp-reset', el)?.addEventListener('click', () => confirmDialog('Start the heads again?', 'Every head and outdoor unit goes back where the plan puts it, at the size it picks. You can undo this.', 'Start again', () => edit('resetSplit')));
   if (h) {
     $('#hs-size', el).onchange = (e) => edit('setHeadSize', { room: h.room, kw: +e.target.value || null });
+    // How many heads the area gets (Jake, 31 Oct: one 8 kW head instead of two 5s); the heads are laid out again.
+    $('#hs-count', el)?.addEventListener('change', (e) => { app.selection = null; edit('setHeadCount', { key: h.spaceKey, n: +e.target.value || null }); });
     $('#hs-unit', el).onchange = (e) => edit('setHeadUnit', { key: h.key, unit: +e.target.value });
     $('#hs-back', el)?.addEventListener('click', () => edit('moveHead', { room: h.room, n: h.nth, pos: null }));
     $('#hs-none', el).onclick = () => { app.selection = null; edit('setHeadRoom', { room: h.room, choice: 'off' }); };
@@ -2327,8 +2476,9 @@ async function drawingPNG() {
   cv.style.cssText = 'position:fixed;left:-9999px;top:0;width:1600px;height:1100px';
   document.body.append(cv);
   const plan = new Plan(cv, {});
+  // The design over the builder's plan (Jake, 31 Oct: the drawing that goes to the customer should show the read plan).
   plan.set({ project: app.project, view: app.view, layout: isSplit() ? null : app.layout, split: isSplit() ? app.split : null,
-    showPlan: false, interactive: false, labels: true, compact: false });
+    backdrop: app.backdrop, upperBackdrop: app.upperBackdrop, showPlan: !!(app.backdrop || app.upperBackdrop), planAlpha: 0.45, interactive: false, labels: true, compact: false });
   plan.draw();
   const ctx = cv.getContext('2d');
   ctx.globalCompositeOperation = 'destination-over'; ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, cv.width, cv.height);
@@ -2348,9 +2498,10 @@ function openReport(kind) {
   const close = () => o.remove();
   $('#rp-close', o).onclick = close;
   o.addEventListener('keydown', (e) => e.key === 'Escape' && close());
-  import('./reports.js?v=8d38ac7-202610280852').then(async (m) => {
-    // Reports are always the design as installed: every zone open, balanced.
-    app.designLayout = await call('route', { project: app.project, closed: [], balanced: true });
+  import('./reports.js?v=901de15-202611011212').then(async (m) => {
+    // Reports are always the design as installed: every zone open, balanced. A multi-head job has no ducted design to
+    // route (routing one threw, and the bar stayed on "Building the report…" for good).
+    app.designLayout = isSplit() ? null : await call('route', { project: app.project, closed: [], balanced: true });
     const r = await m.build(kind, { app, call, Plan });
     if (r.error) { $('.report-bar b', o).textContent = r.error; return; }
     const frame = $('iframe', o);
@@ -2359,7 +2510,7 @@ function openReport(kind) {
     const print = $('#rp-print', o);
     print.disabled = false;
     print.onclick = () => frame.contentWindow.print();
-  });
+  }).catch((e) => { $('.report-bar b', o).textContent = `The report couldn't be built: ${e.message}`; });
 }
 
 // MARK: Settings

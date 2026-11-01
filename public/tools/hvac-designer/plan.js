@@ -266,7 +266,13 @@ export class Plan {
     const view = d.editor ? { ...d.view, rooms: d.editor.liveRooms() } : d.view;
     d.editor?.underlay(g, x);
     this.drawRooms(g, x, view, layout);
-    if (d.showPlan !== false && d.backdrop && d.project?.backdrop) this.drawBackdrop(g, x, d.project.backdrop, d.backdrop, dpr);
+    // Two storeys: the upper floor's plan beside the ground floor's, each showing only its own floor (both floors can be
+    // on one builder's sheet).
+    // (The room editor shows the whole sheet: a room the reading missed can be anywhere on it.)
+    const boxes = d.editor ? null : d.view.floorBoxes;
+    if (d.showPlan !== false && d.backdrop && d.project?.backdrop) this.drawBackdrop(g, x, d.project.backdrop, d.backdrop, dpr, d.planAlpha, boxes?.[0]);
+    if (d.showPlan !== false && d.upperBackdrop && d.project?.upperBackdrop) this.drawBackdrop(g, x, d.project.upperBackdrop, d.upperBackdrop, dpr, d.planAlpha, boxes?.[1]);
+    this.drawFloorLabels(g, x, d.view);
     if (d.gaps) this.drawGaps(g, x, d.gaps);
     this.drawWindows(g, x, view, d.editor?.pickedWindow?.());
     if (layout) {
@@ -297,6 +303,7 @@ export class Plan {
     if (zoneCards && d.labels !== false) this.drawZoneCards(g, x, view, layout);
     if (layout && d.report) this.drawReportMarks(g, x, layout);
     else if (layout && !d.editor) this.drawMarkers(g, x, layout, d);
+    if (!d.editor && !split) this.drawDroppers(g, x, d, !!d.report);
     d.editor?.overlay(g, x);
   }
 
@@ -351,9 +358,13 @@ export class Plan {
     }
   }
 
-  drawBackdrop(g, x, b, image, dpr) {
+  drawBackdrop(g, x, b, image, dpr, alpha, clip) {
     g.save();
-    g.globalAlpha = 0.6;
+    if (clip?.length === 4) {
+      const m = 1.5, a = x.pt({ x: clip[0] - m, y: clip[3] + m }), c = x.pt({ x: clip[2] + m, y: clip[1] - m });
+      g.beginPath(); g.rect(a.x, a.y, c.x - a.x, c.y - a.y); g.clip();
+    }
+    g.globalAlpha = alpha ?? 0.6;
     g.setTransform(dpr * b.across.x * x.s, dpr * -b.across.y * x.s, dpr * b.down.x * x.s, dpr * -b.down.y * x.s,
       dpr * (x.ox + (b.origin.x - x.minX) * x.s), dpr * (x.oy + (x.maxY - b.origin.y) * x.s));
     g.imageSmoothingQuality = 'high';
@@ -583,6 +594,7 @@ export class Plan {
       }
       for (const b of layout.boxes) busy.push({ p: x.pt(b.pos), r: 10, w: BLOCKED });
       for (const o of layout.outlets) busy.push({ p: x.pt(o.pos), r: 11, w: BLOCKED });
+      for (const dr of this.data?.view?.droppers ?? []) busy.push({ p: x.pt(dr.top), r: 16, w: BLOCKED }, { p: x.pt(dr.bottom), r: 16, w: BLOCKED });
       busy.push({ p: x.pt(layout.unit), r: layout.unitWidth / 2 * x.s, w: BLOCKED });
       busy.push({ p: x.pt(layout.returnGrille), r: 16, w: BLOCKED });
       for (const p of this.sizeSpots ?? []) busy.push({ p, r: 16, w: 20 });     // the ducts' sizes stay readable
@@ -999,8 +1011,10 @@ export class Plan {
       }
       this.hits.push({ item: { kind: 'box', id: b.bid }, x: c.x, y: c.y, r: 17 });
     }
-    // Outlets: the grille alone (its size is its leg's colour, and on its card).
+    // Outlets: the grille alone (its size is its leg's colour, and on its card). A dropper's top isn't a grille: it's
+    // drawn as the dropper.
     for (const o of l.outlets) {
+      if (o.dropper) continue;
       const c = at('outlet', o.id, x.pt(o.pos)), size = Math.min(Math.max((o.sizeMM + 150) / 1000 * x.s, 15), 34);
       shadow(() => this.drawGrille(g, c, size));
       const ring = size / 2 + 5;
@@ -1009,9 +1023,47 @@ export class Plan {
     }
   }
 
+  /// Two storeys: "Ground floor" and "Upper floor" over each floor's north-west corner.
+  drawFloorLabels(g, x, view) {
+    for (const f of view?.floorLabels ?? []) {
+      const c = x.pt(f.pos);
+      g.font = `800 11px ${FONT}`; g.fillStyle = T.body; g.textAlign = 'left'; g.textBaseline = 'bottom';
+      g.fillText(f.text.toUpperCase(), c.x, c.y);
+    }
+  }
+
+  /// Two storeys: each dropper's top on the upper floor and its foot on the ground floor, numbered and in its duct's
+  /// colour, joined by a faint dashed line (the duct goes down through the house between them). Both ends drag.
+  drawDroppers(g, x, d, report) {
+    const ds = d.view?.droppers ?? [];
+    if (!ds.length) return;
+    const sel = d.selection, drag = this.drag?.active ? this.drag : null;
+    const at = (kind, id, p) => (drag?.screen && drag.item.kind === kind && drag.item.id === id) ? drag.screen : x.pt(p);
+    const sizeOf = Object.fromEntries((d.layout?.outlets ?? []).filter((o) => o.dropper).map((o) => [o.id, o.sizeMM]));
+    ds.forEach((dr, i) => {
+      const a = at('dropTop', dr.id, dr.top), b = at('dropFoot', dr.id, dr.bottom);
+      g.save(); g.setLineDash([4, 5]); g.strokeStyle = 'rgba(16,16,16,0.22)'; g.lineWidth = 1.2;
+      g.beginPath(); g.moveTo(a.x, a.y); g.lineTo(b.x, b.y); g.stroke(); g.restore();
+      const on = sel?.kind === 'dropper' && sel.id === dr.id;
+      for (const [c, kind] of [[a, 'dropTop'], [b, 'dropFoot']]) {
+        const r = report ? 9 : 12;
+        g.save(); g.shadowColor = 'rgba(0,0,0,0.15)'; g.shadowBlur = 3; g.shadowOffsetY = 1;
+        g.beginPath(); g.arc(c.x, c.y, r, 0, Math.PI * 2);
+        g.fillStyle = sizeOf[dr.id] ? ductColour(sizeOf[dr.id]) : T.ink; g.fill();
+        g.restore();
+        g.beginPath(); g.arc(c.x, c.y, r, 0, Math.PI * 2); g.strokeStyle = '#fff'; g.lineWidth = 2; g.stroke();
+        g.font = `800 ${report ? 8 : 10}px ${FONT}`; g.fillStyle = '#fff'; g.textAlign = 'center'; g.textBaseline = 'middle';
+        g.fillText('D' + (i + 1), c.x, c.y + 0.5);
+        if (on) { g.beginPath(); g.arc(c.x, c.y, r + 5, 0, Math.PI * 2); g.strokeStyle = T.accent; g.lineWidth = 3; g.stroke(); }
+        if (!report) this.hits.push({ item: { kind, id: dr.id }, x: c.x, y: c.y, r: 16 });
+      }
+      if (!report && sizeOf[dr.id]) this.tag(g, 'Ø' + sizeOf[dr.id], a.x, a.y + 21, T.ink);
+    });
+  }
+
   /// The reports' plan (the app's `Reports.planImage`): grilles and the outdoor unit, no handles or tags.
   drawReportMarks(g, x, l) {
-    for (const o of l.outlets) this.drawGrille(g, x.pt(o.pos), 13);
+    for (const o of l.outlets) if (!o.dropper) this.drawGrille(g, x.pt(o.pos), 13);
     if (l.outdoor) {
       const [, out, condenser] = l.outdoor, c = x.pt(condenser), size = 22;
       g.save(); g.translate(c.x, c.y); g.rotate(-Math.atan2(out.y, out.x));
@@ -1044,7 +1096,9 @@ export class Plan {
       const curves = this.curves(l);
       for (const [ri, r] of l.runs.entries()) {
         if (r.kind === 'return') continue;
-        const key = r.keyBox != null ? { kind: 'feed', id: r.keyBox } : r.keyOutlet != null ? { kind: 'outlet', id: r.keyOutlet } : null;
+        const dropper = r.keyOutlet != null && l.outlets.some((o) => o.dropper && o.id === r.keyOutlet);
+        const key = r.keyBox != null ? { kind: 'feed', id: r.keyBox } : dropper ? { kind: 'dropper', id: r.keyOutlet }
+          : r.keyOutlet != null ? { kind: 'outlet', id: r.keyOutlet } : null;
         if (!key) continue;
         const pts = curves[ri].map(x.pt), w = ductWidth(r.sizeMM, x.s);
         for (let i = 1; i < pts.length; i++) {
@@ -1080,7 +1134,8 @@ export class Plan {
         return;
       }
       const interactive = this.data?.interactive !== false;
-      const item = interactive && (this.data?.layout || this.data?.split) ? this.hitMarker(q) : null;
+      // Placing a dropper: a tap anywhere in a room places it, over a vent or the fan coil too.
+      const item = interactive && this.data?.addMode !== 'dropper' && (this.data?.layout || this.data?.split) ? this.hitMarker(q) : null;
       this.drag = { start: q, last: q, item, active: false, pan: { ...this.pan } };
     });
     c.addEventListener('pointermove', (e) => {
@@ -1166,7 +1221,7 @@ export class Plan {
   tap(q) {
     if (this.data?.addMode && this.x) {
       const w = this.x.world(q);
-      if (this.data.view.rooms.some((r) => r.conditioned && pointInPolygon(w, r.polygon))) { this.on.add?.(w); return; }
+      if (this.data.view.rooms.some((r) => (r.conditioned || this.data.addMode === 'dropper') && pointInPolygon(w, r.polygon))) { this.on.add?.(w); return; }
     }
     if (this.data?.interactive === false) { this.on.tapRoom?.(this.x && this.x.world(q)); return; }
     this.on.select?.(this.hit(q));

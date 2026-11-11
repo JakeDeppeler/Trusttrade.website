@@ -210,6 +210,14 @@ hr.sep{border:0;border-top:1px solid var(--line2);margin:26px 0}
 .done-screen p{color:var(--ink2);font-size:16px;margin:14px 0 0;line-height:1.6}
 .done-screen .btn{background:var(--ink);color:#fff}
 .hide{display:none !important}
+/* bigger tap targets on desktop (kept last so it wins) */
+@media(min-width:1100px){
+  .opts{gap:14px}
+  .opt-btn{min-height:92px;padding:24px 26px;font-size:19px;border-radius:22px}
+  .opt-btn .tick,.opt-btn .num{width:28px;height:28px;font-size:14px}
+  .btn{font-size:18px;padding:19px 30px}
+  .navin{padding:10px}
+}
 </style>
 </head>
 <body>

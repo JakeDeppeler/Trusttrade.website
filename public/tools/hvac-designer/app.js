@@ -1,10 +1,10 @@
 // Trust Trade Pro — the HVAC Designer in the browser. The same five steps as the app (House · Capture · Check · Design ·
 // Send) on the app's own engine (engine.wasm, run in a worker): the same loads, zones, ducts, checks and materials.
 
-import { call, latest } from './engine.js?v=f05e4c2-202611151440';
-import * as store from './store.js?v=f05e4c2-202611151440';
-import { Plan, inkImage, zoneColour, ductColour, splitColour, T, pointInPolygon, movesOnly, wheelMoves, ZOOM_MAX } from './plan.js?v=f05e4c2-202611151440';
-import { RoomEditor, metres, signedArea, onLine } from './roomeditor.js?v=f05e4c2-202611151440';
+import { call, latest } from './engine.js?v=7aebd96-202611151955';
+import * as store from './store.js?v=7aebd96-202611151955';
+import { Plan, inkImage, zoneColour, ductColour, splitColour, T, pointInPolygon, movesOnly, wheelMoves, ZOOM_MAX } from './plan.js?v=7aebd96-202611151955';
+import { RoomEditor, metres, signedArea, onLine } from './roomeditor.js?v=7aebd96-202611151955';
 
 // MARK: Helpers
 
@@ -170,7 +170,7 @@ function editRefusal(op) {
     addWindow: 'Windows go in outside walls, with room to spare.',
     drawWindow: 'Windows go in outside walls (dashed blue), with half a metre of wall for one.',
     rescale: 'That scale doesn\'t look right.',
-    addDropper: 'Droppers are for a two-storey home: read both floors first (House step).',
+    addDropper: 'Droppers are for a two-storey home: draw both floors first (House step).',
     moveDropper: 'A dropper\'s top goes on the upper floor and its foot in a ground floor room.',
   })[op] ?? 'That didn\'t change anything.';
 }
@@ -1019,25 +1019,42 @@ function pickOpenArea(c) {
 }
 
 /// The unit's too big for a single-phase house (20 kW and up are three phase only).
-function needsThreePhase(t, site) { return !!t.unit && t.unit.kw > 18 && !site.threePhasePref; }
+function needsThreePhase(t, site) { return !!t.unit && t.unit.brand !== 'kaden' && t.unit.kw > 18 && !site.threePhasePref; }
 
-/// The biggest ducted unit on the list (the engine's Designer.units).
-function biggestUnitKW() { return Math.max(...app.options.units.map((u) => u.kw)); }
+/// The job's brand of ducted unit, and its range (the engine's Designer.units(brand)).
+const brandId = () => app.project?.site?.brandPref ?? 'mitsubishi';
+const brandNow = () => app.options.brands?.find((b) => b.id === brandId()) ?? { id: 'mitsubishi', label: 'Mitsubishi Electric', units: app.options.units };
+/// The biggest ducted unit in the job's brand.
+function biggestUnitKW() { return Math.max(...brandNow().units.map((u) => u.kw)); }
+/// The brand picker: a new brand drops a size picked by hand (its kW may not be in the other range).
+function brandSeg() {
+  const brands = app.options.brands ?? [];
+  if (brands.length < 2) return '';
+  return `<span class="eyebrow" style="display:block;margin:0 0 6px">Brand</span>
+    <div class="seg" style="margin-bottom:10px">${brands.map((b) => `<button data-brand="${b.id}" class="${b.id === brandId() ? 'on' : ''}">${esc(b.label)}</button>`).join('')}</div>`;
+}
+function bindBrand(c) {
+  c.querySelectorAll('[data-brand]').forEach((b) => (b.onclick = () => {
+    if (b.dataset.brand === brandId()) return;
+    commit({ ...app.project, site: { ...app.project.site, brandPref: b.dataset.brand === 'mitsubishi' ? null : b.dataset.brand, unitKWPref: null } }, { undoable: true });
+  }));
+}
 
 function unitOptions(t, site) {
   const opt = (sizing, title, detail, badge) => `<button class="option ${!t.byHand && (site.unitSizingPref ?? 'wholeHome') === sizing ? 'on' : ''}" data-sizing="${sizing}">
     <span class="radio"></span><span><b>${esc(title)}</b>${badge ? ` <span class="tag">${badge}</span>` : ''}<p>${esc(detail)}</p></span></button>`;
   const ch = t.choices;
-  let html = '';
+  let html = brandSeg();
   if (ch.wholeHome) html += opt('wholeHome', `${g(ch.wholeHome.kw)} kW · whole home open`, `${fmt(t.wholeHomeKW, 1)} kW: every room's load added up, so it runs the full open home on a design day and turns down as zones shut.${t.wholeHomeKW > biggestUnitKW() * 1.06 ? ' More than one ducted unit can carry — see how it\'s worked out.' : ''}`, 'RECOMMENDED');
   if (ch.margin && ch.margin.kw !== ch.wholeHome?.kw) html += opt('margin', `${g(ch.margin.kw)} kW · more margin`, 'One size up: the hottest days, bigger windows than the plan shows, a room added later.');
   if (ch.zoned && ch.zoned.kw !== ch.wholeHome?.kw) html += opt('zoned', `${g(ch.zoned.kw)} kW · zoned use only`, `${fmt(t.designKW, 1)} kW: never every zone on at once (${(app.options.zonings.find((z) => z.id === (site.zoningPref ?? 'perroom'))?.label ?? '').toLowerCase()} zoning, ${fmt(t.diversity * 100)}% diversity).`);
   html += `<label class="rowpick" style="border-top:0"><label>${t.byHand ? `Picked by hand: ${g(t.unit?.kw ?? 0)} kW` : 'Pick another size…'}</label>
-    <select id="unitkw"><option value="">${t.byHand ? 'Back to the recommended' : 'Choose…'}</option>${app.options.units.map((u) => `<option value="${u.kw}" ${t.byHand && t.unit?.kw === u.kw ? 'selected' : ''}>${esc(u.label)}</option>`).join('')}</select></label>
+    <select id="unitkw"><option value="">${t.byHand ? 'Back to the recommended' : 'Choose…'}</option>${brandNow().units.map((u) => `<option value="${u.kw}" ${t.byHand && t.unit?.kw === u.kw ? 'selected' : ''}>${esc(u.label)} · ${fmt(u.lps)} L/s</option>`).join('')}</select></label>
     ${needsThreePhase(t, site) ? `<p style="color:var(--danger);font-weight:600;font-size:12.5px;margin:8px 0 0">${g(t.unit.kw)} kW needs a three-phase supply — 18 kW is the biggest Mitsubishi Electric ducted unit on single phase. Check the switchboard, or split the house into two systems.</p>` : ''}
-    <span class="eyebrow" style="display:block;margin-top:6px">Power supply</span>
+    ${t.unit ? `<div class="kv" style="margin-top:8px"><span>Fan on high</span><b>${fmt(t.unit.lps)} L/s · up to ${fmt(t.unit.esp)} Pa${t.unit.espConfirmed === false ? ' <span class="muted small" style="font-weight:500">(check the manual)</span>' : ''}</b></div>` : ''}
+    ${brandId() === 'kaden' ? '<p class="small muted" style="margin:8px 0 0">Kaden\'s ducted range is single phase only, 7 to 17 kW.</p>' : `<span class="eyebrow" style="display:block;margin-top:6px">Power supply</span>
     <div class="seg"><button data-phase="0" class="${site.threePhasePref ? '' : 'on'}">Single phase</button><button data-phase="1" class="${site.threePhasePref ? 'on' : ''}">Three phase</button></div>
-    <p class="small muted" style="margin:6px 0 0">Most homes are single phase. Pick three phase only if the switchboard has it.</p>`;
+    <p class="small muted" style="margin:6px 0 0">Most homes are single phase. Pick three phase only if the switchboard has it.</p>`}`;
   return html;
 }
 function bindUnitOptions(c) {
@@ -1045,6 +1062,7 @@ function bindUnitOptions(c) {
   c.querySelectorAll('[data-sizing]').forEach((b) => (b.onclick = () => set({ unitSizingPref: b.dataset.sizing, unitKWPref: null })));
   $('#unitkw', c)?.addEventListener('change', (e) => set({ unitKWPref: e.target.value ? parseFloat(e.target.value) : null }));
   c.querySelectorAll('[data-phase]').forEach((b) => (b.onclick = () => set({ threePhasePref: b.dataset.phase === '1' ? true : null })));
+  bindBrand(c);
 }
 
 function spillCard(s, p) {
@@ -1986,9 +2004,18 @@ function renderInspector() {
     const run = l?.runs.find((x) => x.outlet === dr.id);
     const ground = v.rooms.filter((r) => r.level === 0 && r.conditioned && r.designerType !== 'none');
     const joining = p.twoStorey?.ductDownstairs === false;
-    html = `<div class="card"><div class="insp-head"><h2>${esc(dr.name)}${o ? ` · Ø${o.sizeMM}` : ''}</h2>${close}</div>
-      <div class="insp-sub">${o ? `${fmt(o.designLps)} L/s down to the ground floor` : 'Not in the design yet'}${run ? ` · ${fmt(run.length, 1)} m from the fan coil` : ''} · drag either end to move it</div>
-      <p class="small muted" style="margin:6px 0 8px">${joining ? 'Joined to the dropper that\'s there, on top of the ground floor\'s ceiling.' : 'Down through the house (a robe, a wall cavity or a bulkhead), then new ducts in the ground floor\'s ceiling to its rooms\' outlets.'}</p>
+    // Its flex: the air it carries, the size, and the speed against the branch limit (it runs through the house).
+    const dq = o?.designLps ?? dr.lps, dmm = o?.sizeMM ?? dr.sizeMM ?? dr.autoMM;
+    const dlim = app.options.velocityLimits?.[p.site.velocityPref ?? 'standard']?.branch, dsp = dq > 0 && dmm ? velocity(dq, dmm) : null;
+    const dover = dsp != null && overSpeed(dsp, dlim);
+    html = `<div class="card"><div class="insp-head"><h2>${esc(dr.name)} · Ø${dmm}</h2>${close}</div>
+      <div class="insp-sub">${dq > 0 ? `${fmt(dq)} L/s down to the ground floor` : 'No rooms on it yet'}${run ? ` · ${fmt(run.length, 1)} m from the fan coil` : ''} · drag either end to move it</div>
+      <div class="needs"><div><span>Carries</span><b>${fmt(dq)} L/s</b><small>${dr.rooms.length} room${dr.rooms.length === 1 ? '' : 's'}</small></div>
+        <div class="${dsp != null && !dover ? 'good' : ''}"><span>Air speed</span><b style="${dover ? 'color:var(--danger)' : ''}">${dsp != null ? fmt(dsp, 1) + ' m/s' : '—'}</b><small>${dlim != null ? `limit ${dlim} m/s` : ''}${dover ? ' · over' : ''}</small></div></div>
+      <span class="eyebrow">Flex size</span>
+      <div class="sizes"><button data-dsize="0" class="${dr.sizeMM ? '' : 'on'}">Auto (Ø${dr.autoMM})</button>${app.options.ductSizes.filter((mm) => mm >= 200 && mm <= 450).map((mm) => `<button data-dsize="${mm}" class="${dr.sizeMM === mm ? 'on' : ''}">Ø${mm}</button>`).join('')}</div>
+      ${dmm >= 400 ? `<p class="small" style="margin:8px 0 0;color:var(--accent-deep);font-weight:600">Ø${dmm} flex is a big hole through a cupboard. A second dropper splits the air and brings both down a size or two.</p>` : ''}
+      <p class="small muted" style="margin:8px 0 8px">${joining ? 'Joined to the dropper that\'s there, on top of the ground floor\'s ceiling.' : 'Insulated flex down through a cupboard, then new ducts in the ground floor\'s ceiling to its rooms\' outlets. Allow for the insulation around it when you cut the hole.'}</p>
       <span class="eyebrow">Rooms it feeds${dr.byHand ? ' · picked by hand' : ''}</span>
       ${ground.map((r) => `<label class="pick-row"><input type="checkbox" data-feed="${r.id}" ${dr.rooms.includes(r.id) ? 'checked' : ''}><span class="grow"><b>${esc(r.name)}</b><small>${fmt(r.lps)} L/s${r.dropper && r.dropper !== dr.id ? ' · on ' + esc(v.droppers.find((x) => x.id === r.dropper)?.name ?? 'another dropper') : ''}</small></span></label>`).join('')}
       <div class="actions-row">${dr.byHand ? '<button class="btn2" id="dr-auto">The nearest rooms</button>' : ''}<button class="btn2 danger" id="dr-del">${icon('trash').replace('<svg', '<svg width="16" height="16"')} Take this dropper out</button></div></div>`;
@@ -2065,7 +2092,7 @@ function sizeBreakdown() {
   const pickedBy = t.byHand ? 'picked by hand' : ({ wholeHome: 'whole home open', margin: 'more margin', zoned: 'zoned use only' })[t.sizing] ?? t.sizing;
   const lows = [];
   const big = biggestUnitKW();
-  if (t.wholeHomeKW > big * 1.06) lows.push(`<b>The full open home needs ${fmt(t.wholeHomeKW, 1)} kW — more than the biggest ducted unit (${g(big)} kW).</b> Split it into two systems (say living and sleeping), or size it for zoned use and tell the customer it won't run every room flat out at once on the hottest day.`);
+  if (t.wholeHomeKW > big * 1.06) lows.push(`<b>The full open home needs ${fmt(t.wholeHomeKW, 1)} kW — more than the biggest ${esc(brandNow().label)} ducted unit (${g(big)} kW).</b> Split it into two systems (say living and sleeping), or size it for zoned use and tell the customer it won't run every room flat out at once on the hottest day.`);
   if (needsThreePhase(t, p.site)) lows.push(`<b>${g(t.unit.kw)} kW needs a three-phase supply.</b> 18 kW is the biggest Mitsubishi Electric ducted unit on single phase; 20 and 24.5 kW are three phase only. Check the switchboard (and set it on the Check page), or split the house into two systems.`);
   if (noGlass.length) lows.push(`<b>${noGlass.length} of ${live.length} rooms have no windows drawn.</b> They count as typical glass (× 1.00) facing no particular way — a west-facing room is × 1.16 and a glassy one × 1.22. Add the windows for a truer size: Edit the rooms → pick a wall → Add a window.`);
   if (/good/.test(insul?.[0] ?? '')) lows.push(`<b>Ceiling insulation R3.5 or better</b> takes 15% off every room (× 0.85). Check it on the House step if you're not sure what's up there.`);
@@ -2144,7 +2171,7 @@ function designSummary() {
   const reduct = ex ? `<div class="card"><h2>Re-duct</h2><p class="small muted" style="margin:0">New ducts onto the ${ex.kind === 'heater' ? 'gas ducted heater' : 'ducted unit'} that's there. Drag the fan coil to where it is. No unit, outdoor unit or pipes on the materials.</p></div>` : '';
   const ds = v.droppers ?? [];
   const floors = v.twoStorey ? `<div class="card"><h2>Two storeys</h2>
-      ${ds.length ? ds.map((d) => { const o = l.outlets.find((x) => x.id === d.id); return `<div class="zone-row" data-dropper="${d.id}"><span class="dot" style="background:${o ? ductColour(o.sizeMM) : 'var(--ink)'}"></span><b>${esc(d.name)}${o ? ` · Ø${o.sizeMM}` : ''}</b><span>${esc(d.rooms.map((id) => v.rooms.find((r) => r.id === id)?.name).filter(Boolean).slice(0, 3).join(', ') || 'no rooms')}</span></div>`; }).join('')
+      ${ds.length ? ds.map((d) => { const o = l.outlets.find((x) => x.id === d.id), mm = o?.sizeMM ?? d.sizeMM ?? d.autoMM, q = o?.designLps ?? d.lps; return `<div class="zone-row" data-dropper="${d.id}"><span class="dot" style="background:${ductColour(mm)}"></span><b>${esc(d.name)} · Ø${mm}</b><span>${q > 0 ? `${fmt(q)} L/s · ${fmt(velocity(q, mm), 1)} m/s` : 'no rooms'}${d.sizeMM ? ' · size set' : ''}</span></div>`; }).join('')
         : '<p class="small" style="margin:0 0 6px;color:var(--danger);font-weight:600">No droppers yet: the ground floor has no air.</p>'}
       <div class="rowpick" style="margin-top:8px"><label>Ground floor ducts</label><select id="downstairs">
         <option value="1" ${p.twoStorey?.ductDownstairs !== false ? 'selected' : ''}>New ducts</option>
@@ -2156,6 +2183,8 @@ function designSummary() {
       <div class="seg" style="margin-top:10px"><button data-bal="1" class="${app.balanced ? 'on' : ''}">Balanced</button><button data-bal="0" class="${app.balanced ? '' : 'on'}">As installed</button></div></div>
     <div class="card"><h2>System &amp; zoning</h2>
       <div class="kv"><span>Unit</span><b>${p.existing ? `Existing ${p.existing.kind === 'heater' ? 'heater' : 'unit'} · ducts for ${g(v.totals.unit?.kw ?? 0)} kW` : esc(v.totals.unit?.label ?? '—')} <button class="link" data-sizehow style="padding:0 0 0 6px">How it's sized</button></b></div>
+      ${(app.options.brands?.length ?? 0) > 1 && !p.existing ? `<div class="rowpick"><label>Brand</label><select id="brand">${app.options.brands.map((b) => `<option value="${b.id}" ${b.id === brandId() ? 'selected' : ''}>${esc(b.label)}</option>`).join('')}</select></div>
+      <div class="kv"><span>Fan on high</span><b>${fmt(v.totals.unit?.lps)} L/s · up to ${fmt(v.totals.unit?.esp)} Pa${v.totals.unit?.espConfirmed === false ? ' <span class="muted small" style="font-weight:500">(check the manual)</span>' : ''}</b></div>` : ''}
       <div class="rowpick"><label>Zoning</label><select id="zoning">${app.options.zonings.map((z) => `<option value="${z.id}" ${z.id === zoning ? 'selected' : ''}>${esc(z.label)}</option>`).join('')}</select></div>
       <div class="rowpick"><label>Supply air transition</label><select id="takeoffs">${takeoffOptions()}</select></div>
       <div class="rowpick"><label>Air speed</label><select id="velocity">${app.options.velocities.map((x) => `<option value="${x.id}" ${x.id === (p.site.velocityPref ?? 'standard') ? 'selected' : ''}>${esc(x.label)}</option>`).join('')}</select></div>
@@ -2232,6 +2261,7 @@ function bindInspector(el) {
     await refresh(); render();
   }));
   el.querySelectorAll('[data-bal]').forEach((b) => (b.onclick = async () => { app.balanced = b.dataset.bal === '1'; await refresh(); render(); }));
+  $('#brand', el)?.addEventListener('change', (e) => commit({ ...app.project, site: { ...app.project.site, brandPref: e.target.value === 'mitsubishi' ? null : e.target.value, unitKWPref: null } }, { undoable: true }));
   $('#zoning', el)?.addEventListener('change', (e) => commit({ ...app.project, site: { ...app.project.site, zoningPref: e.target.value } }, { undoable: true }));
   $('#velocity', el)?.addEventListener('change', (e) => commit({ ...app.project, site: { ...app.project.site, velocityPref: e.target.value } }, { undoable: true }));
   $('#takeoffs', el)?.addEventListener('change', (e) => edit('setTakeoffs', { n: e.target.value ? +e.target.value : null }));
@@ -2248,6 +2278,7 @@ function bindInspector(el) {
       edit('setDropperRooms', { id: s.id, rooms: picked.length ? picked : null });
     }));
     $('#dr-auto', el)?.addEventListener('click', () => edit('setDropperRooms', { id: s.id, rooms: null }));
+    el.querySelectorAll('[data-dsize]').forEach((b) => (b.onclick = () => edit('setDropperSize', { id: s.id, mm: +b.dataset.dsize })));
     $('#dr-del', el)?.addEventListener('click', () => { app.selection = null; edit('removeDropper', { id: dr?.id ?? s.id }); });
   }
 }
@@ -2370,6 +2401,20 @@ function renderSplitDesign(c) {
 /// The heads' air reach on the plan (on unless turned off).
 const splitAir = () => app.layers.splitAir !== false;
 
+/// A bulkhead head's face: the linear bar grilles for its air, what they take of its static, and the bulkhead it needs.
+function bulkheadCard(h) {
+  const gr = h.grilles, row = (name, x) => `<div class="kv"><span>${name}</span><b>${esc(x.size)} mm <span class="muted small" style="font-weight:500">· ${fmt(x.pa)} Pa · NR ${fmt(x.nr)}</span></b></div>`;
+  const box = h.widthMM && h.heightMM ? `${h.widthMM + 100} wide × ${h.heightMM + 50} high inside, ${h.depthMM ? (h.depthMM + 250) + ' mm' : 'its depth plus the plenum box'} deep` : null;
+  return `<div class="card"><h2>Bulkhead face</h2>
+    <p class="small muted" style="margin:0 0 6px">Linear bar grilles for its ${fmt(gr.lps)} L/s on high, kept under NR ${fmt(gr.nrLimit)}${h.space === h.roomName && gr.nrLimit < 30 ? ' (a bedroom)' : ''}.</p>
+    ${row('Supply grille', gr.supply)}${row('Return air grille', gr.ret)}
+    <div class="kv"><span>Static through both</span><b style="${gr.over ? 'color:var(--danger)' : ''}">${fmt(gr.needPa)} Pa${gr.maxPa != null ? ` <span class="muted small" style="font-weight:500">of ${fmt(gr.maxPa)} Pa top</span>` : ''}</b></div>
+    ${gr.setting != null ? `<div class="kv"><span>Fan static setting</span><b>${fmt(gr.setting)} Pa or the next up, with the plenum box and filter</b></div>` : ''}
+    ${box ? `<div class="kv"><span>Bulkhead, about</span><b>${box}</b></div>` : ''}
+    ${gr.over ? '<p class="small" style="margin:6px 0 0;color:var(--danger);font-weight:600">The grilles take more than 60% of its static. A longer or taller grille, a second head, or a head with more static.</p>' : ''}
+    <p class="small muted" style="margin:6px 0 0">Sized from Airfoil LBG-00 linear bar grille data. Check your grille maker's own figures.</p></div>`;
+}
+
 function renderSplitInspector() {
   const el = $('#insp');
   if (!el) return;
@@ -2400,8 +2445,9 @@ function renderSplitInspector() {
         <b style="color:${h.reachShort ? 'var(--danger)' : 'inherit'}">about ${fmt(h.reachM, 1)} m <span class="muted small">· far wall ${fmt(h.depthM, 1)} m</span></b></div>
         ${h.reachShort ? '<p class="small" style="margin:6px 0 0;color:var(--danger)">Its air slows before the far end on high fan. A bigger head, or a second one at the far end, carries further.</p>' : ''}` : ''}
       ${h.soundDB ? `<div class="kv"><span>Sound</span><b>${h.soundDB[0]}–${h.soundDB[1]} dB(A)</b></div>` : ''}
-      ${h.widthMM ? `<div class="kv"><span>Size</span><b>${h.widthMM} wide × ${h.heightMM ?? '—'} high</b></div>` : ''}
+      ${h.widthMM ? `<div class="kv"><span>Size</span><b>${h.widthMM} wide × ${h.heightMM ?? '—'} high${h.depthMM ? ` × ${h.depthMM} deep` : ''}</b></div>` : ''}
     </div>
+    ${h.grilles ? bulkheadCard(h) : ''}
     <div class="card"><h2>Where it goes</h2>
       <div class="kv"><span>Wall</span><b>${h.wall ? (h.onOutside ? 'Outside wall' : 'Internal wall') : 'Bulkhead'}</b></div>
       <div class="kv"><span>Pipe run</span><b>${fmt(h.pipeM, 1)} m · ${esc(h.pipes)}</b></div>
@@ -2435,7 +2481,8 @@ function renderSplitInspector() {
       <div class="actions-row">${has ? '<button class="btn2" id="rm-off">No head here</button>' : `<button class="btn" id="rm-on">Give it a head</button>`}
         <button class="link" id="rm-auto">As the plan has it</button></div></div>`;
   } else {
-    const groups = [['Wall-mounted heads', sp.ranges.filter((r) => r.wall)], ['Ducted heads in a bulkhead', sp.ranges.filter((r) => !r.wall)]];
+    const groups = [['Wall-mounted heads', sp.ranges.filter((r) => r.wall)], ['Ducted heads in a bulkhead', sp.ranges.filter((r) => !r.wall && !r.vrf)],
+      ['VRF on branch boxes (bigger homes)', sp.ranges.filter((r) => r.vrf)]].filter(([, rs]) => rs.length);
     const noHead = sp.noHead.map(roomName).filter(Boolean);
     html = `<div class="card"><h2>Multi-head split</h2>
         <label class="field"><span>Range</span><select id="sp-range">${groups.map(([label, rs]) => `<optgroup label="${label}">${rs.map((r) => `<option value="${r.id}" ${r.id === sp.range.id ? 'selected' : ''}>${esc(r.brand)} — ${esc(r.name)}</option>`).join('')}</optgroup>`).join('')}</select></label>
@@ -2585,7 +2632,7 @@ function openReport(kind) {
   const close = () => o.remove();
   $('#rp-close', o).onclick = close;
   o.addEventListener('keydown', (e) => e.key === 'Escape' && close());
-  import('./reports.js?v=f05e4c2-202611151440').then(async (m) => {
+  import('./reports.js?v=7aebd96-202611151955').then(async (m) => {
     // Reports are always the design as installed: every zone open, balanced. A multi-head job has no ducted design to
     // route (routing one threw, and the bar stayed on "Building the report…" for good).
     app.designLayout = isSplit() ? null : await call('route', { project: app.project, closed: [], balanced: true });

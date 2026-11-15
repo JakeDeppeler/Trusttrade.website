@@ -1,7 +1,7 @@
 // The printable reports: the customer's design report, the install sheet and the materials list, laid out as A4 pages
 // from the engine's report blocks (ReportText.swift — the app's wording). The browser's print window saves them as PDF.
 
-import * as store from './store.js?v=559837a-202611152201';
+import * as store from './store.js?v=4ee6aeb-202611160836';
 
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const DUCT = (mm) => mm <= 150 ? '#E0342F' : mm <= 200 ? '#6A8DDB' : mm <= 250 ? '#F0CB2E' : mm <= 300 ? '#7DC242' : mm <= 350 ? '#BFC4C9' : mm <= 400 ? '#D35FD0' : '#7B3FE4';
@@ -46,7 +46,7 @@ function block(b, ctx) {
       return `<img class="plan" src="${ctx.plan}" style="max-height:${(Number(b.height) || 300) * 1.333}px" alt="Duct plan">`;
     case 'legend':
       return `<div class="legend">${(b.sizes ?? []).map((mm) => `<span><i style="background:${DUCT(mm)}"></i>Ø${Number(mm)}</span>`).join('')}
-        <span><i style="background:${DUCT(b.returnMM)}"></i>2 × Ø${Number(b.returnMM)} return</span><p>${esc(b.text)}</p></div>`;
+        <span><i style="background:${DUCT(b.returnMM)}"></i>${Number(b.returnCount) > 1 ? Number(b.returnCount) + ' × ' : ''}Ø${Number(b.returnMM)} return</span><p>${esc(b.text)}</p></div>`;
     case 'page': return '<div class="pagebreak"></div>';
   }
   return '';

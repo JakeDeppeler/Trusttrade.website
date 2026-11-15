@@ -341,3 +341,9 @@ table.mat td a { text-decoration: none; }
 .fan-spin.fast .blades { animation-duration: .55s; }
 @keyframes fan-spin { to { transform: rotate(360deg); } }
 @media (prefers-reduced-motion: reduce) { .fan-spin .blades { animation: none; } }
+
+/* Job and House steps: two columns */
+.two-col { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 18px; max-width: 1100px; }
+.two-col > div { display: flex; flex-direction: column; gap: 18px; min-width: 0; }
+.two-col > .card, .two-col > div > .card { margin: 0; }
+@media (max-width: 900px) { .two-col { grid-template-columns: 1fr; } }

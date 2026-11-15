@@ -333,6 +333,7 @@ export class Plan {
     if (layout && d.report) this.drawReportMarks(g, x, layout);
     else if (layout && !d.editor) this.drawMarkers(g, x, layout, d);
     if (!d.editor && !split) this.drawDroppers(g, x, d, !!d.report);
+    if (!d.editor) this.drawLines(g, x, d);
     d.editor?.overlay(g, x);
   }
 
@@ -876,6 +877,49 @@ export class Plan {
 
   /// A head's tag: its model and size, and how far its air reaches when that fits across its room (zoom in for the
   /// small rooms' — their names come first). Short of the far wall, the reach is in red by the edge of the air instead.
+  /// A ducted head in its bulkhead, from above (Jake, 16 Nov 2026: "a bulkhead should look like a bulkhead unit, not a
+  /// split, and show the spec"): the bulkhead boxed out from the wall, the unit inside it, the linear supply grille on its
+  /// face and the return grille under it, the air off the face, and its spec — model, size, air and grilles.
+  drawBulkhead(g, x, h, at, ang, tone, sel, drag, d) {
+    const s = x.s, gr = h.grilles;
+    const unitW = (h.widthMM ?? 900) / 1000, unitD = (h.depthMM ?? 650) / 1000;
+    const L = Math.max(Math.max(unitW + 0.1, (gr?.supply.lengthMM ?? 0) / 1000, (gr?.ret.lengthMM ?? 0) / 1000) * s, 30);
+    const D = Math.max((unitD + 0.25) * s, 16);
+    g.save(); g.translate(at.x, at.y); g.rotate(ang);
+    // The bulkhead: plasterboard, boxed out from the wall (x = 0) into the room.
+    g.save(); g.shadowColor = 'rgba(0,0,0,0.14)'; g.shadowBlur = 4; g.shadowOffsetY = 1;
+    g.beginPath(); g.rect(0, -L / 2, D, L); g.fillStyle = '#F4F1EB'; g.fill(); g.restore();
+    g.save(); g.beginPath(); g.rect(0, -L / 2, D, L); g.clip();
+    g.strokeStyle = 'rgba(16,16,16,0.07)'; g.lineWidth = 1;
+    for (let k = -L; k < D + L; k += 7) { g.beginPath(); g.moveTo(k, -L / 2); g.lineTo(k - L, L / 2); g.stroke(); }
+    g.restore();
+    g.beginPath(); g.rect(0, -L / 2, D, L); g.strokeStyle = tone; g.lineWidth = 2; g.stroke();
+    // The unit inside, against the wall.
+    const uw = Math.min(unitW * s, L - 6), ud = Math.min(unitD * s, D * 0.72);
+    g.beginPath(); g.roundRect(3, -uw / 2, ud, uw, 3); g.fillStyle = '#2A2E33'; g.fill();
+    g.beginPath(); g.arc(3 + ud * 0.45, 0, Math.min(ud, uw) * 0.28, 0, Math.PI * 2); g.strokeStyle = '#8A9097'; g.lineWidth = 1.2; g.stroke();
+    // The return grille under the bulkhead, by the face; the supply grille on the face.
+    const rl = Math.min(((gr?.ret.lengthMM ?? 700) / 1000) * s, L - 4), rd = Math.max(((gr?.ret.heightMM ?? 100) / 1000) * s, 4);
+    g.beginPath(); g.rect(D - rd - 5, -rl / 2, rd, rl); g.fillStyle = '#fff'; g.fill(); g.strokeStyle = '#6B7178'; g.lineWidth = 1; g.stroke();
+    for (let y = -rl / 2 + 3; y < rl / 2 - 1; y += 3.5) { g.beginPath(); g.moveTo(D - rd - 4, y); g.lineTo(D - 6, y); g.stroke(); }
+    const sl = Math.min(((gr?.supply.lengthMM ?? 600) / 1000) * s, L - 4);
+    g.beginPath(); g.rect(D - 2.5, -sl / 2, 5, sl); g.fillStyle = tone; g.fill();
+    // Its air, off the face.
+    const reach = Math.max(0.7 * s, 18);
+    g.strokeStyle = rgba(tone, 0.55); g.lineWidth = 1.6; g.setLineDash([3, 3]);
+    g.beginPath(); g.moveTo(D + 4, 0); g.lineTo(D + reach, 0); g.stroke(); g.setLineDash([]);
+    g.beginPath(); g.moveTo(D + reach + 5, 0); g.lineTo(D + reach - 2, -4.5); g.lineTo(D + reach - 2, 4.5); g.closePath(); g.fillStyle = rgba(tone, 0.75); g.fill();
+    if (sel?.kind === 'head' && sel.id === h.id) { g.beginPath(); g.rect(-4, -L / 2 - 4, D + 8, L + 8); g.strokeStyle = T.accent; g.lineWidth = 3; g.stroke(); }
+    g.restore();
+    if (!drag) {
+      const lp = { x: at.x + Math.cos(ang) * (D + reach + 26), y: at.y + Math.sin(ang) * (D + reach + 26) };
+      const short = h.model.replace(/(DA3|JAAD)$/, '');
+      this.tag(g, `${short} · ${h.coolKW} kW · ${Math.round(h.airflowLps ?? 0)} L/s`, lp.x, lp.y - 7, tone);
+      if (gr && !d.report) this.tag(g, `S ${gr.supply.size} · R ${gr.ret.size}`, lp.x, lp.y + 8, '#5F666E');
+    }
+    this.hits.push({ item: { kind: 'head', id: h.id }, x: at.x + Math.cos(ang) * D / 2, y: at.y + Math.sin(ang) * D / 2, r: Math.max(L / 2, 18) });
+  }
+
   headTag(h, d, x) {
     const base = `${h.model.replace(/(VGKD2|VGD)-A\d$/, '').replace(/^MSZ-/, '')} · ${h.coolKW} kW`;
     if (!h.reachM || d?.splitAir === false || d?.report || h.reachShort) return base;
@@ -936,6 +980,7 @@ export class Plan {
       const tone = h.outdoor >= 0 ? splitColour(h.outdoor) : T.danger;
       const len = Math.max((h.widthMM ?? 800) / 1000 * x.s, 26), dep = Math.max(0.22 * x.s, 9);
       const ang = Math.atan2(-h.blow.y, h.blow.x);            // the way it blows, on screen
+      if (!h.wall) { this.drawBulkhead(g, x, h, at, ang, tone, sel, drag, d); continue; }
       g.save(); g.translate(at.x, at.y); g.rotate(ang);
       // The unit along its wall (long side across the way it blows), louvres on the room side.
       g.beginPath(); g.roundRect(-dep / 2, -len / 2, dep, len, 3); g.fillStyle = '#fff'; g.fill();
@@ -1109,6 +1154,36 @@ export class Plan {
 
   /// Two storeys: each dropper's top on the upper floor and its foot on the ground floor, numbered and in its duct's
   /// colour, joined by a faint dashed line (the duct goes down through the house between them). Both ends drag.
+  /// The pipe runs drawn by hand: the condensate drain (blue, dashed) and the refrigerant line (copper, doubled), each
+  /// with its length; the one being drawn follows the clicks.
+  drawLines(g, x, d) {
+    const LOOK = { drain: { c: '#2F7FD8', w: 2.5, dash: [7, 5], name: 'Drain' }, refrigerant: { c: '#B8733A', w: 4, dash: null, name: 'Refrigerant' } };
+    const one = (pts, kind, id, drop, draft) => {
+      if (pts.length < 1) return;
+      const look = LOOK[kind] ?? LOOK.drain, sp = pts.map(x.pt), on = !draft && d.selection?.kind === 'line' && d.selection.id === id;
+      g.save(); g.lineCap = 'round'; g.lineJoin = 'round';
+      if (on) { g.strokeStyle = rgba(T.accent, 0.55); g.lineWidth = look.w + 7; g.beginPath(); sp.forEach((p, i) => (i ? g.lineTo(p.x, p.y) : g.moveTo(p.x, p.y))); g.stroke(); }
+      if (kind === 'refrigerant') { g.strokeStyle = '#fff'; g.lineWidth = look.w + 2.5; g.beginPath(); sp.forEach((p, i) => (i ? g.lineTo(p.x, p.y) : g.moveTo(p.x, p.y))); g.stroke(); }
+      g.strokeStyle = look.c; g.lineWidth = look.w; if (look.dash) g.setLineDash(look.dash);
+      g.beginPath(); sp.forEach((p, i) => (i ? g.lineTo(p.x, p.y) : g.moveTo(p.x, p.y))); g.stroke();
+      g.setLineDash([]);
+      for (const p of draft ? sp : [sp[0], sp[sp.length - 1]]) { g.beginPath(); g.arc(p.x, p.y, draft ? 4 : 3, 0, Math.PI * 2); g.fillStyle = look.c; g.fill(); }
+      g.restore();
+      let len = 0;
+      for (let i = 1; i < pts.length; i++) len += Math.hypot(pts[i].x - pts[i - 1].x, pts[i].y - pts[i - 1].y);
+      if (sp.length >= 2) {
+        const at = pointAlong(sp, 0.5);
+        if (at) this.tag(g, `${look.name} ${(len + (drop ?? 0)).toFixed(1)} m`, at.x, at.y - 12, look.c);
+      }
+      if (!draft) for (let i = 1; i < sp.length; i++) {
+        const a = sp[i - 1], b = sp[i], n = Math.max(1, Math.floor(Math.hypot(b.x - a.x, b.y - a.y) / 12));
+        for (let k = 0; k <= n; k++) this.hits.push({ item: { kind: 'line', id }, x: a.x + (b.x - a.x) * k / n, y: a.y + (b.y - a.y) * k / n, r: 8 });
+      }
+    };
+    for (const ln of d.project?.lines ?? []) one(ln.points, ln.kind, ln.id, ln.drop, false);
+    if (d.lineDraft?.length) one(d.lineDraft, d.addMode, null, 0, true);
+  }
+
   drawDroppers(g, x, d, report) {
     const ds = d.view?.droppers ?? [];
     if (!ds.length) return;
@@ -1294,6 +1369,8 @@ export class Plan {
   }
 
   tap(q) {
+    // Drawing a pipe run: every click is a point on it, inside the house or out to the outdoor unit.
+    if ((this.data?.addMode === 'drain' || this.data?.addMode === 'refrigerant') && this.x) { this.on.add?.(this.x.world(q)); return; }
     if (this.data?.addMode && this.x) {
       const w = this.x.world(q);
       if (this.data.view.rooms.some((r) => (r.conditioned || this.data.addMode === 'dropper') && pointInPolygon(w, r.polygon))) { this.on.add?.(w); return; }

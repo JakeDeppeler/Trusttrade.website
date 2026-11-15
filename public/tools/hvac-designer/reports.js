@@ -1,7 +1,7 @@
 // The printable reports: the customer's design report, the install sheet and the materials list, laid out as A4 pages
 // from the engine's report blocks (ReportText.swift — the app's wording). The browser's print window saves them as PDF.
 
-import * as store from './store.js?v=4ee6aeb-202611160836';
+import * as store from './store.js?v=2970336-202611160946';
 
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const DUCT = (mm) => mm <= 150 ? '#E0342F' : mm <= 200 ? '#6A8DDB' : mm <= 250 ? '#F0CB2E' : mm <= 300 ? '#7DC242' : mm <= 350 ? '#BFC4C9' : mm <= 400 ? '#D35FD0' : '#7B3FE4';
@@ -15,7 +15,7 @@ function planImage(app, Plan, w, h) {
   const split = app.project?.system === 'multiSplit';
   // Drawn over the builder's plan when the job has one, faded so the design reads on top.
   plan.set({ project: app.project, view: app.view, layout: split ? null : app.designLayout ?? app.layout, split: split ? app.split : null,
-    backdrop: app.backdrop, upperBackdrop: app.upperBackdrop, showPlan: !!(app.backdrop || app.upperBackdrop), planAlpha: 0.45, interactive: false, labels: true, compact: false, report: true, dpr: 2 });
+    backdrop: app.backdrop, upperBackdrop: app.upperBackdrop, topBackdrop: app.topBackdrop, showPlan: !!(app.backdrop || app.upperBackdrop), planAlpha: 0.45, interactive: false, labels: true, compact: false, report: true, dpr: 2 });
   plan.draw();
   const g = cv.getContext('2d');
   g.setTransform(1, 0, 0, 1, 0, 0);

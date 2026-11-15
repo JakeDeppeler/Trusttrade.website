@@ -301,6 +301,8 @@ export class Plan {
     const boxes = d.editor ? null : d.view.floorBoxes;
     if (d.showPlan !== false && d.backdrop && d.project?.backdrop) this.drawBackdrop(g, x, d.project.backdrop, d.backdrop, dpr, d.planAlpha, boxes?.[0]);
     if (d.showPlan !== false && d.upperBackdrop && d.project?.upperBackdrop) this.drawBackdrop(g, x, d.project.upperBackdrop, d.upperBackdrop, dpr, d.planAlpha, boxes?.[1]);
+    if (d.showPlan !== false && d.topBackdrop && d.project?.topBackdrop) this.drawBackdrop(g, x, d.project.topBackdrop, d.topBackdrop, dpr, d.planAlpha, boxes?.[2]);
+    if (!d.editor) this.drawOverlays(g, x, d.view);
     this.drawFloorLabels(g, x, d.view);
     if (d.gaps) this.drawGaps(g, x, d.gaps);
     this.drawWindows(g, x, view, d.editor?.pickedWindow?.());
@@ -1143,7 +1145,26 @@ export class Plan {
     }
   }
 
-  /// Two storeys: "Ground floor" and "Upper floor" over each floor's north-west corner.
+  /// Each lower floor with the floor above laid over it, faint and dashed, where it sits — so a dropper's foot is seen
+  /// under its top (Jake, 16 Nov 2026).
+  drawOverlays(g, x, view) {
+    for (const ov of view?.overlays ?? []) {
+      g.save(); g.setLineDash([5, 4]); g.strokeStyle = 'rgba(91,123,232,0.55)'; g.fillStyle = 'rgba(91,123,232,0.05)'; g.lineWidth = 1.3;
+      for (const poly of ov.outlines) {
+        const pts = poly.map(x.pt);
+        g.beginPath(); pts.forEach((p, i) => (i ? g.lineTo(p.x, p.y) : g.moveTo(p.x, p.y))); g.closePath(); g.fill(); g.stroke();
+      }
+      g.restore();
+      const all = ov.outlines.flat().map(x.pt);
+      if (all.length) {
+        const top = all.reduce((a, b) => (b.y < a.y ? b : a)), left = Math.min(...all.map((q) => q.x));
+        g.font = `700 10px ${FONT}`; g.fillStyle = 'rgba(70,98,200,0.85)'; g.textAlign = 'left'; g.textBaseline = 'bottom';
+        g.fillText(`${ov.name} above (dashed)`, left, top.y - 4);
+      }
+    }
+  }
+
+  /// More than one storey: each floor's name over its north-west corner.
   drawFloorLabels(g, x, view) {
     for (const f of view?.floorLabels ?? []) {
       const c = x.pt(f.pos);

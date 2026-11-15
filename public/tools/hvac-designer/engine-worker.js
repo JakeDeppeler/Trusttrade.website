@@ -51,7 +51,7 @@ const wasi = {
 async function load() {
   // engine.wasm.gz: the engine gzipped (3.8 MB, not 14), unpacked here, so it arrives small whatever the host
   // compresses. If the host already unpacked it on the way, it's used as it comes.
-  const res = await fetch(new URL('engine.wasm.gz?v=4ee6aeb-202611160836', self.location.href));
+  const res = await fetch(new URL('engine.wasm.gz?v=2970336-202611160946', self.location.href));
   if (!res.ok) throw new Error('The engine didn\'t download (' + res.status + ')');
   let bytes = new Uint8Array(await res.arrayBuffer());
   if (bytes[0] === 0x1f && bytes[1] === 0x8b) {

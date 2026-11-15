@@ -114,6 +114,7 @@ h1, h2, h3 { font-family: var(--head); font-weight: 800; letter-spacing: -.02em;
 .chip.warn { background: var(--accent-soft); color: var(--accent-deep); }
 .chip.cool { background: var(--cool-bg); color: var(--cool); }
 .chip.ok { background: var(--green-bg); color: var(--green); }
+.chip.bad { background: #FBE4E1; color: var(--danger); }
 .chip .dot { width: 8px; height: 8px; border-radius: 50%; }
 .tag { display: inline-block; padding: 3px 9px; border-radius: 999px; font-size: 11.5px; font-weight: 800; background: var(--accent-soft); color: var(--accent-deep); }
 .rowpick { display: flex; align-items: center; gap: 10px; padding: 11px 0; border-top: 1px solid var(--hair); }

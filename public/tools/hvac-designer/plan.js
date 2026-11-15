@@ -516,10 +516,16 @@ export class Plan {
       if (!at) continue;
       placed.push(at);
       this.sizeSpots.push(at);
-      const text = 'ø' + r.sizeMM, tw = g.measureText(text).width;
-      g.fillStyle = `rgba(255,255,255,${r.open ? 0.8 : 0.4})`;
+      // With the speeds on: "ø200 · 2.8", red past the class's limit for a branch, a trunk or the return.
+      const lim = this.data?.speeds, sp = lim && r.sizeMM ? r.lps / 1000 / (Math.PI * (r.sizeMM / 2000) ** 2) : null;
+      // A leg to a vent is judged by what the vent takes (L/s); a trunk, a feed or the return by the class's limit.
+      const tol = lim?.tol ?? 1.12, ventCap = r.outlet != null ? lim?.ventCap?.[r.sizeMM] : null;
+      const cap = lim ? (r.kind === 'trunk' ? lim.trunk : r.kind === 'return' ? lim.ret : lim.branch) : null;
+      const over = sp != null && (ventCap != null ? r.lps > ventCap * tol + 0.5 : cap != null && sp > cap * tol + 0.01);
+      const text = 'ø' + r.sizeMM + (sp != null && r.open ? ' · ' + sp.toFixed(1) : ''), tw = g.measureText(text).width;
+      g.fillStyle = over ? T.danger : `rgba(255,255,255,${r.open ? 0.8 : 0.4})`;
       g.beginPath(); g.roundRect(at.x - tw / 2 - 2.5, at.y - 6.5, tw + 5, 13, 3); g.fill();
-      g.fillStyle = rgba(T.ductLabel, r.open ? 1 : 0.4);
+      g.fillStyle = over ? '#fff' : rgba(T.ductLabel, r.open ? 1 : 0.4);
       g.fillText(text, at.x, at.y);
     }
     for (const t of longTags) {

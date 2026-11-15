@@ -1,10 +1,10 @@
 // Trust Trade Pro — the HVAC Designer in the browser. The same five steps as the app (House · Capture · Check · Design ·
 // Send) on the app's own engine (engine.wasm, run in a worker): the same loads, zones, ducts, checks and materials.
 
-import { call, latest } from './engine.js?v=7aebd96-202611151955';
-import * as store from './store.js?v=7aebd96-202611151955';
-import { Plan, inkImage, zoneColour, ductColour, splitColour, T, pointInPolygon, movesOnly, wheelMoves, ZOOM_MAX } from './plan.js?v=7aebd96-202611151955';
-import { RoomEditor, metres, signedArea, onLine } from './roomeditor.js?v=7aebd96-202611151955';
+import { call, latest } from './engine.js?v=559837a-202611152201';
+import * as store from './store.js?v=559837a-202611152201';
+import { Plan, inkImage, zoneColour, ductColour, splitColour, T, pointInPolygon, movesOnly, wheelMoves, ZOOM_MAX } from './plan.js?v=559837a-202611152201';
+import { RoomEditor, metres, signedArea, onLine } from './roomeditor.js?v=559837a-202611152201';
 
 // MARK: Helpers
 
@@ -223,7 +223,9 @@ async function loadBackdrop() {
 const isDouble = () => app.project?.site?.storeysPref === 'double' || !!app.view?.twoStorey;
 const floorName = (lv) => (lv === 1 ? 'upper floor' : 'ground floor');
 /// New ducted, a re-duct onto the unit that's there, or a multi-head split.
-const jobKind = () => (isSplit() ? 'multiSplit' : app.project?.existing ? 'reduct' : 'ducted');
+/// The job's kind as the switch shows it: ducted, a re-duct, bulkhead heads, a VRF on branch boxes, or wall heads.
+const SPLIT_KIND = { 'mitsubishi-pumy': 'vrf', 'mitsubishi-msz': 'wall', 'kaden-ksi': 'wall' };
+const jobKind = () => (isSplit() ? (SPLIT_KIND[app.project?.split?.range] ?? 'bulkhead') : app.project?.existing ? 'reduct' : 'ducted');
 
 /// By hand: the fan coil and its return go in, then the outlets room by room — the router draws and sizes the ducts
 /// as each one lands. Starting again clears the outlets (undoable).
@@ -502,6 +504,92 @@ function dialog(html, buttons) {
   return o;
 }
 
+// MARK: Catalogue
+
+/// The catalogue (Jake, 15 Nov 2026: "view a catalogue and then add my unit, BDO, duct … or bulkhead"): each brand's
+/// ducted units, the bulkhead and wall heads, City Multi, BDOs, flex and the outlets. A unit or range can be put on the
+/// job; anything can go on the materials as a line added by hand.
+const CAT_TABS = [['ducted', 'Ducted units'], ['bulkhead', 'Bulkhead units'], ['vrf', 'VRF'], ['wall', 'Wall heads'], ['bdo', 'BDOs'], ['flex', 'Flex duct'], ['outlets', 'Outlets & grilles']];
+function addExtra(desc, qty = 1, uom = 'ea', note = null) {
+  const extras = [...(app.project.extras ?? [])];
+  const have = extras.find((x) => x.desc === desc && x.uom === uom);
+  if (have) have.qty += qty; else extras.push({ desc, qty, uom, ...(note ? { note } : {}) });
+  commit({ ...app.project, extras }, { undoable: true });
+  toast(`Added to the materials: ${desc}`);
+}
+function catRow(title, sub, actions) {
+  return `<div class="kv" style="align-items:center;gap:10px"><span><b>${esc(title)}</b><br><span class="small muted">${sub}</span></span>
+    <span style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end">${actions}</span></div>`;
+}
+const catBtn = (attrs, label, primary = false) => `<button class="${primary ? 'btn' : 'btn2'} small" ${attrs}>${label}</button>`;
+function catalogueBody(tab) {
+  const o = app.options, add = (d, uom = 'ea') => catBtn(`data-add="${esc(d)}" data-uom="${uom}"`, 'Add to materials');
+  const ranges = (o.splitRanges ?? []);
+  const rangeBlock = (r) => `<div class="card" style="margin:10px 0;box-shadow:none;background:var(--tile)"><div style="display:flex;align-items:center;gap:8px">
+      <h3 style="flex:1;margin:0">${esc(r.brand)} · ${esc(r.name)}</h3>${catBtn(`data-range="${r.id}"`, isSplit() && app.project.split?.range === r.id ? 'On this job' : 'Use on this job', true)}</div>
+    ${r.heads.map((h) => catRow(h.model, `${g(h.kw)} kW cooling${h.heatKW ? ` · ${g(h.heatKW)} kW heating` : ''}${h.lps ? ` · ${fmt(h.lps)} L/s` : ''}${h.esp.length ? ` · ${h.esp.length > 1 ? h.esp.join('/') : '0–' + h.esp[0]} Pa` : ''}${h.widthMM ? ` · ${h.widthMM} × ${h.depthMM ?? '—'} × ${h.heightMM ?? '—'} mm` : ''}`, add(`${r.brand} ${h.model} ${h.wall ? 'wall head' : 'bulkhead unit'}`))).join('')}
+    <span class="eyebrow" style="display:block;margin-top:8px">Outdoor units</span>
+    ${r.outdoors.map((u) => catRow(u.model, `${g(u.kw)} kW · up to ${u.ports} heads · ${esc(u.phase)} · carries ${g(u.connect[0])}–${g(u.connect[1])} kW of heads`, add(`${r.brand} ${u.model} outdoor unit`))).join('')}
+    ${r.branchBoxes.length ? `<span class="eyebrow" style="display:block;margin-top:8px">Branch boxes</span>${r.branchBoxes.map((b) => catRow(b, b.includes('54') ? '5 ports' : '3 ports', add(`${r.brand} ${b} branch box`))).join('')}` : ''}</div>`;
+  switch (tab) {
+    case 'ducted': return (o.brands ?? []).map((b) => `<div class="card" style="margin:10px 0;box-shadow:none;background:var(--tile)"><h3 style="margin:0 0 4px">${esc(b.label)} ducted</h3>
+      ${b.units.map((u) => catRow(u.model || `${g(u.kw)} kW`, `${g(u.kw)} kW · ${fmt(u.lps)} L/s fan on high · up to ${fmt(u.esp)} Pa${u.espConfirmed === false ? ' (check the manual)' : ''}`,
+        catBtn(`data-unit="${u.kw}" data-brand-id="${b.id}"`, !isSplit() && brandId() === b.id && app.project.site.unitKWPref === u.kw ? 'On this job' : 'Use on this job', true) + add(`${b.label} ${u.model} ducted unit ${g(u.kw)} kW`))).join('')}</div>`).join('');
+    case 'bulkhead': return ranges.filter((r) => !r.wall && !r.vrf).map(rangeBlock).join('');
+    case 'vrf': return ranges.filter((r) => r.vrf).map(rangeBlock).join('');
+    case 'wall': return ranges.filter((r) => r.wall).map(rangeBlock).join('');
+    case 'bdo': {
+      const two = [250, 300, 350, 400], three = [300, 350, 400, 450];
+      return `<p class="small muted">The router puts the BDOs in and sizes them for the air. Add spares or extras here.</p>
+        ${two.map((mm) => catRow(`BDO 2-way Ø${mm}`, `branch take-off, 2 legs`, add(`Branch take-off, 2-way (DBTO) Ø${mm}`))).join('')}
+        ${three.map((mm) => catRow(`BDO 3-way Ø${mm}`, `branch take-off, 3 legs`, add(`Branch take-off, 3-way (DBTO) Ø${mm}`))).join('')}
+        ${[150, 200, 250, 300, 350, 400].map((mm) => catRow(`Zone damper Ø${mm}`, 'motorised, with its cable', add(`Zone damper Ø${mm}`))).join('')}`;
+    }
+    case 'flex': return `<p class="small muted">Insulated flexible duct in 6 m bags.</p>${(o.ductSizes ?? []).map((mm) => catRow(`Flex duct Ø${mm}`, `6 m bag · ${fmt(Math.PI * (mm / 2000) ** 2 * 3000)} L/s at 3 m/s`, catBtn(`data-add="Insulated flex duct Ø${mm}" data-uom="bag"`, 'Add a bag'))).join('')}
+      ${[150, 200, 250, 300, 350, 400].map((mm) => catRow(`Flex duct joiner Ø${mm}`, 'joins two lengths', add(`Flex duct joiner Ø${mm}`))).join('')}`;
+    case 'outlets': return `${[150, 200, 250, 300].map((mm) => catRow(`Round ceiling diffuser Ø${mm}`, 'multijet, adjustable', add(`Round ceiling diffuser Ø${mm} (multijet)`))).join('')}
+      ${[600, 900, 1200, 1500, 1800].map((l) => catRow(`Linear slot diffuser 2-slot × ${l}`, 'with plenum box', add(`Linear slot diffuser 2-slot × ${l}`))).join('')}
+      ${[[600, 100], [900, 100], [1200, 100], [900, 150], [1200, 150]].map(([l, h]) => catRow(`Linear bar grille ${l} × ${h}`, 'supply or return, with plenum box', add(`Linear bar grille ${l} × ${h}`))).join('')}
+      ${[[300, 100], [400, 150], [450, 200]].map(([l, w]) => catRow(`Floor grille ${l} × ${w}`, 'with plenum box', add(`Floor grille ${l} × ${w}`))).join('')}
+      ${[[600, 300], [900, 450], [1200, 500]].map(([l, w]) => catRow(`Return air filter grille ${l} × ${w}`, 'with G3 filter box', add(`Return air filter grille ${l} × ${w}`))).join('')}`;
+  }
+  return '';
+}
+function openCatalogue(tab) {
+  tab ??= isSplit() ? ({ vrf: 'vrf', wall: 'wall' })[jobKind()] ?? 'bulkhead' : 'ducted';
+  const extras = app.project.extras ?? [];
+  const d = dialog(`<h2>Catalogue</h2>
+    <div class="seg" style="flex-wrap:wrap;margin:0 0 6px">${CAT_TABS.map(([k, t]) => `<button data-tab="${k}" class="${k === tab ? 'on' : ''}">${t}</button>`).join('')}</div>
+    <div id="cat-body" style="max-height:58vh;overflow:auto;padding-right:4px">${catalogueBody(tab)}</div>
+    ${extras.length ? `<details style="margin-top:10px"><summary class="small" style="cursor:pointer;font-weight:700">Added by hand · ${extras.length} line${extras.length === 1 ? '' : 's'}</summary>
+      ${extras.map((x, i) => `<div class="kv"><span>${esc(x.desc)}</span><b>${g(x.qty)} ${esc(x.uom)} <button class="link" data-rm="${i}" style="padding:0 0 0 6px">Take off</button></b></div>`).join('')}</details>` : ''}`,
+    [{ label: 'Done', primary: true }]);
+  d.querySelector('.dialog').classList.add('wide');
+  d.addEventListener('click', async (e) => {
+    const t = e.target.closest('[data-tab],[data-add],[data-unit],[data-range],[data-rm]');
+    if (!t) return;
+    e.stopPropagation();
+    if (t.dataset.tab) { d.remove(); openCatalogue(t.dataset.tab); return; }
+    if (t.dataset.add) { addExtra(t.dataset.add, 1, t.dataset.uom || 'ea'); return; }
+    if (t.dataset.rm != null) {
+      const extras = (app.project.extras ?? []).filter((_, i) => i !== +t.dataset.rm);
+      d.remove(); await commit({ ...app.project, extras: extras.length ? extras : null }, { undoable: true }); openCatalogue(tab); return;
+    }
+    if (t.dataset.unit) {
+      d.remove();
+      if (isSplit()) await setJobKind('ducted');
+      await commit({ ...app.project, site: { ...app.project.site, brandPref: t.dataset.brandId === 'mitsubishi' ? null : t.dataset.brandId, unitKWPref: +t.dataset.unit } }, { undoable: true });
+      toast('Unit picked by hand. Back to the recommended size under Unit size on the Check step.');
+      return;
+    }
+    if (t.dataset.range) {
+      d.remove();
+      if (!isSplit()) await edit('setSystem', { system: 'multiSplit' });
+      if (app.project.split?.range !== t.dataset.range) await edit('setSplitRange', { key: t.dataset.range });
+    }
+  });
+}
+
 function confirmDialog(title, text, label, run) {
   dialog(`<h2>${esc(title)}</h2><p class="muted">${esc(text)}</p>`, [{ label: 'Cancel' }, { label, primary: true, danger: true, run }]);
 }
@@ -561,10 +649,12 @@ function jobKindCard() {
   const blurb = {
     ducted: 'A new ducted system: the unit, the outdoor unit, the ducts and the zoning.',
     reduct: `New ducts onto the ${ex?.kind === 'heater' ? 'gas ducted heater' : 'ducted unit'} that's there. It stays where it is: on the Design step, drag the fan coil to where it is in the roof. Pick the size nearest it under Unit size on the Check step, so the ducts suit its fan. No unit, outdoor unit or pipes on the materials.`,
-    multiSplit: 'Wall heads sized room by room, on the fewest outdoor units. How many heads an area gets, and each head\'s size, are set on the Design step.',
+    bulkhead: 'A slim ducted unit in a bulkhead in each room or living area, with a linear supply and return grille on the bulkhead face, on the fewest outdoor units. Add or move them on the Design step.',
+    vrf: 'Mitsubishi Electric City Multi for a bigger home: a PUMY outdoor unit and branch boxes, a bulkhead unit in each room. Add or move them on the Design step.',
+    wall: 'Wall heads sized room by room, on the fewest outdoor units. How many heads an area gets, and each head\'s size, are set on the Design step.',
   }[k];
   return `<div class="card"><span class="eyebrow">What's the job?</span>
-    <div class="seg" style="flex-wrap:wrap">${[['ducted', 'New ducted'], ['reduct', 'Re-duct'], ['multiSplit', 'Multi-head']].map(([id, t]) => `<button data-kind="${id}" class="${k === id ? 'on' : ''}">${t}</button>`).join('')}</div>
+    <div class="seg" style="flex-wrap:wrap">${[['ducted', 'New ducted'], ['reduct', 'Re-duct'], ['bulkhead', 'Bulkhead'], ['vrf', 'VRF'], ['wall', 'Wall split']].map(([id, t]) => `<button data-kind="${id}" class="${k === id ? 'on' : ''}">${t}</button>`).join('')}</div>
     ${k === 'reduct' ? `<div class="rowpick" style="margin-top:10px"><label>What's there</label><select id="ex-kind">
       <option value="aircon" ${ex?.kind !== 'heater' ? 'selected' : ''}>Ducted air conditioner</option>
       <option value="heater" ${ex?.kind === 'heater' ? 'selected' : ''}>Gas ducted heater</option></select></div>` : ''}
@@ -580,7 +670,7 @@ function floorsCard() {
   const img = [p.backdrop, p.upperBackdrop];
   const oneSheet = !!(p.upperBackdrop && p.backdrop && p.upperBackdrop.file === p.backdrop.file);
   const row = (lv) => `<div class="kv"><span><b>${lv ? 'Upper floor' : 'Ground floor'}</b> · ${n[lv] ? `${n[lv]} room${n[lv] === 1 ? '' : 's'}` : img[lv] ? 'plan in, no rooms yet' : 'no plan yet'}</span>
-    <button class="link" data-floor="${lv}" style="padding:0;white-space:nowrap">${n[lv] || img[lv] ? 'New plan' : 'Upload its plan'}</button></div>`;
+    ${lv === 1 && app.queuedUpper && !n[1] ? '<button class="link" id="upper-q2" style="padding:0;white-space:nowrap">Draw it now</button>' : `<button class="link" data-floor="${lv}" style="padding:0;white-space:nowrap">${n[lv] || img[lv] ? 'New plan' : 'Upload its plan'}</button>`}</div>`;
   return `<div class="card"><span class="eyebrow">Two storeys</span>
     ${row(0)}${oneSheet ? `<div class="kv"><span><b>Upper floor</b> · ${n[1]} room${n[1] === 1 ? '' : 's'}</span><span class="muted small">same sheet</span></div>` : row(1)}
     <p class="small muted" style="margin:8px 0 0">Read each floor's plan.${isSplit() ? '' : ' The fan coil goes in the roof over the upper floor; the ground floor gets its air down droppers, marked on the Design step.'}</p>
@@ -595,8 +685,8 @@ function floorsCard() {
 function getHouseIn() {
   return `<div class="card"><span class="eyebrow">Get the house in</span>
     <div class="drop" id="drop">${icon('upload')}<h3>Drop the builder's plan here</h3>
-      <p class="small muted">The builder's PDF, or a JPEG or PNG of the floor plan. You set the scale from a printed size, then draw the rooms over it.</p>
-      <label class="btn ink" style="margin-top:10px;height:42px">Choose a file<input type="file" id="planfile" accept="${PLAN_TYPES}" hidden></label></div>
+      <p class="small muted">The builder's PDF (pick the page, or the ground and upper floor pages), or a JPEG or PNG of each floor. You set the scale from a printed size, then draw the rooms over it.</p>
+      <label class="btn ink" style="margin-top:10px;height:42px">Choose a file<input type="file" id="planfile" accept="${PLAN_TYPES}" multiple hidden></label></div>
     <p class="small muted" style="text-align:center;margin:12px 0 0">or <button class="link" id="demo" style="padding:0;color:var(--accent-deep)">try the demo house</button>
       · no plan? <button class="link" id="grid" style="padding:0;color:var(--accent-deep)">draw the rooms on a grid</button></p>
     <p class="small muted" style="margin:14px 0 0">Scanning on site? Open the job in Trust Trade Pro on an iPhone Pro.</p></div>`;
@@ -629,6 +719,7 @@ function bindHouse(c) {
   c.querySelectorAll('[data-kind]').forEach((b) => (b.onclick = () => setJobKind(b.dataset.kind)));
   $('#ex-kind', c)?.addEventListener('change', (e) => edit('setExisting', { choice: e.target.value }));
   c.querySelectorAll('[data-floor]').forEach((b) => (b.onclick = () => pickPlan(true, +b.dataset.floor)));
+  $('#upper-q2', c)?.addEventListener('click', useQueuedUpper);
   c.querySelectorAll('[data-up]').forEach((b) => (b.onclick = () => edit('setRoomLevel', { room: b.dataset.up, level: b.classList.contains('on') ? 0 : 1 })));
   $('#downstairs', c)?.addEventListener('change', (e) => edit('setDuctDownstairs', { on: e.target.value === '1' }));
   bindUpload(c);
@@ -636,7 +727,7 @@ function bindHouse(c) {
 
 function bindUpload(c) {
   const input = $('#planfile', c), drop = $('#drop', c);
-  input?.addEventListener('change', () => input.files[0] && choosePlan(input.files[0], isDouble() ? 0 : undefined));
+  input?.addEventListener('change', () => input.files.length && choosePlans([...input.files]));
   $('#grid', c)?.addEventListener('click', drawOnGrid);
   $('#demo', c)?.addEventListener('click', async () => {
     const { project } = await call('demo', { project: app.project });
@@ -647,7 +738,7 @@ function bindUpload(c) {
   if (!drop) return;
   drop.addEventListener('dragover', (e) => { e.preventDefault(); drop.classList.add('over'); });
   drop.addEventListener('dragleave', () => drop.classList.remove('over'));
-  drop.addEventListener('drop', (e) => { e.preventDefault(); drop.classList.remove('over'); const f = e.dataTransfer.files[0]; if (f) choosePlan(f, isDouble() ? 0 : undefined); });
+  drop.addEventListener('drop', (e) => { e.preventDefault(); drop.classList.remove('over'); const fs = [...e.dataTransfer.files]; if (fs.length) choosePlans(fs); });
 }
 
 /// `level`: two storeys, the floor the plan is (0 ground, 1 upper); a single storey has none.
@@ -692,8 +783,14 @@ async function pdfPlan(file) {
   });
   const pdfjs = await pdfjsLoad;
   const doc = await pdfjs.getDocument({ data: await file.arrayBuffer() }).promise;
-  const n = doc.numPages === 1 ? 1 : await pickPdfPage(doc);
-  if (!n) return null;
+  const pick = doc.numPages === 1 ? { ground: 1, upper: null } : await pickPdfPage(doc);
+  if (!pick) return null;
+  // Two floors on two pages: the upper floor's page waits until the ground floor's drawn (Jake, 15 Nov 2026).
+  if (pick.upper) app.queuedUpper = { bitmap: await renderPdfPage(doc, pick.upper), label: `page ${pick.upper}` };
+  return renderPdfPage(doc, pick.ground);
+}
+
+async function renderPdfPage(doc, n) {
   const page = await doc.getPage(n), base = page.getViewport({ scale: 1 });
   const vp = page.getViewport({ scale: Math.min(2400 / Math.max(base.width, base.height), 8) });
   const cv = document.createElement('canvas');
@@ -708,19 +805,43 @@ async function pdfPlan(file) {
 function pickPdfPage(doc) {
   return new Promise((resolve) => {
     const n = Math.min(doc.numPages, 24);
+    const picked = { ground: null, upper: null };
     const d = dialog(`<h2>Which page is the floor plan?</h2>
-      <p class="muted small" style="margin:0 0 12px">${doc.numPages} pages in this PDF${doc.numPages > n ? ` (the first ${n} shown)` : ''}. Tap the one with the rooms on it.</p>
+      <p class="muted small" style="margin:0 0 6px">${doc.numPages} pages in this PDF${doc.numPages > n ? ` (the first ${n} shown)` : ''}. Tap the page with the rooms on it.</p>
+      <div class="seg" style="margin:0 0 12px"><button data-floors="1" class="on">One floor</button><button data-floors="2">Two floors: ground, then upper</button></div>
+      <p class="small" id="pdf-hint" style="margin:0 0 10px;font-weight:700"></p>
       <div id="pdf-pages" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:10px">${Array.from({ length: n }, (_, i) =>
         `<button data-pg="${i + 1}" style="border:1px solid var(--line);border-radius:12px;background:#fff;padding:6px;cursor:pointer;text-align:center"><canvas style="width:100%;display:block;background:var(--tile);border-radius:6px;aspect-ratio:1.414"></canvas><span class="small" style="display:block;margin-top:4px;font-weight:700">Page ${i + 1}</span></button>`).join('')}</div>`,
     [{ label: 'Cancel', run: () => resolve(null) }]);
     d.querySelector('.dialog').classList.add('wide');
     d.addEventListener('click', (e) => { if (e.target === d) resolve(null); });
+    let two = false;
+    const hint = d.querySelector('#pdf-hint');
+    const mark = () => {
+      d.querySelectorAll('[data-pg]').forEach((b) => {
+        const k = +b.dataset.pg, tag = k === picked.ground ? (two ? 'Ground floor' : '') : k === picked.upper ? 'Upper floor' : '';
+        b.style.borderColor = tag ? 'var(--accent)' : ''; b.style.boxShadow = tag ? '0 0 0 2px var(--accent)' : '';
+        b.querySelector('span').textContent = `Page ${k}` + (tag ? ` · ${tag}` : '');
+      });
+      hint.textContent = !two ? '' : !picked.ground ? 'Tap the ground floor\'s page.' : 'Now tap the upper floor\'s page.';
+    };
+    d.querySelectorAll('[data-floors]').forEach((b) => (b.onclick = (e) => {
+      e.stopPropagation();
+      two = b.dataset.floors === '2'; picked.ground = picked.upper = null;
+      d.querySelectorAll('[data-floors]').forEach((x) => x.classList.toggle('on', x === b));
+      mark();
+    }));
     d.querySelector('#pdf-pages').addEventListener('click', (e) => {
       const b = e.target.closest('[data-pg]');
       if (!b) return;
       e.stopPropagation();
-      d.remove();
-      resolve(+b.dataset.pg);
+      const k = +b.dataset.pg;
+      if (!two) { d.remove(); resolve({ ground: k, upper: null }); return; }
+      if (!picked.ground) { picked.ground = k; mark(); return; }
+      if (k === picked.ground) return;
+      picked.upper = k;
+      mark();
+      setTimeout(() => { d.remove(); resolve({ ...picked }); }, 250);
     });
     (async () => {
       for (const b of d.querySelectorAll('[data-pg]')) {
@@ -736,6 +857,42 @@ function pickPdfPage(doc) {
 
 /// A plan picked (a PDF or an image): kept as a JPEG, then read by AI or measured and drawn over by hand (the tradie
 /// picks).
+/// One plan, or two (the ground floor's and the upper floor's, as two images): the first is drawn now, the second
+/// waits for the ground floor to be done. Two of them make the job two storeys.
+async function choosePlans(files) {
+  files = files.filter((f) => f.type === 'application/pdf' || /\.pdf$/i.test(f.name) || /^image\//.test(f.type));
+  if (!files.length) { toast('Use the builder\'s PDF, or a JPEG or PNG of the floor plan.'); return; }
+  app.queuedUpper = null;
+  if (files.length >= 2) {
+    const [a, b] = files;
+    const go2 = async (ground, upper) => {
+      try { app.queuedUpper = { bitmap: await createImageBitmap(upper), label: upper.name }; } catch (_) { toast(`${upper.name} couldn't be opened.`); }
+      await ensureTwoStorey();
+      choosePlan(ground, 0);
+    };
+    dialog(`<h2>Two plans: which is which?</h2><p class="muted small">The ground floor's plan is drawn first, then the upper floor's.</p>`,
+      [{ label: `${a.name} is the ground floor`, primary: true, run: () => { go2(a, b); } },
+       { label: `${b.name} is the ground floor`, run: () => { go2(b, a); } }]);
+    return;
+  }
+  choosePlan(files[0], isDouble() ? 0 : undefined);
+}
+
+/// Mark the job two storeys (both floors' plans are coming).
+async function ensureTwoStorey() {
+  if (app.project.site.storeysPref === 'double') return;
+  await commit({ ...app.project, site: { ...app.project.site, storeysPref: 'double' } }, { rerender: false });
+}
+
+/// The upper floor's plan that came in with the ground floor's (a second page or image), drawn now.
+async function useQueuedUpper() {
+  const q = app.queuedUpper;
+  if (!q) return;
+  app.queuedUpper = null;
+  await ensureTwoStorey();
+  planFromBitmap(q.bitmap, 1);
+}
+
 async function choosePlan(file, level) {
   const pdf = file.type === 'application/pdf' || /\.pdf$/i.test(file.name);
   if (!pdf && !/^image\//.test(file.type)) { toast('Use the builder\'s PDF, or a JPEG or PNG of the floor plan.'); return; }
@@ -748,6 +905,11 @@ async function choosePlan(file, level) {
     return;
   }
   if (!bmp) return;
+  if (app.queuedUpper && level == null) { await ensureTwoStorey(); level = 0; }
+  planFromBitmap(bmp, level);
+}
+
+async function planFromBitmap(bmp, level) {
   // The plan kept for the job (≤2400 px) and the copy sent to be read (≤1568 px), both JPEG on white.
   const jpeg = async (max, q) => {
     const k = Math.min(1, max / Math.max(bmp.width, bmp.height));
@@ -911,10 +1073,14 @@ function renderCapture(c) {
         <p class="small muted" style="margin:8px 0 0">${r.result.north && r.result.north !== 'unknown' ? 'Read off the plan\'s north arrow. Change it if it\'s wrong.' : 'The plan has no north arrow — pick it so the windows face the right way.'}</p></div>` : ''}
       ${isDouble() && v.rooms.length && (!r || r.status === 'done') && !v.rooms.some((x) => x.level === 1) && !app.project.upperBackdrop ? `<div class="card"><h2>Now the upper floor</h2>
         <p class="small muted" style="margin:0 0 8px">Read the upper floor's plan as well. If both floors are on this sheet, mark the upstairs rooms on the House step instead.</p>
-        <div class="actions-row"><button class="btn" id="upper">Upload the upper floor's plan</button><button class="btn2" id="markup">Both are on this sheet</button></div></div>` : ''}
-      ${v.rooms.length && (!r || r.status === 'done') ? `<div class="card"><h2>${v.rooms.length} rooms</h2><p class="small muted" style="margin:0 0 8px">${g(v.totals.area)} m² · ${fmt(v.totals.connectedKW, 1)} kW connected</p>
-        <button class="btn2 small" id="fixrooms" style="margin:0 0 8px">Fix the rooms on the plan</button>
-        ${v.rooms.map((x) => `<div class="kv"><span>${esc(x.name)}${v.twoStorey && x.level === 1 ? ' <span class="muted small">upstairs</span>' : ''}</span><b>${x.conditioned ? `${fmt(x.area, 1)} m² · ${fmt(x.kw, 1)} kW` : `${fmt(x.area, 1)} m² · not ducted`}</b></div>`).join('')}</div>` : ''}
+        <div class="actions-row">${app.queuedUpper ? `<button class="btn" id="upper-q">Draw the upper floor (${esc(app.queuedUpper.label)})</button>` : ''}<button class="${app.queuedUpper ? 'btn2' : 'btn'}" id="upper">Upload the upper floor's plan</button><button class="btn2" id="markup">Both are on this sheet</button></div></div>` : ''}
+      ${v.rooms.length && (!r || r.status === 'done') ? `<div class="card"><div style="display:flex;align-items:center;gap:8px"><h2 style="flex:1">${v.rooms.length} rooms</h2><button class="btn small" id="fixrooms">Fix the rooms</button></div>
+        <p class="small muted" style="margin:2px 0 10px">${g(v.totals.area)} m² · ${fmt(v.totals.connectedKW, 1)} kW connected${v.twoStorey ? ` · ${v.rooms.filter((x) => x.level === 1).length} upstairs` : ''}</p>
+        <table class="rooms" style="width:100%"><thead><tr><th>Room</th><th class="num">Area</th><th class="num">Load</th></tr></thead><tbody>
+        ${[...v.rooms].sort((x, y) => (y.level ?? 0) - (x.level ?? 0)).map((x) => `<tr><td><b style="font-weight:650">${esc(x.name)}</b>${v.twoStorey ? ` <span class="chip" style="padding:2px 8px;font-size:11px">${x.level === 1 ? 'Upper' : 'Ground'}</span>` : ''}</td>
+          <td class="num">${fmt(x.area, 1)} m²</td><td class="num">${x.conditioned ? fmt(x.kw, 1) + ' kW' : '<span class="muted">not ducted</span>'}</td></tr>`).join('')}
+        </tbody></table>
+        <p class="small muted" style="margin:10px 0 0">Next, check the room types, open areas and the unit.</p></div>` : ''}
     </div></div>`;
   $('#another', c).onclick = () => pickPlan(true);
   $('#again', c)?.addEventListener('click', () => pickPlan(false));
@@ -924,6 +1090,7 @@ function renderCapture(c) {
   $('#drawit', c)?.addEventListener('click', () => { app.read.result = null; app.read.status = 'measure'; render(); });
   $('#fixrooms', c)?.addEventListener('click', () => openEditor());
   $('#upper', c)?.addEventListener('click', () => pickPlan(false, 1));
+  $('#upper-q', c)?.addEventListener('click', useQueuedUpper);
   $('#markup', c)?.addEventListener('click', () => go('house'));
   c.querySelectorAll('[data-north]').forEach((b) => (b.onclick = () => { app.read.north = b.dataset.north; importRead(); }));
   const cv = $('#cv', c);
@@ -951,47 +1118,61 @@ async function renderCheck(c) {
   const wet = v.rooms.filter((r) => r.type === 'bathroom');
   const inArea = new Map(); a.openAreas.forEach((grp, i) => grp.forEach((id) => inArea.set(id, i)));
   const t = v.totals, cards = app.cards;
-  c.innerHTML = `<div class="work" style="grid-template-columns:1fr 400px">
-    <div class="stage" style="overflow:auto">
-      ${isUnsized() ? `<div class="card" style="border:2px solid var(--accent)"><h2>The plan isn't sized yet</h2><p class="small muted" style="margin:2px 0 10px">The rooms were drawn by hand: set the size from one wall you know before the loads and ducts mean anything.</p><button class="btn" id="sizeit">Set the size</button></div>` : ''}
-      <div class="card" style="padding:12px 14px 6px">
-        <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px"><h2 style="flex:1">Rooms · ${v.rooms.length}</h2><button class="btn2 small" id="editrooms">Edit the rooms on the plan</button></div>
-        <table class="rooms"><thead><tr><th></th><th>Room</th><th>Type</th><th class="num">Area</th><th class="num">Load</th></tr></thead><tbody>
+  // The check as a few questions down the side of a big plan, one open at a time (Jake, 15 Nov 2026: "the check page
+  // layout is very messy").
+  const open = app.checkOpen ?? 'rooms';
+  const zl = o.zonings.find((z) => z.id === (p.site.zoningPref ?? 'perroom'));
+  const nSuites = Object.keys(a.suites).length;
+  const sec = (k, n, title, summary, body) => `<section class="q-sec ${open === k ? 'open' : ''}">
+    <button class="q-head" data-q="${k}"><span class="q-n">${n}</span><span class="q-t"><b>${title}</b><small>${summary}</small></span>${icon('chev', 'q-chev')}</button>
+    ${open === k ? `<div class="q-body">${body}</div>` : ''}</section>`;
+  const roomsBody = `
+      <table class="rooms"><thead><tr><th></th><th>Room</th><th>Type</th><th class="num">Area</th><th class="num">Load</th></tr></thead><tbody>
         ${v.rooms.map((r) => `<tr><td><span class="sw" style="background:${r.zone != null ? zoneColour(r.zone) : '#C9C4BA'}"></span></td>
           <td><input class="text" data-name="${r.id}" value="${esc(r.name)}"></td>
           <td><select data-type="${r.id}">${o.roomTypes.map((x) => `<option value="${x.id}" ${x.id === r.type ? 'selected' : ''}>${esc(x.label)}</option>`).join('')}</select></td>
           <td class="num">${fmt(r.area, 1)} m²</td><td class="num">${r.conditioned ? fmt(r.kw, 1) + ' kW' : '—'}</td></tr>`).join('')}
-        </tbody></table>
-      </div>
-      <div class="card"><h2>Open areas</h2><p class="small muted" style="margin:2px 0 10px">Rooms with no doors between them — say kitchen, dining and family — are heated and cooled as one space, on one zone.</p>
-        ${a.openAreas.map((grp, i) => `<div class="kv"><span>${grp.map(roomName).map(esc).join(' + ')}</span><button class="link" data-split="${i}">Split</button></div>`).join('') || '<p class="small muted">No open areas.</p>'}
-        <button class="btn2" id="addarea" style="margin-top:8px">${a.openAreas.length ? 'Add another open area' : 'Add an open area'}</button></div>
-      ${wet.length && beds.length ? `<div class="card"><h2>Ensuite</h2><p class="small muted" style="margin:2px 0 8px">An ensuite goes on its bedroom's zone.</p>
+      </tbody></table>
+      ${a.pc.gaps.length ? `<span class="eyebrow" style="display:block;margin:12px 0 4px">Gaps between rooms</span><p class="small muted" style="margin:0 0 6px">Floor no room covers. On, it becomes part of the room it opens off.</p>
+        ${a.pc.gaps.map((x) => `<label class="kv" style="cursor:pointer"><span><b style="font-weight:700">${x.outdoorish ? 'Outside, by the look of it' : x.joins ? 'Part of the ' + esc(roomName(x.joins)) : 'A hallway of its own'}</b><br><span class="small muted">${fmt(x.area, 1)} m²</span></span>
+          <input type="checkbox" data-gap="${esc(x.key)}" ${a.gapsOn.has(x.key) ? 'checked' : ''} style="width:20px;height:20px;accent-color:var(--ink)"></label>`).join('')}` : ''}
+      <div class="actions-row"><button class="btn2" id="editrooms">Edit the rooms on the plan</button></div>`;
+  const areasBody = `<p class="small muted" style="margin:0 0 8px">Rooms with no doors between them, say kitchen, dining and family, are heated and cooled as one space, on one zone.</p>
+      ${a.openAreas.map((grp, i) => `<div class="kv"><span>${grp.map(roomName).map(esc).join(' + ')}</span><button class="link" data-split="${i}">Split</button></div>`).join('') || '<p class="small muted">No open areas.</p>'}
+      <button class="btn2" id="addarea" style="margin-top:8px">${a.openAreas.length ? 'Add another open area' : 'Add an open area'}</button>
+      ${wet.length && beds.length ? `<span class="eyebrow" style="display:block;margin:14px 0 4px">Ensuites</span><p class="small muted" style="margin:0 0 6px">An ensuite goes on its bedroom's zone.</p>
         ${wet.map((r) => `<div class="kv"><span>${esc(r.name)}</span><select data-suite="${r.id}" class="text" style="width:auto">
-          <option value="">Not an ensuite</option>${beds.map((b) => `<option value="${b.id}" ${a.suites[r.id] === b.id ? 'selected' : ''}>Ensuite to ${esc(b.name)}</option>`).join('')}</select></div>`).join('')}</div>` : ''}
+          <option value="">Not an ensuite</option>${beds.map((b) => `<option value="${b.id}" ${a.suites[r.id] === b.id ? 'selected' : ''}>Ensuite to ${esc(b.name)}</option>`).join('')}</select></div>`).join('')}` : ''}`;
+  const zoningBody = `<p class="small muted" style="margin:0 0 8px">${esc(zl?.note ?? '')} Tap a room on the Design step to say if it's on its own zone or always on.</p>
+      <div class="seg" style="flex-wrap:wrap">${o.zonings.map((z) => `<button data-zoning="${z.id}" class="${z.id === (p.site.zoningPref ?? 'perroom') ? 'on' : ''}">${esc(z.label)}</button>`).join('')}</div>`;
+  const unitBody = `<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px"><p class="small muted" style="flex:1;margin:0">Sized so the whole home can run fully open on a design day.</p><button class="btn2 small" data-sizehow>How it's worked out</button></div>
+      ${unitOptions(t, p.site)}`;
+  c.innerHTML = `<div class="work check-work">
+    <div class="stage">
+      ${isUnsized() ? `<div class="card" style="border:2px solid var(--accent);margin-bottom:10px"><h2>The plan isn't sized yet</h2><p class="small muted" style="margin:2px 0 10px">The rooms were drawn by hand: set the size from one wall you know before the loads and ducts mean anything.</p><button class="btn" id="sizeit">Set the size</button></div>` : ''}
+      <div class="bar"><b>${v.rooms.length} rooms · ${fmt(t.area)} m² · ${fmt(t.connectedKW, 1)} kW</b><div class="spacer" style="flex:1"></div><button class="btn2 small" id="editrooms2">Edit the rooms</button></div>
+      <div class="canvas-card" style="cursor:pointer"><canvas id="cv"></canvas></div>
+      <div class="hint">${a.pc.gaps.length ? 'Shaded: floor no room covers. ' : ''}Click a room on the plan to move its walls and corners, reshape it or draw one in.</div>
     </div>
-    <div class="panel">
-      <div class="card" style="padding:8px"><div class="canvas-card" style="height:300px;box-shadow:none;cursor:pointer"><canvas id="cv"></canvas></div>
-        <p class="small muted" style="margin:6px 8px">${a.pc.gaps.length ? 'Shaded: floor the plan reading left out between rooms. ' : ''}Click the plan to move walls and corners, reshape a room or draw one in.</p></div>
-      ${a.pc.gaps.length ? `<div class="card"><h2>Gaps between rooms</h2><p class="small muted" style="margin:2px 0 8px">Floor the plan reading left out. On, it becomes part of the room it opens off.</p>
-        ${a.pc.gaps.map((x) => `<label class="kv" style="cursor:pointer"><span><b style="font-weight:700">${x.outdoorish ? 'Outside, by the look of it' : x.joins ? 'Part of the ' + esc(roomName(x.joins)) : 'A hallway of its own'}</b><br><span class="small muted">${fmt(x.area, 1)} m²${x.outdoorish ? ' · runs through to the outside — left out unless you switch it on' : ''}</span></span>
-          <input type="checkbox" data-gap="${esc(x.key)}" ${a.gapsOn.has(x.key) ? 'checked' : ''} style="width:20px;height:20px;accent-color:var(--ink)"></label>`).join('')}</div>` : ''}
-      <div class="card"><div style="display:flex;align-items:center;gap:8px"><h2 style="flex:1">Unit size</h2><button class="btn2 small" data-sizehow>How it's worked out</button></div><p class="small muted" style="margin:2px 0 10px">Sized so the whole home can run fully open on a design day. Inverters ramp down to about 5 kW, so a bigger unit still runs one zone.</p>
-        ${unitOptions(t, p.site)}</div>
-      <div class="card"><h2>Spill</h2>${spillCard(cards, p)}</div>
-      <div class="card"><h2>Zoning</h2><p class="small muted" style="margin:2px 0 8px">${esc(o.zonings.find((z) => z.id === (p.site.zoningPref ?? 'perroom'))?.note ?? '')}</p>
-        <div class="seg" style="flex-wrap:wrap">${o.zonings.map((z) => `<button data-zoning="${z.id}" class="${z.id === (p.site.zoningPref ?? 'perroom') ? 'on' : ''}">${esc(z.label)}</button>`).join('')}</div></div>
+    <div class="panel q-panel">
+      ${sec('rooms', 1, 'Rooms', `${v.rooms.length} rooms · ${v.rooms.filter((r) => r.conditioned).length} air conditioned${a.pc.gaps.length ? ` · ${a.pc.gaps.length} gap${a.pc.gaps.length === 1 ? '' : 's'}` : ''}`, roomsBody)}
+      ${sec('areas', 2, 'Open areas and ensuites', `${a.openAreas.length || 'No'} open area${a.openAreas.length === 1 ? '' : 's'}${wet.length && beds.length ? ` · ${nSuites || 'no'} ensuite${nSuites === 1 ? '' : 's'}` : ''}`, areasBody)}
+      ${sec('zoning', 3, 'Zoning', esc(zl?.label ?? ''), zoningBody)}
+      ${sec('unit', 4, 'Unit', t.unit ? esc(t.unit.label) : 'Not sized yet', unitBody)}
+      ${sec('spill', 5, 'Spill', cards?.needsSpill === false ? 'Nothing more to fit' : cards?.oneZone ? 'One zone' : 'Where spare air goes', spillCard(cards, p))}
     </div></div>`;
   const plan = mountPlan($('#cv', c), { interactive: false, labels: true, compact: true, zoneCards: false, gaps: a.pc.gaps.map((x) => ({ ...x, on: a.gapsOn.has(x.key) })),
     handlers: { tapRoom: (w) => openEditor({ room: w && v.rooms.find((r) => pointInPolygon(w, r.polygon))?.id }) } });
-  $('#editrooms', c).onclick = () => openEditor();
+  $('#editrooms', c)?.addEventListener('click', () => openEditor());
+  $('#editrooms2', c)?.addEventListener('click', () => openEditor());
   $('#sizeit', c)?.addEventListener('click', () => openEditor({ mode: 'measure' }));
+  c.querySelectorAll('[data-q]').forEach((b) => (b.onclick = () => { app.checkOpen = app.checkOpen === b.dataset.q || (!app.checkOpen && b.dataset.q === 'rooms') ? 'none' : b.dataset.q; renderCheck(c); }));
   c.querySelectorAll('[data-name]').forEach((inp) => inp.addEventListener('change', () => roomEdit(inp.dataset.name, { name: inp.value })));
   c.querySelectorAll('[data-type]').forEach((sel) => sel.addEventListener('change', () => roomEdit(sel.dataset.type, { type: sel.value })));
   c.querySelectorAll('[data-split]').forEach((b) => (b.onclick = () => { a.openAreas.splice(+b.dataset.split, 1); renderCheck(c); }));
   c.querySelectorAll('[data-suite]').forEach((s) => (s.onchange = () => { if (s.value) a.suites[s.dataset.suite] = s.value; else delete a.suites[s.dataset.suite]; }));
   c.querySelectorAll('[data-gap]').forEach((cb) => (cb.onchange = () => { cb.checked ? a.gapsOn.add(cb.dataset.gap) : a.gapsOn.delete(cb.dataset.gap); plan.set({ gaps: a.pc.gaps.map((x) => ({ ...x, on: a.gapsOn.has(x.key) })) }); }));
-  $('#addarea', c).onclick = () => pickOpenArea(c);
+  $('#addarea', c)?.addEventListener('click', () => pickOpenArea(c));
   bindUnitOptions(c);
   bindSpill(c);
   c.querySelectorAll('[data-zoning]').forEach((b) => (b.onclick = async () => { await commit({ ...app.project, site: { ...app.project.site, zoningPref: b.dataset.zoning } }, { rerender: false }); app.cards = await call('systemCards', { project: app.project }); render(); }));
@@ -1044,7 +1225,7 @@ function unitOptions(t, site) {
   const opt = (sizing, title, detail, badge) => `<button class="option ${!t.byHand && (site.unitSizingPref ?? 'wholeHome') === sizing ? 'on' : ''}" data-sizing="${sizing}">
     <span class="radio"></span><span><b>${esc(title)}</b>${badge ? ` <span class="tag">${badge}</span>` : ''}<p>${esc(detail)}</p></span></button>`;
   const ch = t.choices;
-  let html = brandSeg();
+  let html = brandSeg() + `<button class="link" data-cat style="padding:0;margin:0 0 8px">Browse the catalogue</button>`;
   if (ch.wholeHome) html += opt('wholeHome', `${g(ch.wholeHome.kw)} kW · whole home open`, `${fmt(t.wholeHomeKW, 1)} kW: every room's load added up, so it runs the full open home on a design day and turns down as zones shut.${t.wholeHomeKW > biggestUnitKW() * 1.06 ? ' More than one ducted unit can carry — see how it\'s worked out.' : ''}`, 'RECOMMENDED');
   if (ch.margin && ch.margin.kw !== ch.wholeHome?.kw) html += opt('margin', `${g(ch.margin.kw)} kW · more margin`, 'One size up: the hottest days, bigger windows than the plan shows, a room added later.');
   if (ch.zoned && ch.zoned.kw !== ch.wholeHome?.kw) html += opt('zoned', `${g(ch.zoned.kw)} kW · zoned use only`, `${fmt(t.designKW, 1)} kW: never every zone on at once (${(app.options.zonings.find((z) => z.id === (site.zoningPref ?? 'perroom'))?.label ?? '').toLowerCase()} zoning, ${fmt(t.diversity * 100)}% diversity).`);
@@ -1063,6 +1244,7 @@ function bindUnitOptions(c) {
   $('#unitkw', c)?.addEventListener('change', (e) => set({ unitKWPref: e.target.value ? parseFloat(e.target.value) : null }));
   c.querySelectorAll('[data-phase]').forEach((b) => (b.onclick = () => set({ threePhasePref: b.dataset.phase === '1' ? true : null })));
   bindBrand(c);
+  c.querySelectorAll('[data-cat]').forEach((b) => (b.onclick = () => openCatalogue()));
 }
 
 function spillCard(s, p) {
@@ -1968,6 +2150,10 @@ function renderInspector() {
       <div class="insp-sub">${fmt(r.area, 1)} m² · ${r.windows.length} window${r.windows.length === 1 ? '' : 's'} · ${r.zone === 0 ? 'constant, no damper' : r.zone != null ? 'zone ' + r.zone : 'no zone'}${mates.length ? ' with ' + mates.map((m) => esc(m.name)).join(', ') : ''}</div>
       <div class="needs"><div><span>Needs</span><b>${fmt(r.kw, 1)} kW</b><small>${fmt(r.lps)} L/s</small></div>
         <div class="${share >= 0.85 ? 'good' : ''}"><span>Gets, ${app.balanced ? 'balanced' : 'as installed'}</span><b>${fmt(gets)} L/s</b><small>${outs.length ? fmt(share * 100) + '%' : 'no vents'}</small></div></div>
+      <span class="eyebrow">Is it zoned?</span>
+      <div class="seg" style="margin-bottom:4px"><button data-zoned="own" class="${r.zone != null && r.zone !== 0 && !mates.length ? 'on' : ''}">Yes, its own zone</button>
+        <button data-zoned="none" class="${r.zone === 0 ? 'on' : ''}">No, always on</button>${mates.length ? '<button class="on" disabled>Shares a zone</button>' : ''}</div>
+      <p class="small muted" style="margin:0 0 10px">${r.zone === 0 ? 'No damper: it gets air whenever the system runs (a hall or a room the others open onto).' : mates.length ? `On one damper with ${mates.map((m) => esc(m.name)).join(', ')}. Pick Yes to give it its own.` : 'Its own damper and its own button on the controller.'}${byHand[r.id] != null ? ' <button class="link" data-zoned="auto" style="padding:0">As the zoning has it</button>' : ''}</p>
       ${outs.map((o) => { const a = app.air?.outlets.find((x) => x.id === o.id); return `<div class="kv"><span>Vent Ø${o.sizeMM}</span><b>${fmt(o.lps)} L/s${a ? ` · ${fmt(o.dbA)} dB(A)` : ''}</b></div>`; }).join('')}
       <details style="margin-top:8px"><summary class="small muted" style="cursor:pointer">How the load's worked out</summary>${r.factors.map(([k, val]) => `<div class="kv small"><span>${esc(k)}</span><b>${esc(val)}</b></div>`).join('')}</details>
       <div class="actions-row">${joined && mates.length ? '<button class="btn2" id="unjoin">Unjoin</button>' : `<button class="btn2 soft" id="join">${icon('link').replace('<svg', '<svg width="16" height="16"')} Join with another room</button>`}
@@ -1981,7 +2167,11 @@ function renderInspector() {
     html = `<div class="card"><div class="insp-head"><h2>${esc(r?.name ?? 'Outlet')}</h2>${close}</div>
       <div class="insp-sub">${o.open ? `${fmt(o.lps)} L/s · ${fmt(o.dbA)} dB(A)${a ? ` · throws ${fmt(a.throwM, 1)} m` : ''}${o.overridden ? ' · size set' : ''}` : `Zone shut · sized for ${fmt(o.designLps)} L/s`}</div>
       ${run && o.open ? legSpeedLine(run) : ''}
-      <span class="eyebrow">Vent size</span>
+      <span class="eyebrow">Outlet</span>
+      <div class="seg" style="flex-wrap:wrap;margin-bottom:6px">${OUTLET_STYLES.map(([k, t]) => `<button data-ostyle="${k}" class="${(o.style ?? 'round') === k ? 'on' : ''}">${t}</button>`).join('')}</div>
+      ${o.style && o.style !== 'round' ? `<div class="kv"><span>${esc(OUTLET_NAMES[o.style])}</span><b>${esc(o.face)} mm${o.faceNR != null ? ` <span class="muted small" style="font-weight:500">· ${fmt(o.facePa)} Pa · NR ${fmt(o.faceNR)}</span>` : ''}</b></div>
+        <p class="small muted" style="margin:0 0 8px">On a plenum box with a Ø${o.sizeMM} spigot.${o.faceTypical ? ' Typical floor grille sizing: check the maker\'s data.' : ''}${!o.styleByHand ? ' The job\'s outlet type: change it on this vent or under System &amp; zoning.' : ''}</p>` : ''}
+      <span class="eyebrow">Duct and neck size</span>
       <div class="sizes"><button data-vsize="0" class="${o.overridden ? '' : 'on'}">Auto (Ø${auto})</button>${app.options.ventSizes.map((mm) => `<button data-vsize="${mm}" class="${o.overridden && o.sizeMM === mm ? 'on' : ''}">Ø${mm}</button>`).join('')}</div>
       ${a ? `<div class="kv"><span>Throw</span><b>${fmt(a.ratio, 1)}× the walls · ${esc(a.coverage === 'good' ? 'mixes well' : a.coverage === 'short' ? 'falls short' : 'strong')}</b></div>
         <div class="kv"><span>Noise</span><b>NC ${fmt(a.nc)} · ${esc(a.ncWord)}</b></div><div class="kv"><span>Neck speed</span><b>${fmt(a.faceVelocity, 1)} m/s</b></div>` : ''}
@@ -2041,7 +2231,7 @@ function renderInspector() {
       <div class="actions-row"><button class="btn2" id="rotate">${icon('rotate').replace('<svg', '<svg width="16" height="16"')} Turn it 90°</button></div></div>`;
   } else if (s?.kind === 'ret' && l) {
     html = `<div class="card"><div class="insp-head"><h2>Return air grille ${l.returnGrilleSize[0]} × ${l.returnGrilleSize[1]}</h2>${close}</div>
-      <div class="insp-sub">${fmt(l.fanLps)} L/s at under 2 m/s · filter box · Ø${l.returnMM} flex to the fan coil · drag to move</div></div>`;
+      <div class="insp-sub">${fmt(l.fanLps)} L/s at under 2 m/s · filter box · ${l.returnCount ?? 1} × Ø${l.returnMM} flex to the fan coil, ${fmt(velocity(l.fanLps / (l.returnCount ?? 1), l.returnMM), 1)} m/s each · drag to move</div></div>`;
   } else if (s?.kind === 'outdoor' && l) {
     const moved = p.design?.outdoor != null;
     html = `<div class="card"><div class="insp-head"><h2>Outdoor unit</h2>${close}</div>
@@ -2122,6 +2312,9 @@ function sizeBreakdown() {
   d.querySelector('.dialog').classList.add('wide');
 }
 
+const OUTLET_STYLES = [['round', 'Round'], ['slot', 'Linear slot'], ['bar', 'Linear bar'], ['floor', 'Floor grille']];
+const OUTLET_NAMES = { round: 'Round ceiling diffuser', slot: 'Linear slot diffuser', bar: 'Linear bar grille', floor: 'Floor grille' };
+
 function velocity(lps, mm) { return lps / 1000 / (Math.PI * (mm / 2000) ** 2); }
 /// The router sizes a run up to 12% over its class's limit before taking the next size (Router.sizes, ventTol), so a
 /// run is "over" only past that — the same line the engine draws.
@@ -2185,11 +2378,13 @@ function designSummary() {
       <div class="kv"><span>Unit</span><b>${p.existing ? `Existing ${p.existing.kind === 'heater' ? 'heater' : 'unit'} · ducts for ${g(v.totals.unit?.kw ?? 0)} kW` : esc(v.totals.unit?.label ?? '—')} <button class="link" data-sizehow style="padding:0 0 0 6px">How it's sized</button></b></div>
       ${(app.options.brands?.length ?? 0) > 1 && !p.existing ? `<div class="rowpick"><label>Brand</label><select id="brand">${app.options.brands.map((b) => `<option value="${b.id}" ${b.id === brandId() ? 'selected' : ''}>${esc(b.label)}</option>`).join('')}</select></div>
       <div class="kv"><span>Fan on high</span><b>${fmt(v.totals.unit?.lps)} L/s · up to ${fmt(v.totals.unit?.esp)} Pa${v.totals.unit?.espConfirmed === false ? ' <span class="muted small" style="font-weight:500">(check the manual)</span>' : ''}</b></div>` : ''}
+      <div class="rowpick"><label>Outlets</label><select id="ostyle-all">${OUTLET_STYLES.map(([k, t]) => `<option value="${k}" ${(p.design?.outletStyle ?? 'round') === k ? 'selected' : ''}>${t}</option>`).join('')}</select></div>
       <div class="rowpick"><label>Zoning</label><select id="zoning">${app.options.zonings.map((z) => `<option value="${z.id}" ${z.id === zoning ? 'selected' : ''}>${esc(z.label)}</option>`).join('')}</select></div>
       <div class="rowpick"><label>Supply air transition</label><select id="takeoffs">${takeoffOptions()}</select></div>
       <div class="rowpick"><label>Air speed</label><select id="velocity">${app.options.velocities.map((x) => `<option value="${x.id}" ${x.id === (p.site.velocityPref ?? 'standard') ? 'selected' : ''}>${esc(x.label)}</option>`).join('')}</select></div>
       <div class="kv"><span>Fan static</span><b>${staticLine(l.network)}</b></div>
-      ${(p.design?.boxPins || p.design?.stations) ? '<button class="btn2" id="unhand" style="margin-top:10px">Undo hand-placed BDOs</button>' : ''}</div>
+      ${(p.design?.boxPins || p.design?.stations) ? '<button class="btn2" id="unhand" style="margin-top:10px">Undo hand-placed BDOs</button>' : ''}
+      <button class="btn2" data-cat style="margin-top:10px">Catalogue: units, BDOs, duct, grilles</button></div>
     ${speedCard(l, p)}
     <div class="card"><h2>Flex to order</h2>
       ${l.flex.map((f) => `<div class="kv"><span><span class="dot" style="display:inline-block;width:10px;height:10px;border-radius:50%;background:${ductColour(f.sizeMM)};margin-right:8px"></span>Ø${f.sizeMM}</span><b>${fmt(f.metres, 1)} m · ${f.bags} bag${f.bags === 1 ? '' : 's'}</b></div>`).join('')}
@@ -2226,12 +2421,14 @@ function speedCard(l, p) {
     .reduce((w, r) => { const sp = velocity(r.lps, r.sizeMM); return !w || sp > w.sp ? { sp, r } : w; }, null);
   const legs = l.runs.filter((r) => r.outlet != null && r.open && r.sizeMM), legsOver = legs.filter(legOver).length;
   const rows = [['Trunks', worst((r) => r.kind === 'trunk'), lim.trunk], ['Feeds to BDOs', worst((r) => r.kind === 'supply' && r.outlet == null), lim.branch],
-    ['Return', l.fanLps && l.returnMM ? { sp: velocity(l.fanLps, l.returnMM), r: { sizeMM: l.returnMM } } : null, lim.ret]].filter(([, w]) => w);
+    ['Return', l.fanLps && l.returnMM ? { sp: velocity(l.fanLps / (l.returnCount ?? 1), l.returnMM), r: { sizeMM: l.returnMM, count: l.returnCount ?? 1 } } : null, lim.ret]].filter(([, w]) => w);
   if (!rows.length && !legs.length) return '';
-  const over = rows.filter(([, w, cap]) => overSpeed(w.sp, cap)).length + legsOver;
+  // The return runs at up to 15% over its class's speed (two ducts sized to it, `Designer.returnFor`).
+  const overRow = (name, w, cap) => name === 'Return' ? w.sp > cap * 1.15 + 0.01 : overSpeed(w.sp, cap);
+  const over = rows.filter(([n, w, cap]) => overRow(n, w, cap)).length + legsOver;
   return `<div class="card"><div style="display:flex;align-items:center"><h2 style="flex:1">Air speed</h2>${over ? `<span class="chip bad">${over} over</span>` : '<span class="chip ok">In limits</span>'}</div>
     <p class="small muted" style="margin:2px 0 6px">${esc(app.options.velocities.find((x) => x.id === cls)?.label ?? cls)} limits: branches ${lim.branch}, trunks ${lim.trunk}, return ${lim.ret} m/s, sized up past 12% over. Turn on <b>Air speed on the ducts</b> under Layers to see every run.</p>
-    ${rows.map(([name, w, cap]) => `<div class="kv"><span>${name} · fastest, Ø${w.r.sizeMM}</span><b style="${overSpeed(w.sp, cap) ? 'color:var(--danger)' : ''}">${fmt(w.sp, 1)} m/s <span class="muted small" style="font-weight:500">of ${cap}</span></b></div>`).join('')}
+    ${rows.map(([name, w, cap]) => `<div class="kv"><span>${name} · ${w.r.count > 1 ? `${w.r.count} × Ø${w.r.sizeMM}` : `fastest, Ø${w.r.sizeMM}`}</span><b style="${overRow(name, w, cap) ? 'color:var(--danger)' : ''}">${fmt(w.sp, 1)} m/s <span class="muted small" style="font-weight:500">of ${cap}</span></b></div>`).join('')}
     ${legs.length ? `<div class="kv"><span>Legs to the vents</span><b style="${legsOver ? 'color:var(--danger)' : ''}">${legsOver ? `${legsOver} with more air than the vent takes` : 'each within what its vent takes'}</b></div>` : ''}</div>`;
 }
 
@@ -2240,6 +2437,10 @@ function bindInspector(el) {
   $('#insp-close', el)?.addEventListener('click', () => select(null));
   $('#join', el)?.addEventListener('click', () => { app.joining = s.id; app.selection = null; render(); });
   $('#unjoin', el)?.addEventListener('click', () => edit('unjoinRoom', { room: s.id }));
+  el.querySelectorAll('[data-zoned]').forEach((b) => (b.onclick = () => {
+    const k = b.dataset.zoned, zones = (app.layout?.zones ?? []).map((z) => z.number);
+    edit('setZone', { room: s.id, zone: k === 'none' ? 0 : k === 'auto' ? null : Math.max(0, ...zones) + 1 });
+  }));
   $('#addhere', el)?.addEventListener('click', () => { app.addMode = true; render(); });
   $('#reshape', el)?.addEventListener('click', () => openEditor({ room: app.selection?.id }));
   el.querySelectorAll('[data-vsize]').forEach((b) => (b.onclick = () => edit('setRunSize', { id: s.id, mm: +b.dataset.vsize })));
@@ -2261,6 +2462,9 @@ function bindInspector(el) {
     await refresh(); render();
   }));
   el.querySelectorAll('[data-bal]').forEach((b) => (b.onclick = async () => { app.balanced = b.dataset.bal === '1'; await refresh(); render(); }));
+  el.querySelectorAll('[data-ostyle]').forEach((b) => (b.onclick = () => edit('setOutletStyle', { id: s.id, choice: b.dataset.ostyle })));
+  $('#ostyle-all', el)?.addEventListener('change', (e) => edit('setOutletStyle', { choice: e.target.value }));
+  el.querySelectorAll('[data-cat]').forEach((b) => (b.onclick = () => openCatalogue()));
   $('#brand', el)?.addEventListener('change', (e) => commit({ ...app.project, site: { ...app.project.site, brandPref: e.target.value === 'mitsubishi' ? null : e.target.value, unitKWPref: null } }, { undoable: true }));
   $('#zoning', el)?.addEventListener('change', (e) => commit({ ...app.project, site: { ...app.project.site, zoningPref: e.target.value } }, { undoable: true }));
   $('#velocity', el)?.addEventListener('change', (e) => commit({ ...app.project, site: { ...app.project.site, velocityPref: e.target.value } }, { undoable: true }));
@@ -2328,7 +2532,7 @@ async function renderSend(c) {
 /// New ducted, a re-duct or a multi-head split, on the Design step's bar.
 function systemSwitch() {
   const k = jobKind();
-  return `<div class="seg" title="The kind of job">${[['ducted', 'Ducted'], ['reduct', 'Re-duct'], ['multiSplit', 'Multi-head']].map(([id, t]) =>
+  return `<div class="seg" title="The kind of job">${[['ducted', 'Ducted'], ['reduct', 'Re-duct'], ['bulkhead', 'Bulkhead'], ['vrf', 'VRF'], ['wall', 'Wall split']].map(([id, t]) =>
     `<button data-sys="${id}" class="${k === id ? 'on' : ''}">${t}</button>`).join('')}</div>`;
 }
 
@@ -2340,7 +2544,14 @@ function bindSystemSwitch(c) {
 async function setJobKind(kind) {
   if (kind === jobKind()) return;
   app.selection = null;
-  if (kind === 'multiSplit') { await edit('setSystem', { system: 'multiSplit' }); return; }
+  if (['bulkhead', 'vrf', 'wall', 'multiSplit'].includes(kind)) {
+    // Each brand's own range: bulkhead heads, wall heads, or City Multi on branch boxes.
+    const kaden = brandId() === 'kaden';
+    const range = kind === 'vrf' ? 'mitsubishi-pumy' : kind === 'wall' ? (kaden ? 'kaden-ksi' : 'mitsubishi-msz') : (kaden ? 'kaden-km' : 'mitsubishi-mxz');
+    if (!isSplit()) await edit('setSystem', { system: 'multiSplit' });
+    if (app.project.split?.range !== range) await edit('setSplitRange', { key: range });
+    return;
+  }
   if (isSplit()) await edit('setSystem', { system: 'ducted' });
   await edit('setExisting', { choice: kind === 'reduct' ? (app.project.existing?.kind ?? 'aircon') : null });
   if (kind === 'reduct') toast('Re-duct: drag the fan coil to where the unit is.', 4500);
@@ -2357,7 +2568,8 @@ function renderSplitDesign(c) {
   const kw = heads.reduce((t, h) => t + h.coolKW, 0);
   c.innerHTML = `<div class="work with-rail">
     <div class="rail">
-      <button id="t-select" class="on">${icon('cursor')}<span class="tip">Select and drag</span></button>
+      <button id="t-select" class="${app.addMode ? '' : 'on'}">${icon('cursor')}<span class="tip">Select and drag</span></button>
+      <button id="t-addhead" class="${app.addMode === 'head' ? 'on' : ''}">${icon('addvent')}<span class="tip">${app.addMode === 'head' ? 'Done adding' : sp?.range?.wall ? 'Add a wall head' : 'Add a bulkhead unit'}</span></button>
       <button id="t-undo" ${app.undo.length ? '' : 'disabled'}>${icon('undo')}<span class="tip">Undo</span></button>
       <button id="t-redo" ${app.redo.length ? '' : 'disabled'}>${icon('redo')}<span class="tip">Redo</span></button>
       <button id="t-fit">${icon('fit')}<span class="tip">Fit the plan</span></button>
@@ -2382,8 +2594,11 @@ function renderSplitDesign(c) {
   </div>`;
   const plan = mountPlan($('#cv', c), {
     layout: false, split: sp, splitAir: splitAir(), selection: app.selection, interactive: true, labels: true, compact: true,
-    handlers: { select: (item) => select(item), dragMove: () => {}, drop: (item, pos) => drop(item, pos) },
+    addMode: app.addMode === 'head' ? 'head' : false,
+    handlers: { select: (item) => select(item), dragMove: () => {}, drop: (item, pos) => drop(item, pos), add: (pos) => addHead(pos) },
   });
+  $('#t-select', c).onclick = () => { app.addMode = false; render(); };
+  $('#t-addhead', c).onclick = () => { app.addMode = app.addMode === 'head' ? false : 'head'; if (app.addMode) app.selection = null; render(); };
   app.plan = plan;
   renderSplitInspector();
   for (const id of ['#t-undo', '#b-undo']) $(id, c).onclick = undo;
@@ -2396,6 +2611,15 @@ function renderSplitDesign(c) {
     c.querySelectorAll('[data-sair]').forEach((x) => x.classList.toggle('on', x === b));
     plan.set({ splitAir: splitAir() });
   }));
+}
+
+/// A head added by hand where the plan's tapped: the room's first, or one more in a room or open area that has one.
+async function addHead(pos) {
+  const room = app.view.rooms.find((r) => r.conditioned && pointInPolygon(pos, r.polygon));
+  if (!room) return;
+  const h = app.split?.heads.find((x) => x.spaceRooms.includes(room.id));
+  const r = h ? await edit('setHeadCount', { key: h.spaceKey, n: h.spaceHeads + 1 }) : await edit('setHeadRoom', { room: room.id, choice: 'on' });
+  if (r) toast(h ? `${h.spaceHeads + 1} heads in ${room.name}: drag them where they go.` : `A head in ${room.name}: drag it along its wall.`);
 }
 
 /// The heads' air reach on the plan (on unless turned off).
@@ -2487,7 +2711,7 @@ function renderSplitInspector() {
     html = `<div class="card"><h2>Multi-head split</h2>
         <label class="field"><span>Range</span><select id="sp-range">${groups.map(([label, rs]) => `<optgroup label="${label}">${rs.map((r) => `<option value="${r.id}" ${r.id === sp.range.id ? 'selected' : ''}>${esc(r.brand)} — ${esc(r.name)}</option>`).join('')}</optgroup>`).join('')}</select></label>
         <p class="small muted" style="margin:0">Each bedroom and living area gets a head sized to its load; the heads go on the fewest outdoor units that take them, each where its pipes are shortest.</p>
-        <div class="actions-row"><button class="link" id="sp-reset">Start the heads again</button></div></div>
+        <div class="actions-row"><button class="btn2" data-cat>Catalogue</button><button class="link" id="sp-reset">Start the heads again</button></div></div>
       ${unitsCard(sp, noHead)}
       <div class="card"><h2>Checks</h2><div class="checklist">${sp.checks.map(checkItem).join('')}</div></div>`;
   }
@@ -2504,6 +2728,7 @@ function renderSplitInspector() {
     add.onclick = () => { app.addingUnit = false; edit('addSplitOutdoor', { keys: picks.filter((x) => x.checked).map((x) => x.dataset.pick) }); };
     $('#nu-cancel', el).onclick = () => { app.addingUnit = false; renderSplitInspector(); };
   }
+  el.querySelectorAll('[data-cat]').forEach((b) => (b.onclick = () => openCatalogue()));
   $('#sp-range', el)?.addEventListener('change', (e) => edit('setSplitRange', { key: e.target.value }));
   $('#sp-reset', el)?.addEventListener('click', () => confirmDialog('Start the heads again?', 'Every head and outdoor unit goes back where the plan puts it, at the size it picks. You can undo this.', 'Start again', () => edit('resetSplit')));
   if (h) {
@@ -2632,7 +2857,7 @@ function openReport(kind) {
   const close = () => o.remove();
   $('#rp-close', o).onclick = close;
   o.addEventListener('keydown', (e) => e.key === 'Escape' && close());
-  import('./reports.js?v=7aebd96-202611151955').then(async (m) => {
+  import('./reports.js?v=559837a-202611152201').then(async (m) => {
     // Reports are always the design as installed: every zone open, balanced. A multi-head job has no ducted design to
     // route (routing one threw, and the bar stayed on "Building the report…" for good).
     app.designLayout = isSplit() ? null : await call('route', { project: app.project, closed: [], balanced: true });

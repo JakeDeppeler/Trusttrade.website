@@ -249,7 +249,36 @@ export class Plan {
   // MARK: Drawing
 
   draw() {
+    this.drawScene();
+    this.placeFan();
+  }
+
+  /// The fan coil's fan: a spinning fan over the unit (a CSS animation on its own layer, so the plan isn't redrawn
+  /// every frame); quicker with the airflow on. Hidden when there's no fan coil on the plan.
+  placeFan() {
+    const host = this.canvas.parentElement;
+    if (!host || !this.canvas.isConnected) return;
+    const f = this.fanAt;
+    if (!f) { if (this.fanEl) this.fanEl.style.display = 'none'; return; }
+    if (!this.fanEl) {
+      this.fanEl = document.createElement('div');
+      this.fanEl.className = 'fan-spin';
+      this.fanEl.innerHTML = '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="11" fill="#2A2E33" stroke="#5B6168" stroke-width="1"/><g class="blades" fill="#C9CED4">'
+        + [0, 72, 144, 216, 288].map((a) => `<path transform="rotate(${a} 12 12)" d="M12 12 C 11 8.2, 12.4 4.4, 14.6 3.6 C 15.6 6.4, 14.6 9.8, 12 12 Z"/>`).join('')
+        + '</g><circle cx="12" cy="12" r="2.2" fill="#E9A21C"/></svg>';
+      host.append(this.fanEl);
+    }
+    const e = this.fanEl;
+    e.style.display = '';
+    e.style.width = e.style.height = f.size + 'px';
+    e.style.left = this.canvas.offsetLeft + f.x - f.size / 2 + 'px';
+    e.style.top = this.canvas.offsetTop + f.y - f.size / 2 + 'px';
+    e.classList.toggle('fast', !!this.data?.showAir);
+  }
+
+  drawScene() {
     this.hits = [];
+    this.fanAt = null;
     const c = this.canvas, dpr = this.data?.dpr ?? (window.devicePixelRatio || 1);
     const W = c.clientWidth, H = c.clientHeight;
     if (!W || !H) return;
@@ -566,19 +595,37 @@ export class Plan {
           if (d < bestD) { bestD = d; c = nearestOn(x.pt(dm.pos), a, b); dir = unitVec({ x: b.x - a.x, y: b.y - a.y }) ?? dir; }
         }
       }
+      // A zone motor: a collar across the duct, and a badge on it in its zone's colour with the zone's number (red with
+      // a cross when the zone's shut).
       const n = { x: -dir.y, y: dir.x };
       const len = Math.max(dm.sizeMM / 1000 * x.s * 0.55, 5);
-      this.stroke(g, [{ x: c.x - n.x * len, y: c.y - n.y * len }, { x: c.x + n.x * len, y: c.y + n.y * len }], dm.open ? '#3A3F45' : T.danger, 3);
-      if (!dm.open) {
-        g.font = `900 10px ${FONT}`; g.fillStyle = T.danger; g.fillText('✕', c.x + 9, c.y - 9);
-      }
+      this.stroke(g, [{ x: c.x - n.x * len, y: c.y - n.y * len }, { x: c.x + n.x * len, y: c.y + n.y * len }], '#2A2E33', 2.5);
+      const tone = dm.open ? zoneColour(dm.zone) : T.danger, label = dm.open ? String(dm.zone) : '✕';
+      g.save(); g.shadowColor = 'rgba(0,0,0,0.2)'; g.shadowBlur = 3; g.shadowOffsetY = 1;
+      g.beginPath(); g.roundRect(c.x - 7.5, c.y - 7, 15, 14, 4); g.fillStyle = tone; g.fill(); g.restore();
+      g.beginPath(); g.roundRect(c.x - 7.5, c.y - 7, 15, 14, 4); g.strokeStyle = '#fff'; g.lineWidth = 1.5; g.stroke();
+      g.font = `900 9.5px ${FONT}`; g.fillStyle = '#fff'; g.textAlign = 'center'; g.textBaseline = 'middle';
+      g.fillText(label, c.x, c.y + 0.5);
     }
-    // BDOs: grey fittings.
-    for (const b of l.boxes) {
-      const c = x.pt(b.pos), r = Math.max(0.2 * x.s, 6);
-      g.beginPath(); g.arc(c.x, c.y, r, 0, Math.PI * 2);
-      g.fillStyle = '#D5D8DC'; g.fill(); g.strokeStyle = '#6B7178'; g.lineWidth = 1.4; g.stroke();
-      g.beginPath(); g.arc(c.x, c.y, r * 0.35, 0, Math.PI * 2); g.fillStyle = '#8A9097'; g.fill();
+    // BDOs: galvanised fittings along their inlet, a band in their zone's colour, and how many ways.
+    for (const b of l.boxes) this.drawBdo(g, x.pt(b.pos), b, x);
+  }
+
+  drawBdo(g, c, b, x) {
+    const dir = { x: b.axis?.x ?? 1, y: -(b.axis?.y ?? 0) }, ang = Math.atan2(dir.y, dir.x);
+    const len = Math.max(0.5 * x.s, 16), wid = Math.max(0.36 * x.s, 12);
+    g.save(); g.translate(c.x, c.y); g.rotate(ang);
+    g.shadowColor = 'rgba(0,0,0,0.18)'; g.shadowBlur = 3; g.shadowOffsetY = 1;
+    const grad = g.createLinearGradient(0, -wid / 2, 0, wid / 2);
+    grad.addColorStop(0, '#EEF1F4'); grad.addColorStop(0.5, '#D3D8DD'); grad.addColorStop(1, '#B9BFC6');
+    g.beginPath(); g.roundRect(-len / 2, -wid / 2, len, wid, Math.min(4, wid / 3)); g.fillStyle = grad; g.fill();
+    g.shadowColor = 'transparent';
+    g.strokeStyle = '#5F666E'; g.lineWidth = 1.2; g.stroke();
+    if (b.zone != null) { g.fillStyle = zoneColour(b.zone); g.fillRect(-len / 2 + 1.5, -wid / 2 + 1.5, Math.max(3, len * 0.16), wid - 3); }
+    g.restore();
+    if (b.branches >= 2) {
+      g.font = `800 ${Math.max(8, Math.min(11, wid * 0.62))}px ${FONT}`; g.fillStyle = '#2A2E33'; g.textAlign = 'center'; g.textBaseline = 'middle';
+      g.fillText(String(Math.min(3, b.branches)), c.x, c.y + 0.5);
     }
   }
 
@@ -720,7 +767,7 @@ export class Plan {
         [`${m2.toFixed(1)} m²`, `600 10.5px ${FONT}`]];
       let tw = 0;
       for (const [t, f] of lines) { g.font = f; tw = Math.max(tw, g.measureText(t).width); }
-      const w = Math.ceil(tw) + 18, h = 13 * lines.length + 9;
+      const w = Math.ceil(tw) + 20, h = 13 * lines.length + 14;
       // Where the zone is: the middle of its biggest room's floor.
       const big = mine.reduce((a, b) => (b.area > a.area ? b : a));
       const anchor = x.pt(big.centroid ?? big.polygon[0]);
@@ -787,10 +834,12 @@ export class Plan {
       g.shadowColor = 'rgba(0,0,0,0.14)'; g.shadowBlur = 4; g.shadowOffsetY = 1;
       g.beginPath(); g.roundRect(c.x, c.y, c.w, c.h, 6); g.fillStyle = '#fff'; g.fill();
       g.restore();
-      g.beginPath(); g.roundRect(c.x, c.y, c.w, c.h, 6); g.strokeStyle = rgba(tone, 0.55); g.lineWidth = 1; g.stroke();
-      g.fillStyle = tone; g.fillRect(c.x, c.y + 5, 3, c.h - 10);
+      g.save(); g.beginPath(); g.roundRect(c.x, c.y, c.w, c.h, 7); g.clip();
+      g.fillStyle = tone; g.fillRect(c.x, c.y, c.w, 18);
+      g.restore();
+      g.beginPath(); g.roundRect(c.x, c.y, c.w, c.h, 7); g.strokeStyle = rgba(tone, 0.6); g.lineWidth = 1; g.stroke();
       g.textAlign = 'left'; g.textBaseline = 'top';
-      lines.forEach(([t, f], i) => { g.font = f; g.fillStyle = i ? (z.open ? T.body : T.faint) : tone; g.fillText(t, c.x + 9, c.y + 5 + i * 13); });
+      lines.forEach(([t, f], i) => { g.font = f; g.fillStyle = i ? (z.open ? T.body : T.faint) : '#fff'; g.fillText(t, c.x + 9, i ? c.y + 9 + i * 13 : c.y + 3.5); });
     }
   }
 
@@ -919,16 +968,37 @@ export class Plan {
     }
   }
 
-  drawGrille(g, c, size) {
-    const h = size / 2;
-    g.beginPath(); g.roundRect(c.x - h, c.y - h, size, size, size * 0.12);
-    g.fillStyle = '#fff'; g.fill(); g.strokeStyle = '#3A3F45'; g.lineWidth = Math.max(1, size * 0.09); g.stroke();
-    const inset = size * 0.24;
-    g.lineWidth = Math.max(0.8, size * 0.07);
-    for (let i = 0; i < 3; i++) {
-      const y = c.y - h + inset + i * (size - 2 * inset) / 2;
-      g.beginPath(); g.moveTo(c.x - h + inset, y); g.lineTo(c.x + h - inset, y); g.stroke();
+  /// An outlet's face, by its kind: a round ceiling diffuser (rings), a linear slot (two slots), a linear bar grille
+  /// (fine bars) or a floor grille (a square grid on a darker face).
+  drawGrille(g, c, size, style = 'round') {
+    const h = size / 2, ink = '#3A3F45';
+    g.strokeStyle = ink;
+    if (style === 'slot' || style === 'bar') {
+      const w = size * 2.1, t = size * 0.5;
+      g.beginPath(); g.roundRect(c.x - w / 2, c.y - t / 2, w, t, t * 0.25);
+      g.fillStyle = '#fff'; g.fill(); g.lineWidth = Math.max(1, size * 0.08); g.stroke();
+      g.lineWidth = Math.max(0.8, size * 0.06);
+      if (style === 'slot') {
+        for (const k of [-1, 1]) { const y = c.y + k * t * 0.18; g.beginPath(); g.moveTo(c.x - w / 2 + t * 0.3, y); g.lineTo(c.x + w / 2 - t * 0.3, y); g.stroke(); }
+      } else {
+        for (let x = c.x - w / 2 + t * 0.35; x <= c.x + w / 2 - t * 0.3; x += Math.max(3, size * 0.2)) {
+          g.beginPath(); g.moveTo(x, c.y - t * 0.28); g.lineTo(x, c.y + t * 0.28); g.stroke();
+        }
+      }
+      return;
     }
+    if (style === 'floor') {
+      g.beginPath(); g.roundRect(c.x - h, c.y - h * 0.7, size, size * 0.7, size * 0.08);
+      g.fillStyle = '#E4DED2'; g.fill(); g.lineWidth = Math.max(1, size * 0.09); g.stroke();
+      g.lineWidth = Math.max(0.7, size * 0.05);
+      for (let i = 1; i < 4; i++) { const x = c.x - h + i * size / 4; g.beginPath(); g.moveTo(x, c.y - h * 0.55); g.lineTo(x, c.y + h * 0.55); g.stroke(); }
+      for (const k of [-1, 1]) { const y = c.y + k * h * 0.22; g.beginPath(); g.moveTo(c.x - h * 0.85, y); g.lineTo(c.x + h * 0.85, y); g.stroke(); }
+      return;
+    }
+    g.beginPath(); g.arc(c.x, c.y, h, 0, Math.PI * 2);
+    g.fillStyle = '#fff'; g.fill(); g.lineWidth = Math.max(1, size * 0.09); g.stroke();
+    g.lineWidth = Math.max(0.8, size * 0.06);
+    for (const k of [0.66, 0.36]) { g.beginPath(); g.arc(c.x, c.y, h * k, 0, Math.PI * 2); g.stroke(); }
   }
 
   drawMarkers(g, x, l, d) {
@@ -971,7 +1041,7 @@ export class Plan {
         if (sel?.kind === 'ret') { g.beginPath(); g.roundRect(-short / 2 - 4, -long / 2 - 4, short + 8, long + 8, 5); g.strokeStyle = T.accent; g.lineWidth = 3; g.stroke(); }
         g.restore();
         const below = Math.abs(Math.sin(turn)) * short / 2 + Math.abs(Math.cos(turn)) * long / 2;
-        this.tag(g, 'RA Ø' + l.returnMM, c.x, c.y + below + 11, T.returnAir);
+        this.tag(g, 'RA ' + ((l.returnCount ?? 1) > 1 ? l.returnCount + '×' : '') + 'Ø' + l.returnMM, c.x, c.y + below + 11, T.returnAir);
       });
       this.hits.push({ item: { kind: 'ret' }, x: c.x, y: c.y, r: Math.max(18, Math.min(long, 60) / 2 + 4) });
     }
@@ -989,11 +1059,13 @@ export class Plan {
           g.beginPath(); g.roundRect(-depth / 2 - 4, -width / 2 - 4, depth + plenum + 8, width + 8, 6); g.strokeStyle = T.accent; g.lineWidth = 3; g.stroke();
         }
         g.restore();
-        // The label runs along the unit, the right way up.
+        // The label runs along the unit, the right way up, to one side of its fan.
         let a = turn + Math.PI / 2;
         while (a > Math.PI / 2) a -= Math.PI;
         while (a <= -Math.PI / 2) a += Math.PI;
-        g.save(); g.translate(c.x, c.y); g.rotate(a);
+        const along = { x: -Math.sin(turn), y: Math.cos(turn) }, fanSize = Math.min(depth * 0.78, 26);
+        this.fanAt = { x: c.x - along.x * width * 0.26, y: c.y - along.y * width * 0.26, size: fanSize };
+        g.save(); g.translate(c.x + along.x * width * 0.17, c.y + along.y * width * 0.17); g.rotate(a);
         g.font = `800 8px ${FONT}`; g.fillStyle = '#fff'; g.textAlign = 'center'; g.textBaseline = 'middle';
         g.fillText('FAN COIL', 0, 0);
         g.restore();
@@ -1011,10 +1083,7 @@ export class Plan {
         g.beginPath(); g.moveTo(c.x + 10, c.y - 9); g.lineTo(c.x + 10, c.y - 4); g.stroke();
         g.beginPath(); g.arc(c.x + 10, c.y - 11, 2.8, 0, Math.PI * 2); g.fillStyle = T.accentDeep; g.fill();
       }
-      if (drag?.item.kind === 'box' && drag.item.id === b.bid) {
-        const r = Math.max(0.2 * x.s, 6);
-        g.beginPath(); g.arc(c.x, c.y, r, 0, Math.PI * 2); g.fillStyle = '#D5D8DC'; g.fill(); g.strokeStyle = '#6B7178'; g.lineWidth = 1.4; g.stroke();
-      }
+      if (drag?.item.kind === 'box' && drag.item.id === b.bid) this.drawBdo(g, c, b, x);
       this.hits.push({ item: { kind: 'box', id: b.bid }, x: c.x, y: c.y, r: 17 });
     }
     // Outlets: the grille alone (its size is its leg's colour, and on its card). A dropper's top isn't a grille: it's
@@ -1022,7 +1091,7 @@ export class Plan {
     for (const o of l.outlets) {
       if (o.dropper) continue;
       const c = at('outlet', o.id, x.pt(o.pos)), size = Math.min(Math.max((o.sizeMM + 150) / 1000 * x.s, 15), 34);
-      shadow(() => this.drawGrille(g, c, size));
+      shadow(() => this.drawGrille(g, c, size, o.style));
       const ring = size / 2 + 5;
       if (sel?.kind === 'outlet' && sel.id === o.id) { g.beginPath(); g.roundRect(c.x - ring, c.y - ring, ring * 2, ring * 2, 5); g.strokeStyle = T.accent; g.lineWidth = 3; g.stroke(); }
       this.hits.push({ item: { kind: 'outlet', id: o.id }, x: c.x, y: c.y, r: Math.max(17, ring) });
@@ -1069,7 +1138,7 @@ export class Plan {
 
   /// The reports' plan (the app's `Reports.planImage`): grilles and the outdoor unit, no handles or tags.
   drawReportMarks(g, x, l) {
-    for (const o of l.outlets) if (!o.dropper) this.drawGrille(g, x.pt(o.pos), 13);
+    for (const o of l.outlets) if (!o.dropper) this.drawGrille(g, x.pt(o.pos), 13, o.style);
     if (l.outdoor) {
       const [, out, condenser] = l.outdoor, c = x.pt(condenser), size = 22;
       g.save(); g.translate(c.x, c.y); g.rotate(-Math.atan2(out.y, out.x));

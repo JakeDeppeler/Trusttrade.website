@@ -313,3 +313,31 @@ table.mat td a { text-decoration: none; }
 @media print {
   body { background: #fff; }
 }
+
+/* Check step: a big plan and the questions down the side, one open at a time */
+.check-work { grid-template-columns: 1fr 440px; }
+.check-work .stage { display: flex; flex-direction: column; min-height: 0; }
+.check-work .stage .canvas-card { flex: 1; min-height: 420px; }
+.q-panel { display: flex; flex-direction: column; gap: 10px; overflow: auto; }
+.q-sec { flex: none; }
+.q-sec { background: var(--card, #fff); border-radius: 18px; box-shadow: 0 0 0 1px rgba(16,16,16,.05), 0 6px 20px -12px rgba(16,16,16,.18); overflow: hidden; }
+.q-head { width: 100%; display: flex; align-items: center; gap: 12px; padding: 14px 16px; background: none; border: 0; cursor: pointer; text-align: left; font: inherit; color: inherit; }
+.q-head:hover { background: rgba(16,16,16,.025); }
+.q-n { flex: none; width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center; font-weight: 800; font-size: 13px; background: var(--tile); color: var(--ink); }
+.q-sec.open .q-n { background: var(--ink); color: #fff; }
+.q-t { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.q-t b { font-size: 15.5px; letter-spacing: -.01em; }
+.q-t small { color: var(--muted); font-size: 12.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.q-chev { width: 18px; height: 18px; color: var(--muted); transition: transform .25s cubic-bezier(.23,1,.32,1); }
+.q-sec.open .q-chev { transform: rotate(90deg); }
+.q-body { padding: 0 16px 16px; }
+.q-body table.rooms { width: 100%; }
+@media (max-width: 1100px) { .check-work { grid-template-columns: 1fr; height: auto; } .check-work .stage .canvas-card { min-height: 320px; flex: none; height: 360px; } .check-work .q-panel { overflow: visible; } }
+
+/* The fan coil's fan, spinning on its own layer over the plan */
+.fan-spin { position: absolute; pointer-events: none; z-index: 2; }
+.fan-spin svg { width: 100%; height: 100%; display: block; }
+.fan-spin .blades { transform-origin: 12px 12px; animation: fan-spin 1.6s linear infinite; }
+.fan-spin.fast .blades { animation-duration: .55s; }
+@keyframes fan-spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .fan-spin .blades { animation: none; } }

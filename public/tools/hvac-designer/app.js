@@ -1,10 +1,10 @@
 // Trust Trade Pro — the HVAC Designer in the browser. The same five steps as the app (House · Capture · Check · Design ·
 // Send) on the app's own engine (engine.wasm, run in a worker): the same loads, zones, ducts, checks and materials.
 
-import { call, latest } from './engine.js?v=2970336-202611160946';
-import * as store from './store.js?v=2970336-202611160946';
-import { Plan, inkImage, zoneColour, ductColour, splitColour, T, pointInPolygon, movesOnly, wheelMoves, ZOOM_MAX } from './plan.js?v=2970336-202611160946';
-import { RoomEditor, metres, signedArea, onLine } from './roomeditor.js?v=2970336-202611160946';
+import { call, latest } from './engine.js?v=bd7a655-202611162120';
+import * as store from './store.js?v=bd7a655-202611162120';
+import { Plan, inkImage, zoneColour, ductColour, splitColour, T, pointInPolygon, movesOnly, wheelMoves, ZOOM_MAX } from './plan.js?v=bd7a655-202611162120';
+import { RoomEditor, metres, signedArea, onLine } from './roomeditor.js?v=bd7a655-202611162120';
 
 // MARK: Helpers
 
@@ -324,14 +324,21 @@ function renderTop() {
   const sub = [p.customer?.name, p.customer?.address].filter(Boolean).join(' · ') || 'No address yet';
   const primary = primaryAction();
   $('#top').innerHTML = `
-    <a class="back" href="#/jobs">${icon('back')} Jobs</a>
-    <div class="title"><h1>${esc(v?.title ?? 'Job')}</h1><div>${esc(sub)}</div></div>
+    <div class="jobisl"><a class="back" href="#/jobs">${icon('back')} Jobs</a>
+    <div class="title"><h1>${esc(v?.title ?? 'Job')}</h1><div>${esc(sub)}</div></div></div>
     <div class="spacer"></div>
     <div class="steps">${STEPS.map((s, i) => `<button data-step="${s.k}" class="${i === cur ? 'cur' : i <= reach ? 'done' : ''}" ${i > reach ? 'disabled' : ''}>
       ${i < cur ? icon('check').replace('<svg', '<svg width="14" height="14"') : `<span class="n">${i + 1}</span>`} ${s.t}</button>`).join('')}</div>
-    <div class="primary">${primary ? `<button class="btn" id="primary" ${primary.disabled ? 'disabled' : ''}>${esc(primary.label)}</button>` : ''}</div>`;
+    <div class="primary">${primary ? `<button class="btn" id="primary" ${primary.disabled ? 'disabled' : ''}>${ctaLabel(primary.label)}</button>` : ''}</div>`;
   $('#top .steps').onclick = (e) => { const b = e.target.closest('button[data-step]'); if (b && !b.disabled) go(b.dataset.step); };
   if (primary) $('#primary').onclick = primary.run;
+}
+
+/// The top-right button's label, with a trailing arrow moved into its own little circle (the modern skin's CTA).
+function ctaLabel(label) {
+  const arrow = /\s*→\s*$/.test(label);
+  const text = esc(label.replace(/\s*→\s*$/, ''));
+  return arrow ? `${text}<span class="ca"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span>` : text;
 }
 
 function primaryAction() {
@@ -1242,7 +1249,7 @@ async function renderCheck(c) {
     ${open === k ? `<div class="q-body">${body}</div>` : ''}</section>`;
   const roomsBody = `
       <table class="rooms"><thead><tr><th></th><th>Room</th><th>Type</th>${storeyCount() > 1 ? '<th>Floor</th>' : ''}<th>Built</th><th class="num">Ceiling</th><th class="num">Area</th><th class="num">Load</th></tr></thead><tbody>
-        ${v.rooms.map((r) => `<tr><td><span class="sw" style="background:${r.zone != null ? zoneColour(r.zone) : '#C9C4BA'}"></span></td>
+        ${v.rooms.map((r) => `<tr><td><span class="sw" style="background:${r.zone != null ? zoneColour(r.zone) : '#C6CBD3'}"></span></td>
           <td><input class="text" data-name="${r.id}" value="${esc(r.name)}"></td>
           <td><select data-type="${r.id}">${o.roomTypes.map((x) => `<option value="${x.id}" ${x.id === r.type ? 'selected' : ''}>${esc(x.label)}</option>`).join('')}</select></td>
           ${storeyCount() > 1 ? `<td><select data-level="${r.id}">${Array.from({ length: Math.max(storeyCount(), (r.level ?? 0) + 1) }, (_, lv) => `<option value="${lv}" ${lv === (r.level ?? 0) ? 'selected' : ''}>${FloorName(lv).replace(' floor', '')}</option>`).join('')}</select></td>` : ''}
@@ -3109,7 +3116,7 @@ function openReport(kind) {
   const close = () => o.remove();
   $('#rp-close', o).onclick = close;
   o.addEventListener('keydown', (e) => e.key === 'Escape' && close());
-  import('./reports.js?v=2970336-202611160946').then(async (m) => {
+  import('./reports.js?v=bd7a655-202611162120').then(async (m) => {
     // Reports are always the design as installed: every zone open, balanced. A multi-head job has no ducted design to
     // route (routing one threw, and the bar stayed on "Building the report…" for good).
     app.designLayout = isSplit() ? null : await call('route', { project: app.project, closed: [], balanced: true });

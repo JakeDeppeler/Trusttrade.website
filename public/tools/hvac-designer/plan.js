@@ -4,12 +4,12 @@
 // and drag to move.
 
 export const T = {
-  accent: '#E9A21C', accentSoft: '#FBEAC4', accentDeep: '#8A6A0B', ink: '#101010', inkOn: '#FAFAF8', body: '#3E3A33',
-  muted: '#5E5A52', faint: '#8C877D', tint: '#F2F0EB', tile: '#F4F2ED', hair: '#EEECE7', line: '#DEDCD6',
-  green: '#1B6B45', greenBg: '#E3F3E8', danger: '#B4472B', dangerBg: '#FBE4E1', bg: '#F2F2F0', cool: '#2B6CB0',
-  coolBg: '#E4EEF8', returnAir: '#3E3A33', pipe: '#B0703A', ductLabel: '#1E2F7A', window: '#5FB3E6',
+  accent: '#F59E0B', accentSoft: '#FEF0D2', accentDeep: '#8A5A00', ink: '#0E1116', inkOn: '#FFFFFF', body: '#3B4250',
+  muted: '#5B6170', faint: '#8A909B', tint: '#F1F2F5', tile: '#F5F6F8', hair: '#EEF0F3', line: '#E1E4E9',
+  green: '#07664C', greenBg: '#E6F7F0', danger: '#C2412D', dangerBg: '#FDECE8', bg: '#F1F2F5', cool: '#3E6CF0',
+  coolBg: '#EDF2FE', returnAir: '#3B4250', pipe: '#B0703A', ductLabel: '#1E3FA6', window: '#5FB3E6',
 };
-const ZONES = ['#E9A21C', '#2B6CB0', '#1B8A5A', '#8B5CF6', '#D9467A', '#0F9A9A', '#A16207', '#64748B'];
+const ZONES = ['#3E6CF0', '#8B5CF6', '#0FA37A', '#E2683C', '#D9467A', '#0F9A9A', '#A16207', '#64748B'];
 export const zoneColour = (n) => n === 0 ? '#4B5563' : ZONES[(Math.max(n, 1) - 1) % ZONES.length];
 /// An outdoor unit's colour (its heads and pipes share it).
 const SPLITS = ['#2B6CB0', '#B0703A', '#1B8A5A', '#8B5CF6', '#D9467A', '#0F9A9A'];
@@ -23,9 +23,9 @@ export function ductColour(mm) {
   if (mm <= 400) return '#D35FD0';
   return '#7B3FE4';
 }
-const ROOM_FILL = { bed: '#2B6CB0', wet: '#0F9A9A', util: '#8C877D', none: '#C9C4BA', other: '#5E5A52' };
-const roomFill = (r) => ROOM_FILL[r.designerType] ?? '#E9A21C';
-const FONT = '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif';
+const ROOM_FILL = { bed: '#3E6CF0', wet: '#0F9A9A', util: '#8A909B', none: '#C6CBD3', other: '#5B6170' };
+const roomFill = (r) => ROOM_FILL[r.designerType] ?? '#F59E0B';
+const FONT = 'Geist, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
 
 function rgba(hex, a) {
   const n = parseInt(hex.slice(1), 16);
@@ -485,7 +485,7 @@ export class Plan {
     const hw = l.unitWidth * 0.46, hd = l.plenumDepth / 2;
     const corners = [[-hw, -hd], [hw, -hd], [hw, hd], [-hw, hd]].map(([a, b]) => x.pt({ x: pc.x + side.x * a + f.x * b, y: pc.y + side.y * a + f.y * b }));
     this.path(g, corners, true);
-    g.fillStyle = '#B9B4AA'; g.fill(); g.strokeStyle = rgba(T.ink, 0.6); g.lineWidth = 1; g.stroke();
+    g.fillStyle = '#B8BEC8'; g.fill(); g.strokeStyle = rgba(T.ink, 0.6); g.lineWidth = 1; g.stroke();
 
     const curves = this.curves(l);
     const runs = l.runs.map((r, i) => ({ r, i })).sort((a, b) => (a.r.kind === 'return' ? 0 : 1) - (b.r.kind === 'return' ? 0 : 1));
@@ -890,7 +890,7 @@ export class Plan {
     g.save(); g.translate(at.x, at.y); g.rotate(ang);
     // The bulkhead: plasterboard, boxed out from the wall (x = 0) into the room.
     g.save(); g.shadowColor = 'rgba(0,0,0,0.14)'; g.shadowBlur = 4; g.shadowOffsetY = 1;
-    g.beginPath(); g.rect(0, -L / 2, D, L); g.fillStyle = '#F4F1EB'; g.fill(); g.restore();
+    g.beginPath(); g.rect(0, -L / 2, D, L); g.fillStyle = '#F3F4F6'; g.fill(); g.restore();
     g.save(); g.beginPath(); g.rect(0, -L / 2, D, L); g.clip();
     g.strokeStyle = 'rgba(16,16,16,0.07)'; g.lineWidth = 1;
     for (let k = -L; k < D + L; k += 7) { g.beginPath(); g.moveTo(k, -L / 2); g.lineTo(k - L, L / 2); g.stroke(); }
@@ -1036,7 +1036,7 @@ export class Plan {
     }
     if (style === 'floor') {
       g.beginPath(); g.roundRect(c.x - h, c.y - h * 0.7, size, size * 0.7, size * 0.08);
-      g.fillStyle = '#E4DED2'; g.fill(); g.lineWidth = Math.max(1, size * 0.09); g.stroke();
+      g.fillStyle = '#E3E6EA'; g.fill(); g.lineWidth = Math.max(1, size * 0.09); g.stroke();
       g.lineWidth = Math.max(0.7, size * 0.05);
       for (let i = 1; i < 4; i++) { const x = c.x - h + i * size / 4; g.beginPath(); g.moveTo(x, c.y - h * 0.55); g.lineTo(x, c.y + h * 0.55); g.stroke(); }
       for (const k of [-1, 1]) { const y = c.y + k * h * 0.22; g.beginPath(); g.moveTo(c.x - h * 0.85, y); g.lineTo(c.x + h * 0.85, y); g.stroke(); }

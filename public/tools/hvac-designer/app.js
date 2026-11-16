@@ -1,10 +1,10 @@
 // Trust Trade Pro — the HVAC Designer in the browser. The same five steps as the app (House · Capture · Check · Design ·
 // Send) on the app's own engine (engine.wasm, run in a worker): the same loads, zones, ducts, checks and materials.
 
-import { call, latest } from './engine.js?v=bd7a655-202611162120';
-import * as store from './store.js?v=bd7a655-202611162120';
-import { Plan, inkImage, zoneColour, ductColour, splitColour, T, pointInPolygon, movesOnly, wheelMoves, ZOOM_MAX } from './plan.js?v=bd7a655-202611162120';
-import { RoomEditor, metres, signedArea, onLine } from './roomeditor.js?v=bd7a655-202611162120';
+import { call, latest } from './engine.js?v=3907973-202611162145';
+import * as store from './store.js?v=3907973-202611162145';
+import { Plan, inkImage, zoneColour, ductColour, splitColour, T, pointInPolygon, movesOnly, wheelMoves, ZOOM_MAX } from './plan.js?v=3907973-202611162145';
+import { RoomEditor, metres, signedArea, onLine } from './roomeditor.js?v=3907973-202611162145';
 
 // MARK: Helpers
 
@@ -14,13 +14,15 @@ const fmt = (n, d = 0) => (n == null || isNaN(n) ? '—' : Number(n).toFixed(d))
 const g = (n) => String(Math.round(n * 10) / 10);                 // %g for kW: 14, 12.5
 const uuid = () => crypto.randomUUID().toUpperCase();
 const STEPS = [
-  { k: 'job', t: 'Job' }, { k: 'house', t: 'House' }, { k: 'plan', t: 'Plan' }, { k: 'design', t: 'Design' }, { k: 'send', t: 'Send' },
+  { k: 'job', t: 'New job' }, { k: 'plan', t: 'Rooms' }, { k: 'equipment', t: 'Equipment' }, { k: 'design', t: 'Air & pipes' }, { k: 'send', t: 'Outputs' },
 ];
-/// The steps as Jake works (16 Nov 2026): the job and customer, the house, its plan (upload, scale, draw the rooms and
-/// windows, check them), the design, send. The engine's steps (house, capture, check, design, send) map onto them.
-const STEP_ALIAS = { capture: 'plan', check: 'plan' };
+/// The stages (mock v14, chosen 16 Nov 2026): the job, customer and house on one page; the rooms (upload, scale, draw
+/// and check them); the equipment (the unit, zoning and spill, or a split's heads); air and pipes (the fan coil, outlets,
+/// flex and drain); the outputs. The engine's steps (house, capture, check, design, send) map onto them, and the old
+/// step names in saved links still land.
+const STEP_ALIAS = { house: 'job', capture: 'plan', check: 'plan', rooms: 'plan', air: 'design', outputs: 'send' };
 const normStep = (k) => STEP_ALIAS[k] ?? k;
-const fromEngineStep = (n) => [1, 2, 2, 3, 4][n ?? 4] ?? 4;
+const fromEngineStep = (n) => [0, 1, 1, 3, 4][n ?? 4] ?? 4;
 const ICON = {
   grid: '<rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/>',
   aircon: '<rect x="2" y="4" width="20" height="9" rx="2"/><path d="M6 9h12M7.5 16.5c0 2 1.5 2 1.5 4M12 16v4.5M16.5 16.5c0 2-1.5 2-1.5 4"/>',
@@ -177,7 +179,7 @@ function editRefusal(op) {
     addWindow: 'Windows go in outside walls, with room to spare.',
     drawWindow: 'Windows go in outside walls (dashed blue), with half a metre of wall for one.',
     rescale: 'That scale doesn\'t look right.',
-    addDropper: 'Droppers are for a two-storey home: draw both floors first (House step).',
+    addDropper: 'Droppers are for a two-storey home: draw both floors first (on New job).',
     moveDropper: 'A dropper\'s top goes on the upper floor and its foot in a ground floor room.',
   })[op] ?? 'That didn\'t change anything.';
 }
@@ -209,8 +211,9 @@ function setUnsized(on) { try { if (on) localStorage.setItem(unsizedKey(), '1');
 
 /// The furthest step that opens: the job's own, or Capture while a plan's just been picked (before the era is).
 function reachNow() {
-  // Job, House and Plan are always open (the house details have defaults); Design once the plan's checked.
-  return Math.max(fromEngineStep(app.view?.reach ?? 0), 2);
+  // New job and Rooms are always open (the house details have defaults); Equipment and Air & pipes once the rooms
+  // are checked.
+  return Math.max(fromEngineStep(app.view?.reach ?? 0), 1);
 }
 
 /// The plan images under the rooms: the ground floor's (or the only one) and, two storeys, the upper floor's.
@@ -230,9 +233,9 @@ async function loadBackdrop() {
   }
 }
 
-/// More than one storey: set so on the House step, or more than one floor drawn.
+/// More than one storey: set so on the New job step, or more than one floor drawn.
 const isDouble = () => ['double', 'triple'].includes(app.project?.site?.storeysPref) || !!app.view?.twoStorey;
-/// How many floors: as the House step has it, or as many as are drawn.
+/// How many floors: as the New job step has it, or as many as are drawn.
 const storeyCount = () => Math.max(({ double: 2, triple: 3 })[app.project?.site?.storeysPref] ?? 1, new Set((app.view?.rooms ?? []).map((r) => r.level ?? 0)).size);
 const FLOOR_NAMES = ['ground floor', 'first floor', 'second floor'];
 const floorName = (lv) => FLOOR_NAMES[lv] ?? 'ground floor';
@@ -320,15 +323,16 @@ function renderNav(active) {
 
 function renderTop() {
   const v = app.view, p = app.project;
-  const reach = reachNow(), cur = STEPS.findIndex((s) => s.k === app.step);
+  const shown = app.step === 'design' && isSplit() ? 'equipment' : app.step; // a split has no Air & pipes: its heads are on Equipment
+  const reach = reachNow(), cur = STEPS.findIndex((s) => s.k === shown);
   const sub = [p.customer?.name, p.customer?.address].filter(Boolean).join(' · ') || 'No address yet';
   const primary = primaryAction();
   $('#top').innerHTML = `
     <div class="jobisl"><a class="back" href="#/jobs">${icon('back')} Jobs</a>
     <div class="title"><h1>${esc(v?.title ?? 'Job')}</h1><div>${esc(sub)}</div></div></div>
     <div class="spacer"></div>
-    <div class="steps">${STEPS.map((s, i) => `<button data-step="${s.k}" class="${i === cur ? 'cur' : i <= reach ? 'done' : ''}" ${i > reach ? 'disabled' : ''}>
-      ${i < cur ? icon('check').replace('<svg', '<svg width="14" height="14"') : `<span class="n">${i + 1}</span>`} ${s.t}</button>`).join('')}</div>
+    <div class="steps">${STEPS.map((s, i) => ({ ...s, i })).filter((s) => !(s.k === 'design' && isSplit())).map((s, n) => { const i = s.i; return `<button data-step="${s.k}" class="${i === cur ? 'cur' : i <= reach ? 'done' : ''}" ${i > reach ? 'disabled' : ''}>
+      ${i < cur ? icon('check').replace('<svg', '<svg width="14" height="14"') : `<span class="n">${n + 1}</span>`} ${esc(s.t)}</button>`; }).join('')}</div>
     <div class="primary">${primary ? `<button class="btn" id="primary" ${primary.disabled ? 'disabled' : ''}>${ctaLabel(primary.label)}</button>` : ''}</div>`;
   $('#top .steps').onclick = (e) => { const b = e.target.closest('button[data-step]'); if (b && !b.disabled) go(b.dataset.step); };
   if (primary) $('#primary').onclick = primary.run;
@@ -348,9 +352,11 @@ function primaryAction() {
     return { label: next ? 'Next: check the rooms →' : 'Done', run: closeEditor };
   }
   switch (app.step) {
-    case 'job': return { label: 'Next: the house →', run: () => go('house') };
-    case 'house': return { label: 'Next: the plan →', run: () => go('plan') };
-    case 'plan': return hasRooms && !app.read ? { label: isSplit() ? 'Lay out the heads →' : 'Design →', run: confirmPlan } : { label: 'Draw the rooms first', disabled: true, run: () => {} };
+    case 'job': return { label: 'Next: the rooms →', run: () => go('plan') };
+    case 'plan': return hasRooms && !app.read ? { label: isSplit() ? 'Lay out the heads →' : 'Equipment →', run: confirmPlan } : { label: 'Draw the rooms first', disabled: true, run: () => {} };
+    case 'equipment':
+      if (isSplit()) return { label: 'Check & send →', disabled: !app.split?.heads?.length, run: () => go('send') };
+      return { label: 'Air & pipes →', disabled: !v?.planChecked || !v?.totals?.unit, run: () => go('design') };
     case 'design': return { label: 'Check & send →', disabled: isSplit() ? !app.split?.heads?.length : !app.layout?.outlets?.length, run: () => go('send') };
     case 'send':
       if (isSplit()) return { label: 'Install sheet', disabled: !app.split?.heads?.length, run: () => openReport('install') };
@@ -365,7 +371,7 @@ function render() {
   renderTop();
   const c = $('#content');
   if (app.editorOpen) { renderRoomEditor(c); return; }
-  ({ job: renderJob, house: renderHouse, plan: renderPlan, design: renderDesign, send: renderSend })[app.step]?.(c);
+  ({ job: renderJob, plan: renderPlan, equipment: renderEquipment, design: isSplit() ? renderEquipment : renderDesign, send: renderSend })[app.step]?.(c);
 }
 
 // MARK: Jobs
@@ -476,7 +482,7 @@ async function createJob(args, demo = false) {
   app.jobId = null;
   const v = await call('view', { project });
   store.saveJob(id, project, { name: v.title, customer: project.customer?.name ?? '', suburb: v.suburb, upTo: v.upTo, status: 'inProgress' });
-  location.hash = '#/job/' + id + (demo ? '/check' : '/house');
+  location.hash = '#/job/' + id + (demo ? '/plan' : '/job');
 }
 
 /// A job file from Trust Trade Pro (the app's own job JSON): opened here as a new job, its design kept as it is.
@@ -605,7 +611,7 @@ function openCatalogue(tab) {
       d.remove();
       if (isSplit()) await setJobKind('ducted');
       await commit({ ...app.project, site: { ...app.project.site, brandPref: t.dataset.brandId === 'mitsubishi' ? null : t.dataset.brandId, unitKWPref: +t.dataset.unit } }, { undoable: true });
-      toast('Unit picked by hand. Back to the recommended size under Unit size on the Check step.');
+      toast('Unit picked by hand. Back to the recommended size under Unit on the Equipment step.');
       return;
     }
     if (t.dataset.range) {
@@ -640,25 +646,25 @@ function renderJob(c) {
         </div>
         ${cityKnown ? '' : '<p class="small muted" style="margin:8px 0 0">The climate comes from the address. Pick it here if the address doesn\'t give it.</p>'}
       </div>
+      ${jobKindCard()}
       <div class="card"><span class="eyebrow">Site notes</span>
         <textarea data-p="siteNotes" class="text" style="width:100%;min-height:110px;border:0;background:var(--tint);border-radius:12px;padding:10px 12px"
           placeholder="Gate code, dogs, roof access, where the manhole is…">${esc(p.siteNotes ?? '')}</textarea>
         <p class="small muted" style="margin:6px 0 0">For the installer and the install sheet, not the customer's report.</p></div>
     </div>
-    <div>${jobKindCard()}</div>
+    <div>${houseCards()}</div>
   </div>`;
   bindHouse(c);
 }
 
-/// Step 2: the house — when it was built and what it's made of (an extension can differ: set it on its rooms on the
-/// Plan step), and its storeys.
-function renderHouse(c) {
+/// The house — when it was built and what it's made of (an extension can differ: set it on its rooms on the Rooms
+/// step), its storeys, and its plan. On the New job page, beside the job and customer.
+function houseCards() {
   const p = app.project, s = p.site, o = app.options, v = app.view;
   const era = s.eraPref;
   const row = (title, key, list, value) => `<div class="rowpick"><label>${title}</label><select data-site="${key}">
     ${list.map((it) => `<option value="${it.id}" ${it.id === value ? 'selected' : ''}>${esc(it.label)}</option>`).join('')}</select></div>`;
-  c.innerHTML = `<div class="two-col">
-    <div class="card"><span class="eyebrow">When was it built?</span>
+  return `<div class="card"><span class="eyebrow">The house · when was it built?</span>
       <div class="pills">${o.eras.map((e) => `<button data-era="${e.id}" class="${e.id === era ? 'on' : ''}">${esc(e.short)}</button>`).join('')}</div>
       <p class="small muted" style="margin:10px 0 6px">${esc(o.eras.find((e) => e.id === (era ?? 'from1980'))?.note ?? '')}${era ? '' : ' Pick the era and the rest is filled in.'}</p>
       ${row('Storeys', 'storeysPref', o.storeys, s.storeysPref ?? 'single')}
@@ -670,15 +676,13 @@ function renderHouse(c) {
       ${row('Ceiling insulation', 'ceilingInsulation', o.ceilingInsulation, s.ceilingInsulation)}
       ${row('Windows', 'glazing', o.glazing, s.glazing)}
       ${row('Draughtiness', 'airtightness', o.airtightness, s.airtightness)}
-      <p class="small muted" style="margin:8px 0 0">Filled in from the build era. Change anything you can see in the roof space or at the windows. An extension built later gets its own on the Plan step: tap its rooms.</p>
+      <p class="small muted" style="margin:8px 0 0">Filled in from the build era. Change anything you can see in the roof space or at the windows. An extension built later gets its own on the Rooms step: tap its rooms.</p>
     </div>
-    <div>${floorsCard()}${v.rooms.length ? `<div class="card"><span class="eyebrow">The plan</span>
+    ${floorsCard()}${v.rooms.length ? `<div class="card"><span class="eyebrow">The plan</span>
         <h2>${v.rooms.length} rooms</h2><p class="muted small">${g(v.totals.area)} m² · ${fmt(v.totals.connectedKW, 1)} kW connected${p.planConfirmed ? ' · plan checked' : ''}</p>
-        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px"><button class="btn2" data-go="plan">Open the plan</button><button class="btn2" id="replace">Upload a different plan</button></div></div>`
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px"><button class="btn2" data-go="plan">Open the rooms</button><button class="btn2" id="replace">Upload a different plan</button></div></div>`
       : `<div class="card"><span class="eyebrow">Next</span><h2>The plan</h2><p class="small muted">Upload the builder's plan (one or more pages, or one image for each floor), set its scale, and draw the rooms and windows over it.</p>
-        <div class="actions-row"><button class="btn" data-go="plan">Upload the plan</button></div></div>`}</div>
-  </div>`;
-  bindHouse(c);
+        <div class="actions-row"><button class="btn" data-go="plan">Upload the plan</button></div></div>`}`;
 }
 
 /// Step 3: the plan — upload it, scale it, draw the rooms and windows; once there are rooms, check them.
@@ -695,10 +699,10 @@ function jobKindCard() {
   const k = jobKind(), ex = app.project.existing;
   const blurb = {
     ducted: 'A new ducted system: the unit, the outdoor unit, the ducts and the zoning.',
-    reduct: `New ducts onto the ${ex?.kind === 'heater' ? 'gas ducted heater' : 'ducted unit'} that's there. It stays where it is: on the Design step, drag the fan coil to where it is in the roof. Pick the size nearest it under Unit size on the Check step, so the ducts suit its fan. No unit, outdoor unit or pipes on the materials.`,
-    bulkhead: 'A slim ducted unit in a bulkhead in each room or living area, with a linear supply and return grille on the bulkhead face, on the fewest outdoor units. Add or move them on the Design step.',
-    vrf: 'Mitsubishi Electric City Multi for a bigger home: a PUMY outdoor unit and branch boxes, a bulkhead unit in each room. Add or move them on the Design step.',
-    wall: 'Wall heads sized room by room, on the fewest outdoor units. How many heads an area gets, and each head\'s size, are set on the Design step.',
+    reduct: `New ducts onto the ${ex?.kind === 'heater' ? 'gas ducted heater' : 'ducted unit'} that's there. It stays where it is: on Air &amp; pipes, drag the fan coil to where it is in the roof. Pick the size nearest it under Unit on the Equipment step, so the ducts suit its fan. No unit, outdoor unit or pipes on the materials.`,
+    bulkhead: 'A slim ducted unit in a bulkhead in each room or living area, with a linear supply and return grille on the bulkhead face, on the fewest outdoor units. Add or move them on the Equipment step.',
+    vrf: 'Mitsubishi Electric City Multi for a bigger home: a PUMY outdoor unit and branch boxes, a bulkhead unit in each room. Add or move them on the Equipment step.',
+    wall: 'Wall heads sized room by room, on the fewest outdoor units. How many heads an area gets, and each head\'s size, are set on the Equipment step.',
   }[k];
   return `<div class="card"><span class="eyebrow">What's the job?</span>
     <div class="seg" style="flex-wrap:wrap">${[['ducted', 'New ducted'], ['reduct', 'Re-duct'], ['bulkhead', 'Bulkhead'], ['vrf', 'VRF'], ['wall', 'Wall split']].map(([id, t]) => `<button data-kind="${id}" class="${k === id ? 'on' : ''}">${t}</button>`).join('')}</div>
@@ -722,9 +726,9 @@ function floorsCard() {
       : `<button class="link" data-floor="${lv}" style="padding:0;white-space:nowrap">${count(lv) || img(lv) ? 'New plan' : 'Upload its plan'}</button>`}</div>`;
   return `<div class="card"><span class="eyebrow">${n >= 3 ? 'Three storeys' : 'Two storeys'}</span>
     ${Array.from({ length: n }, (_, lv) => row(lv)).join('')}
-    <p class="small muted" style="margin:8px 0 0">A plan for each floor.${isSplit() ? '' : ' The fan coil goes in the roof over the top floor; the floors below get their air down droppers, marked on the Design step.'}</p>
+    <p class="small muted" style="margin:8px 0 0">A plan for each floor.${isSplit() ? '' : ' The fan coil goes in the roof over the top floor; the floors below get their air down droppers, marked on Air &amp; pipes.'}</p>
     ${v.rooms.length ? `<details style="margin-top:8px" ${v.rooms.every((r) => !r.level) ? 'open' : ''}><summary class="small" style="cursor:pointer;font-weight:700">Floors on one plan? Set each room's floor</summary>
-      <p class="small muted" style="margin:6px 0 0">On the Plan step's room list, under Floor.</p></details>` : ''}
+      <p class="small muted" style="margin:6px 0 0">On the Rooms step's list, under Floor.</p></details>` : ''}
     ${isSplit() ? '' : `<div class="rowpick" style="margin-top:10px"><label>Lower floor ducts</label><select id="downstairs">
       <option value="1" ${p.twoStorey?.ductDownstairs !== false ? 'selected' : ''}>New ducts</option>
       <option value="0" ${p.twoStorey?.ductDownstairs === false ? 'selected' : ''}>Join existing droppers</option></select></div>`}
@@ -827,7 +831,7 @@ function bindUpload(c) {
     const { project } = await call('demo', { project: app.project });
     app.read = null;
     await commit(project);
-    go('check');
+    go('plan');
   });
   if (!drop) return;
   drop.addEventListener('dragover', (e) => { e.preventDefault(); drop.classList.add('over'); });
@@ -1007,7 +1011,7 @@ async function planFromBitmap(bmp, level) {
   const fileName = 'plans/' + uuid() + '.jpg';
   app.read = { status: ASSIST() ? 'chosen' : 'measure', url: URL.createObjectURL(keep.blob), keep, fileName, result: null, error: null, north: null,
     measure: { pts: [], mm: '' }, view: null, fitted: false, level: level ?? (isDouble() ? 0 : undefined) };
-  go('capture');
+  go('plan');
   render();
 }
 
@@ -1205,14 +1209,14 @@ function renderCapture(c) {
     </div></div>`;
   $('#another', c).onclick = () => pickPlan(true);
   $('#again', c)?.addEventListener('click', () => pickPlan(false));
-  $('#demo2', c)?.addEventListener('click', async () => { const { project } = await call('demo', { project: app.project }); app.read = null; await commit(project); go('check'); });
+  $('#demo2', c)?.addEventListener('click', async () => { const { project } = await call('demo', { project: app.project }); app.read = null; await commit(project); go('plan'); });
   $('#uselen', c)?.addEventListener('click', () => { const m = parseFloat($('#len', c).value); if (m >= 4 && m <= 60) importRead(m); else toast('A house between 4 and 60 m long.'); });
   $('#measure', c)?.addEventListener('click', () => { app.read.status = 'measure'; render(); });
   $('#drawit', c)?.addEventListener('click', () => { app.read.result = null; app.read.status = 'measure'; render(); });
   $('#fixrooms', c)?.addEventListener('click', () => openEditor());
   $('#upper', c)?.addEventListener('click', () => pickPlan(false, nextFloor()));
   $('#upper-q', c)?.addEventListener('click', useQueuedUpper);
-  $('#markup', c)?.addEventListener('click', () => go('house'));
+  $('#markup', c)?.addEventListener('click', () => go('job'));
   c.querySelectorAll('[data-north]').forEach((b) => (b.onclick = () => { app.read.north = b.dataset.north; importRead(); }));
   const cv = $('#cv', c);
   if (cv) mountPlan(cv, { interactive: false, labels: true, compact: false, zoneCards: false });
@@ -1242,7 +1246,6 @@ async function renderCheck(c) {
   // The check as a few questions down the side of a big plan, one open at a time (Jake, 15 Nov 2026: "the check page
   // layout is very messy").
   const open = app.checkOpen ?? 'rooms';
-  const zl = o.zonings.find((z) => z.id === (p.site.zoningPref ?? 'perroom'));
   const nSuites = Object.keys(a.suites).length;
   const sec = (k, n, title, summary, body) => `<section class="q-sec ${open === k ? 'open' : ''}">
     <button class="q-head" data-q="${k}"><span class="q-n">${n}</span><span class="q-t"><b>${title}</b><small>${summary}</small></span>${icon('chev', 'q-chev')}</button>
@@ -1260,7 +1263,7 @@ async function renderCheck(c) {
       ${a.pc.gaps.length ? `<span class="eyebrow" style="display:block;margin:12px 0 4px">Gaps between rooms</span><p class="small muted" style="margin:0 0 6px">Floor no room covers. On, it becomes part of the room it opens off.</p>
         ${a.pc.gaps.map((x) => `<label class="kv" style="cursor:pointer"><span><b style="font-weight:700">${x.outdoorish ? 'Outside, by the look of it' : x.joins ? 'Part of the ' + esc(roomName(x.joins)) : 'A hallway of its own'}</b><br><span class="small muted">${fmt(x.area, 1)} m²</span></span>
           <input type="checkbox" data-gap="${esc(x.key)}" ${a.gapsOn.has(x.key) ? 'checked' : ''} style="width:20px;height:20px;accent-color:var(--ink)"></label>`).join('')}` : ''}
-      <p class="small muted" style="margin:8px 0 0">Ceilings come from the House step; change a room's here (a raked or high ceiling adds to its load). An extension? Set <b>Built</b> on its rooms: their walls, insulation and glass then go by that era, not the house's.</p>
+      <p class="small muted" style="margin:8px 0 0">Ceilings come from New job; change a room's here (a raked or high ceiling adds to its load). An extension? Set <b>Built</b> on its rooms: their walls, insulation and glass then go by that era, not the house's.</p>
       <div class="actions-row"><button class="btn2" id="editrooms">Edit the rooms on the plan</button></div>`;
   const areasBody = `<p class="small muted" style="margin:0 0 8px">Rooms with no doors between them, say kitchen, dining and family, are heated and cooled as one space, on one zone.</p>
       ${a.openAreas.map((grp, i) => `<div class="kv"><span>${grp.map(roomName).map(esc).join(' + ')}</span><button class="link" data-split="${i}">Split</button></div>`).join('') || '<p class="small muted">No open areas.</p>'}
@@ -1268,10 +1271,6 @@ async function renderCheck(c) {
       ${wet.length && beds.length ? `<span class="eyebrow" style="display:block;margin:14px 0 4px">Ensuites</span><p class="small muted" style="margin:0 0 6px">An ensuite goes on its bedroom's zone.</p>
         ${wet.map((r) => `<div class="kv"><span>${esc(r.name)}</span><select data-suite="${r.id}" class="text" style="width:auto">
           <option value="">Not an ensuite</option>${beds.map((b) => `<option value="${b.id}" ${a.suites[r.id] === b.id ? 'selected' : ''}>Ensuite to ${esc(b.name)}</option>`).join('')}</select></div>`).join('')}` : ''}`;
-  const zoningBody = `<p class="small muted" style="margin:0 0 8px">${esc(zl?.note ?? '')} Tap a room on the Design step to say if it's on its own zone or always on.</p>
-      <div class="seg" style="flex-wrap:wrap">${o.zonings.map((z) => `<button data-zoning="${z.id}" class="${z.id === (p.site.zoningPref ?? 'perroom') ? 'on' : ''}">${esc(z.label)}</button>`).join('')}</div>`;
-  const unitBody = `<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px"><p class="small muted" style="flex:1;margin:0">Sized so the whole home can run fully open on a design day.</p><button class="btn2 small" data-sizehow>How it's worked out</button></div>
-      ${unitOptions(t, p.site)}`;
   c.innerHTML = `<div class="work check-work">
     <div class="stage">
       ${isUnsized() ? `<div class="card" style="border:2px solid var(--accent);margin-bottom:10px"><h2>The plan isn't sized yet</h2><p class="small muted" style="margin:2px 0 10px">The rooms were drawn by hand: set the size from one wall you know before the loads and ducts mean anything.</p><button class="btn" id="sizeit">Set the size</button></div>` : ''}
@@ -1282,9 +1281,7 @@ async function renderCheck(c) {
     <div class="panel q-panel">
       ${sec('rooms', 1, 'Rooms', `${v.rooms.length} rooms · ${v.rooms.filter((r) => r.conditioned).length} air conditioned${a.pc.gaps.length ? ` · ${a.pc.gaps.length} gap${a.pc.gaps.length === 1 ? '' : 's'}` : ''}`, roomsBody)}
       ${sec('areas', 2, 'Open areas and ensuites', `${a.openAreas.length || 'No'} open area${a.openAreas.length === 1 ? '' : 's'}${wet.length && beds.length ? ` · ${nSuites || 'no'} ensuite${nSuites === 1 ? '' : 's'}` : ''}`, areasBody)}
-      ${sec('zoning', 3, 'Zoning', esc(zl?.label ?? ''), zoningBody)}
-      ${sec('unit', 4, 'Unit', t.unit ? esc(t.unit.label) : 'Not sized yet', unitBody)}
-      ${sec('spill', 5, 'Spill', cards?.needsSpill === false ? 'Nothing more to fit' : cards?.oneZone ? 'One zone' : 'Where spare air goes', spillCard(cards, p))}
+      <p class="hint" style="margin:4px 6px 0">Next, on Equipment: the unit, zoning and spill.</p>
     </div></div>`;
   const plan = mountPlan($('#cv', c), { interactive: false, labels: true, compact: true, zoneCards: false, gaps: a.pc.gaps.map((x) => ({ ...x, on: a.gapsOn.has(x.key) })),
     handlers: { tapRoom: (w) => openEditor({ room: w && v.rooms.find((r) => pointInPolygon(w, r.polygon))?.id }) } });
@@ -1304,9 +1301,6 @@ async function renderCheck(c) {
   c.querySelectorAll('[data-suite]').forEach((s) => (s.onchange = () => { if (s.value) a.suites[s.dataset.suite] = s.value; else delete a.suites[s.dataset.suite]; }));
   c.querySelectorAll('[data-gap]').forEach((cb) => (cb.onchange = () => { cb.checked ? a.gapsOn.add(cb.dataset.gap) : a.gapsOn.delete(cb.dataset.gap); plan.set({ gaps: a.pc.gaps.map((x) => ({ ...x, on: a.gapsOn.has(x.key) })) }); }));
   $('#addarea', c)?.addEventListener('click', () => pickOpenArea(c));
-  bindUnitOptions(c);
-  bindSpill(c);
-  c.querySelectorAll('[data-zoning]').forEach((b) => (b.onclick = async () => { await commit({ ...app.project, site: { ...app.project.site, zoningPref: b.dataset.zoning } }, { rerender: false }); app.cards = await call('systemCards', { project: app.project }); render(); }));
 }
 
 /// When a room was built: as the house, or an era of its own (an extension).
@@ -1417,19 +1411,71 @@ async function spillTo(spill) {
   render();
 }
 
+/// JSON with every object's keys sorted: the engine writes the same room back with its keys in another order, which
+/// a plain JSON.stringify read as a change (and so wiped the ducts every time the rooms were confirmed again).
+function stableJSON(x) {
+  if (Array.isArray(x)) return '[' + x.map(stableJSON).join(',') + ']';
+  if (x && typeof x === 'object') return '{' + Object.keys(x).sort().map((k) => JSON.stringify(k) + ':' + stableJSON(x[k])).join(',') + '}';
+  return JSON.stringify(x);
+}
+
 async function confirmPlan() {
   const a = app.checkAnswers;
-  if (!a) { go('design'); return; }
+  if (!a) { go('equipment'); return; }
   const suites = {};
   for (const [k, v] of Object.entries(a.suites)) if (v) suites[k] = v;
   const { project } = await call('confirmPlan', { project: app.project, openAreas: a.openAreas, suites, gaps: [...a.gapsOn] });
   app.checkAnswers = null;
   // Rooms changed: the design is made again (the app designs once the plan's checked).
-  const roomsChanged = app.roomsEdited || JSON.stringify(project.rooms) !== JSON.stringify(app.project.rooms);
+  const roomsChanged = app.roomsEdited || stableJSON(project.rooms) !== stableJSON(app.project.rooms);
   app.roomsEdited = false;
   await commit(roomsChanged ? { ...project, design: null } : project, { rerender: false });
-  go('design');
-  if (!app.project.design) startDesign();
+  go('equipment');
+}
+
+/// The Equipment stage: what goes in — the unit and its size, the zoning, and where the spare air spills — beside the
+/// plan with its zones. A multi-head split's heads and outdoor units are laid out here instead (renderSplitDesign).
+async function renderEquipment(c) {
+  const v = app.view, p = app.project, o = app.options;
+  if (!v.planChecked) {
+    c.innerHTML = `<div class="card empty" style="max-width:560px;margin:20px auto"><h2>Check the rooms first</h2><p>The equipment is sized once the rooms, open areas and ensuites are checked.</p><button class="btn" data-go="plan" style="margin-top:12px">Check the rooms</button></div>`;
+    c.querySelector('[data-go]').onclick = () => go('plan');
+    return;
+  }
+  if (isSplit()) { renderSplitDesign(c); return; }
+  const cards = app.cards = await call('systemCards', { project: p });
+  if (app.step !== 'equipment' && app.step !== 'design') return;           // moved on while the engine answered
+  const t = v.totals, zl = o.zonings.find((z) => z.id === (p.site.zoningPref ?? 'perroom'));
+  const zones = new Set(v.rooms.filter((r) => r.conditioned && r.zone != null && r.zone !== 0).map((r) => r.zone)).size;
+  const open = app.equipOpen ?? 'unit';
+  const sec = (k, n, title, summary, body) => `<section class="q-sec ${open === k ? 'open' : ''}">
+    <button class="q-head" data-q="${k}"><span class="q-n">${n}</span><span class="q-t"><b>${title}</b><small>${summary}</small></span>${icon('chev', 'q-chev')}</button>
+    ${open === k ? `<div class="q-body">${body}</div>` : ''}</section>`;
+  const unitBody = `<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px"><p class="small muted" style="flex:1;margin:0">Sized so the whole home can run fully open on a design day.</p><button class="btn2 small" data-sizehow>How it's worked out</button></div>
+      ${unitOptions(t, p.site)}`;
+  const zoningBody = `<p class="small muted" style="margin:0 0 8px">${esc(zl?.note ?? '')} Tap a room on Air &amp; pipes to say if it's on its own zone or always on.</p>
+      <div class="seg" style="flex-wrap:wrap">${o.zonings.map((z) => `<button data-zoning="${z.id}" class="${z.id === (p.site.zoningPref ?? 'perroom') ? 'on' : ''}">${esc(z.label)}</button>`).join('')}</div>`;
+  const pct = t.unit && t.wholeHomeKW ? Math.round(t.unit.kw / t.wholeHomeKW * 100) : null;
+  c.innerHTML = `<div class="work check-work">
+    <div class="stage">
+      <div class="bar"><div class="stats"><div><b>${t.unit ? g(t.unit.kw) + ' kW' : '—'}</b><span>unit</span></div><div><b>${fmt(t.wholeHomeKW ?? t.connectedKW, 1)} kW</b><span>whole home</span></div>
+        <div><b>${pct != null ? pct + '%' : '—'}</b><span>of the load</span></div><div><b>${zones || '—'}</b><span>zones</span></div></div>
+        <div class="spacer" style="flex:1"></div>${systemSwitch()}</div>
+      <div class="canvas-card"><canvas id="cv"></canvas>${zoomCtl()}</div>
+      <div class="hint">Rooms are coloured by zone.${app.project.design?.outlets?.length ? ' The ducts are changed on Air &amp; pipes.' : ' The ducts, outlets and fan coil come next, on Air &amp; pipes.'}</div>
+    </div>
+    <div class="panel q-panel">
+      ${sec('unit', 1, 'Unit', t.unit ? esc(t.unit.label) : 'Not sized yet', unitBody)}
+      ${sec('zoning', 2, 'Zoning', esc(zl?.label ?? ''), zoningBody)}
+      ${sec('spill', 3, 'Spill', cards?.needsSpill === false ? 'Nothing more to fit' : cards?.oneZone ? 'One zone' : 'Where spare air goes', spillCard(cards, p))}
+    </div></div>`;
+  const plan = mountPlan($('#cv', c), { interactive: false, labels: true, compact: true });
+  bindZoomCtl(c, plan);
+  bindSystemSwitch(c);
+  c.querySelectorAll('[data-q]').forEach((b) => (b.onclick = () => { app.equipOpen = (app.equipOpen ?? 'unit') === b.dataset.q ? 'none' : b.dataset.q; renderEquipment(c); }));
+  bindUnitOptions(c);
+  bindSpill(c);
+  c.querySelectorAll('[data-zoning]').forEach((b) => (b.onclick = async () => { await commit({ ...app.project, site: { ...app.project.site, zoningPref: b.dataset.zoning } }, { rerender: false }); render(); }));
 }
 
 // MARK: Capture by hand — the scale measured on the plan
@@ -1719,7 +1765,7 @@ async function closeEditor() {
     return;
   }
   shutEditor();
-  if (!st.edited) { if (app.view.rooms.length && st.from !== 'design') go('check'); else render(); return; }
+  if (!st.edited) { if (app.view.rooms.length && st.from !== 'design') go('plan'); else render(); return; }
   app.roomsEdited = !!app.project.design;
   const a = app.checkAnswers;
   if (a) {
@@ -1732,7 +1778,7 @@ async function closeEditor() {
     for (const x of a.pc.gaps) if (!known.has(x.key) && !x.outdoorish) a.gapsOn.add(x.key);
     app.cards = await call('systemCards', { project: app.project });
   }
-  if (app.view.rooms.length) go('check'); else render();
+  if (app.view.rooms.length) go('plan'); else render();
 }
 
 function renderRoomEditor(c) {
@@ -2112,8 +2158,8 @@ function renderDesign(c) {
   const l = app.layout, v = app.view, p = app.project;
   if (isSplit() && v.planChecked) { renderSplitDesign(c); return; }
   if (!v.planChecked && !p.design) {
-    c.innerHTML = `<div class="card empty" style="max-width:560px;margin:20px auto"><h2>Check the plan first</h2><p>The ducts are laid out once the rooms, open areas and ensuite are checked.</p><button class="btn" data-go="check" style="margin-top:12px">Check the plan</button></div>`;
-    c.querySelector('[data-go]').onclick = () => go('check');
+    c.innerHTML = `<div class="card empty" style="max-width:560px;margin:20px auto"><h2>Check the rooms first</h2><p>The ducts are laid out once the rooms, open areas and ensuite are checked.</p><button class="btn" data-go="plan" style="margin-top:12px">Check the rooms</button></div>`;
+    c.querySelector('[data-go]').onclick = () => go('plan');
     return;
   }
   const bags = (l?.flex ?? []).reduce((s, f) => s + f.bags, 0);
@@ -2378,7 +2424,7 @@ function renderInspector() {
         <div class="insp-sub">It stays. Drag it to where it is in the roof.</div>
         <div class="kv"><span>Ducts sized for</span><b>${fmt(l.fanLps)} L/s${u ? ` · a ${g(u.kw)} kW unit's fan` : ''}</b></div>
         <div class="kv"><span>Fan static</span><b>${staticLine(l.network)}</b></div>
-        <p class="small muted" style="margin:6px 0 0">Pick the size nearest the unit that's there under Unit size on the Check step, so the ducts suit its fan.</p>
+        <p class="small muted" style="margin:6px 0 0">Pick the size nearest the unit that's there under Unit on the Equipment step, so the ducts suit its fan.</p>
         <div class="actions-row"><button class="btn2" id="rotate">${icon('rotate').replace('<svg', '<svg width="16" height="16"')} Turn it 90°</button><button class="btn2" data-sizehow>How it's sized</button></div></div>`;
     } else
     html = `<div class="card"><div class="insp-head"><h2>Fan coil</h2>${close}</div>
@@ -2444,9 +2490,9 @@ function sizeBreakdown() {
   const lows = [];
   const big = biggestUnitKW();
   if (t.wholeHomeKW > big * 1.06) lows.push(`<b>The full open home needs ${fmt(t.wholeHomeKW, 1)} kW — more than the biggest ${esc(brandNow().label)} ducted unit (${g(big)} kW).</b> Split it into two systems (say living and sleeping), or size it for zoned use and tell the customer it won't run every room flat out at once on the hottest day.`);
-  if (needsThreePhase(t, p.site)) lows.push(`<b>${g(t.unit.kw)} kW needs a three-phase supply.</b> 18 kW is the biggest Mitsubishi Electric ducted unit on single phase; 20 and 24.5 kW are three phase only. Check the switchboard (and set it on the Check page), or split the house into two systems.`);
+  if (needsThreePhase(t, p.site)) lows.push(`<b>${g(t.unit.kw)} kW needs a three-phase supply.</b> 18 kW is the biggest Mitsubishi Electric ducted unit on single phase; 20 and 24.5 kW are three phase only. Check the switchboard (and set it on the Equipment step), or split the house into two systems.`);
   if (noGlass.length) lows.push(`<b>${noGlass.length} of ${live.length} rooms have no windows drawn.</b> They count as typical glass (× 1.00) facing no particular way — a west-facing room is × 1.16 and a glassy one × 1.22. Add the windows for a truer size: Edit the rooms → pick a wall → Add a window.`);
-  if (/good/.test(insul?.[0] ?? '')) lows.push(`<b>Ceiling insulation R3.5 or better</b> takes 15% off every room (× 0.85). Check it on the House step if you're not sure what's up there.`);
+  if (/good/.test(insul?.[0] ?? '')) lows.push(`<b>Ceiling insulation R3.5 or better</b> takes 15% off every room (× 0.85). Check it on New job if you're not sure what's up there.`);
   lows.push(`<b>People and appliances are in each room's W/m² rate</b> (a typical household), not added on top. Bedrooms are × 0.92 because they're mostly used at night; a home office, a gym or a west-facing bedroom may want a size up.`);
   if (/cool/i.test(climate?.[0] ?? '')) lows.push(`<b>${esc(climate[0])} sizes from ${esc(base)}</b> for the summer peak. The winter heating load isn't worked out separately, and in a cool climate it can be the bigger one — allow for it on an old or draughty house.`);
   const opt = (key, label) => ch[key] ? `<div class="kv"><span>${label}${!t.byHand && t.sizing === key ? ' <span class="tag">PICKED</span>' : ''}</span><b>${esc(ch[key].label)}</b></div>` : '';
@@ -2697,6 +2743,7 @@ async function renderSend(c) {
   }
   c.innerHTML = '<div class="empty"><div class="spinner" style="margin:0 auto 12px"></div>Checking the design…</div>';
   const [{ checks }, takeoff] = await Promise.all([call('checks', { project: app.project }), call('takeoff', { project: app.project })]);
+  if (!app.project || app.step !== 'send' || !c.isConnected) return; // left the page while it was checking
   app.checks = checks;
   app.takeoff = takeoff;
   const warn = checks.filter((x) => x.level !== 'ok'), ok = checks.filter((x) => x.level === 'ok');
@@ -3116,7 +3163,7 @@ function openReport(kind) {
   const close = () => o.remove();
   $('#rp-close', o).onclick = close;
   o.addEventListener('keydown', (e) => e.key === 'Escape' && close());
-  import('./reports.js?v=bd7a655-202611162120').then(async (m) => {
+  import('./reports.js?v=3907973-202611162145').then(async (m) => {
     // Reports are always the design as installed: every zone open, balanced. A multi-head job has no ducted design to
     // route (routing one threw, and the bar stayed on "Building the report…" for good).
     app.designLayout = isSplit() ? null : await call('route', { project: app.project, closed: [], balanced: true });

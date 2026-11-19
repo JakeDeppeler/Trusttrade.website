@@ -343,6 +343,35 @@ export class Plan {
     d.editor?.overlay(g, x);
   }
 
+  /// A duct drawn by hand, picked: a handle on each bend to drag (tap one to pick it), and a small + between each pair
+  /// of points that makes a new bend where it's dragged to.
+  drawBends(g, x, hb, drag) {
+    const pts = [hb.start, ...hb.via, hb.end];
+    const dragging = (kind, i) => drag?.active && drag.item?.kind === kind && drag.item.id === hb.id && drag.item.i === i;
+    for (let k = 0; k < pts.length - 1; k++) {
+      if (dragging('bendAdd', k)) continue;
+      const a = x.pt(pts[k]), b = x.pt(pts[k + 1]);
+      if (Math.hypot(b.x - a.x, b.y - a.y) < 34) continue;              // too short to fit one
+      const m = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
+      g.beginPath(); g.arc(m.x, m.y, 5.5, 0, Math.PI * 2); g.fillStyle = 'rgba(255,255,255,0.92)'; g.fill();
+      g.strokeStyle = T.ink; g.lineWidth = 1.2; g.setLineDash([2, 2]); g.stroke(); g.setLineDash([]);
+      g.strokeStyle = T.ink; g.lineWidth = 1.4;
+      g.beginPath(); g.moveTo(m.x - 2.5, m.y); g.lineTo(m.x + 2.5, m.y); g.moveTo(m.x, m.y - 2.5); g.lineTo(m.x, m.y + 2.5); g.stroke();
+      this.hits.push({ item: { kind: 'bendAdd', id: hb.id, i: k }, x: m.x, y: m.y, r: 10 });
+    }
+    const handle = (c, picked) => {
+      g.save(); g.shadowColor = 'rgba(0,0,0,0.25)'; g.shadowBlur = 4; g.shadowOffsetY = 1;
+      g.beginPath(); g.arc(c.x, c.y, 7, 0, Math.PI * 2); g.fillStyle = picked ? T.accent : '#fff'; g.fill(); g.restore();
+      g.beginPath(); g.arc(c.x, c.y, 7, 0, Math.PI * 2); g.strokeStyle = T.ink; g.lineWidth = 2; g.stroke();
+    };
+    hb.via.forEach((p, i) => {
+      const c = dragging('bend', i) ? drag.screen : x.pt(p);
+      handle(c, hb.picked === i);
+      this.hits.push({ item: { kind: 'bend', id: hb.id, i }, x: c.x, y: c.y, r: 12 });
+    });
+    for (let k = 0; k < pts.length - 1; k++) if (dragging('bendAdd', k)) handle(drag.screen, true);
+  }
+
   /// The duct being drawn: from where it starts, through the bends tapped so far, to the mouse.
   drawPenDraft(g, x, pd) {
     const pts = [pd.start, ...pd.via, ...(this.penHover ? [this.penHover] : [])].filter(Boolean).map(x.pt);
@@ -641,7 +670,7 @@ export class Plan {
         }
       }
     }
-    // Zone motors: a dark collar across the duct; red with a cross when shut.
+    // Zone dampers, each on its leg as it is in the roof.
     for (const dm of l.dampers) {
       // On the duct as it's drawn (the curve can sit a little off the routed line).
       let c = x.pt(dm.pos), dir = { x: dm.dir.x, y: -dm.dir.y }, bestD = 1.2 * x.s;
@@ -651,19 +680,37 @@ export class Plan {
           if (d < bestD) { bestD = d; c = nearestOn(x.pt(dm.pos), a, b); dir = unitVec({ x: b.x - a.x, y: b.y - a.y }) ?? dir; }
         }
       }
-      // A zone motor: a collar across the duct, and a badge on it in its zone's colour with the zone's number (red with
-      // a cross when the zone's shut).
-      const n = { x: -dir.y, y: dir.x };
-      const len = Math.max(dm.sizeMM / 1000 * x.s * 0.55, 5);
-      this.stroke(g, [{ x: c.x - n.x * len, y: c.y - n.y * len }, { x: c.x + n.x * len, y: c.y + n.y * len }], '#2A2E33', 2.5);
+      // A motorised zone damper as it is (Jake, 19 Nov 2026: "a zone needs to look real"): a galvanised sleeve in the
+      // duct, its blade (along the duct open, across it shut), and the motor on its side in the zone's colour with the
+      // zone's number (red with a cross when the zone's shut).
+      const n = { x: -dir.y, y: dir.x }, ang = Math.atan2(dir.y, dir.x);
+      const w = ductWidth(dm.sizeMM, x.s) + 4, L = Math.min(Math.max(0.28 * x.s, 13), 24);
+      g.save(); g.translate(c.x, c.y); g.rotate(ang);
+      g.shadowColor = 'rgba(0,0,0,0.22)'; g.shadowBlur = 3; g.shadowOffsetY = 1;
+      const sl = g.createLinearGradient(0, -w / 2, 0, w / 2);
+      sl.addColorStop(0, '#EEF1F4'); sl.addColorStop(0.5, '#C9CFD6'); sl.addColorStop(1, '#A6ADB6');
+      g.beginPath(); g.roundRect(-L / 2, -w / 2, L, w, 2); g.fillStyle = sl; g.fill();
+      g.shadowColor = 'transparent';
+      g.strokeStyle = '#5B636C'; g.lineWidth = 1.1; g.stroke();
+      g.strokeStyle = 'rgba(70,78,88,0.6)'; g.lineWidth = 0.9;            // the rolled beads at each end
+      g.beginPath(); g.moveTo(-L / 2 + 2.5, -w / 2); g.lineTo(-L / 2 + 2.5, w / 2); g.moveTo(L / 2 - 2.5, -w / 2); g.lineTo(L / 2 - 2.5, w / 2); g.stroke();
+      g.strokeStyle = '#2A2E33'; g.lineWidth = 1.8; g.lineCap = 'round';  // the blade on its shaft
+      g.beginPath();
+      if (dm.open) { g.moveTo(-L / 2 + 4.5, 0); g.lineTo(L / 2 - 4.5, 0); } else { g.moveTo(0, -w / 2 + 1.5); g.lineTo(0, w / 2 - 1.5); }
+      g.stroke();
+      // The motor bolted flush to the sleeve's side, square to the duct; its number stays upright.
+      const mw = 15, mh = 11, my = -w / 2 - mh + 0.5;
       const tone = dm.open ? zoneColour(dm.zone) : T.danger, label = dm.open ? String(dm.zone) : '✕';
-      g.save(); g.shadowColor = 'rgba(0,0,0,0.2)'; g.shadowBlur = 3; g.shadowOffsetY = 1;
-      g.beginPath(); g.roundRect(c.x - 7.5, c.y - 7, 15, 14, 4); g.fillStyle = tone; g.fill(); g.restore();
-      g.beginPath(); g.roundRect(c.x - 7.5, c.y - 7, 15, 14, 4); g.strokeStyle = '#fff'; g.lineWidth = 1.5; g.stroke();
-      g.font = `900 9.5px ${FONT}`; g.fillStyle = '#fff'; g.textAlign = 'center'; g.textBaseline = 'middle';
-      g.fillText(label, c.x, c.y + 0.5);
+      g.shadowColor = 'rgba(0,0,0,0.25)'; g.shadowBlur = 3; g.shadowOffsetY = 1;
+      g.beginPath(); g.roundRect(-mw / 2, my, mw, mh, 2.5); g.fillStyle = tone; g.fill();
+      g.shadowColor = 'transparent';
+      g.strokeStyle = '#1E2227'; g.lineWidth = 1.2; g.stroke();
+      g.restore();
+      const mc = { x: c.x - n.x * (w / 2 + mh / 2 - 0.5), y: c.y - n.y * (w / 2 + mh / 2 - 0.5) };
+      g.font = `900 9px ${FONT}`; g.fillStyle = '#fff'; g.textAlign = 'center'; g.textBaseline = 'middle';
+      g.fillText(label, mc.x, mc.y + 0.5);
     }
-    // BDOs: galvanised fittings along their inlet, a band in their zone's colour, and how many ways.
+    // BDOs: galvanised boxes with a spigot for the feed and one for each leg.
     for (const b of l.boxes) this.drawBdo(g, x.pt(b.pos), b, x);
     // Drawn by hand but not fed from the fan coil (its feed was taken out): dashed, faint.
     for (const r of l.looseRuns ?? []) {
@@ -676,40 +723,45 @@ export class Plan {
     }
   }
 
-  /// A BDO as a duct layout drawing has it (the v14 mock): a white box, ink outline, BDO on it; the inlet collar on the
-  /// side its feed comes in and a spigot where each leg leaves. The zones show on the legs' dampers (a box can feed
-  /// two zones now, a damper on each leg); a one-zone box keeps a thin band of its colour along the inlet end.
-  bdoSize(x) { return { len: Math.min(Math.max(0.62 * x.s, 34), 54), wid: Math.min(Math.max(0.34 * x.s, 19), 30) }; }
+  /// A BDO as the fitting is (Jake, 19 Nov 2026: "it needs to look like a BDO"): a galvanised sheet-metal box seen from
+  /// above, the cross-break on its lid, the inlet spigot where its feed comes in and a spigot for each leg, each the
+  /// size of its duct. No label: the fitting says what it is. The zones show on the legs' dampers.
+  bdoSize(x) { return { len: Math.min(Math.max(0.5 * x.s, 28), 46), wid: Math.min(Math.max(0.36 * x.s, 20), 34) }; }
   drawBdo(g, c, b, x) {
     const ang = Math.atan2(-(b.axis?.y ?? 0), b.axis?.x ?? 1);
-    const { len, wid } = this.bdoSize(x), ink = '#26231F';
+    const { len, wid } = this.bdoSize(x), edge = '#5B636C';
+    const spigotW = (mm) => Math.min(Math.max(ductWidth(mm ?? 200, x.s) * 0.95, 7), wid * 0.8);
+    const spigot = (w, out) => {
+      // A short round spigot off the box: its collar, with the bead where the flex is strapped on.
+      const grad = g.createLinearGradient(0, -w / 2, 0, w / 2);
+      grad.addColorStop(0, '#E9EDF1'); grad.addColorStop(0.5, '#C5CBD2'); grad.addColorStop(1, '#A9B0B8');
+      g.beginPath(); g.rect(-1, -w / 2, out + 1, w); g.fillStyle = grad; g.fill();
+      g.strokeStyle = edge; g.lineWidth = 1; g.stroke();
+      g.beginPath(); g.moveTo(out * 0.62, -w / 2); g.lineTo(out * 0.62, w / 2); g.strokeStyle = 'rgba(70,78,88,0.7)'; g.lineWidth = 1; g.stroke();
+    };
     g.save(); g.translate(c.x, c.y); g.rotate(ang);
-    // Inlet collar: the feed arrives along the axis, so into the end against it.
-    g.fillStyle = ink;
-    g.beginPath(); g.roundRect(-len / 2 - 4.5, -wid * 0.3, 6, wid * 0.6, 1.5); g.fill();
+    const out = Math.max(5, Math.min(0.07 * x.s, 9));
+    // Inlet: the feed arrives along the axis, into the end against it.
+    g.save(); g.translate(-len / 2, 0); g.rotate(Math.PI); spigot(spigotW(b.inletMM), out); g.restore();
     // A spigot on the box's edge where each leg leaves.
-    for (const d of b.legDirs ?? []) {
+    (b.legDirs ?? []).forEach((d, k) => {
       const wx = d.x, wy = -d.y, lx = wx * Math.cos(ang) + wy * Math.sin(ang), ly = -wx * Math.sin(ang) + wy * Math.cos(ang);
       const t = Math.min(Math.abs(lx) > 1e-6 ? (len / 2) / Math.abs(lx) : Infinity, Math.abs(ly) > 1e-6 ? (wid / 2) / Math.abs(ly) : Infinity);
-      if (!isFinite(t)) continue;
-      g.save(); g.translate(lx * t, ly * t); g.rotate(Math.atan2(ly, lx));
-      g.beginPath(); g.roundRect(-1, -wid * 0.22, 5, wid * 0.44, 1.2); g.fill();
-      g.restore();
-    }
-    g.shadowColor = 'rgba(20,18,14,0.16)'; g.shadowBlur = 6; g.shadowOffsetY = 1.5;
-    g.beginPath(); g.roundRect(-len / 2, -wid / 2, len, wid, 4); g.fillStyle = '#FFFFFF'; g.fill();
+      if (!isFinite(t)) return;
+      g.save(); g.translate(lx * t, ly * t); g.rotate(Math.atan2(ly, lx)); spigot(spigotW(b.legMM?.[k]), out); g.restore();
+    });
+    // The box: galvanised, lit from the top, its lid's cross-break.
+    g.shadowColor = 'rgba(20,18,14,0.22)'; g.shadowBlur = 5; g.shadowOffsetY = 1.5;
+    const body = g.createLinearGradient(-len / 2, -wid / 2, len / 2, wid / 2);
+    body.addColorStop(0, '#F1F4F7'); body.addColorStop(0.45, '#D6DBE0'); body.addColorStop(1, '#B4BBC3');
+    g.beginPath(); g.roundRect(-len / 2, -wid / 2, len, wid, 2.5); g.fillStyle = body; g.fill();
     g.shadowColor = 'transparent';
-    g.strokeStyle = ink; g.lineWidth = 1.6; g.stroke();
-    if (b.zone != null && b.zone !== 0) {
-      g.save(); g.beginPath(); g.roundRect(-len / 2, -wid / 2, len, wid, 4); g.clip();
-      g.fillStyle = zoneColour(b.zone); g.fillRect(-len / 2, -wid / 2, 3.5, wid);
-      g.restore();
-      g.beginPath(); g.roundRect(-len / 2, -wid / 2, len, wid, 4); g.strokeStyle = ink; g.lineWidth = 1.6; g.stroke();
-    }
+    g.strokeStyle = edge; g.lineWidth = 1.3; g.stroke();
+    g.beginPath(); g.moveTo(-len / 2 + 2, -wid / 2 + 2); g.lineTo(len / 2 - 2, wid / 2 - 2); g.moveTo(len / 2 - 2, -wid / 2 + 2); g.lineTo(-len / 2 + 2, wid / 2 - 2);
+    g.strokeStyle = 'rgba(255,255,255,0.75)'; g.lineWidth = 1; g.stroke();
+    g.beginPath(); g.moveTo(-len / 2 + 2.6, -wid / 2 + 2); g.lineTo(len / 2 - 1.4, wid / 2 - 2); g.moveTo(len / 2 - 1.4, -wid / 2 + 2); g.lineTo(-len / 2 + 2.6, wid / 2 - 2);
+    g.strokeStyle = 'rgba(90,98,108,0.35)'; g.lineWidth = 0.8; g.stroke();
     g.restore();
-    // The label stays upright, whichever way the box lies.
-    g.font = `700 ${Math.max(8, Math.min(10.5, wid * 0.42))}px ${FONT}`; g.fillStyle = ink; g.textAlign = 'center'; g.textBaseline = 'middle';
-    g.fillText('BDO', c.x, c.y + 0.5);
   }
 
   /// Each room's name where it sits clear of the ducts and vents, and its load under it — unless the zones' cards carry
@@ -1243,6 +1295,7 @@ export class Plan {
       }
       this.hits.push({ item: { kind: 'outlet', id: o.id }, x: c.x, y: c.y, r: Math.max(17, ring) });
     }
+    if (d.handBends) this.drawBends(g, x, d.handBends, drag);
   }
 
   /// Each lower floor with the floor above laid over it, faint and dashed, where it sits — so a dropper's foot is seen

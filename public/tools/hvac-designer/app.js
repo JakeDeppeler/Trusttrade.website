@@ -1,11 +1,11 @@
 // Trust Trade Pro — the HVAC Designer in the browser. The same five steps as the app (House · Capture · Check · Design ·
 // Send) on the app's own engine (engine.wasm, run in a worker): the same loads, zones, ducts, checks and materials.
 
-import { call as engineCall, latest } from './engine.js?v=67c6aac-202611191310';
-import { jobCalls, isMixed as mixedJob, ductedPart, splitSet, withSplitRooms, defaultRange } from './systems.js?v=67c6aac-202611191310';
-import * as store from './store.js?v=67c6aac-202611191310';
-import { Plan, inkImage, zoneColour, ductColour, splitColour, T, pointInPolygon, movesOnly, wheelMoves, ZOOM_MAX } from './plan.js?v=67c6aac-202611191310';
-import { RoomEditor, metres, signedArea, onLine } from './roomeditor.js?v=67c6aac-202611191310';
+import { call as engineCall, latest } from './engine.js?v=4f37d94-202611191405';
+import { jobCalls, isMixed as mixedJob, ductedPart, splitSet, withSplitRooms, defaultRange } from './systems.js?v=4f37d94-202611191405';
+import * as store from './store.js?v=4f37d94-202611191405';
+import { Plan, inkImage, zoneColour, ductColour, splitColour, T, pointInPolygon, movesOnly, wheelMoves, ZOOM_MAX } from './plan.js?v=4f37d94-202611191405';
+import { RoomEditor, metres, signedArea, onLine } from './roomeditor.js?v=4f37d94-202611191405';
 
 /// Every engine call: a two-system job's go with the part they're about (systems.js).
 const call = jobCalls(engineCall);
@@ -2321,6 +2321,7 @@ function renderDesign(c) {
     allSizes: app.layers.allSizes || app.layers.speeds, speeds: app.layers.speeds ? speedLimits() : null, lineDraft: app.lineDraft,
     picked: app.addMode === 'bdo' ? app.bdoPick ?? [] : null,
     penDraft: penDraft(),
+    handBends: handBends(),
     handlers: {
       select: (item) => select(item),
       pen: (h) => penTap(h),
@@ -2387,6 +2388,14 @@ function layersMenu(anchor) {
 }
 
 function select(item) {
+  // A bend on the picked duct: picked (to take it out), the duct stays picked.
+  if (item?.kind === 'bend' || item?.kind === 'bendAdd') {
+    if (item.kind === 'bend') app.bend = { id: item.id, i: item.i };
+    app.plan?.set({ handBends: handBends() });
+    renderInspector();
+    return;
+  }
+  app.bend = null;
   if (app.joining && item?.kind === 'room') {
     const a = app.joining;
     app.joining = null;
@@ -2397,7 +2406,7 @@ function select(item) {
   if (item?.kind === 'dropTop' || item?.kind === 'dropFoot') item = { kind: 'dropper', id: item.id };
   app.selection = item;
   if (item) app.addingUnit = false;
-  app.plan?.set({ selection: item });
+  app.plan?.set({ selection: item, handBends: handBends() });
   if (isSplit()) renderSplitInspector(); else renderInspector();
 }
 
@@ -2407,6 +2416,36 @@ async function addDropper(pos) {
 }
 
 // MARK: Drawing the ducts by hand
+
+/// The picked duct's bends, when it's drawn by hand: its run, where it starts and ends on the plan, and its bends.
+function pickedHandRun() {
+  const l = app.layout, s = app.selection;
+  if (!l?.handDrawn || !s || app.addMode) return null;
+  const run = s.kind === 'outlet' ? l.runs.find((x) => x.outlet === s.id)
+    : s.kind === 'feed' || s.kind === 'box' ? [...l.runs].reverse().find((x) => x.keyBox === s.id) : null;
+  if (s.kind === 'box') return null;
+  const hr = run?.hand && app.project.design?.hand?.runs.find((x) => x.id === run.hand);
+  return hr ? { run, hr } : null;
+}
+function handBends() {
+  const p = pickedHandRun();
+  if (!p) return null;
+  const path = p.run.path;
+  return { id: p.hr.id, via: p.hr.via, start: path[0], end: path[path.length - 1], picked: app.bend?.id === p.hr.id ? app.bend.i : null };
+}
+async function removeBend() {
+  const b = app.bend, r = b && app.project.design?.hand?.runs.find((x) => x.id === b.id);
+  if (!r || b.i == null || b.i >= r.via.length) return;
+  app.bend = null;
+  await edit('setHandVia', { key: r.id, outline: r.via.filter((_, i) => i !== b.i) });
+}
+function bendActions() {
+  const p = pickedHandRun();
+  if (!p) return '';
+  const n = p.hr.via.length, picked = app.bend?.id === p.hr.id && app.bend.i < n;
+  return `<p class="small muted" style="margin:8px 0 0">${n ? `${n} bend${n === 1 ? '' : 's'}: drag one to move it, or a + to add one.` : 'Drag the + on the duct to bend it.'}</p>
+    ${n ? `<div class="actions-row">${picked ? '<button class="btn2" id="delbend">Take out this bend</button>' : ''}<button class="btn2" id="straighten">Straighten it</button></div>` : ''}`;
+}
 
 /// Vents with no duct to them (ducts drawn by hand).
 function unfedCount() {
@@ -2495,6 +2534,14 @@ async function addVent(pos) {
 
 /// While dragging: the design as if dropped here, routed (the quick route for the fan coil), drawn as it comes back.
 function dragMove(item, pos) {
+  if (item.kind === 'bend' || item.kind === 'bendAdd') {
+    const d = structuredClone(app.project.design), r = d?.hand?.runs.find((x) => x.id === item.id);
+    if (!r) return;
+    if (item.kind === 'bend') r.via[item.i] = pos; else r.via.splice(item.i, 0, pos);
+    liveRoute('route', { project: { ...app.project, design: d }, closed: [...app.closed], balanced: app.balanced },
+      (layout) => { if (app.plan?.drag?.active) app.plan.set({ layout }); });
+    return;
+  }
   if (item.kind === 'head' || item.kind === 'odu' || item.kind === 'dropTop' || item.kind === 'dropFoot') return;   // placed on the drop
   const d = structuredClone(app.project.design);
   if (!d) return;
@@ -2510,6 +2557,15 @@ function dragMove(item, pos) {
 }
 
 async function drop(item, pos) {
+  if (item.kind === 'bend' || item.kind === 'bendAdd') {
+    const r = app.project.design?.hand?.runs.find((x) => x.id === item.id);
+    if (!r) return;
+    const via = r.via.slice();
+    if (item.kind === 'bend') via[item.i] = pos; else via.splice(item.i, 0, pos);
+    app.bend = { id: item.id, i: item.i };
+    if (!(await edit('setHandVia', { key: item.id, outline: via }))) render();
+    return;
+  }
   if (item.kind === 'head') {
     const h = app.split?.heads.find((x) => x.id === item.id);
     if (h && !(await edit('moveHead', { room: h.room, n: h.nth, pos }))) app.plan?.set({ split: app.split });
@@ -2597,7 +2653,7 @@ function renderInspector() {
       ${a ? `<div class="kv"><span>Throw</span><b>${fmt(a.ratio, 1)}× the walls · ${esc(a.coverage === 'good' ? 'mixes well' : a.coverage === 'short' ? 'falls short' : 'strong')}</b></div>
         <div class="kv"><span>Noise</span><b>NC ${fmt(a.nc)} · ${esc(a.ncWord)}</b></div><div class="kv"><span>Neck speed</span><b>${fmt(a.faceVelocity, 1)} m/s</b></div>` : ''}
       ${targets.length && !l.handDrawn ? `<label class="rowpick"><label>Put this vent on another BDO</label><select id="movebox"><option value="">Choose…</option>${targets.map((b) => `<option value="${esc(b.bid)}">BDO with ${esc(feeds(b))}</option>`).join('')}</select></label>` : ''}
-      ${l.handDrawn ? (run?.hand ? '<div class="actions-row"><button class="btn2" id="delrun">Take its duct out</button></div>' : '<p class="small" style="margin:6px 0 0;color:var(--accent-deep);font-weight:600">Not connected: draw a duct to it with the pen.</p>') : ''}
+      ${l.handDrawn ? (run?.hand ? bendActions() + '<div class="actions-row"><button class="btn2" id="delrun">Take its duct out</button></div>' : '<p class="small" style="margin:6px 0 0;color:var(--accent-deep);font-weight:600">Not connected: draw a duct to it with the pen.</p>') : ''}
       <div class="actions-row"><button class="btn2 danger" id="delvent">${icon('trash').replace('<svg', '<svg width="16" height="16"')} Take this vent out</button></div></div>`;
   } else if (s?.kind === 'box' && l?.boxes.find((b) => b.bid === s.id)) {
     const b = l.boxes.find((x) => x.bid === s.id), feed = [...l.runs].reverse().find((r) => r.keyBox === b.bid);
@@ -2613,7 +2669,7 @@ function renderInspector() {
     html = `<div class="card"><div class="insp-head"><h2>Flex to the BDO · Ø${r.sizeMM}</h2>${close}</div>
       <div class="insp-sub">${fmt(r.designLps)} L/s · ${fmt(velocity(r.designLps, r.sizeMM), 1)} m/s · ${fmt(len, 1)} m${b ? ` · into a ${b.branches}-way, ${esc(legList(b))}` : ''}${r.manual ? ' · size set' : ''}</div>
       ${b ? feedSizes(b, r) : ''}
-      ${r.hand ? '<div class="actions-row"><button class="btn2" id="delrun">Take this duct out</button></div>' : ''}</div>`;
+      ${r.hand ? bendActions() + '<div class="actions-row"><button class="btn2" id="delrun">Take this duct out</button></div>' : ''}</div>`;
   } else if (s?.kind === 'dropper' && v.droppers?.some((x) => x.id === s.id)) {
     const dr = v.droppers.find((x) => x.id === s.id), o = l?.outlets.find((x) => x.id === dr.id);
     const run = l?.runs.find((x) => x.outlet === dr.id);
@@ -2909,6 +2965,8 @@ function bindInspector(el) {
   $('#movebox', el)?.addEventListener('change', (e) => e.target.value && edit('moveOutletToBox', { id: s.id, bid: e.target.value }));
   $('#delvent', el)?.addEventListener('click', async () => { const id = s.id; app.selection = null; await edit('removeOutlet', { id }); });
   $('#unpin', el)?.addEventListener('click', () => edit('pinBox', { bid: s.id, pos: null }));
+  $('#delbend', el)?.addEventListener('click', () => removeBend());
+  $('#straighten', el)?.addEventListener('click', () => { const p = pickedHandRun(); if (p) { app.bend = null; edit('setHandVia', { key: p.hr.id, outline: [] }); } });
   $('#delrun', el)?.addEventListener('click', async () => {
     const l = app.layout, run = s.kind === 'outlet' ? l?.runs.find((x) => x.outlet === s.id) : [...(l?.runs ?? [])].reverse().find((x) => x.keyBox === s.id);
     if (run?.hand && await edit('removeHandRun', { key: run.hand })) { app.selection = null; render(); }
@@ -3413,7 +3471,7 @@ function openReport(kind) {
   const close = () => o.remove();
   $('#rp-close', o).onclick = close;
   o.addEventListener('keydown', (e) => e.key === 'Escape' && close());
-  import('./reports.js?v=67c6aac-202611191310').then(async (m) => {
+  import('./reports.js?v=4f37d94-202611191405').then(async (m) => {
     // Reports are always the design as installed: every zone open, balanced. A multi-head job has no ducted design to
     // route (routing one threw, and the bar stayed on "Building the report…" for good).
     app.designLayout = isSplit() ? null : await call('route', { project: app.project, closed: [], balanced: true });
@@ -3482,6 +3540,7 @@ function renderSettings() {
       if (e.key === 'Escape') { app.pen = null; render(); return; }
     }
     if (e.key === 'Escape') { app.addMode = false; app.lineDraft = null; app.joining = null; select(null); render(); }
+    if ((e.key === 'Delete' || e.key === 'Backspace') && app.bend && pickedHandRun()?.hr.id === app.bend.id) { e.preventDefault(); removeBend(); return; }
     if ((e.key === 'Delete' || e.key === 'Backspace') && app.selection?.kind === 'outlet') { const id = app.selection.id; app.selection = null; edit('removeOutlet', { id }); }
   });
   route();

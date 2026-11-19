@@ -763,26 +763,28 @@ export class Plan {
     }
   }
 
-  /// A BDO as the Multisnap fitting it is (Jake, 19 Nov 2026: "they bdo dont look like the multi snap ones"): a black
-  /// foam-insulated round body along its feed, the feed's spigot in its back end, a straight-on leg out of its front
-  /// and the side legs on their own round branches, every spigot the size of its duct. All of it is sized off the
-  /// ducts as they're drawn, so it zooms with them. No label: the fitting says what it is.
+  /// A BDO as the Multisnap fitting it is (Jake, 19 Nov 2026: "they bdo dont look like the multi snap ones", then "the 2
+  /// way bdo still looks wrong vs how they are in real life"): the Double Branch Take Off — a short black foam body that
+  /// flares from its feed collar into a Y, the branch collars moulded onto its shoulders at 45°, and the straight collar
+  /// out of its front between them (capped when nothing carries straight on). Every collar is the size of its duct and
+  /// it's all sized off the ducts as they're drawn, so it zooms with them. No label: the fitting says what it is.
   bdoGeom(c, b, x) {
-    const dIn = ductWidth(b.inletMM ?? 250, x.s), len = dIn * 2, wid = dIn * 1.22, ang = Math.atan2(-(b.axis?.y ?? 0), b.axis?.x ?? 1);
-    const cs = Math.cos(ang), sn = Math.sin(ang);
+    const D = ductWidth(b.inletMM ?? 250, x.s), dIn = D, ang = Math.atan2(-(b.axis?.y ?? 0), b.axis?.x ?? 1);
+    const len = D * 1.2, wid = D * 1.1;                     // the body's back face sits len/2 behind the middle
+    const cs = Math.cos(ang), sn = Math.sin(ang), hub = -D * 0.2, front = D * 0.8;
+    const toS = (lx, ly) => ({ x: c.x + lx * cs - ly * sn, y: c.y + lx * sn + ly * cs });
     const legs = (b.legDirs ?? []).map((d, k) => {
       const wx = d.x, wy = -d.y, lx = wx * cs + wy * sn, ly = -wx * sn + wy * cs;     // in the body's own frame
       const dL = ductWidth(b.legMM?.[k] ?? 200, x.s), rel = Math.atan2(ly, lx);
-      const straight = Math.abs(rel) < 0.45;
-      // Where the leg leaves the body: out the front end when it carries straight on, else through the side.
-      const t = Math.min(Math.abs(lx) > 1e-6 ? (len / 2) / Math.abs(lx) : Infinity, Math.abs(ly) > 1e-6 ? (wid / 2) / Math.abs(ly) : Infinity);
-      // A side branch comes off the barrel a little back from its middle and stands well clear, as the fitting's do.
-      const root = straight ? 0 : -len * 0.12, ax = { x: cs, y: sn };
-      const reach = (isFinite(t) ? t : wid / 2) + (straight ? 0 : dL * 0.75), spig = dL * 0.55;
-      const end = reach + spig, o = { x: c.x + ax.x * root, y: c.y + ax.y * root };
-      return { k, lx, ly, rel, dL, straight, root, reach, spig, end: { x: o.x + wx * end, y: o.y + wy * end }, dir: { x: wx, y: wy } };
+      const straight = Math.abs(rel) < 0.2;
+      // Where its collar leaves the body (local): the straight one off the front face, a branch off its shoulder.
+      const rr = straight ? 0 : D * 0.62 + D * 0.38 * Math.max(0, 1 - Math.abs(rel) / 0.79);
+      const base = straight ? { x: front, y: 0 } : { x: hub + Math.cos(rel) * rr, y: Math.sin(rel) * rr };
+      const spig = Math.max(dL * 0.6, 3), dl = { x: Math.cos(rel), y: Math.sin(rel) };
+      const tip = { x: base.x + dl.x * spig, y: base.y + dl.y * spig };
+      return { k, lx, ly, rel, dL, straight, base, spig, end: toS(tip.x, tip.y), dir: { x: wx, y: wy } };
     });
-    return { c, ang, len, wid, dIn, legs };
+    return { c, ang, len, wid, dIn, hub, front, legs };
   }
   /// The fan coil and its fittings at this zoom, in screen space: its size, how it's turned, the supply transition's
   /// shape and spigots (Jake, 19 Nov 2026: "flat on the supply and then 45 degrees on the side with the pop on the sides
@@ -850,53 +852,62 @@ export class Plan {
     U.ret.forEach(spigot);
   }
 
-  bdoSize(x, b = {}) { const d = ductWidth(b.inletMM ?? 250, x.s); return { len: d * 2, wid: d * 1.22 }; }
+  bdoSize(x, b = {}) { const d = ductWidth(b.inletMM ?? 250, x.s); return { len: d * 2.4, wid: d * 1.9 }; }
   drawBdo(g, c, b, x) {
-    const G = this.bdoGeom(c, b, x), { len, wid, dIn } = G, ink = '#0C0E10';
-    const lw = Math.min(Math.max(dIn * 0.07, 0.6), 1.4);
-    const tube = (w, from, to) => {
-      // A round tube seen from above: dark, with the light running along its top.
+    const G = this.bdoGeom(c, b, x), { len, dIn: D, front } = G, ink = '#0C0E10';
+    const lw = Math.min(Math.max(D * 0.07, 0.6), 1.4), back = len / 2;
+    const shade = (w) => {
       const gr = g.createLinearGradient(0, -w / 2, 0, w / 2);
-      gr.addColorStop(0, '#4A5056'); gr.addColorStop(0.35, '#2A2E33'); gr.addColorStop(1, '#141619');
-      g.beginPath(); g.rect(from, -w / 2, to - from, w); g.fillStyle = gr; g.fill();
-      g.strokeStyle = ink; g.lineWidth = lw; g.stroke();
+      gr.addColorStop(0, '#4E545B'); gr.addColorStop(0.35, '#2A2E33'); gr.addColorStop(1, '#131518');
+      return gr;
     };
-    const spigot = (w, at, l) => {
-      // The snap-on spigot: a step down, and the beads the flex is strapped over.
-      tube(w, at, at + l);
-      g.strokeStyle = 'rgba(160,168,176,0.55)'; g.lineWidth = lw;
-      g.beginPath();
-      for (const f of [0.3, 0.62]) { g.moveTo(at + l * f, -w / 2 + lw); g.lineTo(at + l * f, w / 2 - lw); }
+    // A snap collar, drawn along +x from 0 to l: a round tube with the beads the flex is strapped over.
+    const collar = (w, l) => {
+      g.beginPath(); g.rect(0, -w / 2, l, w); g.fillStyle = shade(w); g.fill(); g.strokeStyle = ink; g.lineWidth = lw; g.stroke();
+      g.strokeStyle = 'rgba(160,168,176,0.55)'; g.lineWidth = lw; g.beginPath();
+      for (const f of [0.28, 0.58, 0.86]) { g.moveTo(l * f, -w / 2 + lw); g.lineTo(l * f, w / 2 - lw); }
       g.stroke();
+      // the lip where it comes out of the foam
+      g.beginPath(); g.rect(-0.5, -w / 2 - lw * 1.2, Math.max(l * 0.12, 1.2), w + lw * 2.4); g.fillStyle = '#1B1E22'; g.fill();
     };
-    g.save(); g.translate(c.x, c.y);
-    g.shadowColor = 'rgba(10,10,10,0.25)'; g.shadowBlur = Math.min(dIn * 0.3, 5); g.shadowOffsetY = 1;
-    // Side branches first: the body sits over their roots, as they're moulded into it.
+    g.save(); g.translate(c.x, c.y); g.rotate(G.ang);
+    // The foam body: the hull of its back face, each collar's root and the front face — a short Y, as the fitting is.
+    const hasStraight = G.legs.some((L) => L.straight), capW = D * 0.86;
+    const pts = [{ x: -back, y: -D * 0.56 }, { x: -back, y: D * 0.56 }];
+    const fw = hasStraight ? Math.max(...G.legs.filter((L) => L.straight).map((L) => L.dL)) : capW;
+    pts.push({ x: front, y: -fw * 0.56 }, { x: front, y: fw * 0.56 });
     for (const L of G.legs) {
       if (L.straight) continue;
-      g.save(); g.rotate(G.ang); g.translate(L.root, 0); g.rotate(L.rel); tube(L.dL * 1.12, 0, L.reach); spigot(L.dL, L.reach, L.spig); g.restore();
+      const nx = -Math.sin(L.rel), ny = Math.cos(L.rel), h = L.dL * 0.58;
+      pts.push({ x: L.base.x + nx * h, y: L.base.y + ny * h }, { x: L.base.x - nx * h, y: L.base.y - ny * h });
     }
-    g.rotate(G.ang);
-    spigot(dIn, -len / 2 - dIn * 0.55, dIn * 0.55);                     // the feed in the back
-    for (const L of G.legs) if (L.straight) { g.save(); g.translate(len / 2, 0); g.rotate(L.rel); spigot(L.dL, -0.5, L.spig + 0.5); g.restore(); }
-    if (!G.legs.some((L) => L.straight) && G.legs.length) {
-      // Nothing straight on (a 2-way's Y): its end is capped, as the fitting comes.
-      const cw = dIn * 0.92, cl = dIn * 0.3;
-      tube(cw, len / 2 - 0.5, len / 2 + cl);
-      g.beginPath(); g.moveTo(len / 2 + cl, -cw / 2); g.lineTo(len / 2 + cl, cw / 2); g.strokeStyle = ink; g.lineWidth = lw * 2.2; g.stroke();
+    const hull = convexHull(pts);
+    g.shadowColor = 'rgba(10,10,10,0.25)'; g.shadowBlur = Math.min(D * 0.3, 5); g.shadowOffsetY = 1;
+    g.beginPath(); hull.forEach((p, k) => (k ? g.lineTo(p.x, p.y) : g.moveTo(p.x, p.y))); g.closePath();
+    const by = Math.max(...hull.map((p) => Math.abs(p.y)));
+    const gr = g.createLinearGradient(0, -by, 0, by);
+    gr.addColorStop(0, '#585E65'); gr.addColorStop(0.32, '#2F3338'); gr.addColorStop(1, '#121417');
+    g.fillStyle = gr; g.fill(); g.shadowColor = 'transparent';
+    g.lineJoin = 'round'; g.strokeStyle = ink; g.lineWidth = lw * 1.2; g.stroke();
+    // The moulding: the seam down its middle with the snap clips, and the light along its top.
+    g.save(); g.clip();
+    g.strokeStyle = 'rgba(0,0,0,0.5)'; g.lineWidth = lw; g.beginPath(); g.moveTo(-back, 0); g.lineTo(front, 0); g.stroke();
+    g.fillStyle = 'rgba(150,158,166,0.5)';
+    for (const f of [0.15, 0.45, 0.75]) { const cx = -back + (front + back) * f; g.fillRect(cx - D * 0.05, -D * 0.06, D * 0.1, D * 0.12); }
+    g.strokeStyle = 'rgba(255,255,255,0.14)'; g.lineWidth = Math.max(D * 0.1, 0.8); g.lineCap = 'round';
+    g.beginPath(); g.moveTo(-back + D * 0.15, -D * 0.3); g.lineTo(front - D * 0.15, -D * 0.3); g.stroke();
+    g.restore();
+    // The collars: the feed in the back, then each leg's.
+    g.save(); g.translate(-back, 0); g.rotate(Math.PI); collar(D, D * 0.55); g.restore();
+    for (const L of G.legs) { g.save(); g.translate(L.base.x, L.base.y); g.rotate(L.rel); collar(L.dL, L.spig); g.restore(); }
+    if (!hasStraight && G.legs.length) {
+      // Nothing straight on (a 2-way): the front collar's capped, as the fitting comes.
+      const cl = D * 0.26;
+      g.save(); g.translate(front, 0);
+      g.beginPath(); g.rect(0, -capW / 2, cl, capW); g.fillStyle = shade(capW); g.fill(); g.strokeStyle = ink; g.lineWidth = lw; g.stroke();
+      g.beginPath(); g.roundRect(cl - lw, -capW / 2 - lw, lw * 3 + D * 0.06, capW + lw * 2, lw); g.fillStyle = '#16191C'; g.fill(); g.stroke();
+      g.restore();
     }
-    // The body: a fat round barrel with the ribs moulded round it.
-    const gr = g.createLinearGradient(0, -wid / 2, 0, wid / 2);
-    gr.addColorStop(0, '#565C63'); gr.addColorStop(0.3, '#2E3237'); gr.addColorStop(1, '#121417');
-    g.beginPath(); g.roundRect(-len / 2, -wid / 2, len, wid, Math.min(wid * 0.25, 4)); g.fillStyle = gr; g.fill();
-    g.shadowColor = 'transparent';
-    g.strokeStyle = ink; g.lineWidth = lw * 1.2; g.stroke();
-    g.strokeStyle = 'rgba(0,0,0,0.55)'; g.lineWidth = lw;
-    g.beginPath();
-    for (const f of [-0.36, 0.36]) { g.moveTo(len * f, -wid / 2 + lw); g.lineTo(len * f, wid / 2 - lw); }
-    g.stroke();
-    g.strokeStyle = 'rgba(255,255,255,0.16)'; g.lineWidth = Math.max(wid * 0.1, 0.8); g.lineCap = 'round';
-    g.beginPath(); g.moveTo(-len / 2 + wid * 0.2, -wid * 0.22); g.lineTo(len / 2 - wid * 0.2, -wid * 0.22); g.stroke();
     g.restore();
   }
 
@@ -1720,4 +1731,15 @@ export class Plan {
     if (this.data?.interactive === false) { this.on.tapRoom?.(this.x && this.x.world(q)); return; }
     this.on.select?.(this.hit(q));
   }
+}
+
+/// The convex hull of some points (monotone chain), in order round it.
+function convexHull(pts) {
+  const p = [...pts].sort((a, b) => a.x - b.x || a.y - b.y);
+  if (p.length < 3) return p;
+  const cr = (o, a, b) => (a.x - o.x) * (b.y - o.y) - (a.y - o.y) * (b.x - o.x);
+  const lo = [], up = [];
+  for (const q of p) { while (lo.length >= 2 && cr(lo[lo.length - 2], lo[lo.length - 1], q) <= 0) lo.pop(); lo.push(q); }
+  for (const q of p.reverse()) { while (up.length >= 2 && cr(up[up.length - 2], up[up.length - 1], q) <= 0) up.pop(); up.push(q); }
+  return lo.slice(0, -1).concat(up.slice(0, -1));
 }

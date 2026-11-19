@@ -1,11 +1,11 @@
 // Trust Trade Pro — the HVAC Designer in the browser. The same five steps as the app (House · Capture · Check · Design ·
 // Send) on the app's own engine (engine.wasm, run in a worker): the same loads, zones, ducts, checks and materials.
 
-import { call as engineCall, latest } from './engine.js?v=08ef12c-202611191807';
-import { jobCalls, isMixed as mixedJob, ductedPart, splitSet, withSplitRooms, defaultRange } from './systems.js?v=08ef12c-202611191807';
-import * as store from './store.js?v=08ef12c-202611191807';
-import { Plan, inkImage, zoneColour, ductColour, splitColour, T, pointInPolygon, movesOnly, wheelMoves, ZOOM_MAX } from './plan.js?v=08ef12c-202611191807';
-import { RoomEditor, metres, signedArea, onLine } from './roomeditor.js?v=08ef12c-202611191807';
+import { call as engineCall, latest } from './engine.js?v=d30676d-202611191917';
+import { jobCalls, isMixed as mixedJob, ductedPart, splitSet, withSplitRooms, defaultRange } from './systems.js?v=d30676d-202611191917';
+import * as store from './store.js?v=d30676d-202611191917';
+import { Plan, inkImage, zoneColour, ductColour, splitColour, T, pointInPolygon, movesOnly, wheelMoves, ZOOM_MAX } from './plan.js?v=d30676d-202611191917';
+import { RoomEditor, metres, signedArea, onLine } from './roomeditor.js?v=d30676d-202611191917';
 
 /// Every engine call: a two-system job's go with the part they're about (systems.js).
 const call = jobCalls(engineCall);
@@ -2272,9 +2272,17 @@ function scaleDialog(a, b, wall) {
 
 // MARK: Design
 
+/// Where the plan's zoomed and panned to, per job and step, so an edit (which re-renders the page) doesn't throw the
+/// view back out to the whole house (Jake, 19 Nov 2026: "every time we move a vent or anything it zooms back out").
+const planViews = new Map();
 function mountPlan(cv, opts) {
   const { handlers, layout, ...rest } = opts;
-  const plan = new Plan(cv, handlers ?? {});
+  const key = `${app.project?.id ?? ''}:${app.step}`;
+  const keep = () => planViews.set(key, { zoom: plan.zoom, pan: { ...plan.pan } });
+  const on = { ...(handlers ?? {}), changed: () => { keep(); handlers?.changed?.(); } };
+  const plan = new Plan(cv, on);
+  const was = planViews.get(key);
+  if (was) { plan.zoom = was.zoom; plan.pan = { ...was.pan }; }
   plan.set({
     project: app.project, view: app.view, layout: layout === false ? null : app.layout, air: app.air, backdrop: app.backdrop,
     upperBackdrop: app.upperBackdrop, topBackdrop: app.topBackdrop, showPlan: true, splitRooms: app.project.splitRooms ?? null, allSizes: app.layers.allSizes, zoneCards: app.layers.zones, showAir: false, selection: null, ...rest,
@@ -3584,7 +3592,7 @@ function openReport(kind) {
   const close = () => o.remove();
   $('#rp-close', o).onclick = close;
   o.addEventListener('keydown', (e) => e.key === 'Escape' && close());
-  import('./reports.js?v=08ef12c-202611191807').then(async (m) => {
+  import('./reports.js?v=d30676d-202611191917').then(async (m) => {
     // Reports are always the design as installed: every zone open, balanced. A multi-head job has no ducted design to
     // route (routing one threw, and the bar stayed on "Building the report…" for good).
     app.designLayout = isSplit() ? null : await call('route', { project: app.project, closed: [], balanced: true });

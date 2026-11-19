@@ -800,8 +800,9 @@ export class Plan {
       .map((o) => ({ ...o, y: toL(o.r.path[0]).y })).sort((a, b) => a.y - b.y);
     const n = sup.length, r2 = Math.SQRT1_2;
     const side = (sgn) => ({ base: { x: x0 + dT / 2, y: sgn * (W / 2 - dT / 2) }, dir: { x: r2, y: sgn * r2 } });
-    const fronts = n === 1 ? 1 : n === 2 ? 0 : n - 2;
-    const slots = n === 1 ? [null] : [side(-1), ...Array(fronts).fill(null), side(1)];
+    // No supply ducts yet (a new job) gives no slots: the bare unit still draws and ducts can be added.
+    const fronts = n === 1 ? 1 : Math.max(n - 2, 0);
+    const slots = n === 0 ? [] : n === 1 ? [null] : [side(-1), ...Array(fronts).fill(null), side(1)];
     let fk = 0;
     const supply = sup.map((o, k) => {
       const w = Math.min(ductWidth(o.r.sizeMM, x.s), slots[k] ? dT * 1.3 : (2 * fw) / Math.max(fronts, 1) - 2);

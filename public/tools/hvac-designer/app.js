@@ -1,11 +1,11 @@
 // Trust Trade Pro — the HVAC Designer in the browser. The same five steps as the app (House · Capture · Check · Design ·
 // Send) on the app's own engine (engine.wasm, run in a worker): the same loads, zones, ducts, checks and materials.
 
-import { call as engineCall, latest } from './engine.js?v=39704c4-202611191656';
-import { jobCalls, isMixed as mixedJob, ductedPart, splitSet, withSplitRooms, defaultRange } from './systems.js?v=39704c4-202611191656';
-import * as store from './store.js?v=39704c4-202611191656';
-import { Plan, inkImage, zoneColour, ductColour, splitColour, T, pointInPolygon, movesOnly, wheelMoves, ZOOM_MAX } from './plan.js?v=39704c4-202611191656';
-import { RoomEditor, metres, signedArea, onLine } from './roomeditor.js?v=39704c4-202611191656';
+import { call as engineCall, latest } from './engine.js?v=08ef12c-202611191807';
+import { jobCalls, isMixed as mixedJob, ductedPart, splitSet, withSplitRooms, defaultRange } from './systems.js?v=08ef12c-202611191807';
+import * as store from './store.js?v=08ef12c-202611191807';
+import { Plan, inkImage, zoneColour, ductColour, splitColour, T, pointInPolygon, movesOnly, wheelMoves, ZOOM_MAX } from './plan.js?v=08ef12c-202611191807';
+import { RoomEditor, metres, signedArea, onLine } from './roomeditor.js?v=08ef12c-202611191807';
 
 /// Every engine call: a two-system job's go with the part they're about (systems.js).
 const call = jobCalls(engineCall);
@@ -1385,7 +1385,21 @@ function needsThreePhase(t, site) { return !!t.unit && t.unit.brand !== 'kaden' 
 const brandId = () => app.project?.site?.brandPref ?? 'mitsubishi';
 const brandNow = () => app.options.brands?.find((b) => b.id === brandId()) ?? { id: 'mitsubishi', label: 'Mitsubishi Electric', units: app.options.units };
 /// The biggest ducted unit in the job's brand.
-function biggestUnitKW() { return Math.max(...brandNow().units.map((u) => u.kw)); }
+function biggestUnitKW(site = app.project?.site ?? {}) { return Math.max(...unitsOnSupply(site).map((u) => u.kw)); }
+/// The units the house's power supply can run: single phase never lists a three-phase-only unit (Jake, 19 Nov 2026).
+function unitsOnSupply(site = app.project?.site ?? {}) {
+  const all = brandNow().units;
+  if (brandId() === 'kaden' || site.threePhasePref) return all;
+  const one = all.filter((u) => !u.threePhaseOnly);
+  return one.length ? one : all;
+}
+/// The power question, asked before any size is recommended.
+function phaseQuestion(site) {
+  if (brandId() === 'kaden') return '<p class="small muted" style="margin:0 0 10px">Kaden\'s ducted range is single phase only, 7 to 17 kW.</p>';
+  return `<span class="eyebrow" style="display:block;margin:0 0 6px">Is the house single or three phase?</span>
+    <div class="seg"><button data-phase="0" class="${site.threePhasePref ? '' : 'on'}">Single phase</button><button data-phase="1" class="${site.threePhasePref ? 'on' : ''}">Three phase</button></div>
+    <p class="small muted" style="margin:6px 0 12px">${site.threePhasePref ? 'Three phase: every size up to 24.5 kW can go in.' : 'Single phase: 18 kW is the biggest unit we\'ll recommend (20 and 24.5 kW need three phase).'} Check the switchboard if you're not sure.</p>`;
+}
 /// The brand picker: a new brand drops a size picked by hand (its kW may not be in the other range).
 function brandSeg() {
   const brands = app.options.brands ?? [];
@@ -1404,24 +1418,27 @@ function unitOptions(t, site) {
   const opt = (sizing, title, detail, badge) => `<button class="option ${!t.byHand && (site.unitSizingPref ?? 'wholeHome') === sizing ? 'on' : ''}" data-sizing="${sizing}">
     <span class="radio"></span><span><b>${esc(title)}</b>${badge ? ` <span class="tag">${badge}</span>` : ''}<p>${esc(detail)}</p></span></button>`;
   const ch = t.choices;
-  let html = brandSeg() + `<button class="link" data-cat style="padding:0;margin:0 0 8px">Browse the catalogue</button>`;
-  if (ch.wholeHome) html += opt('wholeHome', `${g(ch.wholeHome.kw)} kW · whole home open`, `${fmt(t.wholeHomeKW, 1)} kW: every room's load added up, so it runs the full open home on a design day and turns down as zones shut.${t.wholeHomeKW > biggestUnitKW() * 1.06 ? ' More than one ducted unit can carry — see how it\'s worked out.' : ''}`, 'RECOMMENDED');
+  let html = brandSeg() + phaseQuestion(site) + `<button class="link" data-cat style="padding:0;margin:0 0 8px">Browse the catalogue</button>`;
+  if (ch.wholeHome) html += opt('wholeHome', `${g(ch.wholeHome.kw)} kW · whole home open`, `${fmt(t.wholeHomeKW, 1)} kW: every room's load added up, so it runs the full open home on a design day and turns down as zones shut.${t.wholeHomeKW > biggestUnitKW(site) * 1.06 ? (brandId() !== 'kaden' && !site.threePhasePref && t.wholeHomeKW <= Math.max(...brandNow().units.map((u) => u.kw)) * 1.06 ? ` More than ${g(biggestUnitKW(site))} kW, the biggest unit on single phase: go three phase if the switchboard has it, or split the house into two systems.` : ' More than one ducted unit can carry — see how it\'s worked out.') : ''}`, 'RECOMMENDED');
   if (ch.margin && ch.margin.kw !== ch.wholeHome?.kw) html += opt('margin', `${g(ch.margin.kw)} kW · more margin`, 'One size up: the hottest days, bigger windows than the plan shows, a room added later.');
   if (ch.zoned && ch.zoned.kw !== ch.wholeHome?.kw) html += opt('zoned', `${g(ch.zoned.kw)} kW · zoned use only`, `${fmt(t.designKW, 1)} kW: never every zone on at once (${(app.options.zonings.find((z) => z.id === (site.zoningPref ?? 'perroom'))?.label ?? '').toLowerCase()} zoning, ${fmt(t.diversity * 100)}% diversity).`);
   html += `<label class="rowpick" style="border-top:0"><label>${t.byHand ? `Picked by hand: ${g(t.unit?.kw ?? 0)} kW` : 'Pick another size…'}</label>
-    <select id="unitkw"><option value="">${t.byHand ? 'Back to the recommended' : 'Choose…'}</option>${brandNow().units.map((u) => `<option value="${u.kw}" ${t.byHand && t.unit?.kw === u.kw ? 'selected' : ''}>${esc(u.label)} · ${fmt(u.lps)} L/s</option>`).join('')}</select></label>
+    <select id="unitkw"><option value="">${t.byHand ? 'Back to the recommended' : 'Choose…'}</option>${unitsOnSupply(site).map((u) => `<option value="${u.kw}" ${t.byHand && t.unit?.kw === u.kw ? 'selected' : ''}>${esc(u.label)} · ${fmt(u.lps)} L/s</option>`).join('')}</select></label>
     ${needsThreePhase(t, site) ? `<p style="color:var(--danger);font-weight:600;font-size:12.5px;margin:8px 0 0">${g(t.unit.kw)} kW needs a three-phase supply — 18 kW is the biggest Mitsubishi Electric ducted unit on single phase. Check the switchboard, or split the house into two systems.</p>` : ''}
     ${t.unit ? `<div class="kv" style="margin-top:8px"><span>Fan on high</span><b>${fmt(t.unit.lps)} L/s · up to ${fmt(t.unit.esp)} Pa${t.unit.espConfirmed === false ? ' <span class="muted small" style="font-weight:500">(check the manual)</span>' : ''}</b></div>` : ''}
-    ${brandId() === 'kaden' ? '<p class="small muted" style="margin:8px 0 0">Kaden\'s ducted range is single phase only, 7 to 17 kW.</p>' : `<span class="eyebrow" style="display:block;margin-top:6px">Power supply</span>
-    <div class="seg"><button data-phase="0" class="${site.threePhasePref ? '' : 'on'}">Single phase</button><button data-phase="1" class="${site.threePhasePref ? 'on' : ''}">Three phase</button></div>
-    <p class="small muted" style="margin:6px 0 0">Most homes are single phase. Pick three phase only if the switchboard has it.</p>`}`;
+`;
   return html;
 }
 function bindUnitOptions(c) {
   const set = (site) => commit({ ...app.project, site: { ...app.project.site, ...site } });
   c.querySelectorAll('[data-sizing]').forEach((b) => (b.onclick = () => set({ unitSizingPref: b.dataset.sizing, unitKWPref: null })));
   $('#unitkw', c)?.addEventListener('change', (e) => set({ unitKWPref: e.target.value ? parseFloat(e.target.value) : null }));
-  c.querySelectorAll('[data-phase]').forEach((b) => (b.onclick = () => set({ threePhasePref: b.dataset.phase === '1' ? true : null })));
+  c.querySelectorAll('[data-phase]').forEach((b) => (b.onclick = () => {
+    const three = b.dataset.phase === '1', kw = app.project.site.unitKWPref;
+    // Going single phase drops a hand-picked three-phase-only size.
+    const drop = !three && kw != null && brandNow().units.some((u) => u.threePhaseOnly && Math.abs(u.kw - kw) < 0.01);
+    set({ threePhasePref: three ? true : null, ...(drop ? { unitKWPref: null } : {}) });
+  }));
   bindBrand(c);
   c.querySelectorAll('[data-cat]').forEach((b) => (b.onclick = () => openCatalogue()));
 }
@@ -3567,7 +3584,7 @@ function openReport(kind) {
   const close = () => o.remove();
   $('#rp-close', o).onclick = close;
   o.addEventListener('keydown', (e) => e.key === 'Escape' && close());
-  import('./reports.js?v=39704c4-202611191656').then(async (m) => {
+  import('./reports.js?v=08ef12c-202611191807').then(async (m) => {
     // Reports are always the design as installed: every zone open, balanced. A multi-head job has no ducted design to
     // route (routing one threw, and the bar stayed on "Building the report…" for good).
     app.designLayout = isSplit() ? null : await call('route', { project: app.project, closed: [], balanced: true });

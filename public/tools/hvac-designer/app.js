@@ -1,11 +1,11 @@
 // Trust Trade Pro — the HVAC Designer in the browser. The same five steps as the app (House · Capture · Check · Design ·
 // Send) on the app's own engine (engine.wasm, run in a worker): the same loads, zones, ducts, checks and materials.
 
-import { call as engineCall, latest } from './engine.js?v=4f37d94-202611191405';
-import { jobCalls, isMixed as mixedJob, ductedPart, splitSet, withSplitRooms, defaultRange } from './systems.js?v=4f37d94-202611191405';
-import * as store from './store.js?v=4f37d94-202611191405';
-import { Plan, inkImage, zoneColour, ductColour, splitColour, T, pointInPolygon, movesOnly, wheelMoves, ZOOM_MAX } from './plan.js?v=4f37d94-202611191405';
-import { RoomEditor, metres, signedArea, onLine } from './roomeditor.js?v=4f37d94-202611191405';
+import { call as engineCall, latest } from './engine.js?v=5e68360-202611191504';
+import { jobCalls, isMixed as mixedJob, ductedPart, splitSet, withSplitRooms, defaultRange } from './systems.js?v=5e68360-202611191504';
+import * as store from './store.js?v=5e68360-202611191504';
+import { Plan, inkImage, zoneColour, ductColour, splitColour, T, pointInPolygon, movesOnly, wheelMoves, ZOOM_MAX } from './plan.js?v=5e68360-202611191504';
+import { RoomEditor, metres, signedArea, onLine } from './roomeditor.js?v=5e68360-202611191504';
 
 /// Every engine call: a two-system job's go with the part they're about (systems.js).
 const call = jobCalls(engineCall);
@@ -3471,7 +3471,7 @@ function openReport(kind) {
   const close = () => o.remove();
   $('#rp-close', o).onclick = close;
   o.addEventListener('keydown', (e) => e.key === 'Escape' && close());
-  import('./reports.js?v=4f37d94-202611191405').then(async (m) => {
+  import('./reports.js?v=5e68360-202611191504').then(async (m) => {
     // Reports are always the design as installed: every zone open, balanced. A multi-head job has no ducted design to
     // route (routing one threw, and the bar stayed on "Building the report…" for good).
     app.designLayout = isSplit() ? null : await call('route', { project: app.project, closed: [], balanced: true });

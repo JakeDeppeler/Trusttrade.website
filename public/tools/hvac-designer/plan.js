@@ -670,48 +670,72 @@ export class Plan {
         }
       }
     }
+    // BDOs: Multisnap fittings, the feed's spigot in and one for each leg. Drawn first: the zone dampers sit on their ends.
+    for (const b of l.boxes) this.drawBdo(g, x.pt(b.pos), b, x);
     // Zone dampers, each on its leg as it is in the roof.
     for (const dm of l.dampers) {
-      // On the duct as it's drawn (the curve can sit a little off the routed line).
-      let c = x.pt(dm.pos), dir = { x: dm.dir.x, y: -dm.dir.y }, bestD = 1.2 * x.s;
-      for (const cv of curves) {
-        for (let k = 1; k < cv.length; k++) {
-          const a = x.pt(cv[k - 1]), b = x.pt(cv[k]), d = segDist(x.pt(dm.pos), a, b);
-          if (d < bestD) { bestD = d; c = nearestOn(x.pt(dm.pos), a, b); dir = unitVec({ x: b.x - a.x, y: b.y - a.y }) ?? dir; }
+      // On the end of the BDO the zone's leg leaves (Jake, 19 Nov 2026: "the zone should be on the end of the BDO"),
+      // else (off the fan coil's collar) on the duct as it's drawn: the curve can sit a little off the routed line.
+      const dw = ductWidth(dm.sizeMM, x.s), L = Math.max(dw * 1.15, 5);
+      let c = x.pt(dm.pos), dir = { x: dm.dir.x, y: -dm.dir.y }, onBox = false;
+      let ri = -1, rBest = Infinity;
+      l.runs.forEach((r, i) => {
+        if (r.damperZone !== dm.zone) return;
+        const dd = Math.min(...r.path.map((p) => Math.hypot(p.x - dm.pos.x, p.y - dm.pos.y)));
+        if (dd < rBest) { rBest = dd; ri = i; }
+      });
+      const box = ri >= 0 ? l.boxes.find((bx) => bx.legRuns?.includes(ri)) : null;
+      if (box) {
+        const leg = this.bdoGeom(x.pt(box.pos), box, x).legs[box.legRuns.indexOf(ri)];
+        if (leg) { dir = leg.dir; c = { x: leg.end.x + dir.x * (L / 2 - 0.5), y: leg.end.y + dir.y * (L / 2 - 0.5) }; onBox = true; }
+      } else if (ri >= 0 && l.runs[ri].parent == null) {
+        // Straight off the fan coil: on the end of its plenum collar.
+        const p0 = l.runs[ri].path[0], cl = l.collars.find((q) => Math.hypot(q.pos.x - p0.x, q.pos.y - p0.y) < 0.4);
+        const u = cl && unitVec({ x: cl.dir.x, y: -cl.dir.y });
+        if (u) { const e = x.pt(cl.pos); dir = u; c = { x: e.x + u.x * (L / 2 + 1), y: e.y + u.y * (L / 2 + 1) }; onBox = true; }
+      }
+      if (!onBox) {
+        let bestD = 1.2 * x.s;
+        for (const cv of curves) {
+          for (let k = 1; k < cv.length; k++) {
+            const a = x.pt(cv[k - 1]), b = x.pt(cv[k]), d = segDist(x.pt(dm.pos), a, b);
+            if (d < bestD) { bestD = d; c = nearestOn(x.pt(dm.pos), a, b); dir = unitVec({ x: b.x - a.x, y: b.y - a.y }) ?? dir; }
+          }
         }
       }
       // A motorised zone damper as it is (Jake, 19 Nov 2026: "a zone needs to look real"): a galvanised sleeve in the
       // duct, its blade (along the duct open, across it shut), and the motor on its side in the zone's colour with the
       // zone's number (red with a cross when the zone's shut).
       const n = { x: -dir.y, y: dir.x }, ang = Math.atan2(dir.y, dir.x);
-      const w = ductWidth(dm.sizeMM, x.s) + 4, L = Math.min(Math.max(0.28 * x.s, 13), 24);
+      const w = dw * 1.18 + 1, lw = Math.min(Math.max(dw * 0.07, 0.6), 1.2), bead = Math.min(L * 0.18, 2.5);
       g.save(); g.translate(c.x, c.y); g.rotate(ang);
-      g.shadowColor = 'rgba(0,0,0,0.22)'; g.shadowBlur = 3; g.shadowOffsetY = 1;
+      g.shadowColor = 'rgba(0,0,0,0.22)'; g.shadowBlur = Math.min(dw * 0.25, 3); g.shadowOffsetY = 1;
       const sl = g.createLinearGradient(0, -w / 2, 0, w / 2);
       sl.addColorStop(0, '#EEF1F4'); sl.addColorStop(0.5, '#C9CFD6'); sl.addColorStop(1, '#A6ADB6');
       g.beginPath(); g.roundRect(-L / 2, -w / 2, L, w, 2); g.fillStyle = sl; g.fill();
       g.shadowColor = 'transparent';
-      g.strokeStyle = '#5B636C'; g.lineWidth = 1.1; g.stroke();
-      g.strokeStyle = 'rgba(70,78,88,0.6)'; g.lineWidth = 0.9;            // the rolled beads at each end
-      g.beginPath(); g.moveTo(-L / 2 + 2.5, -w / 2); g.lineTo(-L / 2 + 2.5, w / 2); g.moveTo(L / 2 - 2.5, -w / 2); g.lineTo(L / 2 - 2.5, w / 2); g.stroke();
-      g.strokeStyle = '#2A2E33'; g.lineWidth = 1.8; g.lineCap = 'round';  // the blade on its shaft
+      g.strokeStyle = '#5B636C'; g.lineWidth = lw; g.stroke();
+      g.strokeStyle = 'rgba(70,78,88,0.6)'; g.lineWidth = lw * 0.8;       // the rolled beads at each end
+      g.beginPath(); g.moveTo(-L / 2 + bead, -w / 2); g.lineTo(-L / 2 + bead, w / 2); g.moveTo(L / 2 - bead, -w / 2); g.lineTo(L / 2 - bead, w / 2); g.stroke();
+      g.strokeStyle = '#2A2E33'; g.lineWidth = Math.max(lw * 1.5, 0.8); g.lineCap = 'round';  // the blade on its shaft
       g.beginPath();
-      if (dm.open) { g.moveTo(-L / 2 + 4.5, 0); g.lineTo(L / 2 - 4.5, 0); } else { g.moveTo(0, -w / 2 + 1.5); g.lineTo(0, w / 2 - 1.5); }
+      if (dm.open) { g.moveTo(-L / 2 + bead * 1.8, 0); g.lineTo(L / 2 - bead * 1.8, 0); } else { g.moveTo(0, -w / 2 + lw); g.lineTo(0, w / 2 - lw); }
       g.stroke();
       // The motor bolted flush to the sleeve's side, square to the duct; its number stays upright.
-      const mw = 15, mh = 11, my = -w / 2 - mh + 0.5;
+      const mw = Math.min(Math.max(dw * 0.95, 5), 18), mh = mw * 0.74, my = -w / 2 - mh + 0.5;
       const tone = dm.open ? zoneColour(dm.zone) : T.danger, label = dm.open ? String(dm.zone) : '✕';
-      g.shadowColor = 'rgba(0,0,0,0.25)'; g.shadowBlur = 3; g.shadowOffsetY = 1;
-      g.beginPath(); g.roundRect(-mw / 2, my, mw, mh, 2.5); g.fillStyle = tone; g.fill();
+      g.shadowColor = 'rgba(0,0,0,0.25)'; g.shadowBlur = Math.min(dw * 0.25, 3); g.shadowOffsetY = 1;
+      g.beginPath(); g.roundRect(-mw / 2, my, mw, mh, Math.min(mh * 0.25, 2.5)); g.fillStyle = tone; g.fill();
       g.shadowColor = 'transparent';
-      g.strokeStyle = '#1E2227'; g.lineWidth = 1.2; g.stroke();
+      g.strokeStyle = '#1E2227'; g.lineWidth = lw; g.stroke();
       g.restore();
-      const mc = { x: c.x - n.x * (w / 2 + mh / 2 - 0.5), y: c.y - n.y * (w / 2 + mh / 2 - 0.5) };
-      g.font = `900 9px ${FONT}`; g.fillStyle = '#fff'; g.textAlign = 'center'; g.textBaseline = 'middle';
-      g.fillText(label, mc.x, mc.y + 0.5);
+      const fs = mh * 0.82;
+      if (fs >= 5) {
+        const mc = { x: c.x - n.x * (w / 2 + mh / 2 - 0.5), y: c.y - n.y * (w / 2 + mh / 2 - 0.5) };
+        g.font = `900 ${fs.toFixed(1)}px ${FONT}`; g.fillStyle = '#fff'; g.textAlign = 'center'; g.textBaseline = 'middle';
+        g.fillText(label, mc.x, mc.y + 0.5);
+      }
     }
-    // BDOs: galvanised boxes with a spigot for the feed and one for each leg.
-    for (const b of l.boxes) this.drawBdo(g, x.pt(b.pos), b, x);
     // Drawn by hand but not fed from the fan coil (its feed was taken out): dashed, faint.
     for (const r of l.looseRuns ?? []) {
       const pts = r.path.map(x.pt);
@@ -723,44 +747,66 @@ export class Plan {
     }
   }
 
-  /// A BDO as the fitting is (Jake, 19 Nov 2026: "it needs to look like a BDO"): a galvanised sheet-metal box seen from
-  /// above, the cross-break on its lid, the inlet spigot where its feed comes in and a spigot for each leg, each the
-  /// size of its duct. No label: the fitting says what it is. The zones show on the legs' dampers.
-  bdoSize(x) { return { len: Math.min(Math.max(0.5 * x.s, 28), 46), wid: Math.min(Math.max(0.36 * x.s, 20), 34) }; }
-  drawBdo(g, c, b, x) {
-    const ang = Math.atan2(-(b.axis?.y ?? 0), b.axis?.x ?? 1);
-    const { len, wid } = this.bdoSize(x), edge = '#5B636C';
-    const spigotW = (mm) => Math.min(Math.max(ductWidth(mm ?? 200, x.s) * 0.95, 7), wid * 0.8);
-    const spigot = (w, out) => {
-      // A short round spigot off the box: its collar, with the bead where the flex is strapped on.
-      const grad = g.createLinearGradient(0, -w / 2, 0, w / 2);
-      grad.addColorStop(0, '#E9EDF1'); grad.addColorStop(0.5, '#C5CBD2'); grad.addColorStop(1, '#A9B0B8');
-      g.beginPath(); g.rect(-1, -w / 2, out + 1, w); g.fillStyle = grad; g.fill();
-      g.strokeStyle = edge; g.lineWidth = 1; g.stroke();
-      g.beginPath(); g.moveTo(out * 0.62, -w / 2); g.lineTo(out * 0.62, w / 2); g.strokeStyle = 'rgba(70,78,88,0.7)'; g.lineWidth = 1; g.stroke();
-    };
-    g.save(); g.translate(c.x, c.y); g.rotate(ang);
-    const out = Math.max(5, Math.min(0.07 * x.s, 9));
-    // Inlet: the feed arrives along the axis, into the end against it.
-    g.save(); g.translate(-len / 2, 0); g.rotate(Math.PI); spigot(spigotW(b.inletMM), out); g.restore();
-    // A spigot on the box's edge where each leg leaves.
-    (b.legDirs ?? []).forEach((d, k) => {
-      const wx = d.x, wy = -d.y, lx = wx * Math.cos(ang) + wy * Math.sin(ang), ly = -wx * Math.sin(ang) + wy * Math.cos(ang);
+  /// A BDO as the Multisnap fitting it is (Jake, 19 Nov 2026: "they bdo dont look like the multi snap ones"): a black
+  /// foam-insulated round body along its feed, the feed's spigot in its back end, a straight-on leg out of its front
+  /// and the side legs on their own round branches, every spigot the size of its duct. All of it is sized off the
+  /// ducts as they're drawn, so it zooms with them. No label: the fitting says what it is.
+  bdoGeom(c, b, x) {
+    const dIn = ductWidth(b.inletMM ?? 250, x.s), len = dIn * 2, wid = dIn * 1.22, ang = Math.atan2(-(b.axis?.y ?? 0), b.axis?.x ?? 1);
+    const cs = Math.cos(ang), sn = Math.sin(ang);
+    const legs = (b.legDirs ?? []).map((d, k) => {
+      const wx = d.x, wy = -d.y, lx = wx * cs + wy * sn, ly = -wx * sn + wy * cs;     // in the body's own frame
+      const dL = ductWidth(b.legMM?.[k] ?? 200, x.s), rel = Math.atan2(ly, lx);
+      const straight = Math.abs(rel) < 0.45;
+      // Where the leg leaves the body: out the front end when it carries straight on, else through the side.
       const t = Math.min(Math.abs(lx) > 1e-6 ? (len / 2) / Math.abs(lx) : Infinity, Math.abs(ly) > 1e-6 ? (wid / 2) / Math.abs(ly) : Infinity);
-      if (!isFinite(t)) return;
-      g.save(); g.translate(lx * t, ly * t); g.rotate(Math.atan2(ly, lx)); spigot(spigotW(b.legMM?.[k]), out); g.restore();
+      const reach = (isFinite(t) ? t : wid / 2) + (straight ? 0 : dL * 0.35), spig = dL * 0.55;
+      const end = reach + spig;
+      return { k, lx, ly, rel, dL, straight, reach, spig, end: { x: c.x + wx * end, y: c.y + wy * end }, dir: { x: wx, y: wy } };
     });
-    // The box: galvanised, lit from the top, its lid's cross-break.
-    g.shadowColor = 'rgba(20,18,14,0.22)'; g.shadowBlur = 5; g.shadowOffsetY = 1.5;
-    const body = g.createLinearGradient(-len / 2, -wid / 2, len / 2, wid / 2);
-    body.addColorStop(0, '#F1F4F7'); body.addColorStop(0.45, '#D6DBE0'); body.addColorStop(1, '#B4BBC3');
-    g.beginPath(); g.roundRect(-len / 2, -wid / 2, len, wid, 2.5); g.fillStyle = body; g.fill();
+    return { c, ang, len, wid, dIn, legs };
+  }
+  bdoSize(x, b = {}) { const d = ductWidth(b.inletMM ?? 250, x.s); return { len: d * 2, wid: d * 1.22 }; }
+  drawBdo(g, c, b, x) {
+    const G = this.bdoGeom(c, b, x), { len, wid, dIn } = G, ink = '#0C0E10';
+    const lw = Math.min(Math.max(dIn * 0.07, 0.6), 1.4);
+    const tube = (w, from, to) => {
+      // A round tube seen from above: dark, with the light running along its top.
+      const gr = g.createLinearGradient(0, -w / 2, 0, w / 2);
+      gr.addColorStop(0, '#4A5056'); gr.addColorStop(0.35, '#2A2E33'); gr.addColorStop(1, '#141619');
+      g.beginPath(); g.rect(from, -w / 2, to - from, w); g.fillStyle = gr; g.fill();
+      g.strokeStyle = ink; g.lineWidth = lw; g.stroke();
+    };
+    const spigot = (w, at, l) => {
+      // The snap-on spigot: a step down, and the beads the flex is strapped over.
+      tube(w, at, at + l);
+      g.strokeStyle = 'rgba(160,168,176,0.55)'; g.lineWidth = lw;
+      g.beginPath();
+      for (const f of [0.3, 0.62]) { g.moveTo(at + l * f, -w / 2 + lw); g.lineTo(at + l * f, w / 2 - lw); }
+      g.stroke();
+    };
+    g.save(); g.translate(c.x, c.y);
+    g.shadowColor = 'rgba(10,10,10,0.25)'; g.shadowBlur = Math.min(dIn * 0.3, 5); g.shadowOffsetY = 1;
+    // Side branches first: the body sits over their roots, as they're moulded into it.
+    for (const L of G.legs) {
+      if (L.straight) continue;
+      g.save(); g.rotate(G.ang + L.rel); tube(L.dL * 1.12, 0, L.reach); spigot(L.dL, L.reach, L.spig); g.restore();
+    }
+    g.rotate(G.ang);
+    spigot(dIn, -len / 2 - dIn * 0.55, dIn * 0.55);                     // the feed in the back
+    for (const L of G.legs) if (L.straight) { g.save(); g.translate(len / 2, 0); g.rotate(L.rel); spigot(L.dL, -0.5, L.spig + 0.5); g.restore(); }
+    // The body: a fat round barrel with the ribs moulded round it.
+    const gr = g.createLinearGradient(0, -wid / 2, 0, wid / 2);
+    gr.addColorStop(0, '#565C63'); gr.addColorStop(0.3, '#2E3237'); gr.addColorStop(1, '#121417');
+    g.beginPath(); g.roundRect(-len / 2, -wid / 2, len, wid, Math.min(wid * 0.25, 4)); g.fillStyle = gr; g.fill();
     g.shadowColor = 'transparent';
-    g.strokeStyle = edge; g.lineWidth = 1.3; g.stroke();
-    g.beginPath(); g.moveTo(-len / 2 + 2, -wid / 2 + 2); g.lineTo(len / 2 - 2, wid / 2 - 2); g.moveTo(len / 2 - 2, -wid / 2 + 2); g.lineTo(-len / 2 + 2, wid / 2 - 2);
-    g.strokeStyle = 'rgba(255,255,255,0.75)'; g.lineWidth = 1; g.stroke();
-    g.beginPath(); g.moveTo(-len / 2 + 2.6, -wid / 2 + 2); g.lineTo(len / 2 - 1.4, wid / 2 - 2); g.moveTo(len / 2 - 1.4, -wid / 2 + 2); g.lineTo(-len / 2 + 2.6, wid / 2 - 2);
-    g.strokeStyle = 'rgba(90,98,108,0.35)'; g.lineWidth = 0.8; g.stroke();
+    g.strokeStyle = ink; g.lineWidth = lw * 1.2; g.stroke();
+    g.strokeStyle = 'rgba(0,0,0,0.55)'; g.lineWidth = lw;
+    g.beginPath();
+    for (const f of [-0.36, 0.36]) { g.moveTo(len * f, -wid / 2 + lw); g.lineTo(len * f, wid / 2 - lw); }
+    g.stroke();
+    g.strokeStyle = 'rgba(255,255,255,0.16)'; g.lineWidth = Math.max(wid * 0.1, 0.8); g.lineCap = 'round';
+    g.beginPath(); g.moveTo(-len / 2 + wid * 0.2, -wid * 0.22); g.lineTo(len / 2 - wid * 0.2, -wid * 0.22); g.stroke();
     g.restore();
   }
 
@@ -1255,7 +1301,7 @@ export class Plan {
     for (const b of l.boxes) {
       if (!b.bid || (b.branches < 2 && !b.bid.startsWith('H:'))) continue;
       const c = at('box', b.bid, x.pt(b.pos));
-      const { len, wid } = this.bdoSize(x);
+      const { len, wid } = this.bdoSize(x, b);
       if (sel?.kind === 'box' && sel.id === b.bid) {
         g.save(); g.translate(c.x, c.y); g.rotate(Math.atan2(-(b.axis?.y ?? 0), b.axis?.x ?? 1));
         g.beginPath(); g.roundRect(-len / 2 - 5, -wid / 2 - 5, len + 10, wid + 10, 7); g.strokeStyle = T.accent; g.lineWidth = 3; g.stroke();
@@ -1269,13 +1315,13 @@ export class Plan {
         g.beginPath(); g.moveTo(px, py + 2); g.lineTo(px, py + 7); g.stroke();
         g.beginPath(); g.arc(px, py, 3, 0, Math.PI * 2); g.fillStyle = T.accentDeep; g.fill();
       }
-      this.hits.push({ item: { kind: 'box', id: b.bid }, x: c.x, y: c.y, r: Math.max(17, len / 2) });
+      this.hits.push({ item: { kind: 'box', id: b.bid }, x: c.x, y: c.y, r: Math.max(12, len / 2 + 4) });
     }
     for (const b of l.looseBoxes ?? []) {
       const c = at('box', 'H:' + b.id, x.pt(b.pos)), { len, wid } = this.bdoSize(x);
       if (sel?.kind === 'box' && sel.id === 'H:' + b.id) { g.beginPath(); g.roundRect(c.x - len / 2 - 5, c.y - wid / 2 - 5, len + 10, wid + 10, 7); g.strokeStyle = T.accent; g.lineWidth = 3; g.stroke(); }
       if (drag?.item.kind === 'box' && drag.item.id === 'H:' + b.id) this.drawBdo(g, c, { axis: { x: 1, y: 0 }, legDirs: [] }, x);
-      this.hits.push({ item: { kind: 'box', id: 'H:' + b.id }, x: c.x, y: c.y, r: Math.max(17, len / 2) });
+      this.hits.push({ item: { kind: 'box', id: 'H:' + b.id }, x: c.x, y: c.y, r: Math.max(12, len / 2 + 4) });
     }
     // Outlets: the grille alone (its size is its leg's colour, and on its card). A dropper's top isn't a grille: it's
     // drawn as the dropper.

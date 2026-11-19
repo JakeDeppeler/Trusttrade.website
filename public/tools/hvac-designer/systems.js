@@ -91,6 +91,8 @@ export function jobCalls(call) {
     const part = kind === 'ducted' ? ductedPart(full) : kind === 'split' ? splitPart(full) : full;
     const r = await call(cmd, { ...args, project: part });
     if (mixed && r?.project?.rooms) r.project = mergePart(full, r.project, kind);   // a one-system job's come back as they are
+    // Where the zone cards were moved to by hand: the page's, not the engine's, so it's carried through every reply.
+    if (r?.project?.rooms && full.zoneCards && r.project.zoneCards == null) r.project.zoneCards = full.zoneCards;
     return r;
   }
 

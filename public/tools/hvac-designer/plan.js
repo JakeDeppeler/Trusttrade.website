@@ -231,16 +231,24 @@ export class Plan {
 
   // MARK: Transform
 
-  xform() {
+  xform() { return this.xformAt(this.zoom, this.pan); }
+
+  /// The zone cards are on: they sit outside the house, so the house is fitted with room round it for them.
+  cardsOn() {
+    const d = this.data, l = d?.layout;
+    return !!l && !d.editor && !d.report && d.zoneCards !== false && d.labels !== false && (l.zones?.length ?? 0) >= 2;
+  }
+
+  xformAt(zoom, pan) {
     const v = this.data?.view;
     const W = this.canvas.clientWidth, H = this.canvas.clientHeight;
     const b = this.data?.bounds ?? v?.bounds ?? [0, 0, 10, 10];
     const minX = b[0] - 1, minY = b[1] - 1, maxX = b[2] + 1, maxY = b[3] + 1;
     const bw = Math.max(maxX - minX, 1), bh = Math.max(maxY - minY, 1);
-    const pad = 24, inset = this.data?.insetBottom ?? 0;
+    const pad = this.cardsOn() ? 100 : 24, inset = this.data?.insetBottom ?? 0;
     const h = Math.max(H - inset, 100);
-    const s = Math.max(Math.min((W - 2 * pad) / bw, (h - 2 * pad) / bh), 1) * this.zoom;
-    const ox = (W - bw * s) / 2 + this.pan.x, oy = (h - bh * s) / 2 + this.pan.y;
+    const s = Math.max(Math.min((W - 2 * pad) / bw, (h - 2 * pad) / bh), 1) * zoom;
+    const ox = (W - bw * s) / 2 + pan.x, oy = (h - bh * s) / 2 + pan.y;
     return {
       s, minX, maxY, ox, oy,
       pt: (p) => ({ x: ox + (p.x - minX) * s, y: oy + (maxY - p.y) * s }),
@@ -251,9 +259,14 @@ export class Plan {
   // MARK: Drawing
 
   draw() {
-    this.drawScene();
+    // Whatever goes wrong drawing one part, the fan still goes where the fan coil is (or hides): it once stayed behind
+    // on its own when the unit was moved (Jake, 19 Nov 2026: "when i move the the unit dispairs and the fan staye").
+    try { this.drawScene(); } catch (e) { console.error('plan', e); this.fanAt = null; }
     this.placeFan();
   }
+
+  /// One layer of the plan: if it fails, the rest still draws.
+  guard(name, fn) { try { fn(); } catch (e) { console.error('plan: ' + name, e); } }
 
   /// The fan coil's fan: a spinning fan over the unit (a CSS animation on its own layer, so the plan isn't redrawn
   /// every frame); quicker with the airflow on. Hidden when there's no fan coil on the plan.
@@ -309,9 +322,9 @@ export class Plan {
     if (d.gaps) this.drawGaps(g, x, d.gaps);
     this.drawWindows(g, x, view, d.editor?.pickedWindow?.());
     if (layout) {
-      if (d.showAir && d.air) this.drawThrow(g, x, d.view, layout, d.air);
-      if (layout.outdoor) this.drawPipes(g, x, layout.unit, layout.outdoor);
-      this.drawDucts(g, x, layout, { legSizes: !!d.allSizes, flow: d.showAir ? this.flow : null });
+      if (d.showAir && d.air) this.guard('throw', () => this.drawThrow(g, x, d.view, layout, d.air));
+      if (layout.outdoor) this.guard('pipes', () => this.drawPipes(g, x, layout.unit, layout.outdoor));
+      this.guard('ducts', () => this.drawDucts(g, x, layout, { legSizes: !!d.allSizes, flow: d.showAir ? this.flow : null }));
       const sel = d.selection;
       if (sel?.kind === 'feed') {
         const curves = this.curves(layout, x);
@@ -331,15 +344,15 @@ export class Plan {
     const split = (!layout || d.both) && !d.editor ? d.split : null;
     if (split && d.splitAir !== false && !d.report) this.drawSplitAir(g, x, view, split, d);
     if (split) this.drawSplitPipes(g, x, split);
-    const zoneCards = !!layout && !d.editor && !d.report && d.zoneCards !== false && (layout.zones?.length ?? 0) >= 2;
-    if (d.labels !== false) this.drawLabels(g, x, view, layout, d.compact !== false, zoneCards);
+    const zoneCards = this.cardsOn();
+    if (d.labels !== false) this.guard('labels', () => this.drawLabels(g, x, view, layout, d.compact !== false, zoneCards));
     if (split) this.drawSplitMarks(g, x, split, d);
-    if (zoneCards && d.labels !== false) this.drawZoneCards(g, x, view, layout);
+    if (zoneCards && d.labels !== false) this.guard('zone cards', () => this.drawZoneCards(g, x, view, layout));
     if (layout && d.report) this.drawReportMarks(g, x, layout);
-    else if (layout && !d.editor) this.drawMarkers(g, x, layout, d);
-    if (!d.editor && (!split || layout)) this.drawDroppers(g, x, d, !!d.report);
-    if (!d.editor) this.drawLines(g, x, d);
-    if (layout && d.penDraft && !d.editor) this.drawPenDraft(g, x, d.penDraft);
+    else if (layout && !d.editor) this.guard('markers', () => this.drawMarkers(g, x, layout, d));
+    if (!d.editor && (!split || layout)) this.guard('droppers', () => this.drawDroppers(g, x, d, !!d.report));
+    if (!d.editor) this.guard('lines', () => this.drawLines(g, x, d));
+    if (layout && d.penDraft && !d.editor) this.guard('pen', () => this.drawPenDraft(g, x, d.penDraft));
     d.editor?.overlay(g, x);
   }
 
@@ -719,21 +732,21 @@ export class Plan {
           }
         }
       }
-      // A motorised zone damper as it is (Jake, 19 Nov 2026: "a zone needs to look real"): a galvanised sleeve in the
-      // duct, its blade (along the duct open, across it shut), and the motor on its side in the zone's colour with the
-      // zone's number (red with a cross when the zone's shut).
+      // A motorised zone damper as it is (Jake, 19 Nov 2026: "a zone needs to look real", then "make the zone black like
+      // the bdo with a orange blade"): a black sleeve like the Multisnap fittings, its orange blade (along the duct open,
+      // across it shut), and the motor on its side in the zone's colour with the zone's number (red with a cross when shut).
       const n = { x: -dir.y, y: dir.x }, ang = Math.atan2(dir.y, dir.x);
       const w = dw * 1.18 + 1, lw = Math.min(Math.max(dw * 0.07, 0.6), 1.2), bead = Math.min(L * 0.18, 2.5);
       g.save(); g.translate(c.x, c.y); g.rotate(ang);
       g.shadowColor = 'rgba(0,0,0,0.22)'; g.shadowBlur = Math.min(dw * 0.25, 3); g.shadowOffsetY = 1;
       const sl = g.createLinearGradient(0, -w / 2, 0, w / 2);
-      sl.addColorStop(0, '#EEF1F4'); sl.addColorStop(0.5, '#C9CFD6'); sl.addColorStop(1, '#A6ADB6');
+      sl.addColorStop(0, '#565C63'); sl.addColorStop(0.32, '#2E3237'); sl.addColorStop(1, '#121417');
       g.beginPath(); g.roundRect(-L / 2, -w / 2, L, w, 2); g.fillStyle = sl; g.fill();
       g.shadowColor = 'transparent';
-      g.strokeStyle = '#5B636C'; g.lineWidth = lw; g.stroke();
-      g.strokeStyle = 'rgba(70,78,88,0.6)'; g.lineWidth = lw * 0.8;       // the rolled beads at each end
+      g.strokeStyle = '#0C0E10'; g.lineWidth = lw; g.stroke();
+      g.strokeStyle = 'rgba(160,168,176,0.5)'; g.lineWidth = lw * 0.8;    // the snap beads at each end
       g.beginPath(); g.moveTo(-L / 2 + bead, -w / 2); g.lineTo(-L / 2 + bead, w / 2); g.moveTo(L / 2 - bead, -w / 2); g.lineTo(L / 2 - bead, w / 2); g.stroke();
-      g.strokeStyle = '#2A2E33'; g.lineWidth = Math.max(lw * 1.5, 0.8); g.lineCap = 'round';  // the blade on its shaft
+      g.strokeStyle = '#F7931E'; g.lineWidth = Math.max(lw * 2, 1.1); g.lineCap = 'round';    // the orange blade on its shaft
       g.beginPath();
       if (dm.open) { g.moveTo(-L / 2 + bead * 1.8, 0); g.lineTo(L / 2 - bead * 1.8, 0); } else { g.moveTo(0, -w / 2 + lw); g.lineTo(0, w / 2 - lw); }
       g.stroke();
@@ -771,20 +784,24 @@ export class Plan {
   bdoGeom(c, b, x) {
     const D = ductWidth(b.inletMM ?? 250, x.s), dIn = D, ang = Math.atan2(-(b.axis?.y ?? 0), b.axis?.x ?? 1);
     const len = D * 1.2, wid = D * 1.1;                     // the body's back face sits len/2 behind the middle
-    const cs = Math.cos(ang), sn = Math.sin(ang), hub = -D * 0.2, front = D * 0.8;
+    const cs = Math.cos(ang), sn = Math.sin(ang), front = D * 0.8;
     const toS = (lx, ly) => ({ x: c.x + lx * cs - ly * sn, y: c.y + lx * sn + ly * cs });
+    const relOf = (d) => { const wx = d.x, wy = -d.y; return Math.atan2(-wx * sn + wy * cs, wx * cs + wy * sn); };
+    // A 2-way (nothing straight on) is the Y with a V between its arms, so its arms sit a little wider on the shoulders.
+    const yWay = (b.legDirs ?? []).length > 0 && !(b.legDirs ?? []).some((d) => Math.abs(relOf(d)) < 0.2);
+    const hub = yWay ? -D * 0.3 : -D * 0.2;
     const legs = (b.legDirs ?? []).map((d, k) => {
       const wx = d.x, wy = -d.y, lx = wx * cs + wy * sn, ly = -wx * sn + wy * cs;     // in the body's own frame
       const dL = ductWidth(b.legMM?.[k] ?? 200, x.s), rel = Math.atan2(ly, lx);
       const straight = Math.abs(rel) < 0.2;
       // Where its collar leaves the body (local): the straight one off the front face, a branch off its shoulder.
-      const rr = straight ? 0 : D * 0.62 + D * 0.38 * Math.max(0, 1 - Math.abs(rel) / 0.79);
+      const rr = straight ? 0 : yWay ? D * 0.8 : D * 0.62 + D * 0.38 * Math.max(0, 1 - Math.abs(rel) / 0.79);
       const base = straight ? { x: front, y: 0 } : { x: hub + Math.cos(rel) * rr, y: Math.sin(rel) * rr };
       const spig = Math.max(dL * 0.6, 3), dl = { x: Math.cos(rel), y: Math.sin(rel) };
       const tip = { x: base.x + dl.x * spig, y: base.y + dl.y * spig };
       return { k, lx, ly, rel, dL, straight, base, spig, end: toS(tip.x, tip.y), dir: { x: wx, y: wy } };
     });
-    return { c, ang, len, wid, dIn, hub, front, legs };
+    return { c, ang, len, wid, dIn, hub, front, yWay, legs };
   }
   /// The fan coil and its fittings at this zoom, in screen space: its size, how it's turned, the supply transition's
   /// shape and spigots (Jake, 19 Nov 2026: "flat on the supply and then 45 degrees on the side with the pop on the sides
@@ -872,16 +889,25 @@ export class Plan {
     };
     g.save(); g.translate(c.x, c.y); g.rotate(G.ang);
     // The foam body: the hull of its back face, each collar's root and the front face — a short Y, as the fitting is.
-    const hasStraight = G.legs.some((L) => L.straight), capW = D * 0.86;
+    const hasStraight = G.legs.some((L) => L.straight);
     const pts = [{ x: -back, y: -D * 0.56 }, { x: -back, y: D * 0.56 }];
-    const fw = hasStraight ? Math.max(...G.legs.filter((L) => L.straight).map((L) => L.dL)) : capW;
-    pts.push({ x: front, y: -fw * 0.56 }, { x: front, y: fw * 0.56 });
+    if (hasStraight) { const fw = Math.max(...G.legs.filter((L) => L.straight).map((L) => L.dL)); pts.push({ x: front, y: -fw * 0.56 }, { x: front, y: fw * 0.56 }); }
+    else if (!G.legs.length) pts.push({ x: front, y: -D * 0.5 }, { x: front, y: D * 0.5 });
     for (const L of G.legs) {
       if (L.straight) continue;
       const nx = -Math.sin(L.rel), ny = Math.cos(L.rel), h = L.dL * 0.58;
       pts.push({ x: L.base.x + nx * h, y: L.base.y + ny * h }, { x: L.base.x - nx * h, y: L.base.y - ny * h });
     }
-    const hull = convexHull(pts);
+    let hull = convexHull(pts);
+    if (G.yWay) {
+      // The 2-way's front (Jake, 19 Nov 2026: "remove the end cap and almost make the end a v in"): the edge between its
+      // arms dips in to a V, the crotch of the Y.
+      const k = hull.findIndex((p, i) => { const q = hull[(i + 1) % hull.length]; return p.x > 0 && q.x > 0 && Math.sign(p.y) !== Math.sign(q.y); });
+      if (k >= 0) {
+        const p = hull[k], q = hull[(k + 1) % hull.length], tipX = Math.min(p.x, q.x) - Math.abs(p.y - q.y) * 0.55;
+        hull = [...hull.slice(0, k + 1), { x: Math.max(tipX, G.hub + D * 0.15), y: 0 }, ...hull.slice(k + 1)];
+      }
+    }
     g.shadowColor = 'rgba(10,10,10,0.25)'; g.shadowBlur = Math.min(D * 0.3, 5); g.shadowOffsetY = 1;
     g.beginPath(); hull.forEach((p, k) => (k ? g.lineTo(p.x, p.y) : g.moveTo(p.x, p.y))); g.closePath();
     const by = Math.max(...hull.map((p) => Math.abs(p.y)));
@@ -891,23 +917,15 @@ export class Plan {
     g.lineJoin = 'round'; g.strokeStyle = ink; g.lineWidth = lw * 1.2; g.stroke();
     // The moulding: the seam down its middle with the snap clips, and the light along its top.
     g.save(); g.clip();
-    g.strokeStyle = 'rgba(0,0,0,0.5)'; g.lineWidth = lw; g.beginPath(); g.moveTo(-back, 0); g.lineTo(front, 0); g.stroke();
+    g.strokeStyle = 'rgba(0,0,0,0.5)'; g.lineWidth = lw; g.beginPath(); g.moveTo(-back, 0); g.lineTo(G.yWay ? G.hub + D * 0.15 : front, 0); g.stroke();
     g.fillStyle = 'rgba(150,158,166,0.5)';
-    for (const f of [0.15, 0.45, 0.75]) { const cx = -back + (front + back) * f; g.fillRect(cx - D * 0.05, -D * 0.06, D * 0.1, D * 0.12); }
+    for (const f of [0.15, 0.45, 0.75]) { const cx = -back + ((G.yWay ? G.hub + D * 0.15 : front) + back) * f; g.fillRect(cx - D * 0.05, -D * 0.06, D * 0.1, D * 0.12); }
     g.strokeStyle = 'rgba(255,255,255,0.14)'; g.lineWidth = Math.max(D * 0.1, 0.8); g.lineCap = 'round';
     g.beginPath(); g.moveTo(-back + D * 0.15, -D * 0.3); g.lineTo(front - D * 0.15, -D * 0.3); g.stroke();
     g.restore();
     // The collars: the feed in the back, then each leg's.
     g.save(); g.translate(-back, 0); g.rotate(Math.PI); collar(D, D * 0.55); g.restore();
     for (const L of G.legs) { g.save(); g.translate(L.base.x, L.base.y); g.rotate(L.rel); collar(L.dL, L.spig); g.restore(); }
-    if (!hasStraight && G.legs.length) {
-      // Nothing straight on (a 2-way): the front collar's capped, as the fitting comes.
-      const cl = D * 0.26;
-      g.save(); g.translate(front, 0);
-      g.beginPath(); g.rect(0, -capW / 2, cl, capW); g.fillStyle = shade(capW); g.fill(); g.strokeStyle = ink; g.lineWidth = lw; g.stroke();
-      g.beginPath(); g.roundRect(cl - lw, -capW / 2 - lw, lw * 3 + D * 0.06, capW + lw * 2, lw); g.fillStyle = '#16191C'; g.fill(); g.stroke();
-      g.restore();
-    }
     g.restore();
   }
 
@@ -1020,108 +1038,119 @@ export class Plan {
     }
   }
 
-  /// A card for each zone, as a duct layout drawing has them: the zone in its colour, its load, its air and its floor.
-  /// Each sits by its zone — off the house where there's room, clear of the rooms' names, the vents and the other
-  /// cards — with a line to the zone when it's had to go further out.
+  /// A card for each zone, as a duct layout drawing has them: the zone in its colour, its load, its air, its floor and how
+  /// loud its vents are. Each sits OUTSIDE the house (Jake, 19 Nov 2026: "always make them on the outside of the floor
+  /// plan"), as near its zone as it can, clear of the other cards, with a line back to the zone. They're placed with the
+  /// whole house in view and ride with the plan as it's zoomed. Drag one and it stays where it's let go (kept on the job).
   drawZoneCards(g, x, view, layout) {
-    const W = this.canvas.clientWidth, H = this.canvas.clientHeight - (this.data?.insetBottom ?? 0);
-    const rooms = view.rooms.filter((r) => r.polygon.length >= 3).map((r) => {
-      const pts = r.polygon.map(x.pt), xs = pts.map((p) => p.x), ys = pts.map((p) => p.y);
-      return { r, pts, box: [Math.min(...xs), Math.min(...ys), Math.max(...xs), Math.max(...ys)] };
-    });
-    const inRoom = (p, only = null) => rooms.find((m) => (!only || only.has(m.r.id)) && p.x >= m.box[0] && p.x <= m.box[2]
-      && p.y >= m.box[1] && p.y <= m.box[3] && pointInPolygon(p, m.pts));
     const byId = Object.fromEntries(view.rooms.map((r) => [r.id, r]));
     // The rooms a zone feeds: those with vents, and their open area's others (the kitchen) — not a hallway with none.
     const vented = new Set(layout.outlets.map((o) => o.roomId));
     const fedAreas = new Set(view.rooms.filter((r) => vented.has(r.id) && r.openArea).map((r) => r.openArea));
     const fed = (r) => vented.has(r.id) || (r.openArea && fedAreas.has(r.openArea));
-    const placed = [], cards = [];
     const zones = [...layout.zones].filter((z) => z.roomIds.some((id) => byId[id]))
       .sort((a, b) => (a.number === 0) - (b.number === 0) || a.number - b.number);
-    for (const z of zones) {
+    const pins = { ...(this.data?.project?.zoneCards ?? {}), ...(this.cardDrops ?? {}) };
+    const cards = zones.map((z) => {
       const all = z.roomIds.map((id) => byId[id]).filter(Boolean);
       const mine = all.some(fed) ? all.filter(fed) : all;
-      const ids = new Set(mine.map((r) => r.id));
       const kw = mine.reduce((t, r) => t + r.kw, 0), m2 = mine.reduce((t, r) => t + r.area, 0);
+      const vents = layout.outlets.filter((o) => o.zone === z.number && !o.spill);
+      const loud = vents.length ? Math.max(...vents.map((o) => o.dbA ?? 0)) : null;
       const lines = [[z.number === 0 ? 'Always on' : `Zone ${z.number}`, `800 11.5px ${FONT}`],
         [`${kw.toFixed(2)} kW`, `600 10.5px ${FONT}`], [`${Math.round(z.designLps)} L/s`, `600 10.5px ${FONT}`],
         [`${m2.toFixed(1)} m²`, `600 10.5px ${FONT}`]];
+      if (loud != null && loud > 0) lines.push([`${vents.length > 1 ? 'Up to ' : ''}${Math.round(loud)} dB(A)`, `600 10.5px ${FONT}`]);
       let tw = 0;
       for (const [t, f] of lines) { g.font = f; tw = Math.max(tw, g.measureText(t).width); }
-      const w = Math.ceil(tw) + 20, h = 13 * lines.length + 14;
-      // Where the zone is: the middle of its biggest room's floor.
-      const big = mine.reduce((a, b) => (b.area > a.area ? b : a));
-      const anchor = x.pt(big.centroid ?? big.polygon[0]);
-      const cost = (c) => {
-        if (c.x < 6 || c.y < 6 || c.x + c.w > W - 6 || c.y + c.h > H - 6) return Infinity;
-        let n = 0;
-        for (let i = 0; i <= 2; i++) for (let j = 0; j <= 2; j++) {
-          const p = { x: c.x + c.w * i / 2, y: c.y + c.h * j / 2 }, m = inRoom(p);
-          if (m) n += ids.has(m.r.id) ? 12 : m.r.conditioned ? 30 : 5;     // a garage or a robe's fine to sit over
-        }
-        const pad = 5;
-        for (const o of placed) if (c.x < o.x + o.w + pad && c.x + c.w + pad > o.x && c.y < o.y + o.h + pad && c.y + c.h + pad > o.y) n += 500;
-        for (const o of this.labelRects ?? []) if (c.x < o.x + o.w && c.x + c.w > o.x && c.y < o.y + o.h && c.y + c.h > o.y) n += 120;
-        for (const b of this.busy ?? []) if (b.p.x >= c.x - b.r && b.p.x <= c.x + c.w + b.r && b.p.y >= c.y - b.r && b.p.y <= c.y + c.h + b.r) n += b.w > 1 ? 60 : 5;
-        for (const p of this.sizeSpots ?? []) if (p.x >= c.x - 16 && p.x <= c.x + c.w + 16 && p.y >= c.y - 7 && p.y <= c.y + c.h + 7) n += 60;
-        // Close to the zone, and a short line back to it that doesn't cut across other zones' rooms.
-        const cx = Math.max(c.x, Math.min(anchor.x, c.x + c.w)), cy = Math.max(c.y, Math.min(anchor.y, c.y + c.h));
-        const reach = Math.hypot(cx - anchor.x, cy - anchor.y);
-        const inCard = (p, o) => p.x > o.x && p.x < o.x + o.w && p.y > o.y && p.y < o.y + o.h;
-        for (let k = 1, steps = Math.floor(reach / 10); k < steps; k++) {
-          const q = { x: anchor.x + (cx - anchor.x) * k / steps, y: anchor.y + (cy - anchor.y) * k / steps };
-          const m = inRoom(q);
-          if (m && !ids.has(m.r.id) && m.r.conditioned) n += 4;
-          if (placed.some((o) => inCard(q, o))) n += 40;                  // its line through another card
-        }
-        // Nor over another card's line.
-        for (const o of placed) {
-          if (!o.line) continue;
-          for (let k = 1; k < 12; k++) {
-            const q = { x: o.line[0].x + (o.line[1].x - o.line[0].x) * k / 12, y: o.line[0].y + (o.line[1].y - o.line[0].y) * k / 12 };
-            if (inCard(q, c)) { n += 40; break; }
-          }
-        }
-        return n + reach * 0.5;
-      };
-      let best = null, bestCost = Infinity;
-      for (let rad = 0; rad <= 420; rad += 14) {
-        const steps = rad ? 16 : 1;
-        for (let k = 0; k < steps; k++) {
-          const a = k / steps * Math.PI * 2;
-          const c = { x: anchor.x + Math.cos(a) * rad - w / 2, y: anchor.y + Math.sin(a) * rad - h / 2, w, h };
-          const v = cost(c);
-          if (v < bestCost) { bestCost = v; best = c; }
-        }
+      const big = mine.length ? mine.reduce((a, b) => (b.area > a.area ? b : a)) : all[0];
+      return { z, lines, w: Math.ceil(tw) + 20, h: 13 * lines.length + 14, big, ids: new Set(mine.map((r) => r.id)) };
+    });
+    // Where the cards go, worked out with the whole house in view (cached till the layout or the canvas changes).
+    const W = this.canvas.clientWidth, H = this.canvas.clientHeight - (this.data?.insetBottom ?? 0);
+    const key = [layout, W, H, JSON.stringify(pins), cards.map((c) => c.lines.map((l) => l[0]).join()).join('|')];
+    const same = this.cardCache && this.cardCache.key.every((k, i) => k === key[i]);
+    if (!same) {
+      const f = this.xformAt(1, { x: 0, y: 0 });
+      const rooms = view.rooms.filter((r) => r.polygon.length >= 3).map((r) => {
+        const pts = r.polygon.map(f.pt), xs = pts.map((p) => p.x), ys = pts.map((p) => p.y);
+        return { r, pts, box: [Math.min(...xs), Math.min(...ys), Math.max(...xs), Math.max(...ys)] };
+      });
+      const inRoom = (p) => rooms.find((m) => p.x >= m.box[0] - 4 && p.x <= m.box[2] + 4 && p.y >= m.box[1] - 4 && p.y <= m.box[3] + 4
+        && (pointInPolygon(p, m.pts) || m.pts.some((a, i) => segDist(p, a, m.pts[(i + 1) % m.pts.length]) < 4)));
+      const keepOut = [];
+      if (layout.outdoor) { const o = f.pt(layout.outdoor[2]); keepOut.push({ x: o.x - 22, y: o.y - 22, w: 44, h: 58 }); }
+      const hitsBox = (a, b, pad = 0) => a.x < b.x + b.w + pad && a.x + a.w + pad > b.x && a.y < b.y + b.h + pad && a.y + a.h + pad > b.y;
+      const placed = [], at = {};
+      // Cards moved by hand first: they stay put and the rest keep clear of them.
+      for (const c of cards) {
+        const p = pins[c.z.number];
+        if (!p) continue;
+        const m = f.pt(p);
+        placed.push({ x: m.x - c.w / 2, y: m.y - c.h / 2, w: c.w, h: c.h });
+        at[c.z.number] = { world: p, pinned: true };
       }
-      if (!best || bestCost >= 500) continue;
-      const ex = Math.max(best.x, Math.min(anchor.x, best.x + best.w)), ey = Math.max(best.y, Math.min(anchor.y, best.y + best.h));
-      placed.push({ ...best, line: Math.hypot(ex - anchor.x, ey - anchor.y) > 26 ? [anchor, { x: ex, y: ey }] : null });
-      cards.push({ z, c: best, lines, anchor, ids });
-    }
-    for (const { z, c, lines, anchor, ids } of cards) {
-      const tone = z.open ? zoneColour(z.number) : T.faint;
-      // A line back to the zone when the card's off it.
-      const mid = { x: c.x + c.w / 2, y: c.y + c.h / 2 };
-      if (!inRoom(mid, ids)) {
-        const ex = Math.max(c.x, Math.min(anchor.x, c.x + c.w)), ey = Math.max(c.y, Math.min(anchor.y, c.y + c.h));
-        if (Math.hypot(ex - anchor.x, ey - anchor.y) > 26) {
-          g.strokeStyle = rgba(tone, 0.75); g.lineWidth = 1.2;
-          g.beginPath(); g.moveTo(ex, ey); g.lineTo(anchor.x, anchor.y); g.stroke();
-          g.beginPath(); g.arc(anchor.x, anchor.y, 2.6, 0, Math.PI * 2); g.fillStyle = tone; g.fill();
+      for (const c of cards) {
+        if (at[c.z.number]) continue;
+        const anchor = f.pt(c.big.centroid ?? c.big.polygon[0]);
+        const cost = (b) => {
+          if (b.x < 4 || b.y < 4 || b.x + b.w > W - 4 || b.y + b.h > H - 4) return Infinity;
+          let n = 0;
+          for (let i = 0; i <= 3; i++) for (let j = 0; j <= 3; j++) if (inRoom({ x: b.x + b.w * i / 3, y: b.y + b.h * j / 3 })) n += 1000;
+          for (const o of placed) if (hitsBox(b, o, 6)) n += 800;
+          for (const o of keepOut) if (hitsBox(b, o, 4)) n += 300;
+          const cx = Math.max(b.x, Math.min(anchor.x, b.x + b.w)), cy = Math.max(b.y, Math.min(anchor.y, b.y + b.h));
+          return n + Math.hypot(cx - anchor.x, cy - anchor.y);
+        };
+        let best = null, bestCost = Infinity;
+        for (let rad = 0; rad <= Math.max(W, H); rad += 12) {
+          const steps = rad ? Math.max(16, Math.round(rad / 8)) : 1;
+          for (let k = 0; k < steps; k++) {
+            const a = k / steps * Math.PI * 2;
+            const b = { x: anchor.x + Math.cos(a) * rad - c.w / 2, y: anchor.y + Math.sin(a) * rad - c.h / 2, w: c.w, h: c.h };
+            const v = cost(b);
+            if (v < bestCost) { bestCost = v; best = b; }
+          }
+          if (bestCost < 1000 && rad > 0 && bestCost < rad) break;       // outside and nothing nearer can beat it
         }
+        if (!best) continue;
+        placed.push(best);
+        at[c.z.number] = { world: f.world({ x: best.x + best.w / 2, y: best.y + best.h / 2 }), pinned: false };
+      }
+      this.cardCache = { key, at };
+    }
+    const at = this.cardCache.at, drag = this.drag?.active && this.drag.item?.kind === 'zoneCard' ? this.drag : null;
+    for (const c of cards) {
+      const spot = at[c.z.number];
+      if (!spot) continue;
+      let m = x.pt(spot.world);
+      if (drag && drag.item.id === c.z.number) m = { x: drag.item.cx + drag.screen.x - drag.start.x, y: drag.item.cy + drag.screen.y - drag.start.y };
+      const r = { x: m.x - c.w / 2, y: m.y - c.h / 2, w: c.w, h: c.h }, z = c.z;
+      const tone = z.open ? zoneColour(z.number) : T.faint, anchor = x.pt(c.big.centroid ?? c.big.polygon[0]);
+      // A line back to the zone.
+      const ex = Math.max(r.x, Math.min(anchor.x, r.x + r.w)), ey = Math.max(r.y, Math.min(anchor.y, r.y + r.h));
+      if (Math.hypot(ex - anchor.x, ey - anchor.y) > 20) {
+        g.strokeStyle = rgba(tone, 0.75); g.lineWidth = 1.2;
+        g.beginPath(); g.moveTo(ex, ey); g.lineTo(anchor.x, anchor.y); g.stroke();
+        g.beginPath(); g.arc(anchor.x, anchor.y, 2.6, 0, Math.PI * 2); g.fillStyle = tone; g.fill();
       }
       g.save();
-      g.shadowColor = 'rgba(0,0,0,0.14)'; g.shadowBlur = 4; g.shadowOffsetY = 1;
-      g.beginPath(); g.roundRect(c.x, c.y, c.w, c.h, 6); g.fillStyle = '#fff'; g.fill();
+      g.shadowColor = drag?.item.id === z.number ? 'rgba(0,0,0,0.28)' : 'rgba(0,0,0,0.14)'; g.shadowBlur = drag?.item.id === z.number ? 10 : 4; g.shadowOffsetY = 1;
+      g.beginPath(); g.roundRect(r.x, r.y, r.w, r.h, 6); g.fillStyle = '#fff'; g.fill();
       g.restore();
-      g.save(); g.beginPath(); g.roundRect(c.x, c.y, c.w, c.h, 7); g.clip();
-      g.fillStyle = tone; g.fillRect(c.x, c.y, c.w, 18);
+      g.save(); g.beginPath(); g.roundRect(r.x, r.y, r.w, r.h, 7); g.clip();
+      g.fillStyle = tone; g.fillRect(r.x, r.y, r.w, 18);
       g.restore();
-      g.beginPath(); g.roundRect(c.x, c.y, c.w, c.h, 7); g.strokeStyle = rgba(tone, 0.6); g.lineWidth = 1; g.stroke();
+      g.beginPath(); g.roundRect(r.x, r.y, r.w, r.h, 7); g.strokeStyle = rgba(tone, 0.6); g.lineWidth = 1; g.stroke();
       g.textAlign = 'left'; g.textBaseline = 'top';
-      lines.forEach(([t, f], i) => { g.font = f; g.fillStyle = i ? (z.open ? T.body : T.faint) : '#fff'; g.fillText(t, c.x + 9, i ? c.y + 9 + i * 13 : c.y + 3.5); });
+      c.lines.forEach(([t, f], i) => { g.font = f; g.fillStyle = i ? (z.open ? T.body : T.faint) : '#fff'; g.fillText(t, r.x + 9, i ? r.y + 9 + i * 13 : r.y + 3.5); });
+      if (spot.pinned) {
+        // Moved by hand: a pin in its corner, as a moved BDO has.
+        const px = r.x + r.w - 7, py = r.y + 6;
+        g.strokeStyle = '#fff'; g.lineWidth = 1.3; g.beginPath(); g.moveTo(px, py + 1.5); g.lineTo(px, py + 6); g.stroke();
+        g.beginPath(); g.arc(px, py, 2.4, 0, Math.PI * 2); g.fillStyle = '#fff'; g.fill();
+      }
+      this.hits.push({ item: { kind: 'zoneCard', id: z.number, cx: m.x, cy: m.y }, x: m.x, y: m.y, r: 0, rect: r });
     }
   }
 
@@ -1380,7 +1409,7 @@ export class Plan {
       shadow(() => {
         g.save(); g.translate(c.x, c.y); g.rotate(turn);
         g.beginPath(); g.roundRect(-depth / 2, -width / 2, depth, width, 4); g.fillStyle = T.ink; g.fill();
-        this.drawUnitFittings(g, this.unitGeom(l, x, c));
+        this.guard('unit fittings', () => this.drawUnitFittings(g, this.unitGeom(l, x, c)));
         if (sel?.kind === 'unit') {
           g.beginPath(); g.roundRect(-depth / 2 - 4, -width / 2 - 4, depth + plenum + 8, width + 8, 6); g.strokeStyle = T.accent; g.lineWidth = 3; g.stroke();
         }
@@ -1442,7 +1471,7 @@ export class Plan {
       }
       this.hits.push({ item: { kind: 'outlet', id: o.id }, x: c.x, y: c.y, r: Math.max(17, ring) });
     }
-    if (d.handBends) this.drawBends(g, x, d.handBends, drag);
+    if (d.handBends) this.guard('bends', () => this.drawBends(g, x, d.handBends, drag));
     // The picked BDO's turn knob (Jake, 19 Nov 2026: "click and rotate the BDO"): drag it round and the BDO turns with
     // its arms fixed; the ducts follow.
     const pickedBox = sel?.kind === 'box' && d.layout?.boxes?.find((b) => b.bid === sel.id);
@@ -1580,7 +1609,8 @@ export class Plan {
   hit(q) {
     for (let i = (this.hits?.length ?? 0) - 1; i >= 0; i--) {
       const h = this.hits[i];
-      if (Math.hypot(q.x - h.x, q.y - h.y) <= h.r) return h.item;
+      if (h.rect ? q.x >= h.rect.x && q.x <= h.rect.x + h.rect.w && q.y >= h.rect.y && q.y <= h.rect.y + h.rect.h
+        : Math.hypot(q.x - h.x, q.y - h.y) <= h.r) return h.item;
     }
     const l = this.data?.layout, x = this.x;
     if (l && x) {
@@ -1678,6 +1708,11 @@ export class Plan {
       }
       if (d.active && d.item?.kind === 'edit') {
         this.data.editor?.up(d.item.h, q, this.x, e);
+      } else if (d.active && d.item?.kind === 'zoneCard') {
+        // A zone card stays where it's let go (Jake, 19 Nov 2026: "be able to to move them and lock it once it let go").
+        const pos = this.x.world({ x: d.item.cx + q.x - d.start.x, y: d.item.cy + q.y - d.start.y });
+        this.cardDrops = { ...(this.cardDrops ?? {}), [d.item.id]: pos };
+        this.on.drop?.(d.item, pos);
       } else if (d.active && d.item) {
         this.on.drop?.(d.item, this.x.world(q));
       } else if (d.active) {
@@ -1707,7 +1742,8 @@ export class Plan {
   hitMarker(q) {
     for (let i = (this.hits?.length ?? 0) - 1; i >= 0; i--) {
       const h = this.hits[i];
-      if (Math.hypot(q.x - h.x, q.y - h.y) <= h.r) return h.item;
+      if (h.rect ? q.x >= h.rect.x && q.x <= h.rect.x + h.rect.w && q.y >= h.rect.y && q.y <= h.rect.y + h.rect.h
+        : Math.hypot(q.x - h.x, q.y - h.y) <= h.r) return h.item;
     }
     return null;
   }

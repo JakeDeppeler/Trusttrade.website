@@ -1,11 +1,11 @@
 // Trust Trade Pro — the HVAC Designer in the browser. The same five steps as the app (House · Capture · Check · Design ·
 // Send) on the app's own engine (engine.wasm, run in a worker): the same loads, zones, ducts, checks and materials.
 
-import { call as engineCall, latest } from './engine.js?v=d30676d-202611191917';
-import { jobCalls, isMixed as mixedJob, ductedPart, splitSet, withSplitRooms, defaultRange } from './systems.js?v=d30676d-202611191917';
-import * as store from './store.js?v=d30676d-202611191917';
-import { Plan, inkImage, zoneColour, ductColour, splitColour, T, pointInPolygon, movesOnly, wheelMoves, ZOOM_MAX } from './plan.js?v=d30676d-202611191917';
-import { RoomEditor, metres, signedArea, onLine } from './roomeditor.js?v=d30676d-202611191917';
+import { call as engineCall, latest } from './engine.js?v=3017b39-202611192046';
+import { jobCalls, isMixed as mixedJob, ductedPart, splitSet, withSplitRooms, defaultRange } from './systems.js?v=3017b39-202611192046';
+import * as store from './store.js?v=3017b39-202611192046';
+import { Plan, inkImage, zoneColour, ductColour, splitColour, T, pointInPolygon, movesOnly, wheelMoves, ZOOM_MAX } from './plan.js?v=3017b39-202611192046';
+import { RoomEditor, metres, signedArea, onLine } from './roomeditor.js?v=3017b39-202611192046';
 
 /// Every engine call: a two-system job's go with the part they're about (systems.js).
 const call = jobCalls(engineCall);
@@ -2413,6 +2413,7 @@ function layersMenu(anchor) {
 }
 
 function select(item) {
+  if (item?.kind === 'zoneCard') return;                     // a zone card's only moved
   // A bend on the picked duct: picked (to take it out), the duct stays picked.
   if (item?.kind === 'bend' || item?.kind === 'bendAdd') {
     if (item.kind === 'bend') app.bend = { id: item.id, i: item.i };
@@ -2626,7 +2627,7 @@ function dragMove(item, pos) {
       (layout) => { if (app.plan?.drag?.active) app.plan.set({ layout }); });
     return;
   }
-  if (item.kind === 'head' || item.kind === 'odu' || item.kind === 'dropTop' || item.kind === 'dropFoot') return;   // placed on the drop
+  if (item.kind === 'head' || item.kind === 'odu' || item.kind === 'dropTop' || item.kind === 'dropFoot' || item.kind === 'zoneCard') return;   // placed on the drop
   const d = structuredClone(app.project.design);
   if (!d) return;
   if (item.kind === 'unit') d.unit = pos;
@@ -2658,6 +2659,12 @@ async function turnBox(bid, deg) {
 }
 
 async function drop(item, pos) {
+  if (item.kind === 'zoneCard') {
+    // Locked where it's let go, kept on the job (the engine doesn't know them: systems.js carries them through).
+    const zc = { ...(app.project.zoneCards ?? {}), [item.id]: { x: Math.round(pos.x * 1000) / 1000, y: Math.round(pos.y * 1000) / 1000 } };
+    await commit({ ...app.project, zoneCards: zc }, { undoable: true });
+    return;
+  }
   if (item.kind === 'boxTurn') {
     const axis = boxTurnAxis(item.id, pos);
     if (!axis || !(await edit('turnBox', { key: item.id, pos: axis }))) app.plan?.set({ layout: app.layout });
@@ -2763,6 +2770,7 @@ function renderInspector() {
       ${run && o.open ? legSpeedLine(run) : ''}
       <span class="eyebrow">Outlet</span>
       <div class="seg" style="flex-wrap:wrap;margin-bottom:6px">${OUTLET_STYLES.map(([k, t]) => `<button data-ostyle="${k}" class="${(o.style ?? 'round') === k ? 'on' : ''}">${t}</button>`).join('')}</div>
+      <button class="link" id="ostyle-every" style="padding:0;margin:0 0 8px">Make every vent ${esc((OUTLET_STYLES.find(([k]) => k === (o.style ?? 'round')) ?? ['', 'Round'])[1].toLowerCase())}</button>
       ${o.style && o.style !== 'round' ? `<div class="kv"><span>${esc(OUTLET_NAMES[o.style])}</span><b>${esc(o.face)} mm${o.faceNR != null ? ` <span class="muted small" style="font-weight:500">· ${fmt(o.facePa)} Pa · NR ${fmt(o.faceNR)}</span>` : ''}</b></div>
         <p class="small muted" style="margin:0 0 8px">On a plenum box with a Ø${o.sizeMM} spigot.${o.faceTypical ? ' Typical floor grille sizing: check the maker\'s data.' : ''}${!o.styleByHand ? ' The job\'s outlet type: change it on this vent or under System &amp; zoning.' : ''}</p>` : ''}
       <span class="eyebrow">Duct and neck size</span>
@@ -2978,14 +2986,14 @@ function designSummary() {
         <option value="0" ${p.twoStorey?.ductDownstairs === false ? 'selected' : ''}>Join existing droppers</option></select></div>
       <div class="actions-row"><button class="btn2" id="add-dropper">${icon('dropper').replace('<svg', '<svg width="16" height="16"')} Add a dropper</button></div></div>` : '';
   return `${nextSteps(l, v, p)}${reduct}${floors}${roomsCard(l, v)}<div class="card"><div style="display:flex;align-items:center"><h2 style="flex:1">Zones</h2>${app.closed.size ? '<button class="link" id="openall">Open every zone</button>' : ''}</div>
-      <p class="small muted" style="margin:2px 0 6px">Tap a zone to shut or open it</p>
+      <p class="small muted" style="margin:2px 0 6px">Tap a zone to shut or open it. Drag a zone's card on the plan to move it: it stays where you let go.${p.zoneCards && Object.keys(p.zoneCards).length ? ' <button class="link" id="cards-back" style="padding:0">Put the cards back</button>' : ''}</p>
       ${zones.map((z) => `<div class="zone-row ${z.open ? '' : 'shut'}" data-zone="${z.number}"><span class="dot" style="background:${zoneColour(z.number)}"></span><b>${z.number === 0 ? 'Constant · ' + esc(z.name) : esc(z.name)}</b><span>${fmt(z.lps)} L/s</span></div>`).join('')}
       <div class="seg" style="margin-top:10px"><button data-bal="1" class="${app.balanced ? 'on' : ''}">Balanced</button><button data-bal="0" class="${app.balanced ? '' : 'on'}">As installed</button></div></div>
     <div class="card"><h2>System &amp; zoning</h2>
       <div class="kv"><span>Unit</span><b>${p.existing ? `Existing ${p.existing.kind === 'heater' ? 'heater' : 'unit'} · ducts for ${g(ductedView().totals.unit?.kw ?? 0)} kW` : esc(ductedView().totals.unit?.label ?? '—')} <button class="link" data-sizehow style="padding:0 0 0 6px">How it's sized</button></b></div>
       ${(app.options.brands?.length ?? 0) > 1 && !p.existing ? `<div class="rowpick"><label>Brand</label><select id="brand">${app.options.brands.map((b) => `<option value="${b.id}" ${b.id === brandId() ? 'selected' : ''}>${esc(b.label)}</option>`).join('')}</select></div>
       <div class="kv"><span>Fan on high</span><b>${fmt(ductedView().totals.unit?.lps)} L/s · up to ${fmt(ductedView().totals.unit?.esp)} Pa${ductedView().totals.unit?.espConfirmed === false ? ' <span class="muted small" style="font-weight:500">(check the manual)</span>' : ''}</b></div>` : ''}
-      <div class="rowpick"><label>Outlets</label><select id="ostyle-all">${OUTLET_STYLES.map(([k, t]) => `<option value="${k}" ${(p.design?.outletStyle ?? 'round') === k ? 'selected' : ''}>${t}</option>`).join('')}</select></div>
+      <div class="rowpick"><label>Every vent</label><select id="ostyle-all">${OUTLET_STYLES.map(([k, t]) => `<option value="${k}" ${(p.design?.outletStyle ?? 'round') === k ? 'selected' : ''}>${t}</option>`).join('')}</select></div>
       <div class="rowpick"><label>Zoning</label><select id="zoning">${app.options.zonings.map((z) => `<option value="${z.id}" ${z.id === zoning ? 'selected' : ''}>${esc(z.label)}</option>`).join('')}</select></div>
       <div class="rowpick"><label>Supply air transition</label><select id="takeoffs">${takeoffOptions()}</select></div>
       <div class="rowpick"><label>Air speed</label><select id="velocity">${app.options.velocities.map((x) => `<option value="${x.id}" ${x.id === (p.site.velocityPref ?? 'standard') ? 'selected' : ''}>${esc(x.label)}</option>`).join('')}</select></div>
@@ -3136,6 +3144,11 @@ function bindInspector(el) {
   el.querySelectorAll('[data-bal]').forEach((b) => (b.onclick = async () => { app.balanced = b.dataset.bal === '1'; await refresh(); render(); }));
   el.querySelectorAll('[data-ostyle]').forEach((b) => (b.onclick = () => edit('setOutletStyle', { id: s.id, choice: b.dataset.ostyle })));
   $('#ostyle-all', el)?.addEventListener('change', (e) => edit('setOutletStyle', { choice: e.target.value }));
+  $('#cards-back', el)?.addEventListener('click', () => { const { zoneCards, ...rest } = app.project; commit(rest, { undoable: true }); });
+  $('#ostyle-every', el)?.addEventListener('click', () => {
+    const st = (app.layout?.outlets ?? []).find((q) => q.id === s.id)?.style ?? 'round';
+    edit('setOutletStyle', { choice: st }).then((r) => r && toast(`Every vent is ${(OUTLET_STYLES.find(([k]) => k === st) ?? ['', 'round'])[1].toLowerCase()} now`));
+  });
   el.querySelectorAll('[data-cat]').forEach((b) => (b.onclick = () => openCatalogue()));
   $('#brand', el)?.addEventListener('change', (e) => commit({ ...app.project, site: { ...app.project.site, brandPref: e.target.value === 'mitsubishi' ? null : e.target.value, unitKWPref: null } }, { undoable: true }));
   $('#zoning', el)?.addEventListener('change', (e) => commit({ ...app.project, site: { ...app.project.site, zoningPref: e.target.value } }, { undoable: true }));
@@ -3592,7 +3605,7 @@ function openReport(kind) {
   const close = () => o.remove();
   $('#rp-close', o).onclick = close;
   o.addEventListener('keydown', (e) => e.key === 'Escape' && close());
-  import('./reports.js?v=d30676d-202611191917').then(async (m) => {
+  import('./reports.js?v=3017b39-202611192046').then(async (m) => {
     // Reports are always the design as installed: every zone open, balanced. A multi-head job has no ducted design to
     // route (routing one threw, and the bar stayed on "Building the report…" for good).
     app.designLayout = isSplit() ? null : await call('route', { project: app.project, closed: [], balanced: true });

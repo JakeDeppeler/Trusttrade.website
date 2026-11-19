@@ -314,7 +314,7 @@ export class Plan {
       this.drawDucts(g, x, layout, { legSizes: !!d.allSizes, flow: d.showAir ? this.flow : null });
       const sel = d.selection;
       if (sel?.kind === 'feed') {
-        const curves = this.curves(layout);
+        const curves = this.curves(layout, x);
         layout.runs.forEach((r, i) => {
           if (r.keyBox !== sel.id) return;
           const w = ductWidth(r.sizeMM, x.s), pts = curves[i].map(x.pt);
@@ -348,11 +348,13 @@ export class Plan {
   drawBends(g, x, hb, drag) {
     const pts = [hb.start, ...hb.via, hb.end];
     const dragging = (kind, i) => drag?.active && drag.item?.kind === kind && drag.item.id === hb.id && drag.item.i === i;
+    const drawn = hb.ri != null ? this.curves(this.data.layout, x)?.[hb.ri] : null;
     for (let k = 0; k < pts.length - 1; k++) {
       if (dragging('bendAdd', k)) continue;
       const a = x.pt(pts[k]), b = x.pt(pts[k + 1]);
       if (Math.hypot(b.x - a.x, b.y - a.y) < 34) continue;              // too short to fit one
-      const m = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
+      // On a straight-through duct the + sits on the duct as it's drawn (it sweeps off the fittings), halfway along.
+      const m = pts.length === 2 && drawn ? (pointAlong(drawn.map(x.pt), 0.5) ?? { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 }) : { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
       g.beginPath(); g.arc(m.x, m.y, 5.5, 0, Math.PI * 2); g.fillStyle = 'rgba(255,255,255,0.92)'; g.fill();
       g.strokeStyle = T.ink; g.lineWidth = 1.2; g.setLineDash([2, 2]); g.stroke(); g.setLineDash([]);
       g.strokeStyle = T.ink; g.lineWidth = 1.4;
@@ -513,39 +515,56 @@ export class Plan {
   /// Flex as it lies, as a duct layout drawing has it (Jake, 15 Oct: "I like how the ducts curve on their drawing"):
   /// each run's routed path smoothed into sweeping curves — out of a BDO the way its leg points, off the plenum square
   /// to it, into a BDO along its inlet. World points per run, worked out once per layout.
-  curves(l) {
-    if (this._curves?.l === l) return this._curves.c;
+  /// Where each duct meets its fittings, as they're drawn at this zoom (Jake, 19 Nov 2026: "make the duct join on to
+  /// the end of the bdo not the middle"): the end of a BDO arm's spigot, the BDO's feed spigot, a spigot on the fan
+  /// coil's supply transition, or one on its return box — with the way the air goes through it there.
+  fittingEnds(l, x) {
     const start = {}, end = {};
+    const wd = (v) => ({ x: v.x, y: -v.y });                              // screen direction → plan
     for (const b of l.boxes) {
-      (b.legRuns ?? []).forEach((ri, k) => { if (b.legDirs?.[k]) start[ri] = b.legDirs[k]; });
-      if (b.inlet != null && b.inlet >= 0 && b.axis) end[b.inlet] = b.axis;
+      const G = this.bdoGeom(x.pt(b.pos), b, x);
+      G.legs.forEach((L) => { const ri = b.legRuns?.[L.k]; if (ri != null) start[ri] = { p: x.world(L.end), t: wd(L.dir) }; });
+      if (b.inlet != null && b.inlet >= 0) {
+        const a = { x: Math.cos(G.ang), y: Math.sin(G.ang) }, back = G.len / 2 + G.dIn * 0.55;
+        end[b.inlet] = { p: x.world({ x: G.c.x - a.x * back, y: G.c.y - a.y * back }), t: wd(a) };
+      }
     }
+    const T = this.unitGeom(l, x);
+    for (const sp of T.supply) start[sp.ri] = { p: x.world(sp.end), t: wd(sp.dir) };
+    for (const sp of T.ret) end[sp.ri] = { p: x.world(sp.end), t: wd({ x: -sp.dir.x, y: -sp.dir.y }) };
+    return { start, end };
+  }
+
+  curves(l, x) {
+    const sc = x?.s ?? 0;
+    if (this._curves?.l === l && this._curves.s === sc) return this._curves.c;
+    const fe = x ? this.fittingEnds(l, x) : { start: {}, end: {} };
     const c = l.runs.map((r, i) => {
-      const pts = simplify(r.path, 0.12), n = pts.length;
+      let pts = simplify(r.path, 0.12);
+      if (pts.length < 2) return r.path;
+      const S = fe.start[i], E = fe.end[i];
+      // Onto the spigots' ends: drop any corner the router left inside the fitting, so the flex leaves straight on.
+      const near = (p, o, f) => Math.hypot(p.x - o.x, p.y - o.y) < Math.max(0.45, Math.hypot(f.x - o.x, f.y - o.y) + 0.12);
+      if (S) { const o = pts[0]; pts = pts.slice(1).filter((p, k, arr) => k === arr.length - 1 || !near(p, o, S.p)); pts.unshift(S.p); }
+      if (E) { const o = pts[pts.length - 1]; pts = pts.slice(0, -1).filter((p, k) => k === 0 || !near(p, o, E.p)); pts.push(E.p); }
+      const n = pts.length;
       if (n < 2) return r.path;
       const first = unitVec({ x: pts[1].x - pts[0].x, y: pts[1].y - pts[0].y }) ?? { x: 1, y: 0 };
       const last = unitVec({ x: pts[n - 1].x - pts[n - 2].x, y: pts[n - 1].y - pts[n - 2].y }) ?? first;
-      const along = (t, ref) => (t && t.x * ref.x + t.y * ref.y < -0.3 ? { x: -t.x, y: -t.y } : t);
-      const collar = r.parent == null ? l.collars.find((cl) => Math.hypot(cl.pos.x - pts[0].x, cl.pos.y - pts[0].y) < 0.4) : null;
-      let t0 = along(unitVec(start[i] ?? (collar ? l.unitDir : null) ?? first) ?? first, first);   // straight off the transition's spigot
-      let tN = !end[i] ? last : along(unitVec(end[i]) ?? last, last);
-      if (r.kind === 'return') {
-        // Return flex lies in a lazy S (the mock's fat return): off the filter box a little to one side, into the back
-        // of the fan coil square to it.
+      let t0 = S ? S.t : first;
+      let tN = E ? E.t : last;
+      if (r.kind === 'return' && !S) {
+        // Return flex lies in a lazy S off the filter box, into its spigot on the fan coil's return box.
         const chord = unitVec({ x: pts[n - 1].x - pts[0].x, y: pts[n - 1].y - pts[0].y }) ?? first;
-        const face = unitVec(l.unitDir);
-        tN = face && face.x * chord.x + face.y * chord.y > 0.2 ? face : chord;
-        const turn = chord.x * tN.y - chord.y * tN.x;          // which way it has to come round to meet the unit
+        const turn = chord.x * tN.y - chord.y * tN.x;
         const rot = (v, a) => ({ x: v.x * Math.cos(a) - v.y * Math.sin(a), y: v.x * Math.sin(a) + v.y * Math.cos(a) });
-        const straight = Math.abs(turn) < 0.15;
-        t0 = rot(chord, straight ? 0.34 : -Math.sign(turn) * 0.3);
-        if (straight) tN = rot(tN, 0.2);                         // both ends the same way round: an S
+        t0 = rot(chord, Math.abs(turn) < 0.15 ? 0.34 : -Math.sign(turn) * 0.3);
       }
       const tan = pts.map((p, k) => (k === 0 ? t0 : k === n - 1 ? tN
         : unitVec({ x: pts[k + 1].x - pts[k - 1].x, y: pts[k + 1].y - pts[k - 1].y }) ?? first));
       const out = [pts[0]];
       for (let k = 0; k < n - 1; k++) {
-        const a = pts[k], b = pts[k + 1], d = Math.hypot(b.x - a.x, b.y - a.y) * 0.38;
+        const a = pts[k], b = pts[k + 1], d = Math.hypot(b.x - a.x, b.y - a.y) * ((k === 0 && S) || (k === n - 2 && E) ? 0.48 : 0.38);
         const c1 = { x: a.x + tan[k].x * d, y: a.y + tan[k].y * d }, c2 = { x: b.x - tan[k + 1].x * d, y: b.y - tan[k + 1].y * d };
         const steps = Math.max(4, Math.min(18, Math.ceil(d / 0.1)));
         for (let st = 1; st <= steps; st++) {
@@ -556,20 +575,12 @@ export class Plan {
       }
       return out;
     });
-    this._curves = { l, c };
+    this._curves = { l, s: sc, c };
     return c;
   }
 
   drawDucts(g, x, l, { legSizes, flow }) {
-    // Plenum on the unit's supply face.
-    const f = l.unitDir, side = { x: f.y, y: -f.x };
-    const pc = { x: l.unit.x + f.x * (l.unitDepth / 2 + l.plenumDepth / 2), y: l.unit.y + f.y * (l.unitDepth / 2 + l.plenumDepth / 2) };
-    const hw = l.unitWidth * 0.46, hd = l.plenumDepth / 2;
-    const corners = [[-hw, -hd], [hw, -hd], [hw, hd], [-hw, hd]].map(([a, b]) => x.pt({ x: pc.x + side.x * a + f.x * b, y: pc.y + side.y * a + f.y * b }));
-    this.path(g, corners, true);
-    g.fillStyle = '#B8BEC8'; g.fill(); g.strokeStyle = rgba(T.ink, 0.6); g.lineWidth = 1; g.stroke();
-
-    const curves = this.curves(l);
+    const curves = this.curves(l, x);
     const runs = l.runs.map((r, i) => ({ r, i })).sort((a, b) => (a.r.kind === 'return' ? 0 : 1) - (b.r.kind === 'return' ? 0 : 1));
     for (const { r, i } of runs) {
       const pts = curves[i].map(x.pt);
@@ -695,10 +706,9 @@ export class Plan {
         const leg = this.bdoGeom(x.pt(box.pos), box, x).legs[box.legRuns.indexOf(ri)];
         if (leg) { dir = leg.dir; c = { x: leg.end.x + dir.x * (L / 2 - 0.5), y: leg.end.y + dir.y * (L / 2 - 0.5) }; onBox = true; }
       } else if (ri >= 0 && l.runs[ri].parent == null) {
-        // Straight off the fan coil: on the end of its plenum collar.
-        const p0 = l.runs[ri].path[0], cl = l.collars.find((q) => Math.hypot(q.pos.x - p0.x, q.pos.y - p0.y) < 0.4);
-        const u = cl && unitVec({ x: l.unitDir.x, y: -l.unitDir.y });   // the transition's spigots face straight out
-        if (u) { const e = x.pt(cl.pos); dir = u; c = { x: e.x + u.x * (L / 2 + 1), y: e.y + u.y * (L / 2 + 1) }; onBox = true; }
+        // Straight off the fan coil: on the end of its spigot on the transition.
+        const sp = this.unitGeom(l, x).supply.find((q) => q.ri === ri);
+        if (sp) { dir = sp.dir; c = { x: sp.end.x + dir.x * (L / 2 - 0.5), y: sp.end.y + dir.y * (L / 2 - 0.5) }; onBox = true; }
       }
       if (!onBox) {
         let bestD = 1.2 * x.s;
@@ -774,33 +784,69 @@ export class Plan {
     });
     return { c, ang, len, wid, dIn, legs };
   }
-  /// The transition on the fan coil's supply face as it is (Jake, 19 Nov 2026: "it should be a 3 way or a 2 way not a
-  /// square"): a galvanised box off the unit, tapering to a spigot for each duct off it, each its duct's size. Drawn in
-  /// the unit's own turned frame (supply out along +x).
-  drawTransition(g, x, l, c, turn, depth, width, plenum) {
+  /// The fan coil and its fittings at this zoom, in screen space: its size, how it's turned, the supply transition's
+  /// shape and spigots (Jake, 19 Nov 2026: "flat on the supply and then 45 degrees on the side with the pop on the sides
+  /// of the 45 and the flat at the end with the airflow to go straight"; a 2-way is a Y off the two 45s with the end
+  /// capped) and the flat return box on its back with a spigot for each return duct. Each spigot knows its run.
+  unitGeom(l, x, c = x.pt(l.unit)) {
+    const depth = Math.max(0.7 * x.s, 16), width = Math.max(1.6 * x.s, 46), turn = -Math.atan2(l.unitDir.y, l.unitDir.x);
     const cs = Math.cos(turn), sn = Math.sin(turn);
-    const local = (p) => { const s0 = x.pt(p), dx = s0.x - c.x, dy = s0.y - c.y; return { x: dx * cs + dy * sn, y: -dx * sn + dy * cs }; };
-    const cols = (l.collars ?? []).map((cl) => ({ at: local(cl.pos), w: ductWidth(cl.sizeMM, x.s) })).sort((a, b) => a.at.y - b.at.y);
-    const x0 = depth / 2 - 0.5, x1 = x0 + plenum, edge = '#5B636C';
-    const lo = cols.length ? Math.min(...cols.map((k) => k.at.y - k.w / 2)) - 3 : -width / 2 + 2;
-    const hi = cols.length ? Math.max(...cols.map((k) => k.at.y + k.w / 2)) + 3 : width / 2 - 2;
-    const fl = Math.max(lo, -width / 2 + 2), fh = Math.min(hi, width / 2 - 2);
-    const gr = g.createLinearGradient(x0, 0, x1, 0);
-    gr.addColorStop(0, '#C9CFD6'); gr.addColorStop(0.5, '#E6EAEE'); gr.addColorStop(1, '#C2C8CF');
-    g.beginPath(); g.moveTo(x0, -width / 2 + 2); g.lineTo(x1, fl); g.lineTo(x1, fh); g.lineTo(x0, width / 2 - 2); g.closePath();
-    g.fillStyle = gr; g.fill(); g.strokeStyle = edge; g.lineWidth = 1; g.stroke();
-    // Its seams, from the unit's corners to the spigot face.
-    g.strokeStyle = 'rgba(90,98,108,0.35)'; g.lineWidth = 0.8;
-    g.beginPath(); g.moveTo(x0 + 2, -width / 2 + 4); g.lineTo(x1 - 1, fl + 1.5); g.moveTo(x0 + 2, width / 2 - 4); g.lineTo(x1 - 1, fh - 1.5); g.stroke();
-    for (const k of cols) {
-      const out = Math.max(k.at.x, x1 + k.w * 0.55), y = Math.min(Math.max(k.at.y, fl + k.w / 2), fh - k.w / 2);
-      const sg = g.createLinearGradient(0, y - k.w / 2, 0, y + k.w / 2);
-      sg.addColorStop(0, '#EEF1F4'); sg.addColorStop(0.5, '#C9CFD6'); sg.addColorStop(1, '#A6ADB6');
-      g.beginPath(); g.rect(x1 - 0.5, y - k.w / 2, out - x1 + 0.5, k.w); g.fillStyle = sg; g.fill();
+    const toS = (p) => ({ x: c.x + p.x * cs - p.y * sn, y: c.y + p.x * sn + p.y * cs });
+    const dirS = (v) => ({ x: v.x * cs - v.y * sn, y: v.x * sn + v.y * cs });
+    const toL = (p) => { const s0 = x.pt(p), dx = s0.x - c.x, dy = s0.y - c.y; return { x: dx * cs + dy * sn, y: -dx * sn + dy * cs }; };
+    const W = width - 4, x0 = depth / 2 - 0.5, dT = Math.min(Math.max(0.36 * x.s, 11), W * 0.34), fw = W / 2 - dT;
+    // Supply: the runs straight off the unit, in the order they sit along it.
+    const sup = l.runs.map((r, ri) => ({ r, ri })).filter(({ r }) => r.parent == null && r.kind !== 'return' && r.path.length > 1)
+      .map((o) => ({ ...o, y: toL(o.r.path[0]).y })).sort((a, b) => a.y - b.y);
+    const n = sup.length, r2 = Math.SQRT1_2;
+    const side = (sgn) => ({ base: { x: x0 + dT / 2, y: sgn * (W / 2 - dT / 2) }, dir: { x: r2, y: sgn * r2 } });
+    const fronts = n === 1 ? 1 : n === 2 ? 0 : n - 2;
+    const slots = n === 1 ? [null] : [side(-1), ...Array(fronts).fill(null), side(1)];
+    let fk = 0;
+    const supply = sup.map((o, k) => {
+      const w = Math.min(ductWidth(o.r.sizeMM, x.s), slots[k] ? dT * 1.3 : (2 * fw) / Math.max(fronts, 1) - 2);
+      const sl = slots[k] ?? { base: { x: x0 + dT, y: -fw + (fk++ + 0.5) * (2 * fw / Math.max(fronts, 1)) }, dir: { x: 1, y: 0 } };
+      const len = Math.max(w * 0.55, 4), endL = { x: sl.base.x + sl.dir.x * len, y: sl.base.y + sl.dir.y * len };
+      return { ri: o.ri, w, len, baseL: sl.base, dirL: sl.dir, end: toS(endL), dir: dirS(sl.dir) };
+    });
+    // Return: a flat box on the back, a spigot per return duct, spread along it.
+    const rets = l.runs.map((r, ri) => ({ r, ri })).filter(({ r }) => r.kind === 'return' && r.path.length > 1)
+      .map((o) => ({ ...o, y: toL(o.r.path[o.r.path.length - 1]).y })).sort((a, b) => a.y - b.y);
+    const rbT = Math.max(0.16 * x.s, 6), rws = rets.map((o) => ductWidth(o.r.sizeMM, x.s));
+    const span = Math.min(W, Math.max(W * 0.6, rws.reduce((a, b) => a + b, 0) + 6 * (rets.length + 1)));
+    const rb = { x1: -depth / 2 + 0.5, x0: -depth / 2 + 0.5 - rbT, half: span / 2 };
+    const ret = rets.map((o, k) => {
+      const w = Math.min(rws[k], span / rets.length - 4), y = -span / 2 + (k + 0.5) * (span / rets.length);
+      const len = Math.max(w * 0.45, 4), base = { x: rb.x0, y }, endL = { x: rb.x0 - len, y };
+      return { ri: o.ri, w, len, baseL: base, dirL: { x: -1, y: 0 }, end: toS(endL), dir: dirS({ x: -1, y: 0 }) };
+    });
+    return { c, turn, depth, width, W, x0, dT, fw, supply, ret, rb };
+  }
+
+  /// Draws the supply transition and the return box in the unit's turned frame (already translated and rotated).
+  drawUnitFittings(g, U) {
+    const edge = '#5B636C', { x0, dT, fw, W } = U;
+    const galv = (y0, y1) => { const gr = g.createLinearGradient(0, y0, 0, y1); gr.addColorStop(0, '#EEF1F4'); gr.addColorStop(0.5, '#C9CFD6'); gr.addColorStop(1, '#A6ADB6'); return gr; };
+    const spigot = (sp) => {
+      g.save(); g.translate(sp.baseL.x, sp.baseL.y); g.rotate(Math.atan2(sp.dirL.y, sp.dirL.x));
+      g.beginPath(); g.rect(-1, -sp.w / 2, sp.len + 1, sp.w); g.fillStyle = galv(-sp.w / 2, sp.w / 2); g.fill();
       g.strokeStyle = edge; g.lineWidth = 0.9; g.stroke();
-      g.strokeStyle = 'rgba(70,78,88,0.6)';
-      g.beginPath(); g.moveTo(x1 + (out - x1) * 0.6, y - k.w / 2); g.lineTo(x1 + (out - x1) * 0.6, y + k.w / 2); g.stroke();
-    }
+      g.strokeStyle = 'rgba(70,78,88,0.6)'; g.beginPath(); g.moveTo(sp.len * 0.6, -sp.w / 2); g.lineTo(sp.len * 0.6, sp.w / 2); g.stroke();
+      g.restore();
+    };
+    // Supply transition: flat on the unit, 45° sides, flat end.
+    const gr = g.createLinearGradient(x0, 0, x0 + dT, 0);
+    gr.addColorStop(0, '#C9CFD6'); gr.addColorStop(0.5, '#E6EAEE'); gr.addColorStop(1, '#C2C8CF');
+    g.beginPath(); g.moveTo(x0, -W / 2); g.lineTo(x0 + dT, -fw); g.lineTo(x0 + dT, fw); g.lineTo(x0, W / 2); g.closePath();
+    g.fillStyle = gr; g.fill(); g.strokeStyle = edge; g.lineWidth = 1; g.stroke();
+    g.strokeStyle = 'rgba(90,98,108,0.35)'; g.lineWidth = 0.8;
+    g.beginPath(); g.moveTo(x0 + 1.5, -W / 2 + 3); g.lineTo(x0 + dT - 1.5, -fw + 1); g.moveTo(x0 + 1.5, W / 2 - 3); g.lineTo(x0 + dT - 1.5, fw - 1); g.stroke();
+    U.supply.forEach(spigot);
+    // Return box: flat, on the back.
+    const { rb } = U;
+    g.beginPath(); g.rect(rb.x0, -rb.half, rb.x1 - rb.x0, rb.half * 2); g.fillStyle = galv(-rb.half, rb.half); g.fill();
+    g.strokeStyle = edge; g.lineWidth = 1; g.stroke();
+    U.ret.forEach(spigot);
   }
 
   bdoSize(x, b = {}) { const d = ductWidth(b.inletMM ?? 250, x.s); return { len: d * 2, wid: d * 1.22 }; }
@@ -832,6 +878,12 @@ export class Plan {
     g.rotate(G.ang);
     spigot(dIn, -len / 2 - dIn * 0.55, dIn * 0.55);                     // the feed in the back
     for (const L of G.legs) if (L.straight) { g.save(); g.translate(len / 2, 0); g.rotate(L.rel); spigot(L.dL, -0.5, L.spig + 0.5); g.restore(); }
+    if (!G.legs.some((L) => L.straight) && G.legs.length) {
+      // Nothing straight on (a 2-way's Y): its end is capped, as the fitting comes.
+      const cw = dIn * 0.92, cl = dIn * 0.3;
+      tube(cw, len / 2 - 0.5, len / 2 + cl);
+      g.beginPath(); g.moveTo(len / 2 + cl, -cw / 2); g.lineTo(len / 2 + cl, cw / 2); g.strokeStyle = ink; g.lineWidth = lw * 2.2; g.stroke();
+    }
     // The body: a fat round barrel with the ribs moulded round it.
     const gr = g.createLinearGradient(0, -wid / 2, 0, wid / 2);
     gr.addColorStop(0, '#565C63'); gr.addColorStop(0.3, '#2E3237'); gr.addColorStop(1, '#121417');
@@ -1316,7 +1368,7 @@ export class Plan {
       shadow(() => {
         g.save(); g.translate(c.x, c.y); g.rotate(turn);
         g.beginPath(); g.roundRect(-depth / 2, -width / 2, depth, width, 4); g.fillStyle = T.ink; g.fill();
-        this.drawTransition(g, x, l, c, turn, depth, width, plenum);
+        this.drawUnitFittings(g, this.unitGeom(l, x, c));
         if (sel?.kind === 'unit') {
           g.beginPath(); g.roundRect(-depth / 2 - 4, -width / 2 - 4, depth + plenum + 8, width + 8, 6); g.strokeStyle = T.accent; g.lineWidth = 3; g.stroke();
         }
@@ -1521,7 +1573,7 @@ export class Plan {
     const l = this.data?.layout, x = this.x;
     if (l && x) {
       let best = null;
-      const curves = this.curves(l);
+      const curves = this.curves(l, x);
       for (const [ri, r] of l.runs.entries()) {
         if (r.kind === 'return') continue;
         const dropper = r.keyOutlet != null && l.outlets.some((o) => o.dropper && o.id === r.keyOutlet);

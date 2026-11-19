@@ -1,11 +1,11 @@
 // Trust Trade Pro — the HVAC Designer in the browser. The same five steps as the app (House · Capture · Check · Design ·
 // Send) on the app's own engine (engine.wasm, run in a worker): the same loads, zones, ducts, checks and materials.
 
-import { call as engineCall, latest } from './engine.js?v=bdc938d-202611191252';
-import { jobCalls, isMixed as mixedJob, ductedPart, splitSet, withSplitRooms, defaultRange } from './systems.js?v=bdc938d-202611191252';
-import * as store from './store.js?v=bdc938d-202611191252';
-import { Plan, inkImage, zoneColour, ductColour, splitColour, T, pointInPolygon, movesOnly, wheelMoves, ZOOM_MAX } from './plan.js?v=bdc938d-202611191252';
-import { RoomEditor, metres, signedArea, onLine } from './roomeditor.js?v=bdc938d-202611191252';
+import { call as engineCall, latest } from './engine.js?v=67c6aac-202611191310';
+import { jobCalls, isMixed as mixedJob, ductedPart, splitSet, withSplitRooms, defaultRange } from './systems.js?v=67c6aac-202611191310';
+import * as store from './store.js?v=67c6aac-202611191310';
+import { Plan, inkImage, zoneColour, ductColour, splitColour, T, pointInPolygon, movesOnly, wheelMoves, ZOOM_MAX } from './plan.js?v=67c6aac-202611191310';
+import { RoomEditor, metres, signedArea, onLine } from './roomeditor.js?v=67c6aac-202611191310';
 
 /// Every engine call: a two-system job's go with the part they're about (systems.js).
 const call = jobCalls(engineCall);
@@ -33,6 +33,7 @@ const ICON = {
   gear: '<circle cx="12" cy="12" r="3.2"/><path d="M12 2.5v3M12 18.5v3M4.6 4.6l2.1 2.1M17.3 17.3l2.1 2.1M2.5 12h3M18.5 12h3M4.6 19.4l2.1-2.1M17.3 6.7l2.1-2.1"/>',
   back: '<path d="M15 18l-6-6 6-6"/>', check: '<path d="M5 12.5l4.5 4.5L19.5 7"/>', plus: '<path d="M12 5v14M5 12h14"/>',
   cursor: '<path d="M5.5 3.5l13 7.5-5.6 1.6-2.4 5.9z"/>', addvent: '<circle cx="12" cy="12" r="8.5"/><path d="M12 8v8M8 12h8"/>',
+  pen: '<path d="M4 20l1.2-4.2L15.6 5.4a2 2 0 012.8 0l.2.2a2 2 0 010 2.8L8.2 18.8z"/><path d="M13.5 7.5l3 3M4 20h6"/>',
   bdo: '<rect x="7" y="9" width="10" height="6" rx="1.5"/><path d="M12 3v6M7 12H3M17 12h4M12 15v6"/>',
   layers: '<path d="M12 3.5l8.5 4.7L12 13 3.5 8.2z"/><path d="M3.5 12.5L12 17.3l8.5-4.8"/>',
   undo: '<path d="M9 14L4.5 9.5 9 5"/><path d="M4.5 9.5H15a5 5 0 010 10h-3"/>', redo: '<path d="M15 14l4.5-4.5L15 5"/><path d="M19.5 9.5H9a5 5 0 000 10h3"/>',
@@ -188,6 +189,7 @@ function editRefusal(op) {
     dropOutdoor: 'No outside wall near there.', addOutlet: 'Tap inside a conditioned room.',
     moveOutletToBox: 'That BDO can\'t take it: a BDO takes three legs at most.',
     makeBox: 'Those vents can\'t share a BDO: pick 2 or 3 vents on the ducted system.',
+    addHandRun: 'That duct won\'t go: three ducts off the fan coil or a BDO at most, never round in a circle, and a new BDO goes over the house.',
     joinRooms: 'That room isn\'t on a zone.',
     moveCorner: 'That would make a room too small, too thin or cross its own walls.',
     moveWall: 'That would squash a room — or cover all but a sliver of the one next door.',
@@ -2279,7 +2281,8 @@ function renderDesign(c) {
     <div class="rail">
       <button id="t-select" class="${app.addMode ? '' : 'on'}">${icon('cursor')}<span class="tip">Select and drag</span></button>
       <button id="t-add" class="${app.addMode === true ? 'on' : ''}">${icon('addvent')}<span class="tip">${app.addMode === true ? 'Done adding outlets' : 'Add an outlet'}</span></button>
-      <button id="t-bdo" class="${app.addMode === 'bdo' ? 'on' : ''}">${icon('bdo')}<span class="tip">${app.addMode === 'bdo' ? 'Done making BDOs' : 'New BDO: tap 2 or 3 vents'}</span></button>
+      <button id="t-pen" class="${app.addMode === 'pen' ? 'on' : ''}">${icon('pen')}<span class="tip">${app.addMode === 'pen' ? 'Done drawing ducts' : 'Draw the ducts'}</span></button>
+      ${l?.handDrawn ? '' : `<button id="t-bdo" class="${app.addMode === 'bdo' ? 'on' : ''}">${icon('bdo')}<span class="tip">${app.addMode === 'bdo' ? 'Done making BDOs' : 'New BDO: tap 2 or 3 vents'}</span></button>`}
       ${v.twoStorey ? `<button id="t-dropper" class="${app.addMode === 'dropper' ? 'on' : ''}">${icon('dropper')}<span class="tip">${app.addMode === 'dropper' ? 'Done adding droppers' : 'Add a dropper'}</span></button>` : ''}
       ${lineTools()}
       <button id="t-layers">${icon('layers')}<span class="tip">Layers</span></button>
@@ -2302,11 +2305,13 @@ function renderDesign(c) {
         ${app.designing ? '<div class="busy"><div><div class="spinner"></div>Placing the fan coil…</div></div>' : ''}
       </div>
       <div class="hint">${lineHint() || (app.joining ? `Tap the room to join ${esc(v.rooms.find((r) => r.id === app.joining)?.name ?? '')} with. <button class="link" id="cancel-join">Cancel</button>`
+        : app.addMode === 'pen' ? penHint()
         : app.addMode === 'bdo' ? `Tap 2 or 3 vents to put on one BDO. They can be on different zones: each leg gets its own damper. ${app.bdoPick?.length ? `<b>${app.bdoPick.length} picked</b> · <button class="link" id="bdo-make" ${app.bdoPick.length < 2 ? 'disabled' : ''}>Make the BDO</button> · <button class="link" id="bdo-clear">Clear</button>` : ''}`
         : app.addMode === 'dropper' ? 'Tap where a dropper goes: on the top floor where it leaves the roof, or on the floor below where it comes out. It lands in the same spot on both: the dashed outline is the floor above.'
         : app.addMode ? 'Tap inside a room to drop an outlet.'
         : l && !l.outlets.some((o) => !o.dropper) ? 'Tap <b>Add an outlet</b> on the left, then tap inside each room. The rooms still waiting for air are listed on the right, and the ducts draw and size themselves as you go.'
         : p.existing ? `Re-duct: drag the fan coil to where the ${p.existing.kind === 'heater' ? 'heater' : 'unit'} is in the roof.`
+        : l?.handDrawn ? `Ducts drawn by hand: the router's off.${unfedCount() ? ` <b>${unfedCount()} vent${unfedCount() === 1 ? '' : 's'} not connected.</b>` : ''} Draw with the pen, drag a BDO, tap a duct to take it out. <button class="link" id="hand-off">Let the router lay them out again</button>`
         : 'Drag a vent, a BDO, the fan coil or the return and the ducts re-route as you go. Tap a room, vent or duct to see it on the right.')}</div>
     </div>
     <div class="panel" id="insp"></div>
@@ -2315,8 +2320,10 @@ function renderDesign(c) {
     selection: app.selection, showAir: app.layers.air, addMode: app.addMode, interactive: true, labels: true, compact: true,
     allSizes: app.layers.allSizes || app.layers.speeds, speeds: app.layers.speeds ? speedLimits() : null, lineDraft: app.lineDraft,
     picked: app.addMode === 'bdo' ? app.bdoPick ?? [] : null,
+    penDraft: penDraft(),
     handlers: {
       select: (item) => select(item),
+      pen: (h) => penTap(h),
       pick: (id) => pickForBox(id),
       add: (pos) => (isLineMode() ? addLinePoint(pos) : app.addMode === 'dropper' ? addDropper(pos) : addVent(pos)),
       dragMove: (item, pos) => dragMove(item, pos),
@@ -2327,7 +2334,14 @@ function renderDesign(c) {
   renderInspector();
   $('#t-select', c).onclick = () => { app.addMode = false; render(); };
   $('#t-add', c).onclick = () => { app.addMode = app.addMode === true ? false : true; if (app.addMode) app.selection = null; render(); };
-  $('#t-bdo', c).onclick = () => { app.addMode = app.addMode === 'bdo' ? false : 'bdo'; app.bdoPick = []; if (app.addMode) app.selection = null; render(); };
+  $('#t-pen', c).onclick = () => { app.addMode = app.addMode === 'pen' ? false : 'pen'; app.pen = null; if (app.addMode) app.selection = null; render(); };
+  $('#pen-routed', c)?.addEventListener('click', () => edit('startHand', {}).then((r) => r && toast('The router\'s ducts are yours now: redraw, drag or take out any of them.')));
+  $('#pen-blank', c)?.addEventListener('click', () => edit('startHand', { choice: 'blank' }));
+  $('#pen-box', c)?.addEventListener('click', () => penFinish(null));
+  $('#pen-back', c)?.addEventListener('click', () => { app.pen?.via.pop(); render(); });
+  $('#pen-cancel', c)?.addEventListener('click', () => { app.pen = null; render(); });
+  $('#hand-off', c)?.addEventListener('click', () => edit('stopHand', {}).then((r) => r && toast('The router lays the ducts out again.')));
+  $('#t-bdo', c)?.addEventListener('click', () => { app.addMode = app.addMode === 'bdo' ? false : 'bdo'; app.bdoPick = []; if (app.addMode) app.selection = null; render(); });
   $('#bdo-make', c)?.addEventListener('click', () => makeBoxFromPick());
   $('#bdo-clear', c)?.addEventListener('click', () => { app.bdoPick = []; render(); });
   bindLineTools(c);
@@ -2392,6 +2406,68 @@ async function addDropper(pos) {
   if (r?.id) { app.addMode = false; app.selection = { kind: 'dropper', id: r.id }; render(); }
 }
 
+// MARK: Drawing the ducts by hand
+
+/// Vents with no duct to them (ducts drawn by hand).
+function unfedCount() {
+  const l = app.layout;
+  if (!l?.handDrawn) return 0;
+  const fed = new Set(l.runs.map((r) => r.outlet).filter(Boolean));
+  return l.outlets.filter((o) => !fed.has(o.id)).length;
+}
+/// Where a hand-drawn duct starts on the plan: the front of the plenum, or a BDO.
+function penStart(from) {
+  const l = app.layout;
+  if (!l || !from) return null;
+  if (from === 'unit') { const k = l.unitDepth / 2 + l.plenumDepth; return { x: l.unit.x + l.unitDir.x * k, y: l.unit.y + l.unitDir.y * k }; }
+  const id = from.slice(4);
+  return l.boxes.find((b) => b.bid === 'H:' + id)?.pos ?? l.looseBoxes?.find((b) => b.id === id)?.pos ?? null;
+}
+function penDraft() {
+  if (app.addMode !== 'pen' || !app.pen?.from) return null;
+  return { start: penStart(app.pen.from), via: app.pen.via };
+}
+function penHint() {
+  const l = app.layout;
+  if (!l?.handDrawn) return `Draw every duct yourself: the router turns off for this job, and the sizes, dampers and materials follow what you draw.
+    <button class="link" id="pen-routed"><b>Start from the router's ducts</b></button> · <button class="link" id="pen-blank">Start with none</button>`;
+  if (!app.pen?.from) return 'Tap the fan coil or a BDO to start a duct.' + (unfedCount() ? ` <b>${unfedCount()} vent${unfedCount() === 1 ? '' : 's'} not connected.</b>` : '');
+  return `Tap where it bends, then a vent or a BDO to finish${app.pen.via.length ? ', or end it in a new BDO' : ''}. ${app.pen.via.length ? '<button class="link" id="pen-box"><b>New BDO here</b></button> (Enter) · <button class="link" id="pen-back">Undo the last bend</button> · ' : ''}<button class="link" id="pen-cancel">Stop</button> (Esc)`;
+}
+function penTap(h) {
+  const l = app.layout;
+  if (!l?.handDrawn) { toast('Pick how to start: from the router\'s ducts, or with none.'); return; }
+  const end = h.kind === 'unit' ? 'unit' : h.kind === 'box' ? 'box:' + String(h.id).slice(2) : h.kind === 'outlet' ? 'outlet:' + h.id : null;
+  if (!app.pen?.from) {
+    if (end === 'unit' || end?.startsWith('box:')) { app.pen = { from: end, via: [] }; render(); }
+    else toast('Start a duct at the fan coil or a BDO.');
+    return;
+  }
+  if (h.kind === 'point') { app.pen.via.push(h.pos); app.plan?.set({ penDraft: penDraft() }); renderHint(); return; }
+  if (end === 'unit' || end === app.pen.from) return;
+  penFinish(end);
+}
+/// The duct as drawn: to a vent or a BDO, or (`to` null) into a new BDO at the last bend. Drawing carries on from the
+/// BDO it came off — or from the new BDO, ready for its legs.
+async function penFinish(to) {
+  const p = app.pen;
+  if (!p?.from) return;
+  if (!to && !p.via.length) return;
+  const r = await edit('addHandRun', { key: p.from, choice: to ?? undefined, outline: p.via, pos: to ? undefined : p.via[p.via.length - 1] });
+  if (!r) { render(); return; }
+  app.pen = { from: !to && r.key ? 'box:' + r.key : p.from, via: [] };
+  render();
+}
+function renderHint() {
+  const h = document.querySelector('.stage .hint');
+  if (h && app.addMode === 'pen') { h.innerHTML = penHint(); renderDesignHintBindings(h); }
+}
+function renderDesignHintBindings(h) {
+  $('#pen-box', h)?.addEventListener('click', () => penFinish(null));
+  $('#pen-back', h)?.addEventListener('click', () => { app.pen?.via.pop(); render(); });
+  $('#pen-cancel', h)?.addEventListener('click', () => { app.pen = null; render(); });
+}
+
 /// New BDO: vents tapped in turn (again to drop one). The third makes the box; two can be made with the link.
 function pickForBox(id) {
   if (!app.layout?.outlets.some((o) => o.id === id && !o.dropper)) return;
@@ -2425,6 +2501,7 @@ function dragMove(item, pos) {
   if (item.kind === 'unit') d.unit = pos;
   else if (item.kind === 'ret') d.returnGrille = pos;
   else if (item.kind === 'outdoor') d.outdoor = pos;
+  else if (item.kind === 'box' && String(item.id).startsWith('H:') && d.hand) { const b = d.hand.boxes.find((x) => x.id === item.id.slice(2)); if (b) b.pos = pos; }
   else if (item.kind === 'box') d.boxPins = { ...(d.boxPins ?? {}), [item.id]: pos };
   else if (item.kind === 'outlet') { const o = d.outlets.find((x) => x.id === item.id); if (o) o.pos = pos; }
   else return;
@@ -2519,7 +2596,8 @@ function renderInspector() {
       <div class="sizes"><button data-vsize="0" class="${o.overridden ? '' : 'on'}">Auto (Ø${auto})</button>${app.options.ventSizes.map((mm) => `<button data-vsize="${mm}" class="${o.overridden && o.sizeMM === mm ? 'on' : ''}">Ø${mm}</button>`).join('')}</div>
       ${a ? `<div class="kv"><span>Throw</span><b>${fmt(a.ratio, 1)}× the walls · ${esc(a.coverage === 'good' ? 'mixes well' : a.coverage === 'short' ? 'falls short' : 'strong')}</b></div>
         <div class="kv"><span>Noise</span><b>NC ${fmt(a.nc)} · ${esc(a.ncWord)}</b></div><div class="kv"><span>Neck speed</span><b>${fmt(a.faceVelocity, 1)} m/s</b></div>` : ''}
-      ${targets.length ? `<label class="rowpick"><label>Put this vent on another BDO</label><select id="movebox"><option value="">Choose…</option>${targets.map((b) => `<option value="${esc(b.bid)}">BDO with ${esc(feeds(b))}</option>`).join('')}</select></label>` : ''}
+      ${targets.length && !l.handDrawn ? `<label class="rowpick"><label>Put this vent on another BDO</label><select id="movebox"><option value="">Choose…</option>${targets.map((b) => `<option value="${esc(b.bid)}">BDO with ${esc(feeds(b))}</option>`).join('')}</select></label>` : ''}
+      ${l.handDrawn ? (run?.hand ? '<div class="actions-row"><button class="btn2" id="delrun">Take its duct out</button></div>' : '<p class="small" style="margin:6px 0 0;color:var(--accent-deep);font-weight:600">Not connected: draw a duct to it with the pen.</p>') : ''}
       <div class="actions-row"><button class="btn2 danger" id="delvent">${icon('trash').replace('<svg', '<svg width="16" height="16"')} Take this vent out</button></div></div>`;
   } else if (s?.kind === 'box' && l?.boxes.find((b) => b.bid === s.id)) {
     const b = l.boxes.find((x) => x.bid === s.id), feed = [...l.runs].reverse().find((r) => r.keyBox === b.bid);
@@ -2527,13 +2605,15 @@ function renderInspector() {
       <div class="insp-sub">Feeds ${esc(feeds(b))}${feed?.manual ? ' · feed sized by hand' : ''}${b.pinned ? ' · moved by hand' : ' · drag to move'}</div>
       ${feed ? feedSizes(b, feed) : ''}
       ${b.zone == null && b.outlets.length > 1 ? `<p class="small muted" style="margin:6px 0 0">Feeds more than one zone: a damper on each leg.</p>` : ''}
-      ${b.pinned || handBox(b) ? `<div class="actions-row">${b.pinned ? '<button class="btn2" id="unpin">Put the BDO back where the router had it</button>' : ''}${handBox(b) ? '<button class="btn2" id="unbox">Take this BDO apart</button>' : ''}</div>` : ''}</div>`;
+      ${String(b.bid).startsWith('H:') ? `<div class="actions-row"><button class="btn2" id="pen-from">${icon('pen').replace('<svg', '<svg width="16" height="16"')} Draw a duct from it</button><button class="btn2 danger" id="delhbox">Take it out, with its ducts</button></div>` : ''}
+      ${!l.handDrawn && (b.pinned || handBox(b)) ? `<div class="actions-row">${b.pinned ? '<button class="btn2" id="unpin">Put the BDO back where the router had it</button>' : ''}${handBox(b) ? '<button class="btn2" id="unbox">Take this BDO apart</button>' : ''}</div>` : ''}</div>`;
   } else if (s?.kind === 'feed' && l?.runs.some((r) => r.keyBox === s.id)) {
     const runs = l.runs.filter((r) => r.keyBox === s.id), r = runs[runs.length - 1], b = l.boxes.find((x) => x.bid === s.id);
     const len = runs.reduce((sum, x) => sum + x.length, 0);
     html = `<div class="card"><div class="insp-head"><h2>Flex to the BDO · Ø${r.sizeMM}</h2>${close}</div>
       <div class="insp-sub">${fmt(r.designLps)} L/s · ${fmt(velocity(r.designLps, r.sizeMM), 1)} m/s · ${fmt(len, 1)} m${b ? ` · into a ${b.branches}-way, ${esc(legList(b))}` : ''}${r.manual ? ' · size set' : ''}</div>
-      ${b ? feedSizes(b, r) : ''}</div>`;
+      ${b ? feedSizes(b, r) : ''}
+      ${r.hand ? '<div class="actions-row"><button class="btn2" id="delrun">Take this duct out</button></div>' : ''}</div>`;
   } else if (s?.kind === 'dropper' && v.droppers?.some((x) => x.id === s.id)) {
     const dr = v.droppers.find((x) => x.id === s.id), o = l?.outlets.find((x) => x.id === dr.id);
     const run = l?.runs.find((x) => x.outlet === dr.id);
@@ -2576,6 +2656,10 @@ function renderInspector() {
       <p class="small muted" style="margin:6px 0 0">How many ducts come off the plenum${p.design?.takeoffs ? '' : ` — auto picks 2 or 3, whichever runs cleaner (${l.collars.length} now)`}.</p>
       ${p.design?.takeoffs && l.collars.length < p.design.takeoffs ? `<p class="small" style="margin:6px 0 0;color:var(--accent-deep);font-weight:600">Only ${l.collars.length} run${l.collars.length === 1 ? '' : 's'} to take off the plenum in this design (one per zone or group of zones), so it's ${l.collars.length}-way for now.</p>` : ''}
       <div class="actions-row"><button class="btn2" id="rotate">${icon('rotate').replace('<svg', '<svg width="16" height="16"')} Turn it 90°</button></div></div>`;
+  } else if (s?.kind === 'box' && l?.looseBoxes?.some((b) => 'H:' + b.id === s.id)) {
+    html = `<div class="card"><div class="insp-head"><h2>BDO · not fed</h2>${close}</div>
+      <div class="insp-sub">Its feed was taken out. Draw a duct into it from the fan coil or another BDO, or take it out.</div>
+      <div class="actions-row"><button class="btn2 danger" id="delhbox">Take it out, with its ducts</button></div></div>`;
   } else if (s?.kind === 'ret' && l) {
     html = `<div class="card"><div class="insp-head"><h2>Return air grille ${l.returnGrilleSize[0]} × ${l.returnGrilleSize[1]}</h2>${close}</div>
       <div class="insp-sub">${fmt(l.fanLps)} L/s at under 2 m/s · filter box · ${l.returnCount ?? 1} × Ø${l.returnMM} flex to the fan coil, ${fmt(velocity(l.fanLps / (l.returnCount ?? 1), l.returnMM), 1)} m/s each · drag to move</div>
@@ -2768,18 +2852,21 @@ function roomsCard(l, v) {
   if (!rooms.length) return '';
   const rows = rooms.map((r) => {
     const outs = l.outlets.filter((o) => o.roomId === r.id && !o.spill && !o.dropper);
-    const gets = outs.reduce((sum, o) => sum + o.designLps, 0), share = r.lps > 0 ? gets / r.lps : 1;
-    const state = !outs.length ? 'none' : share < 0.85 ? 'short' : 'ok';
+    // Ducts drawn by hand: a vent with no duct to it gets nothing.
+    const fed = l.handDrawn ? new Set(l.runs.map((x) => x.outlet).filter(Boolean)) : null;
+    const live = fed ? outs.filter((o) => fed.has(o.id)) : outs;
+    const gets = live.reduce((sum, o) => sum + o.designLps, 0), share = r.lps > 0 ? gets / r.lps : 1;
+    const state = !outs.length ? 'none' : !live.length ? 'unfed' : share < 0.85 ? 'short' : 'ok';
     return { r, outs, gets, share, state };
   });
   const done = rows.filter((x) => x.state === 'ok').length;
-  const chip = (x) => x.state === 'none' ? '<span class="chip bad">No vent</span>'
+  const chip = (x) => x.state === 'none' ? '<span class="chip bad">No vent</span>' : x.state === 'unfed' ? '<span class="chip bad">No duct</span>'
     : x.state === 'short' ? `<span class="chip warn">${fmt(x.share * 100)}%</span>` : `<span class="chip ok">${fmt(x.share * 100)}%</span>`;
   return `<div class="card"><div style="display:flex;align-items:center"><h2 style="flex:1">Rooms</h2><span class="small muted">${done} of ${rows.length} right</span></div>
     <p class="small muted" style="margin:2px 0 6px">${done === rows.length ? 'Every room has the air it needs.' : 'Tap a room, then Add a vent. Each room wants 85% or more of its air.'}</p>
     ${rows.map((x) => `<div class="zone-row" data-room="${x.r.id}"><b>${esc(x.r.name)}${v.twoStorey ? ` <span class="muted small">${FloorName(x.r.level ?? 0).replace(' floor', '')}</span>` : ''}</b>
       <span>${x.outs.length ? `${x.outs.length} × Ø${x.outs[0].sizeMM}${x.outs.some((o) => o.sizeMM !== x.outs[0].sizeMM) ? '…' : ''} · ${fmt(x.gets)} of ${fmt(x.r.lps)} L/s` : `${fmt(x.r.lps)} L/s`}</span>${chip(x)}
-      ${x.state !== 'ok' ? `<button class="btn2 small" data-quickvent="${x.r.id}" title="Put a vent in the middle of the room: drag it where it goes">+ Vent</button>` : ''}</div>`).join('')}</div>`;
+      ${x.state !== 'ok' && x.state !== 'unfed' ? `<button class="btn2 small" data-quickvent="${x.r.id}" title="Put a vent in the middle of the room: drag it where it goes">+ Vent</button>` : ''}</div>`).join('')}</div>`;
 }
 
 /// The air speed in the ducts against the class's limits: the fastest trunk, the fastest branch and the return. Over
@@ -2822,6 +2909,14 @@ function bindInspector(el) {
   $('#movebox', el)?.addEventListener('change', (e) => e.target.value && edit('moveOutletToBox', { id: s.id, bid: e.target.value }));
   $('#delvent', el)?.addEventListener('click', async () => { const id = s.id; app.selection = null; await edit('removeOutlet', { id }); });
   $('#unpin', el)?.addEventListener('click', () => edit('pinBox', { bid: s.id, pos: null }));
+  $('#delrun', el)?.addEventListener('click', async () => {
+    const l = app.layout, run = s.kind === 'outlet' ? l?.runs.find((x) => x.outlet === s.id) : [...(l?.runs ?? [])].reverse().find((x) => x.keyBox === s.id);
+    if (run?.hand && await edit('removeHandRun', { key: run.hand })) { app.selection = null; render(); }
+  });
+  $('#delhbox', el)?.addEventListener('click', async () => {
+    if (await edit('removeHandBox', { key: String(s.id).slice(2) })) { app.selection = null; render(); }
+  });
+  $('#pen-from', el)?.addEventListener('click', () => { app.addMode = 'pen'; app.pen = { from: 'box:' + String(s.id).slice(2), via: [] }; app.selection = null; render(); });
   $('#unbox', el)?.addEventListener('click', async () => {
     const b = app.layout?.boxes.find((x) => x.bid === s.id);
     if (b && await edit('unBox', { ids: b.outlets })) { app.selection = null; renderInspector(); toast('Taken apart: the router puts those vents back on their zones\' BDOs.'); }
@@ -3318,7 +3413,7 @@ function openReport(kind) {
   const close = () => o.remove();
   $('#rp-close', o).onclick = close;
   o.addEventListener('keydown', (e) => e.key === 'Escape' && close());
-  import('./reports.js?v=bdc938d-202611191252').then(async (m) => {
+  import('./reports.js?v=67c6aac-202611191310').then(async (m) => {
     // Reports are always the design as installed: every zone open, balanced. A multi-head job has no ducted design to
     // route (routing one threw, and the bar stayed on "Building the report…" for good).
     app.designLayout = isSplit() ? null : await call('route', { project: app.project, closed: [], balanced: true });
@@ -3381,6 +3476,11 @@ function renderSettings() {
     if (app.step !== 'design' || !app.project || /INPUT|SELECT|TEXTAREA/.test(document.activeElement?.tagName)) return;
     if ((e.metaKey || e.ctrlKey) && e.key === 'z') { e.preventDefault(); e.shiftKey ? redo() : undo(); }
     if (e.key === 'Enter' && isLineMode()) { e.preventDefault(); finishLine(); return; }
+    if (app.addMode === 'pen' && app.pen?.from) {
+      if (e.key === 'Enter') { e.preventDefault(); penFinish(null); return; }
+      if (e.key === 'Backspace' || e.key === 'Delete') { e.preventDefault(); app.pen.via.pop(); render(); return; }
+      if (e.key === 'Escape') { app.pen = null; render(); return; }
+    }
     if (e.key === 'Escape') { app.addMode = false; app.lineDraft = null; app.joining = null; select(null); render(); }
     if ((e.key === 'Delete' || e.key === 'Backspace') && app.selection?.kind === 'outlet') { const id = app.selection.id; app.selection = null; edit('removeOutlet', { id }); }
   });

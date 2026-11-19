@@ -339,7 +339,35 @@ export class Plan {
     else if (layout && !d.editor) this.drawMarkers(g, x, layout, d);
     if (!d.editor && (!split || layout)) this.drawDroppers(g, x, d, !!d.report);
     if (!d.editor) this.drawLines(g, x, d);
+    if (layout && d.penDraft && !d.editor) this.drawPenDraft(g, x, d.penDraft);
     d.editor?.overlay(g, x);
+  }
+
+  /// The duct being drawn: from where it starts, through the bends tapped so far, to the mouse.
+  drawPenDraft(g, x, pd) {
+    const pts = [pd.start, ...pd.via, ...(this.penHover ? [this.penHover] : [])].filter(Boolean).map(x.pt);
+    if (!pts.length) return;
+    g.save();
+    g.lineCap = 'round'; g.lineJoin = 'round';
+    g.strokeStyle = 'rgba(14,17,22,0.18)'; g.lineWidth = Math.max(8, 0.25 * x.s);
+    g.beginPath(); pts.forEach((p, i) => (i ? g.lineTo(p.x, p.y) : g.moveTo(p.x, p.y))); g.stroke();
+    g.strokeStyle = T.ink; g.lineWidth = 2; g.setLineDash([6, 5]);
+    g.beginPath(); pts.forEach((p, i) => (i ? g.lineTo(p.x, p.y) : g.moveTo(p.x, p.y))); g.stroke();
+    g.setLineDash([]);
+    for (const [i, p] of pts.entries()) {
+      if (i === pts.length - 1 && this.penHover) continue;
+      g.beginPath(); g.arc(p.x, p.y, i === 0 ? 5 : 4, 0, Math.PI * 2); g.fillStyle = i === 0 ? T.accent : '#fff'; g.fill();
+      g.strokeStyle = T.ink; g.lineWidth = 1.6; g.stroke();
+    }
+    // Its length so far.
+    let m = 0;
+    const w = [pd.start, ...pd.via, ...(this.penHover ? [this.penHover] : [])].filter(Boolean);
+    for (let i = 1; i < w.length; i++) m += Math.hypot(w[i].x - w[i - 1].x, w[i].y - w[i - 1].y);
+    if (m > 0.3) {
+      const e = pts[pts.length - 1];
+      this.tag(g, (Math.round(m * 10) / 10) + ' m', e.x + 18, e.y - 14, m > 6 ? T.danger ?? '#D93A2F' : T.ink);
+    }
+    g.restore();
   }
 
   path(g, pts, close) {
@@ -637,6 +665,15 @@ export class Plan {
     }
     // BDOs: galvanised fittings along their inlet, a band in their zone's colour, and how many ways.
     for (const b of l.boxes) this.drawBdo(g, x.pt(b.pos), b, x);
+    // Drawn by hand but not fed from the fan coil (its feed was taken out): dashed, faint.
+    for (const r of l.looseRuns ?? []) {
+      const pts = r.path.map(x.pt);
+      g.save(); g.setLineDash([6, 5]); g.strokeStyle = 'rgba(14,17,22,0.45)'; g.lineWidth = 2.5; g.lineCap = 'round';
+      g.beginPath(); pts.forEach((p, i) => (i ? g.lineTo(p.x, p.y) : g.moveTo(p.x, p.y))); g.stroke(); g.restore();
+    }
+    for (const b of l.looseBoxes ?? []) {
+      g.save(); g.globalAlpha = 0.5; this.drawBdo(g, x.pt(b.pos), { axis: { x: 1, y: 0 }, legDirs: [] }, x); g.restore();
+    }
   }
 
   /// A BDO as a duct layout drawing has it (the v14 mock): a white box, ink outline, BDO on it; the inlet collar on the
@@ -1164,7 +1201,7 @@ export class Plan {
     }
     // BDO handles: a ring when picked, a pin once moved by hand.
     for (const b of l.boxes) {
-      if (!b.bid || b.branches < 2) continue;
+      if (!b.bid || (b.branches < 2 && !b.bid.startsWith('H:'))) continue;
       const c = at('box', b.bid, x.pt(b.pos));
       const { len, wid } = this.bdoSize(x);
       if (sel?.kind === 'box' && sel.id === b.bid) {
@@ -1181,6 +1218,12 @@ export class Plan {
         g.beginPath(); g.arc(px, py, 3, 0, Math.PI * 2); g.fillStyle = T.accentDeep; g.fill();
       }
       this.hits.push({ item: { kind: 'box', id: b.bid }, x: c.x, y: c.y, r: Math.max(17, len / 2) });
+    }
+    for (const b of l.looseBoxes ?? []) {
+      const c = at('box', 'H:' + b.id, x.pt(b.pos)), { len, wid } = this.bdoSize(x);
+      if (sel?.kind === 'box' && sel.id === 'H:' + b.id) { g.beginPath(); g.roundRect(c.x - len / 2 - 5, c.y - wid / 2 - 5, len + 10, wid + 10, 7); g.strokeStyle = T.accent; g.lineWidth = 3; g.stroke(); }
+      if (drag?.item.kind === 'box' && drag.item.id === 'H:' + b.id) this.drawBdo(g, c, { axis: { x: 1, y: 0 }, legDirs: [] }, x);
+      this.hits.push({ item: { kind: 'box', id: 'H:' + b.id }, x: c.x, y: c.y, r: Math.max(17, len / 2) });
     }
     // Outlets: the grille alone (its size is its leg's colour, and on its card). A dropper's top isn't a grille: it's
     // drawn as the dropper.
@@ -1363,12 +1406,14 @@ export class Plan {
       }
       const interactive = this.data?.interactive !== false;
       // Placing a dropper: a tap anywhere in a room places it, over a vent or the fan coil too.
-      const item = interactive && this.data?.addMode !== 'dropper' && this.data?.addMode !== 'bdo' && (this.data?.layout || this.data?.split) ? this.hitMarker(q) : null;
+      const item = interactive && this.data?.addMode !== 'dropper' && this.data?.addMode !== 'bdo' && this.data?.addMode !== 'pen' && (this.data?.layout || this.data?.split) ? this.hitMarker(q) : null;
       this.drag = { start: q, last: q, item, active: false, pan: { ...this.pan } };
     });
     c.addEventListener('pointermove', (e) => {
       if (!this.pointers.has(e.pointerId)) {
         if (this.data?.editor && this.x && e.pointerType === 'mouse') { this.data.editor.hover(local(e), this.x, e); this.draw(); }
+        // Drawing a duct: the line follows the mouse from the last point.
+        if (this.data?.penDraft && this.x && e.pointerType === 'mouse') { this.penHover = this.x.world(local(e)); this.draw(); }
         return;
       }
       const q = local(e);
@@ -1447,6 +1492,13 @@ export class Plan {
   }
 
   tap(q) {
+    // Drawing a duct: the fan coil, a BDO drawn by hand or a vent is an end; anywhere else is a bend.
+    if (this.data?.addMode === 'pen') {
+      const h = this.hitMarker(q);
+      if (h?.kind === 'unit' || h?.kind === 'outlet' || (h?.kind === 'box' && String(h.id).startsWith('H:'))) this.on.pen?.(h);
+      else if (this.x) this.on.pen?.({ kind: 'point', pos: this.x.world(q) });
+      return;
+    }
     // New BDO: a tap on a vent picks it (again to drop it). Nothing else.
     if (this.data?.addMode === 'bdo') { const h = this.hit(q); if (h?.kind === 'outlet') this.on.pick?.(h.id); return; }
     // Drawing a pipe run: every click is a point on it, inside the house or out to the outdoor unit.

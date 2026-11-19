@@ -1,11 +1,11 @@
 // Trust Trade Pro — the HVAC Designer in the browser. The same five steps as the app (House · Capture · Check · Design ·
 // Send) on the app's own engine (engine.wasm, run in a worker): the same loads, zones, ducts, checks and materials.
 
-import { call as engineCall, latest } from './engine.js?v=5e68360-202611191504';
-import { jobCalls, isMixed as mixedJob, ductedPart, splitSet, withSplitRooms, defaultRange } from './systems.js?v=5e68360-202611191504';
-import * as store from './store.js?v=5e68360-202611191504';
-import { Plan, inkImage, zoneColour, ductColour, splitColour, T, pointInPolygon, movesOnly, wheelMoves, ZOOM_MAX } from './plan.js?v=5e68360-202611191504';
-import { RoomEditor, metres, signedArea, onLine } from './roomeditor.js?v=5e68360-202611191504';
+import { call as engineCall, latest } from './engine.js?v=ccd0fd1-202611191634';
+import { jobCalls, isMixed as mixedJob, ductedPart, splitSet, withSplitRooms, defaultRange } from './systems.js?v=ccd0fd1-202611191634';
+import * as store from './store.js?v=ccd0fd1-202611191634';
+import { Plan, inkImage, zoneColour, ductColour, splitColour, T, pointInPolygon, movesOnly, wheelMoves, ZOOM_MAX } from './plan.js?v=ccd0fd1-202611191634';
+import { RoomEditor, metres, signedArea, onLine } from './roomeditor.js?v=ccd0fd1-202611191634';
 
 /// Every engine call: a two-system job's go with the part they're about (systems.js).
 const call = jobCalls(engineCall);
@@ -2395,6 +2395,7 @@ function select(item) {
     renderInspector();
     return;
   }
+  if (item?.kind === 'boxTurn') return;                    // turning the picked BDO: it stays picked
   app.bend = null;
   if (app.joining && item?.kind === 'room') {
     const a = app.joining;
@@ -2542,6 +2543,14 @@ function dragMove(item, pos) {
       (layout) => { if (app.plan?.drag?.active) app.plan.set({ layout }); });
     return;
   }
+  if (item.kind === 'boxTurn') {
+    const d = structuredClone(app.project.design), axis = boxTurnAxis(item.id, pos);
+    if (!d || !axis) return;
+    d.boxTurns = { ...(d.boxTurns ?? {}), [item.id]: axis };
+    liveRoute('route', { project: { ...app.project, design: d }, closed: [...app.closed], balanced: app.balanced },
+      (layout) => { if (app.plan?.drag?.active) app.plan.set({ layout }); });
+    return;
+  }
   if (item.kind === 'head' || item.kind === 'odu' || item.kind === 'dropTop' || item.kind === 'dropFoot') return;   // placed on the drop
   const d = structuredClone(app.project.design);
   if (!d) return;
@@ -2556,7 +2565,29 @@ function dragMove(item, pos) {
     (layout) => { if (app.plan?.drag?.active) app.plan.set({ layout }); });
 }
 
+/// The way a BDO's feed points when its knob is dragged to `pos`: the knob sits square to the feed, and it snaps to
+/// every 15°.
+function boxTurnAxis(bid, pos) {
+  const b = app.layout?.boxes.find((x) => x.bid === bid);
+  if (!b) return null;
+  const vx = pos.x - b.pos.x, vy = pos.y - b.pos.y;
+  if (Math.hypot(vx, vy) < 1e-3) return null;
+  const step = Math.PI / 12, a = Math.round(Math.atan2(vx, -vy) / step) * step;   // knob is 90° round from the feed
+  return { x: Math.round(Math.cos(a) * 1e6) / 1e6, y: Math.round(Math.sin(a) * 1e6) / 1e6 };
+}
+async function turnBox(bid, deg) {
+  const b = app.layout?.boxes.find((x) => x.bid === bid);
+  if (!b) return;
+  const a = Math.atan2(b.axis.y, b.axis.x) + deg * Math.PI / 180;
+  await edit('turnBox', { key: bid, pos: { x: Math.cos(a), y: Math.sin(a) } });
+}
+
 async function drop(item, pos) {
+  if (item.kind === 'boxTurn') {
+    const axis = boxTurnAxis(item.id, pos);
+    if (!axis || !(await edit('turnBox', { key: item.id, pos: axis }))) app.plan?.set({ layout: app.layout });
+    return;
+  }
   if (item.kind === 'bend' || item.kind === 'bendAdd') {
     const r = app.project.design?.hand?.runs.find((x) => x.id === item.id);
     if (!r) return;
@@ -2661,6 +2692,8 @@ function renderInspector() {
       <div class="insp-sub">Feeds ${esc(feeds(b))}${feed?.manual ? ' · feed sized by hand' : ''}${b.pinned ? ' · moved by hand' : ' · drag to move'}</div>
       ${feed ? feedSizes(b, feed) : ''}
       ${b.zone == null && b.outlets.length > 1 ? `<p class="small muted" style="margin:6px 0 0">Feeds more than one zone: a damper on each leg.</p>` : ''}
+      <p class="small muted" style="margin:8px 0 0">Drag the round knob to turn it: its arms stay put and the ducts follow.</p>
+      <div class="actions-row"><button class="btn2" data-turn="45">Turn left 45°</button><button class="btn2" data-turn="-45">Turn right 45°</button>${app.project.design?.boxTurns?.[b.bid] ? '<button class="btn2" id="unturn">Turn it back</button>' : ''}</div>
       ${String(b.bid).startsWith('H:') ? `<div class="actions-row"><button class="btn2" id="pen-from">${icon('pen').replace('<svg', '<svg width="16" height="16"')} Draw a duct from it</button><button class="btn2 danger" id="delhbox">Take it out, with its ducts</button></div>` : ''}
       ${!l.handDrawn && (b.pinned || handBox(b)) ? `<div class="actions-row">${b.pinned ? '<button class="btn2" id="unpin">Put the BDO back where the router had it</button>' : ''}${handBox(b) ? '<button class="btn2" id="unbox">Take this BDO apart</button>' : ''}</div>` : ''}</div>`;
   } else if (s?.kind === 'feed' && l?.runs.some((r) => r.keyBox === s.id)) {
@@ -2966,6 +2999,8 @@ function bindInspector(el) {
   $('#delvent', el)?.addEventListener('click', async () => { const id = s.id; app.selection = null; await edit('removeOutlet', { id }); });
   $('#unpin', el)?.addEventListener('click', () => edit('pinBox', { bid: s.id, pos: null }));
   $('#delbend', el)?.addEventListener('click', () => removeBend());
+  el.querySelectorAll('[data-turn]').forEach((bt) => bt.addEventListener('click', () => app.selection?.kind === 'box' && turnBox(app.selection.id, Number(bt.dataset.turn))));
+  $('#unturn', el)?.addEventListener('click', () => app.selection?.kind === 'box' && edit('turnBox', { key: app.selection.id, choice: 'reset' }));
   $('#straighten', el)?.addEventListener('click', () => { const p = pickedHandRun(); if (p) { app.bend = null; edit('setHandVia', { key: p.hr.id, outline: [] }); } });
   $('#delrun', el)?.addEventListener('click', async () => {
     const l = app.layout, run = s.kind === 'outlet' ? l?.runs.find((x) => x.outlet === s.id) : [...(l?.runs ?? [])].reverse().find((x) => x.keyBox === s.id);
@@ -3471,7 +3506,7 @@ function openReport(kind) {
   const close = () => o.remove();
   $('#rp-close', o).onclick = close;
   o.addEventListener('keydown', (e) => e.key === 'Escape' && close());
-  import('./reports.js?v=5e68360-202611191504').then(async (m) => {
+  import('./reports.js?v=ccd0fd1-202611191634').then(async (m) => {
     // Reports are always the design as installed: every zone open, balanced. A multi-head job has no ducted design to
     // route (routing one threw, and the bar stayed on "Building the report…" for good).
     app.designLayout = isSplit() ? null : await call('route', { project: app.project, closed: [], balanced: true });

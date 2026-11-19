@@ -527,7 +527,7 @@ export class Plan {
       const last = unitVec({ x: pts[n - 1].x - pts[n - 2].x, y: pts[n - 1].y - pts[n - 2].y }) ?? first;
       const along = (t, ref) => (t && t.x * ref.x + t.y * ref.y < -0.3 ? { x: -t.x, y: -t.y } : t);
       const collar = r.parent == null ? l.collars.find((cl) => Math.hypot(cl.pos.x - pts[0].x, cl.pos.y - pts[0].y) < 0.4) : null;
-      let t0 = along(unitVec(start[i] ?? collar?.dir ?? first) ?? first, first);
+      let t0 = along(unitVec(start[i] ?? (collar ? l.unitDir : null) ?? first) ?? first, first);   // straight off the transition's spigot
       let tN = !end[i] ? last : along(unitVec(end[i]) ?? last, last);
       if (r.kind === 'return') {
         // Return flex lies in a lazy S (the mock's fat return): off the filter box a little to one side, into the back
@@ -684,14 +684,20 @@ export class Plan {
         const dd = Math.min(...r.path.map((p) => Math.hypot(p.x - dm.pos.x, p.y - dm.pos.y)));
         if (dd < rBest) { rBest = dd; ri = i; }
       });
-      const box = ri >= 0 ? l.boxes.find((bx) => bx.legRuns?.includes(ri)) : null;
-      if (box) {
+      const into = ri >= 0 ? l.boxes.find((bx) => bx.inlet === ri) : null;
+      const box = ri >= 0 && !into ? l.boxes.find((bx) => bx.legRuns?.includes(ri)) : null;
+      if (into) {
+        // The zone's own BDO (Jake, 19 Nov 2026: "the zone should be on the back of the BDO"): on its feed's spigot.
+        const G = this.bdoGeom(x.pt(into.pos), into, x), a = { x: Math.cos(G.ang), y: Math.sin(G.ang) };
+        const back = G.len / 2 + G.dIn * 0.55;
+        dir = a; c = { x: G.c.x - a.x * (back + L / 2 - 0.5), y: G.c.y - a.y * (back + L / 2 - 0.5) }; onBox = true;
+      } else if (box) {
         const leg = this.bdoGeom(x.pt(box.pos), box, x).legs[box.legRuns.indexOf(ri)];
         if (leg) { dir = leg.dir; c = { x: leg.end.x + dir.x * (L / 2 - 0.5), y: leg.end.y + dir.y * (L / 2 - 0.5) }; onBox = true; }
       } else if (ri >= 0 && l.runs[ri].parent == null) {
         // Straight off the fan coil: on the end of its plenum collar.
         const p0 = l.runs[ri].path[0], cl = l.collars.find((q) => Math.hypot(q.pos.x - p0.x, q.pos.y - p0.y) < 0.4);
-        const u = cl && unitVec({ x: cl.dir.x, y: -cl.dir.y });
+        const u = cl && unitVec({ x: l.unitDir.x, y: -l.unitDir.y });   // the transition's spigots face straight out
         if (u) { const e = x.pt(cl.pos); dir = u; c = { x: e.x + u.x * (L / 2 + 1), y: e.y + u.y * (L / 2 + 1) }; onBox = true; }
       }
       if (!onBox) {
@@ -760,12 +766,43 @@ export class Plan {
       const straight = Math.abs(rel) < 0.45;
       // Where the leg leaves the body: out the front end when it carries straight on, else through the side.
       const t = Math.min(Math.abs(lx) > 1e-6 ? (len / 2) / Math.abs(lx) : Infinity, Math.abs(ly) > 1e-6 ? (wid / 2) / Math.abs(ly) : Infinity);
-      const reach = (isFinite(t) ? t : wid / 2) + (straight ? 0 : dL * 0.35), spig = dL * 0.55;
-      const end = reach + spig;
-      return { k, lx, ly, rel, dL, straight, reach, spig, end: { x: c.x + wx * end, y: c.y + wy * end }, dir: { x: wx, y: wy } };
+      // A side branch comes off the barrel a little back from its middle and stands well clear, as the fitting's do.
+      const root = straight ? 0 : -len * 0.12, ax = { x: cs, y: sn };
+      const reach = (isFinite(t) ? t : wid / 2) + (straight ? 0 : dL * 0.75), spig = dL * 0.55;
+      const end = reach + spig, o = { x: c.x + ax.x * root, y: c.y + ax.y * root };
+      return { k, lx, ly, rel, dL, straight, root, reach, spig, end: { x: o.x + wx * end, y: o.y + wy * end }, dir: { x: wx, y: wy } };
     });
     return { c, ang, len, wid, dIn, legs };
   }
+  /// The transition on the fan coil's supply face as it is (Jake, 19 Nov 2026: "it should be a 3 way or a 2 way not a
+  /// square"): a galvanised box off the unit, tapering to a spigot for each duct off it, each its duct's size. Drawn in
+  /// the unit's own turned frame (supply out along +x).
+  drawTransition(g, x, l, c, turn, depth, width, plenum) {
+    const cs = Math.cos(turn), sn = Math.sin(turn);
+    const local = (p) => { const s0 = x.pt(p), dx = s0.x - c.x, dy = s0.y - c.y; return { x: dx * cs + dy * sn, y: -dx * sn + dy * cs }; };
+    const cols = (l.collars ?? []).map((cl) => ({ at: local(cl.pos), w: ductWidth(cl.sizeMM, x.s) })).sort((a, b) => a.at.y - b.at.y);
+    const x0 = depth / 2 - 0.5, x1 = x0 + plenum, edge = '#5B636C';
+    const lo = cols.length ? Math.min(...cols.map((k) => k.at.y - k.w / 2)) - 3 : -width / 2 + 2;
+    const hi = cols.length ? Math.max(...cols.map((k) => k.at.y + k.w / 2)) + 3 : width / 2 - 2;
+    const fl = Math.max(lo, -width / 2 + 2), fh = Math.min(hi, width / 2 - 2);
+    const gr = g.createLinearGradient(x0, 0, x1, 0);
+    gr.addColorStop(0, '#C9CFD6'); gr.addColorStop(0.5, '#E6EAEE'); gr.addColorStop(1, '#C2C8CF');
+    g.beginPath(); g.moveTo(x0, -width / 2 + 2); g.lineTo(x1, fl); g.lineTo(x1, fh); g.lineTo(x0, width / 2 - 2); g.closePath();
+    g.fillStyle = gr; g.fill(); g.strokeStyle = edge; g.lineWidth = 1; g.stroke();
+    // Its seams, from the unit's corners to the spigot face.
+    g.strokeStyle = 'rgba(90,98,108,0.35)'; g.lineWidth = 0.8;
+    g.beginPath(); g.moveTo(x0 + 2, -width / 2 + 4); g.lineTo(x1 - 1, fl + 1.5); g.moveTo(x0 + 2, width / 2 - 4); g.lineTo(x1 - 1, fh - 1.5); g.stroke();
+    for (const k of cols) {
+      const out = Math.max(k.at.x, x1 + k.w * 0.55), y = Math.min(Math.max(k.at.y, fl + k.w / 2), fh - k.w / 2);
+      const sg = g.createLinearGradient(0, y - k.w / 2, 0, y + k.w / 2);
+      sg.addColorStop(0, '#EEF1F4'); sg.addColorStop(0.5, '#C9CFD6'); sg.addColorStop(1, '#A6ADB6');
+      g.beginPath(); g.rect(x1 - 0.5, y - k.w / 2, out - x1 + 0.5, k.w); g.fillStyle = sg; g.fill();
+      g.strokeStyle = edge; g.lineWidth = 0.9; g.stroke();
+      g.strokeStyle = 'rgba(70,78,88,0.6)';
+      g.beginPath(); g.moveTo(x1 + (out - x1) * 0.6, y - k.w / 2); g.lineTo(x1 + (out - x1) * 0.6, y + k.w / 2); g.stroke();
+    }
+  }
+
   bdoSize(x, b = {}) { const d = ductWidth(b.inletMM ?? 250, x.s); return { len: d * 2, wid: d * 1.22 }; }
   drawBdo(g, c, b, x) {
     const G = this.bdoGeom(c, b, x), { len, wid, dIn } = G, ink = '#0C0E10';
@@ -790,7 +827,7 @@ export class Plan {
     // Side branches first: the body sits over their roots, as they're moulded into it.
     for (const L of G.legs) {
       if (L.straight) continue;
-      g.save(); g.rotate(G.ang + L.rel); tube(L.dL * 1.12, 0, L.reach); spigot(L.dL, L.reach, L.spig); g.restore();
+      g.save(); g.rotate(G.ang); g.translate(L.root, 0); g.rotate(L.rel); tube(L.dL * 1.12, 0, L.reach); spigot(L.dL, L.reach, L.spig); g.restore();
     }
     g.rotate(G.ang);
     spigot(dIn, -len / 2 - dIn * 0.55, dIn * 0.55);                     // the feed in the back
@@ -1279,7 +1316,7 @@ export class Plan {
       shadow(() => {
         g.save(); g.translate(c.x, c.y); g.rotate(turn);
         g.beginPath(); g.roundRect(-depth / 2, -width / 2, depth, width, 4); g.fillStyle = T.ink; g.fill();
-        g.fillStyle = '#BFBFBF'; g.fillRect(depth / 2 - 0.5, -width / 2 + 2, plenum, width - 4);
+        this.drawTransition(g, x, l, c, turn, depth, width, plenum);
         if (sel?.kind === 'unit') {
           g.beginPath(); g.roundRect(-depth / 2 - 4, -width / 2 - 4, depth + plenum + 8, width + 8, 6); g.strokeStyle = T.accent; g.lineWidth = 3; g.stroke();
         }
@@ -1342,6 +1379,27 @@ export class Plan {
       this.hits.push({ item: { kind: 'outlet', id: o.id }, x: c.x, y: c.y, r: Math.max(17, ring) });
     }
     if (d.handBends) this.drawBends(g, x, d.handBends, drag);
+    // The picked BDO's turn knob (Jake, 19 Nov 2026: "click and rotate the BDO"): drag it round and the BDO turns with
+    // its arms fixed; the ducts follow.
+    const pickedBox = sel?.kind === 'box' && d.layout?.boxes?.find((b) => b.bid === sel.id);
+    if (pickedBox && !(drag?.item?.kind === 'box')) {
+      const c = x.pt(pickedBox.pos), a = unitVec({ x: pickedBox.axis.x, y: -pickedBox.axis.y }) ?? { x: 1, y: 0 };
+      const k = { x: -a.y, y: a.x }, { wid } = this.bdoSize(x, pickedBox), r = wid / 2 + 22;
+      const kn = { x: c.x + k.x * r, y: c.y + k.y * r };
+      g.save();
+      g.strokeStyle = T.accent; g.lineWidth = 1.5; g.setLineDash([3, 3]);
+      g.beginPath(); g.moveTo(c.x + k.x * (wid / 2 + 3), c.y + k.y * (wid / 2 + 3)); g.lineTo(kn.x, kn.y); g.stroke(); g.setLineDash([]);
+      g.shadowColor = 'rgba(0,0,0,0.25)'; g.shadowBlur = 4; g.shadowOffsetY = 1;
+      g.beginPath(); g.arc(kn.x, kn.y, 10, 0, Math.PI * 2); g.fillStyle = '#fff'; g.fill(); g.shadowColor = 'transparent';
+      g.strokeStyle = T.accent; g.lineWidth = 2; g.stroke();
+      // A turning arrow.
+      g.strokeStyle = T.ink; g.lineWidth = 1.6; g.lineCap = 'round';
+      g.beginPath(); g.arc(kn.x, kn.y, 5, -Math.PI * 0.85, Math.PI * 0.45); g.stroke();
+      const ex = kn.x + 5 * Math.cos(Math.PI * 0.45), ey = kn.y + 5 * Math.sin(Math.PI * 0.45);
+      g.beginPath(); g.moveTo(ex - 3.2, ey - 0.4); g.lineTo(ex, ey); g.lineTo(ex + 0.6, ey - 3.2); g.stroke();
+      g.restore();
+      this.hits.push({ item: { kind: 'boxTurn', id: pickedBox.bid }, x: kn.x, y: kn.y, r: 14 });
+    }
   }
 
   /// Each lower floor with the floor above laid over it, faint and dashed, where it sits — so a dropper's foot is seen

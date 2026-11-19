@@ -75,7 +75,7 @@ const DUCTED_OPS = new Set(['setZone', 'joinRooms', 'unjoinRoom', 'setZonePlan',
   'setOutletStyle', 'setRunSize', 'pinBox', 'dropUnit', 'dropReturn', 'dropOutdoor', 'resetOutdoor', 'dropBox', 'dropOutlet',
   'addOutlet', 'rotateUnit', 'setTakeoffs', 'resetHandBoxes', 'setExisting', 'addDropper', 'moveDropper', 'removeDropper',
   'addLine', 'removeLine', 'setLineDrop', 'setDropperLevel', 'setDropperSize', 'setDropperRooms', 'setDuctDownstairs',
-  'makeBox', 'unBox', 'setReturnSize', 'startHand', 'stopHand', 'addHandRun', 'removeHandRun', 'removeHandBox', 'setHandVia']);
+  'makeBox', 'unBox', 'setReturnSize', 'startHand', 'stopHand', 'addHandRun', 'removeHandRun', 'removeHandBox', 'setHandVia', 'turnBox']);
 
 /// `call` (the engine's), wrapped so a two-system job's calls go with the right part. A one-system job's go as they are.
 export function jobCalls(call) {

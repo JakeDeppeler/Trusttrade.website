@@ -470,8 +470,20 @@ export class Plan {
       const last = unitVec({ x: pts[n - 1].x - pts[n - 2].x, y: pts[n - 1].y - pts[n - 2].y }) ?? first;
       const along = (t, ref) => (t && t.x * ref.x + t.y * ref.y < -0.3 ? { x: -t.x, y: -t.y } : t);
       const collar = r.parent == null ? l.collars.find((cl) => Math.hypot(cl.pos.x - pts[0].x, cl.pos.y - pts[0].y) < 0.4) : null;
-      const t0 = r.kind === 'return' ? first : along(unitVec(start[i] ?? collar?.dir ?? first) ?? first, first);
-      const tN = r.kind === 'return' || !end[i] ? last : along(unitVec(end[i]) ?? last, last);
+      let t0 = along(unitVec(start[i] ?? collar?.dir ?? first) ?? first, first);
+      let tN = !end[i] ? last : along(unitVec(end[i]) ?? last, last);
+      if (r.kind === 'return') {
+        // Return flex lies in a lazy S (the mock's fat return): off the filter box a little to one side, into the back
+        // of the fan coil square to it.
+        const chord = unitVec({ x: pts[n - 1].x - pts[0].x, y: pts[n - 1].y - pts[0].y }) ?? first;
+        const face = unitVec(l.unitDir);
+        tN = face && face.x * chord.x + face.y * chord.y > 0.2 ? face : chord;
+        const turn = chord.x * tN.y - chord.y * tN.x;          // which way it has to come round to meet the unit
+        const rot = (v, a) => ({ x: v.x * Math.cos(a) - v.y * Math.sin(a), y: v.x * Math.sin(a) + v.y * Math.cos(a) });
+        const straight = Math.abs(turn) < 0.15;
+        t0 = rot(chord, straight ? 0.34 : -Math.sign(turn) * 0.3);
+        if (straight) tN = rot(tN, 0.2);                         // both ends the same way round: an S
+      }
       const tan = pts.map((p, k) => (k === 0 ? t0 : k === n - 1 ? tN
         : unitVec({ x: pts[k + 1].x - pts[k - 1].x, y: pts[k + 1].y - pts[k - 1].y }) ?? first));
       const out = [pts[0]];
@@ -627,22 +639,40 @@ export class Plan {
     for (const b of l.boxes) this.drawBdo(g, x.pt(b.pos), b, x);
   }
 
+  /// A BDO as a duct layout drawing has it (the v14 mock): a white box, ink outline, BDO on it; the inlet collar on the
+  /// side its feed comes in and a spigot where each leg leaves. The zones show on the legs' dampers (a box can feed
+  /// two zones now, a damper on each leg); a one-zone box keeps a thin band of its colour along the inlet end.
+  bdoSize(x) { return { len: Math.min(Math.max(0.62 * x.s, 34), 54), wid: Math.min(Math.max(0.34 * x.s, 19), 30) }; }
   drawBdo(g, c, b, x) {
-    const dir = { x: b.axis?.x ?? 1, y: -(b.axis?.y ?? 0) }, ang = Math.atan2(dir.y, dir.x);
-    const len = Math.max(0.5 * x.s, 16), wid = Math.max(0.36 * x.s, 12);
+    const ang = Math.atan2(-(b.axis?.y ?? 0), b.axis?.x ?? 1);
+    const { len, wid } = this.bdoSize(x), ink = '#26231F';
     g.save(); g.translate(c.x, c.y); g.rotate(ang);
-    g.shadowColor = 'rgba(0,0,0,0.18)'; g.shadowBlur = 3; g.shadowOffsetY = 1;
-    const grad = g.createLinearGradient(0, -wid / 2, 0, wid / 2);
-    grad.addColorStop(0, '#EEF1F4'); grad.addColorStop(0.5, '#D3D8DD'); grad.addColorStop(1, '#B9BFC6');
-    g.beginPath(); g.roundRect(-len / 2, -wid / 2, len, wid, Math.min(4, wid / 3)); g.fillStyle = grad; g.fill();
-    g.shadowColor = 'transparent';
-    g.strokeStyle = '#5F666E'; g.lineWidth = 1.2; g.stroke();
-    if (b.zone != null) { g.fillStyle = zoneColour(b.zone); g.fillRect(-len / 2 + 1.5, -wid / 2 + 1.5, Math.max(3, len * 0.16), wid - 3); }
-    g.restore();
-    if (b.branches >= 2) {
-      g.font = `800 ${Math.max(8, Math.min(11, wid * 0.62))}px ${FONT}`; g.fillStyle = '#2A2E33'; g.textAlign = 'center'; g.textBaseline = 'middle';
-      g.fillText(String(Math.min(3, b.branches)), c.x, c.y + 0.5);
+    // Inlet collar: the feed arrives along the axis, so into the end against it.
+    g.fillStyle = ink;
+    g.beginPath(); g.roundRect(-len / 2 - 4.5, -wid * 0.3, 6, wid * 0.6, 1.5); g.fill();
+    // A spigot on the box's edge where each leg leaves.
+    for (const d of b.legDirs ?? []) {
+      const wx = d.x, wy = -d.y, lx = wx * Math.cos(ang) + wy * Math.sin(ang), ly = -wx * Math.sin(ang) + wy * Math.cos(ang);
+      const t = Math.min(Math.abs(lx) > 1e-6 ? (len / 2) / Math.abs(lx) : Infinity, Math.abs(ly) > 1e-6 ? (wid / 2) / Math.abs(ly) : Infinity);
+      if (!isFinite(t)) continue;
+      g.save(); g.translate(lx * t, ly * t); g.rotate(Math.atan2(ly, lx));
+      g.beginPath(); g.roundRect(-1, -wid * 0.22, 5, wid * 0.44, 1.2); g.fill();
+      g.restore();
     }
+    g.shadowColor = 'rgba(20,18,14,0.16)'; g.shadowBlur = 6; g.shadowOffsetY = 1.5;
+    g.beginPath(); g.roundRect(-len / 2, -wid / 2, len, wid, 4); g.fillStyle = '#FFFFFF'; g.fill();
+    g.shadowColor = 'transparent';
+    g.strokeStyle = ink; g.lineWidth = 1.6; g.stroke();
+    if (b.zone != null && b.zone !== 0) {
+      g.save(); g.beginPath(); g.roundRect(-len / 2, -wid / 2, len, wid, 4); g.clip();
+      g.fillStyle = zoneColour(b.zone); g.fillRect(-len / 2, -wid / 2, 3.5, wid);
+      g.restore();
+      g.beginPath(); g.roundRect(-len / 2, -wid / 2, len, wid, 4); g.strokeStyle = ink; g.lineWidth = 1.6; g.stroke();
+    }
+    g.restore();
+    // The label stays upright, whichever way the box lies.
+    g.font = `700 ${Math.max(8, Math.min(10.5, wid * 0.42))}px ${FONT}`; g.fillStyle = ink; g.textAlign = 'center'; g.textBaseline = 'middle';
+    g.fillText('BDO', c.x, c.y + 0.5);
   }
 
   /// Each room's name where it sits clear of the ducts and vents, and its load under it — unless the zones' cards carry
@@ -1136,15 +1166,21 @@ export class Plan {
     for (const b of l.boxes) {
       if (!b.bid || b.branches < 2) continue;
       const c = at('box', b.bid, x.pt(b.pos));
-      if (sel?.kind === 'box' && sel.id === b.bid) { g.beginPath(); g.arc(c.x, c.y, 13, 0, Math.PI * 2); g.strokeStyle = T.accent; g.lineWidth = 3; g.stroke(); }
-      if (b.pinned) {
-        // A pin: moved by hand, so it stays put when the rest re-routes.
-        g.strokeStyle = T.accentDeep; g.lineWidth = 1.5;
-        g.beginPath(); g.moveTo(c.x + 10, c.y - 9); g.lineTo(c.x + 10, c.y - 4); g.stroke();
-        g.beginPath(); g.arc(c.x + 10, c.y - 11, 2.8, 0, Math.PI * 2); g.fillStyle = T.accentDeep; g.fill();
+      const { len, wid } = this.bdoSize(x);
+      if (sel?.kind === 'box' && sel.id === b.bid) {
+        g.save(); g.translate(c.x, c.y); g.rotate(Math.atan2(-(b.axis?.y ?? 0), b.axis?.x ?? 1));
+        g.beginPath(); g.roundRect(-len / 2 - 5, -wid / 2 - 5, len + 10, wid + 10, 7); g.strokeStyle = T.accent; g.lineWidth = 3; g.stroke();
+        g.restore();
       }
       if (drag?.item.kind === 'box' && drag.item.id === b.bid) this.drawBdo(g, c, b, x);
-      this.hits.push({ item: { kind: 'box', id: b.bid }, x: c.x, y: c.y, r: 17 });
+      if (b.pinned) {
+        // A pin: moved by hand, so it stays put when the rest re-routes.
+        const px = c.x + Math.max(len, wid) / 2 - 2, py = c.y - wid / 2 - 3;
+        g.strokeStyle = T.accentDeep; g.lineWidth = 1.5;
+        g.beginPath(); g.moveTo(px, py + 2); g.lineTo(px, py + 7); g.stroke();
+        g.beginPath(); g.arc(px, py, 3, 0, Math.PI * 2); g.fillStyle = T.accentDeep; g.fill();
+      }
+      this.hits.push({ item: { kind: 'box', id: b.bid }, x: c.x, y: c.y, r: Math.max(17, len / 2) });
     }
     // Outlets: the grille alone (its size is its leg's colour, and on its card). A dropper's top isn't a grille: it's
     // drawn as the dropper.
@@ -1154,6 +1190,14 @@ export class Plan {
       shadow(() => this.drawGrille(g, c, size, o.style));
       const ring = size / 2 + 5;
       if (sel?.kind === 'outlet' && sel.id === o.id) { g.beginPath(); g.roundRect(c.x - ring, c.y - ring, ring * 2, ring * 2, 5); g.strokeStyle = T.accent; g.lineWidth = 3; g.stroke(); }
+      const pk = this.data?.picked?.indexOf(o.id) ?? -1;
+      if (pk >= 0) {
+        // Picked for a new BDO: a ring and its number.
+        g.beginPath(); g.arc(c.x, c.y, ring + 1, 0, Math.PI * 2); g.strokeStyle = T.ink; g.lineWidth = 2.2; g.setLineDash([4, 3]); g.stroke(); g.setLineDash([]);
+        const bx = c.x + ring * 0.75, by = c.y - ring * 0.75;
+        g.beginPath(); g.arc(bx, by, 8, 0, Math.PI * 2); g.fillStyle = T.ink; g.fill(); g.strokeStyle = '#fff'; g.lineWidth = 1.5; g.stroke();
+        g.font = `800 9.5px ${FONT}`; g.fillStyle = '#fff'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(String(pk + 1), bx, by + 0.5);
+      }
       this.hits.push({ item: { kind: 'outlet', id: o.id }, x: c.x, y: c.y, r: Math.max(17, ring) });
     }
   }
@@ -1319,7 +1363,7 @@ export class Plan {
       }
       const interactive = this.data?.interactive !== false;
       // Placing a dropper: a tap anywhere in a room places it, over a vent or the fan coil too.
-      const item = interactive && this.data?.addMode !== 'dropper' && (this.data?.layout || this.data?.split) ? this.hitMarker(q) : null;
+      const item = interactive && this.data?.addMode !== 'dropper' && this.data?.addMode !== 'bdo' && (this.data?.layout || this.data?.split) ? this.hitMarker(q) : null;
       this.drag = { start: q, last: q, item, active: false, pan: { ...this.pan } };
     });
     c.addEventListener('pointermove', (e) => {
@@ -1403,6 +1447,8 @@ export class Plan {
   }
 
   tap(q) {
+    // New BDO: a tap on a vent picks it (again to drop it). Nothing else.
+    if (this.data?.addMode === 'bdo') { const h = this.hit(q); if (h?.kind === 'outlet') this.on.pick?.(h.id); return; }
     // Drawing a pipe run: every click is a point on it, inside the house or out to the outdoor unit.
     if ((this.data?.addMode === 'drain' || this.data?.addMode === 'refrigerant') && this.x) { this.on.add?.(this.x.world(q)); return; }
     if (this.data?.addMode && this.x) {

@@ -1,11 +1,11 @@
 // Trust Trade Pro — the HVAC Designer in the browser. The same five steps as the app (House · Capture · Check · Design ·
 // Send) on the app's own engine (engine.wasm, run in a worker): the same loads, zones, ducts, checks and materials.
 
-import { call as engineCall, latest } from './engine.js?v=d766353-202611191235';
-import { jobCalls, isMixed as mixedJob, ductedPart, splitSet, withSplitRooms, defaultRange } from './systems.js?v=d766353-202611191235';
-import * as store from './store.js?v=d766353-202611191235';
-import { Plan, inkImage, zoneColour, ductColour, splitColour, T, pointInPolygon, movesOnly, wheelMoves, ZOOM_MAX } from './plan.js?v=d766353-202611191235';
-import { RoomEditor, metres, signedArea, onLine } from './roomeditor.js?v=d766353-202611191235';
+import { call as engineCall, latest } from './engine.js?v=bdc938d-202611191252';
+import { jobCalls, isMixed as mixedJob, ductedPart, splitSet, withSplitRooms, defaultRange } from './systems.js?v=bdc938d-202611191252';
+import * as store from './store.js?v=bdc938d-202611191252';
+import { Plan, inkImage, zoneColour, ductColour, splitColour, T, pointInPolygon, movesOnly, wheelMoves, ZOOM_MAX } from './plan.js?v=bdc938d-202611191252';
+import { RoomEditor, metres, signedArea, onLine } from './roomeditor.js?v=bdc938d-202611191252';
 
 /// Every engine call: a two-system job's go with the part they're about (systems.js).
 const call = jobCalls(engineCall);
@@ -33,6 +33,7 @@ const ICON = {
   gear: '<circle cx="12" cy="12" r="3.2"/><path d="M12 2.5v3M12 18.5v3M4.6 4.6l2.1 2.1M17.3 17.3l2.1 2.1M2.5 12h3M18.5 12h3M4.6 19.4l2.1-2.1M17.3 6.7l2.1-2.1"/>',
   back: '<path d="M15 18l-6-6 6-6"/>', check: '<path d="M5 12.5l4.5 4.5L19.5 7"/>', plus: '<path d="M12 5v14M5 12h14"/>',
   cursor: '<path d="M5.5 3.5l13 7.5-5.6 1.6-2.4 5.9z"/>', addvent: '<circle cx="12" cy="12" r="8.5"/><path d="M12 8v8M8 12h8"/>',
+  bdo: '<rect x="7" y="9" width="10" height="6" rx="1.5"/><path d="M12 3v6M7 12H3M17 12h4M12 15v6"/>',
   layers: '<path d="M12 3.5l8.5 4.7L12 13 3.5 8.2z"/><path d="M3.5 12.5L12 17.3l8.5-4.8"/>',
   undo: '<path d="M9 14L4.5 9.5 9 5"/><path d="M4.5 9.5H15a5 5 0 010 10h-3"/>', redo: '<path d="M15 14l4.5-4.5L15 5"/><path d="M19.5 9.5H9a5 5 0 000 10h3"/>',
   fit: '<path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/>', trash: '<path d="M4 7h16M9.5 7V4.5h5V7M6.5 7l1 13h9l1-13"/>',
@@ -185,7 +186,8 @@ function editRefusal(op) {
     dropReturn: 'The return goes in a ceiling — not a wet area, the kitchen or the garage.',
     dropOutlet: 'An outlet goes in a conditioned room.', dropBox: 'A BDO sits over the house.',
     dropOutdoor: 'No outside wall near there.', addOutlet: 'Tap inside a conditioned room.',
-    moveOutletToBox: 'That BDO can\'t take it — a BDO takes three legs at most, and a vent stays on its own zone\'s BDOs.',
+    moveOutletToBox: 'That BDO can\'t take it: a BDO takes three legs at most.',
+    makeBox: 'Those vents can\'t share a BDO: pick 2 or 3 vents on the ducted system.',
     joinRooms: 'That room isn\'t on a zone.',
     moveCorner: 'That would make a room too small, too thin or cross its own walls.',
     moveWall: 'That would squash a room — or cover all but a sliver of the one next door.',
@@ -198,6 +200,33 @@ function editRefusal(op) {
     addDropper: 'Droppers are for a two-storey home: draw both floors first (on New job).',
     moveDropper: 'A dropper\'s top goes on the upper floor and its foot in a ground floor room.',
   })[op] ?? 'That didn\'t change anything.';
+}
+
+/// A BDO put together by hand (New BDO, or a vent moved onto it): its outlets are one of the design's stations.
+function handBox(b) {
+  const set = new Set(b.outlets ?? []);
+  return (app.project?.design?.stations ?? []).some((s) => s.length === set.size && s.every((id) => set.has(id)));
+}
+
+/// The return's size by hand: one or two ducts, and each one's size (Auto = sized to the fan).
+function returnSizer(l) {
+  const lim = app.options.velocityLimits?.[app.project?.site?.velocityPref ?? 'standard']?.ret;
+  const [ac, amm] = l.returnAuto ?? [l.returnCount ?? 1, l.returnMM];
+  const n = l.returnCount ?? 1, sp = velocity(l.fanLps / n, l.returnMM), over = lim != null && sp > lim * RETURN_TOL + 0.01;
+  const sizes = RETURN_SIZES;
+  return `<span class="eyebrow" style="display:block;margin-top:10px">Return duct</span>
+    <div class="seg" style="margin-bottom:6px"><button data-rcount="0" class="${l.returnManual ? '' : 'on'}">Auto (${ac > 1 ? ac + ' × ' : ''}Ø${amm})</button>
+      <button data-rcount="1" class="${l.returnManual && n === 1 ? 'on' : ''}">1 duct</button><button data-rcount="2" class="${l.returnManual && n === 2 ? 'on' : ''}">2 ducts</button></div>
+    <div class="sizes">${sizes.map((mm) => `<button data-rsize="${mm}" class="${l.returnManual && l.returnMM === mm ? 'on' : ''}">Ø${mm}</button>`).join('')}</div>
+    <div class="kv"><span>Air speed</span><b style="${over ? 'color:var(--danger)' : ''}">${fmt(sp, 1)} m/s${lim != null ? ` <span class="muted small" style="font-weight:500">· limit ${lim} m/s (+15%)${over ? ', over: go up a size or to 2 ducts' : ''}</span>` : ''}</b></div>`;
+}
+const RETURN_SIZES = [250, 300, 350, 400, 450, 500, 600];
+/// The return's allowance over the class's speed: the engine sizes it to within 15% (`Designer.returnPlan`).
+const RETURN_TOL = 1.15;
+/// The smallest return size that keeps each of `n` ducts under the limit.
+function returnSizeFor(l, n) {
+  const lim = app.options.velocityLimits?.[app.project?.site?.velocityPref ?? 'standard']?.ret ?? 4;
+  return RETURN_SIZES.find((mm) => velocity(l.fanLps / n, mm) <= lim * RETURN_TOL) ?? RETURN_SIZES[RETURN_SIZES.length - 1];
 }
 
 async function openJob(id, step) {
@@ -2250,6 +2279,7 @@ function renderDesign(c) {
     <div class="rail">
       <button id="t-select" class="${app.addMode ? '' : 'on'}">${icon('cursor')}<span class="tip">Select and drag</span></button>
       <button id="t-add" class="${app.addMode === true ? 'on' : ''}">${icon('addvent')}<span class="tip">${app.addMode === true ? 'Done adding outlets' : 'Add an outlet'}</span></button>
+      <button id="t-bdo" class="${app.addMode === 'bdo' ? 'on' : ''}">${icon('bdo')}<span class="tip">${app.addMode === 'bdo' ? 'Done making BDOs' : 'New BDO: tap 2 or 3 vents'}</span></button>
       ${v.twoStorey ? `<button id="t-dropper" class="${app.addMode === 'dropper' ? 'on' : ''}">${icon('dropper')}<span class="tip">${app.addMode === 'dropper' ? 'Done adding droppers' : 'Add a dropper'}</span></button>` : ''}
       ${lineTools()}
       <button id="t-layers">${icon('layers')}<span class="tip">Layers</span></button>
@@ -2272,6 +2302,7 @@ function renderDesign(c) {
         ${app.designing ? '<div class="busy"><div><div class="spinner"></div>Placing the fan coil…</div></div>' : ''}
       </div>
       <div class="hint">${lineHint() || (app.joining ? `Tap the room to join ${esc(v.rooms.find((r) => r.id === app.joining)?.name ?? '')} with. <button class="link" id="cancel-join">Cancel</button>`
+        : app.addMode === 'bdo' ? `Tap 2 or 3 vents to put on one BDO. They can be on different zones: each leg gets its own damper. ${app.bdoPick?.length ? `<b>${app.bdoPick.length} picked</b> · <button class="link" id="bdo-make" ${app.bdoPick.length < 2 ? 'disabled' : ''}>Make the BDO</button> · <button class="link" id="bdo-clear">Clear</button>` : ''}`
         : app.addMode === 'dropper' ? 'Tap where a dropper goes: on the top floor where it leaves the roof, or on the floor below where it comes out. It lands in the same spot on both: the dashed outline is the floor above.'
         : app.addMode ? 'Tap inside a room to drop an outlet.'
         : l && !l.outlets.some((o) => !o.dropper) ? 'Tap <b>Add an outlet</b> on the left, then tap inside each room. The rooms still waiting for air are listed on the right, and the ducts draw and size themselves as you go.'
@@ -2283,8 +2314,10 @@ function renderDesign(c) {
   const plan = mountPlan($('#cv', c), {
     selection: app.selection, showAir: app.layers.air, addMode: app.addMode, interactive: true, labels: true, compact: true,
     allSizes: app.layers.allSizes || app.layers.speeds, speeds: app.layers.speeds ? speedLimits() : null, lineDraft: app.lineDraft,
+    picked: app.addMode === 'bdo' ? app.bdoPick ?? [] : null,
     handlers: {
       select: (item) => select(item),
+      pick: (id) => pickForBox(id),
       add: (pos) => (isLineMode() ? addLinePoint(pos) : app.addMode === 'dropper' ? addDropper(pos) : addVent(pos)),
       dragMove: (item, pos) => dragMove(item, pos),
       drop: (item, pos) => drop(item, pos),
@@ -2294,6 +2327,9 @@ function renderDesign(c) {
   renderInspector();
   $('#t-select', c).onclick = () => { app.addMode = false; render(); };
   $('#t-add', c).onclick = () => { app.addMode = app.addMode === true ? false : true; if (app.addMode) app.selection = null; render(); };
+  $('#t-bdo', c).onclick = () => { app.addMode = app.addMode === 'bdo' ? false : 'bdo'; app.bdoPick = []; if (app.addMode) app.selection = null; render(); };
+  $('#bdo-make', c)?.addEventListener('click', () => makeBoxFromPick());
+  $('#bdo-clear', c)?.addEventListener('click', () => { app.bdoPick = []; render(); });
   bindLineTools(c);
   $('#t-dropper', c)?.addEventListener('click', () => { app.addMode = app.addMode === 'dropper' ? false : 'dropper'; if (app.addMode) app.selection = null; render(); });
   $('#t-undo', c).onclick = undo;
@@ -2354,6 +2390,26 @@ function select(item) {
 async function addDropper(pos) {
   const r = await edit('addDropper', { pos });
   if (r?.id) { app.addMode = false; app.selection = { kind: 'dropper', id: r.id }; render(); }
+}
+
+/// New BDO: vents tapped in turn (again to drop one). The third makes the box; two can be made with the link.
+function pickForBox(id) {
+  if (!app.layout?.outlets.some((o) => o.id === id && !o.dropper)) return;
+  const pick = app.bdoPick ?? [];
+  app.bdoPick = pick.includes(id) ? pick.filter((x) => x !== id) : [...pick, id];
+  if (app.bdoPick.length >= 3) makeBoxFromPick(); else render();
+}
+async function makeBoxFromPick() {
+  const ids = app.bdoPick ?? [];
+  if (ids.length < 2) return;
+  const r = await edit('makeBox', { ids });
+  app.bdoPick = [];
+  if (r) {
+    app.addMode = false;
+    app.selection = r.key && app.layout?.boxes.some((b) => b.bid === r.key) ? { kind: 'box', id: r.key } : null;
+    toast(`BDO made: ${ids.length} vents, each on its own damper. Drag it to where it sits.`);
+  }
+  render();
 }
 
 async function addVent(pos) {
@@ -2470,7 +2526,8 @@ function renderInspector() {
     html = `<div class="card"><div class="insp-head"><h2>BDO · ${b.branches}-way · Ø${b.inletMM} in</h2>${close}</div>
       <div class="insp-sub">Feeds ${esc(feeds(b))}${feed?.manual ? ' · feed sized by hand' : ''}${b.pinned ? ' · moved by hand' : ' · drag to move'}</div>
       ${feed ? feedSizes(b, feed) : ''}
-      ${b.pinned ? '<div class="actions-row"><button class="btn2" id="unpin">Put the BDO back where the router had it</button></div>' : ''}</div>`;
+      ${b.zone == null && b.outlets.length > 1 ? `<p class="small muted" style="margin:6px 0 0">Feeds more than one zone: a damper on each leg.</p>` : ''}
+      ${b.pinned || handBox(b) ? `<div class="actions-row">${b.pinned ? '<button class="btn2" id="unpin">Put the BDO back where the router had it</button>' : ''}${handBox(b) ? '<button class="btn2" id="unbox">Take this BDO apart</button>' : ''}</div>` : ''}</div>`;
   } else if (s?.kind === 'feed' && l?.runs.some((r) => r.keyBox === s.id)) {
     const runs = l.runs.filter((r) => r.keyBox === s.id), r = runs[runs.length - 1], b = l.boxes.find((x) => x.bid === s.id);
     const len = runs.reduce((sum, x) => sum + x.length, 0);
@@ -2521,7 +2578,8 @@ function renderInspector() {
       <div class="actions-row"><button class="btn2" id="rotate">${icon('rotate').replace('<svg', '<svg width="16" height="16"')} Turn it 90°</button></div></div>`;
   } else if (s?.kind === 'ret' && l) {
     html = `<div class="card"><div class="insp-head"><h2>Return air grille ${l.returnGrilleSize[0]} × ${l.returnGrilleSize[1]}</h2>${close}</div>
-      <div class="insp-sub">${fmt(l.fanLps)} L/s at under 2 m/s · filter box · ${l.returnCount ?? 1} × Ø${l.returnMM} flex to the fan coil, ${fmt(velocity(l.fanLps / (l.returnCount ?? 1), l.returnMM), 1)} m/s each · drag to move</div></div>`;
+      <div class="insp-sub">${fmt(l.fanLps)} L/s at under 2 m/s · filter box · ${l.returnCount ?? 1} × Ø${l.returnMM} flex to the fan coil, ${fmt(velocity(l.fanLps / (l.returnCount ?? 1), l.returnMM), 1)} m/s each · drag to move</div>
+      ${returnSizer(l)}</div>`;
   } else if (s?.kind === 'outdoor' && l) {
     const moved = p.design?.outdoor != null;
     html = `<div class="card"><div class="insp-head"><h2>Outdoor unit</h2>${close}</div>
@@ -2764,6 +2822,19 @@ function bindInspector(el) {
   $('#movebox', el)?.addEventListener('change', (e) => e.target.value && edit('moveOutletToBox', { id: s.id, bid: e.target.value }));
   $('#delvent', el)?.addEventListener('click', async () => { const id = s.id; app.selection = null; await edit('removeOutlet', { id }); });
   $('#unpin', el)?.addEventListener('click', () => edit('pinBox', { bid: s.id, pos: null }));
+  $('#unbox', el)?.addEventListener('click', async () => {
+    const b = app.layout?.boxes.find((x) => x.bid === s.id);
+    if (b && await edit('unBox', { ids: b.outlets })) { app.selection = null; renderInspector(); toast('Taken apart: the router puts those vents back on their zones\' BDOs.'); }
+  });
+  el.querySelectorAll('[data-rcount]').forEach((btn) => btn.addEventListener('click', () => {
+    const n = +btn.dataset.rcount, l = app.layout;
+    if (!n) edit('setReturnSize', {});
+    else edit('setReturnSize', { n, mm: l.returnManual && (l.returnCount ?? 1) === n ? l.returnMM : returnSizeFor(l, n) });
+  }));
+  el.querySelectorAll('[data-rsize]').forEach((btn) => btn.addEventListener('click', () => {
+    const l = app.layout;
+    edit('setReturnSize', { mm: +btn.dataset.rsize, n: l.returnCount ?? 1 });
+  }));
   $('#rotate', el)?.addEventListener('click', () => edit('rotateUnit'));
   $('#outback', el)?.addEventListener('click', () => edit('resetOutdoor'));
   $('#redesign', el)?.addEventListener('click', () => designNow(true));
@@ -3247,7 +3318,7 @@ function openReport(kind) {
   const close = () => o.remove();
   $('#rp-close', o).onclick = close;
   o.addEventListener('keydown', (e) => e.key === 'Escape' && close());
-  import('./reports.js?v=d766353-202611191235').then(async (m) => {
+  import('./reports.js?v=bdc938d-202611191252').then(async (m) => {
     // Reports are always the design as installed: every zone open, balanced. A multi-head job has no ducted design to
     // route (routing one threw, and the bar stayed on "Building the report…" for good).
     app.designLayout = isSplit() ? null : await call('route', { project: app.project, closed: [], balanced: true });

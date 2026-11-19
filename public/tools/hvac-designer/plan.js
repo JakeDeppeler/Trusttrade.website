@@ -25,6 +25,8 @@ export function ductColour(mm) {
 }
 const ROOM_FILL = { bed: '#3E6CF0', wet: '#0F9A9A', util: '#8A909B', none: '#C6CBD3', other: '#5B6170' };
 const roomFill = (r) => ROOM_FILL[r.designerType] ?? '#F59E0B';
+/// System B on a two-system job (mock v14's green).
+export const SYS_B = '#0FA37A';
 const FONT = 'Geist, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
 
 function rgba(hex, a) {
@@ -325,7 +327,8 @@ export class Plan {
       const r = d.view.rooms.find((r) => r.id === d.selection.id);
       if (r) { this.path(g, r.polygon.map(x.pt), true); g.strokeStyle = T.accent; g.lineWidth = 3; g.stroke(); }
     }
-    const split = !layout && !d.editor ? d.split : null;
+    // A split's heads: on a split job's own plan, or with the ducts on a two-system job's overview (`both`).
+    const split = (!layout || d.both) && !d.editor ? d.split : null;
     if (split && d.splitAir !== false && !d.report) this.drawSplitAir(g, x, view, split, d);
     if (split) this.drawSplitPipes(g, x, split);
     const zoneCards = !!layout && !d.editor && !d.report && d.zoneCards !== false && (layout.zones?.length ?? 0) >= 2;
@@ -334,7 +337,7 @@ export class Plan {
     if (zoneCards && d.labels !== false) this.drawZoneCards(g, x, view, layout);
     if (layout && d.report) this.drawReportMarks(g, x, layout);
     else if (layout && !d.editor) this.drawMarkers(g, x, layout, d);
-    if (!d.editor && !split) this.drawDroppers(g, x, d, !!d.report);
+    if (!d.editor && (!split || layout)) this.drawDroppers(g, x, d, !!d.report);
     if (!d.editor) this.drawLines(g, x, d);
     d.editor?.overlay(g, x);
   }
@@ -374,9 +377,19 @@ export class Plan {
       if (r.polygon.length < 3) continue;
       const pts = r.polygon.map(x.pt);
       const z = zoneOf[r.id];
-      const fill = z !== undefined ? (closed.has(z) ? T.line : zoneColour(z)) : roomFill(r);
+      // A two-system job: system B's rooms in B's own green, hatched, whatever the ducts' zones say.
+      const onB = this.data?.splitRooms?.includes(r.id);
+      const fill = onB ? SYS_B : z !== undefined ? (closed.has(z) ? T.line : zoneColour(z)) : roomFill(r);
       this.path(g, pts, true);
-      g.fillStyle = rgba(fill, layout && z !== undefined && !closed.has(z) ? 0.22 : 0.14); g.fill();
+      g.fillStyle = rgba(fill, onB ? 0.2 : layout && z !== undefined && !closed.has(z) ? 0.22 : 0.14); g.fill();
+      if (onB) {
+        g.save(); this.path(g, pts, true); g.clip();
+        const bb = pts.reduce((b, q) => [Math.min(b[0], q.x), Math.min(b[1], q.y), Math.max(b[2], q.x), Math.max(b[3], q.y)], [Infinity, Infinity, -Infinity, -Infinity]);
+        g.strokeStyle = rgba(SYS_B, 0.28); g.lineWidth = 1;
+        for (let k = bb[0] - (bb[3] - bb[1]); k < bb[2]; k += 9) { g.beginPath(); g.moveTo(k, bb[3]); g.lineTo(k + (bb[3] - bb[1]), bb[1]); g.stroke(); }
+        g.restore();
+        this.path(g, pts, true);
+      }
       g.strokeStyle = rgba(T.ink, 0.55); g.lineWidth = 1.5; g.stroke();
     }
   }
@@ -660,7 +673,7 @@ export class Plan {
       }
     }
     // A multi-head split's heads and outdoor units (and the tags beside them) are kept clear too.
-    const sp = !layout ? this.data?.split : null;
+    const sp = !layout || this.data?.both ? this.data?.split : null;
     if (sp) {
       for (const h of sp.heads) {
         const c = x.pt(h.pos), ang = Math.atan2(-h.blow.y, h.blow.x), reach = Math.max(0.7 * x.s, 18);

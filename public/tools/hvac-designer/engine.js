@@ -1,6 +1,6 @@
 // The page's side of the engine: every call goes to the worker (engine-worker.js) and comes back as a promise.
 
-const worker = new Worker(new URL('./engine-worker.js?v=3907973-202611162145', import.meta.url));
+const worker = new Worker(new URL('./engine-worker.js?v=d766353-202611191235', import.meta.url));
 const pending = new Map();
 let nextId = 1;
 
@@ -27,13 +27,13 @@ export function call(cmd, args = {}) {
 
 /// For calls made on every frame of a drag: one at a time, and only the newest waiting one runs next — the screen
 /// gets every answer it can keep up with, never a queue of stale ones.
-export function latest() {
+export function latest(fn = call) {
   let busy = false, waiting = null;
   async function run(cmd, args, onResult) {
     if (busy) { waiting = { cmd, args, onResult }; return; }
     busy = true;
     try {
-      onResult(await call(cmd, args));
+      onResult(await fn(cmd, args));
     } catch (_) {
       // A drag's in-between answer that failed is just skipped.
     } finally {

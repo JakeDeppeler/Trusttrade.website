@@ -1,10 +1,14 @@
 // Trust Trade Pro — the HVAC Designer in the browser. The same five steps as the app (House · Capture · Check · Design ·
 // Send) on the app's own engine (engine.wasm, run in a worker): the same loads, zones, ducts, checks and materials.
 
-import { call, latest } from './engine.js?v=3907973-202611162145';
-import * as store from './store.js?v=3907973-202611162145';
-import { Plan, inkImage, zoneColour, ductColour, splitColour, T, pointInPolygon, movesOnly, wheelMoves, ZOOM_MAX } from './plan.js?v=3907973-202611162145';
-import { RoomEditor, metres, signedArea, onLine } from './roomeditor.js?v=3907973-202611162145';
+import { call as engineCall, latest } from './engine.js?v=d766353-202611191235';
+import { jobCalls, isMixed as mixedJob, ductedPart, splitSet, withSplitRooms, defaultRange } from './systems.js?v=d766353-202611191235';
+import * as store from './store.js?v=d766353-202611191235';
+import { Plan, inkImage, zoneColour, ductColour, splitColour, T, pointInPolygon, movesOnly, wheelMoves, ZOOM_MAX } from './plan.js?v=d766353-202611191235';
+import { RoomEditor, metres, signedArea, onLine } from './roomeditor.js?v=d766353-202611191235';
+
+/// Every engine call: a two-system job's go with the part they're about (systems.js).
+const call = jobCalls(engineCall);
 
 // MARK: Helpers
 
@@ -123,11 +127,14 @@ async function refresh() {
   const p = app.project;
   if (!p) return;
   const viewP = call('view', { project: p });
-  const split = isSplit();
+  const split = isSplit(), mixed = isMixed();
   const layoutP = p.design && !split ? call('route', { project: p, closed: [...app.closed], balanced: app.balanced }) : Promise.resolve(null);
-  const splitP = split && p.rooms.length ? call('splitPlan', { project: p }) : Promise.resolve(null);
-  const [view, layout, sp] = await Promise.all([viewP, layoutP.catch(() => null), splitP.catch(() => null)]);
+  const splitP = (split || mixed) && p.rooms.length ? call('splitPlan', { project: p }) : Promise.resolve(null);
+  // Two systems: system A's own loads and unit, the house less B's rooms.
+  const ductViewP = mixed ? call('view', { project: ductedPart(p) }) : Promise.resolve(null);
+  const [view, layout, sp, ductView] = await Promise.all([viewP, layoutP.catch(() => null), splitP.catch(() => null), ductViewP.catch(() => null)]);
   app.view = view;
+  app.ductView = ductView;
   app.layout = layout;
   app.split = sp;
   app.air = layout ? await call('air', { project: p, closed: [...app.closed], balanced: app.balanced }).catch(() => null) : null;
@@ -135,6 +142,15 @@ async function refresh() {
 
 /// A multi-head split job (wall heads on outdoor units), not ducted.
 const isSplit = () => app.project?.system === 'multiSplit';
+/// Two systems: ducted (A) with some rooms on a split (B).
+const isMixed = () => mixedJob(app.project);
+/// A room on system B.
+const onB = (id) => splitSet(app.project).has(id);
+/// System A's view: its own unit and loads on a two-system job, the job's otherwise.
+const ductedView = () => (isMixed() && app.ductView) || app.view;
+/// What system B is: bulkhead heads, wall heads or VRF.
+const bKind = () => SPLIT_KIND[app.project?.split?.range ?? defaultRange] ?? 'bulkhead';
+const B_KINDS = [['bulkhead', 'Bulkhead'], ['vrf', 'VRF'], ['wall', 'Wall split']];
 /// The helpers (the AI plan read, Auto-design) are off the main path for now (Jake, 15 Nov 2026: build the system and
 /// the workflow first, the AI to help later). localStorage ttpro.assist = 1 brings them back for a look.
 const ASSIST = () => { try { return localStorage.getItem('ttpro.assist') === '1'; } catch (_) { return false; } };
@@ -371,7 +387,7 @@ function render() {
   renderTop();
   const c = $('#content');
   if (app.editorOpen) { renderRoomEditor(c); return; }
-  ({ job: renderJob, plan: renderPlan, equipment: renderEquipment, design: isSplit() ? renderEquipment : renderDesign, send: renderSend })[app.step]?.(c);
+  ({ job: renderJob, plan: renderPlan, equipment: renderEquipment, design: isSplit() ? renderEquipment : isMixed() && app.sysView === 'B' ? renderSplitDesign : renderDesign, send: renderSend })[app.step]?.(c);
 }
 
 // MARK: Jobs
@@ -1445,8 +1461,10 @@ async function renderEquipment(c) {
   if (isSplit()) { renderSplitDesign(c); return; }
   const cards = app.cards = await call('systemCards', { project: p });
   if (app.step !== 'equipment' && app.step !== 'design') return;           // moved on while the engine answered
-  const t = v.totals, zl = o.zonings.find((z) => z.id === (p.site.zoningPref ?? 'perroom'));
-  const zones = new Set(v.rooms.filter((r) => r.conditioned && r.zone != null && r.zone !== 0).map((r) => r.zone)).size;
+  // A two-system job: the unit, zoning and spill are system A's (the house less B's rooms).
+  const mixed = isMixed(), dv = ductedView();
+  const t = dv.totals, zl = o.zonings.find((z) => z.id === (p.site.zoningPref ?? 'perroom'));
+  const zones = new Set(dv.rooms.filter((r) => r.conditioned && r.zone != null && r.zone !== 0).map((r) => r.zone)).size;
   const open = app.equipOpen ?? 'unit';
   const sec = (k, n, title, summary, body) => `<section class="q-sec ${open === k ? 'open' : ''}">
     <button class="q-head" data-q="${k}"><span class="q-n">${n}</span><span class="q-t"><b>${title}</b><small>${summary}</small></span>${icon('chev', 'q-chev')}</button>
@@ -1462,20 +1480,84 @@ async function renderEquipment(c) {
         <div><b>${pct != null ? pct + '%' : '—'}</b><span>of the load</span></div><div><b>${zones || '—'}</b><span>zones</span></div></div>
         <div class="spacer" style="flex:1"></div>${systemSwitch()}</div>
       <div class="canvas-card"><canvas id="cv"></canvas>${zoomCtl()}</div>
-      <div class="hint">Rooms are coloured by zone.${app.project.design?.outlets?.length ? ' The ducts are changed on Air &amp; pipes.' : ' The ducts, outlets and fan coil come next, on Air &amp; pipes.'}</div>
+      <div class="hint">${app.assigning ? `<b>Tap a room to put it on system B</b> (green), and tap it again to put it back on the ducts. An open area moves as one. <button class="link" id="assign-done">Done</button>`
+        : `Rooms are coloured by zone${mixed ? '; system B\'s are green' : ''}.${app.project.design?.outlets?.length ? ' The ducts are changed on Air &amp; pipes.' : ' The ducts, outlets and fan coil come next, on Air &amp; pipes.'}`}</div>
     </div>
     <div class="panel q-panel">
-      ${sec('unit', 1, 'Unit', t.unit ? esc(t.unit.label) : 'Not sized yet', unitBody)}
+      ${sec('unit', 1, mixed ? 'Unit · system A' : 'Unit', t.unit ? esc(t.unit.label) : 'Not sized yet', unitBody)}
       ${sec('zoning', 2, 'Zoning', esc(zl?.label ?? ''), zoningBody)}
       ${sec('spill', 3, 'Spill', cards?.needsSpill === false ? 'Nothing more to fit' : cards?.oneZone ? 'One zone' : 'Where spare air goes', spillCard(cards, p))}
+      ${sec('systems', 4, 'Systems', mixed ? `A ducted · B ${esc(B_KINDS.find(([k]) => k === bKind())[1].toLowerCase())}` : 'One system: ducted', systemsBody(p, dv))}
     </div></div>`;
-  const plan = mountPlan($('#cv', c), { interactive: false, labels: true, compact: true });
+  const plan = mountPlan($('#cv', c), {
+    interactive: false, labels: true, compact: true, split: mixed ? app.split : null, both: mixed, splitAir: false,
+    handlers: { tapRoom: (w) => { if (app.assigning && w) toggleRoomOnB(w); } },
+  });
+  bindSystems(c);
   bindZoomCtl(c, plan);
   bindSystemSwitch(c);
+  bindSysTabs(c);
   c.querySelectorAll('[data-q]').forEach((b) => (b.onclick = () => { app.equipOpen = (app.equipOpen ?? 'unit') === b.dataset.q ? 'none' : b.dataset.q; renderEquipment(c); }));
   bindUnitOptions(c);
   bindSpill(c);
   c.querySelectorAll('[data-zoning]').forEach((b) => (b.onclick = async () => { await commit({ ...app.project, site: { ...app.project.site, zoningPref: b.dataset.zoning } }, { rerender: false }); render(); }));
+}
+
+/// Equipment's Systems section: one ducted system, or ducted (A) plus a split (B) for some rooms (Jake, 16 Nov 2026:
+/// "ducted plus bulkhead on one job").
+function systemsBody(p, dv) {
+  if (!isMixed()) {
+    return `<p class="small muted" style="margin:0 0 10px">One system: ducted, to every room. Add a second for rooms the ducts can't reach, like an extension with no roof space: bulkhead, wall or VRF heads on an outdoor unit of their own.</p>
+      ${app.assigning ? '<p class="small" style="margin:0 0 8px;font-weight:600">Tap the rooms for system B on the plan.</p><button class="btn2 small" id="sys-cancel">Cancel</button>'
+        : '<button class="btn2" id="sys-add">+ Add a second system</button>'}`;
+  }
+  const sp = app.split, heads = sp?.heads ?? [], kw = heads.reduce((s, h) => s + h.coolKW, 0);
+  const aRooms = dv.rooms.filter((r) => r.conditioned).length, bRooms = p.rooms.filter((r) => onB(r.id));
+  return `<div class="sys-row"><span class="sys-tag a">A</span><span class="grow"><b>Ducted</b><small>${aRooms} room${aRooms === 1 ? '' : 's'} · ${dv.totals.unit ? g(dv.totals.unit.kw) + ' kW unit' : 'not sized yet'}</small></span></div>
+    <div class="sys-row"><span class="sys-tag b">B</span><span class="grow"><b>${esc(sp?.range?.name ?? B_KINDS.find(([k]) => k === bKind())[1])}</b><small>${bRooms.map((r) => esc(r.name)).join(', ')} · ${heads.length} head${heads.length === 1 ? '' : 's'}${kw ? ', ' + g(Math.round(kw * 10) / 10) + ' kW' : ''} · ${sp?.outdoors?.length ?? 0} outdoor</small></span></div>
+    ${bKindSeg()}
+    <div style="display:flex;gap:8px;align-items:center;margin-top:10px"><button class="btn2 small" id="sys-assign">${app.assigning ? 'Done moving rooms' : 'Move rooms between A and B'}</button><span style="flex:1"></span><button class="link" id="sys-remove">Remove system B</button></div>
+    <p class="small muted" style="margin:8px 0 0">B's heads and outdoor unit are laid out on Air &amp; pipes, under B.</p>`;
+}
+function bindSystems(c) {
+  const on = (sel, f) => { const b = $(sel, c); if (b) b.onclick = f; };
+  on('#sys-add', () => { app.assigning = true; app.equipOpen = 'systems'; render(); });
+  on('#sys-cancel', () => { app.assigning = false; render(); });
+  on('#assign-done', () => { app.assigning = false; render(); });
+  on('#sys-assign', () => { app.assigning = !app.assigning; render(); });
+  on('#sys-remove', async () => { app.assigning = false; app.sysView = 'A'; await commit(withSplitRooms(app.project, []), { undoable: true }); });
+  bindSysTabs(c);
+}
+/// B's kind: bulkhead, VRF or wall heads (each brand's own range).
+function bKindSeg() {
+  return `<div class="seg" title="System B">${B_KINDS.map(([id, t]) => `<button data-bkind="${id}" class="${bKind() === id ? 'on' : ''}">${t}</button>`).join('')}</div>`;
+}
+/// Air & pipes on a two-system job: the ducts (A) or the split's heads (B).
+function sysTabs() {
+  return `<div class="seg sys-tabs"><button data-sysview="A" class="${app.sysView !== 'B' ? 'on' : ''}"><i class="sys-tag a">A</i>Ducts</button><button data-sysview="B" class="${app.sysView === 'B' ? 'on' : ''}"><i class="sys-tag b">B</i>${esc(B_KINDS.find(([k]) => k === bKind())[1])}</button></div>`;
+}
+function bindSysTabs(c) {
+  c.querySelectorAll('[data-sysview]').forEach((b) => (b.onclick = () => { app.sysView = b.dataset.sysview; app.selection = null; app.addMode = false; render(); }));
+  c.querySelectorAll('[data-bkind]').forEach((b) => (b.onclick = () => setBKind(b.dataset.bkind)));
+}
+async function setBKind(kind) {
+  if (kind === bKind()) return;
+  const kaden = brandId() === 'kaden';
+  await edit('setSplitRange', { key: kind === 'vrf' ? 'mitsubishi-pumy' : kind === 'wall' ? (kaden ? 'kaden-ksi' : 'mitsubishi-msz') : (kaden ? 'kaden-km' : 'mitsubishi-mxz') });
+}
+/// A tap on Equipment's plan while moving rooms: the room (or its whole open area) to system B, or back to the ducts.
+async function toggleRoomOnB(w) {
+  const p = app.project;
+  const vr = app.view.rooms.find((r) => r.polygon?.length >= 3 && pointInPolygon(w, r.polygon));
+  if (!vr) return;
+  if (!vr.conditioned) { toast(`${vr.name} isn't heated or cooled.`); return; }
+  const pr = p.rooms.find((r) => r.id === vr.id);
+  const group = pr?.openArea != null ? p.rooms.filter((r) => r.openArea === pr.openArea).map((r) => r.id) : [vr.id];
+  const on = new Set(p.splitRooms ?? []);
+  const adding = !on.has(vr.id);
+  for (const id of group) { if (adding) on.add(id); else on.delete(id); }
+  if (!app.view.rooms.some((r) => r.conditioned && !on.has(r.id))) { toast('Leave a room on the ducts, or make it a split job on New job.'); return; }
+  await commit(withSplitRooms(p, [...on]), { undoable: true });
 }
 
 // MARK: Capture by hand — the scale measured on the plan
@@ -2147,12 +2229,12 @@ function mountPlan(cv, opts) {
   const plan = new Plan(cv, handlers ?? {});
   plan.set({
     project: app.project, view: app.view, layout: layout === false ? null : app.layout, air: app.air, backdrop: app.backdrop,
-    upperBackdrop: app.upperBackdrop, topBackdrop: app.topBackdrop, showPlan: true, allSizes: app.layers.allSizes, zoneCards: app.layers.zones, showAir: false, selection: null, ...rest,
+    upperBackdrop: app.upperBackdrop, topBackdrop: app.topBackdrop, showPlan: true, splitRooms: app.project.splitRooms ?? null, allSizes: app.layers.allSizes, zoneCards: app.layers.zones, showAir: false, selection: null, ...rest,
   });
   return plan;
 }
 
-let liveRoute = latest();
+let liveRoute = latest(call);
 
 function renderDesign(c) {
   const l = app.layout, v = app.view, p = app.project;
@@ -2177,13 +2259,13 @@ function renderDesign(c) {
     </div>
     <div class="stage">
       <div class="bar">
-        <div class="stats"><div><b>${v.totals.unit ? g(v.totals.unit.kw) + ' kW' : '—'}</b><span>unit</span></div><div><b>${zones || '—'}</b><span>zones</span></div>
+        <div class="stats"><div><b>${ductedView().totals.unit ? g(ductedView().totals.unit.kw) + ' kW' : '—'}</b><span>unit</span></div><div><b>${zones || '—'}</b><span>zones</span></div>
           <div><b>${l ? l.outlets.filter((o) => !o.dropper).length : '—'}</b><span>outlets</span></div><div><b>${l ? bags : '—'}</b><span>flex bags</span></div></div>
         <div class="spacer" style="flex:1"></div>
         <button class="btn2 small" id="b-undo" title="Undo the last change" ${app.undo.length ? '' : 'disabled'}>${icon('undo').replace('<svg', '<svg width="15" height="15"')} Back</button>
         <button class="btn2 small" id="b-redo" title="Redo it" ${app.redo.length ? '' : 'disabled'}>Forward ${icon('redo').replace('<svg', '<svg width="15" height="15"')}</button>
         <div class="seg"><button data-mode="plan" class="${app.layers.air ? '' : 'on'}">Plan</button><button data-mode="air" class="${app.layers.air ? 'on' : ''}">Air</button></div>
-        ${systemSwitch()}
+        ${isMixed() ? sysTabs() + (app.sysView === 'B' ? bKindSeg() : '') : systemSwitch()}
       </div>
       <div class="canvas-card"><canvas id="cv"></canvas>${zoomCtl()}
         <div class="north">${'<svg width="14" height="16" viewBox="0 0 14 16"><path d="M7 0l6 16-6-4-6 4z" fill="#E0342F"/></svg>'}<div>N</div></div>
@@ -2223,6 +2305,7 @@ function renderDesign(c) {
   $('#t-layers', c).onclick = (e) => layersMenu(e.currentTarget);
   $('#cancel-join', c)?.addEventListener('click', () => { app.joining = null; render(); });
   bindSystemSwitch(c);
+  bindSysTabs(c);
   c.querySelectorAll('[data-mode]').forEach((b) => (b.onclick = async () => {
     app.layers.air = b.dataset.mode === 'air'; saveLayers();
     if (app.layers.air && !app.air && app.layout) app.air = await call('air', { project: app.project, closed: [...app.closed], balanced: app.balanced });
@@ -2417,7 +2500,7 @@ function renderInspector() {
       ${ground.map((r) => `<label class="pick-row"><input type="checkbox" data-feed="${r.id}" ${dr.rooms.includes(r.id) ? 'checked' : ''}><span class="grow"><b>${esc(r.name)}</b><small>${fmt(r.lps)} L/s${r.dropper && r.dropper !== dr.id ? ' · on ' + esc(v.droppers.find((x) => x.id === r.dropper)?.name ?? 'another dropper') : ''}</small></span></label>`).join('')}
       <div class="actions-row">${dr.byHand ? '<button class="btn2" id="dr-auto">The nearest rooms</button>' : ''}<button class="btn2 danger" id="dr-del">${icon('trash').replace('<svg', '<svg width="16" height="16"')} Take this dropper out</button></div></div>`;
   } else if (s?.kind === 'unit' && l) {
-    const u = v.totals.unit;
+    const u = ductedView().totals.unit;
     if (p.existing) {
       const heater = p.existing.kind === 'heater';
       html = `<div class="card"><div class="insp-head"><h2>Existing ${heater ? 'gas ducted heater' : 'ducted unit'}</h2>${close}</div>
@@ -2468,7 +2551,7 @@ function takeoffOptions() {
 /// × what its ceiling, insulation, glass, the way it faces and its type do to it; the rooms added up; the allowance for
 /// them not all peaking at once; the unit picked. Then whatever on this job is pulling the size down.
 function sizeBreakdown() {
-  const v = app.view, t = v.totals, p = app.project, o = app.options;
+  const v = ductedView(), t = v.totals, p = app.project, o = app.options;
   if (!v?.rooms?.length) { toast('No rooms yet.'); return; }
   const live = v.rooms.filter((r) => r.conditioned), off = v.rooms.filter((r) => !r.conditioned);
   const zoning = o.zonings.find((z) => z.id === (p.site.zoningPref ?? 'perroom'));
@@ -2582,9 +2665,9 @@ function designSummary() {
       ${zones.map((z) => `<div class="zone-row ${z.open ? '' : 'shut'}" data-zone="${z.number}"><span class="dot" style="background:${zoneColour(z.number)}"></span><b>${z.number === 0 ? 'Constant · ' + esc(z.name) : esc(z.name)}</b><span>${fmt(z.lps)} L/s</span></div>`).join('')}
       <div class="seg" style="margin-top:10px"><button data-bal="1" class="${app.balanced ? 'on' : ''}">Balanced</button><button data-bal="0" class="${app.balanced ? '' : 'on'}">As installed</button></div></div>
     <div class="card"><h2>System &amp; zoning</h2>
-      <div class="kv"><span>Unit</span><b>${p.existing ? `Existing ${p.existing.kind === 'heater' ? 'heater' : 'unit'} · ducts for ${g(v.totals.unit?.kw ?? 0)} kW` : esc(v.totals.unit?.label ?? '—')} <button class="link" data-sizehow style="padding:0 0 0 6px">How it's sized</button></b></div>
+      <div class="kv"><span>Unit</span><b>${p.existing ? `Existing ${p.existing.kind === 'heater' ? 'heater' : 'unit'} · ducts for ${g(ductedView().totals.unit?.kw ?? 0)} kW` : esc(ductedView().totals.unit?.label ?? '—')} <button class="link" data-sizehow style="padding:0 0 0 6px">How it's sized</button></b></div>
       ${(app.options.brands?.length ?? 0) > 1 && !p.existing ? `<div class="rowpick"><label>Brand</label><select id="brand">${app.options.brands.map((b) => `<option value="${b.id}" ${b.id === brandId() ? 'selected' : ''}>${esc(b.label)}</option>`).join('')}</select></div>
-      <div class="kv"><span>Fan on high</span><b>${fmt(v.totals.unit?.lps)} L/s · up to ${fmt(v.totals.unit?.esp)} Pa${v.totals.unit?.espConfirmed === false ? ' <span class="muted small" style="font-weight:500">(check the manual)</span>' : ''}</b></div>` : ''}
+      <div class="kv"><span>Fan on high</span><b>${fmt(ductedView().totals.unit?.lps)} L/s · up to ${fmt(ductedView().totals.unit?.esp)} Pa${ductedView().totals.unit?.espConfirmed === false ? ' <span class="muted small" style="font-weight:500">(check the manual)</span>' : ''}</b></div>` : ''}
       <div class="rowpick"><label>Outlets</label><select id="ostyle-all">${OUTLET_STYLES.map(([k, t]) => `<option value="${k}" ${(p.design?.outletStyle ?? 'round') === k ? 'selected' : ''}>${t}</option>`).join('')}</select></div>
       <div class="rowpick"><label>Zoning</label><select id="zoning">${app.options.zonings.map((z) => `<option value="${z.id}" ${z.id === zoning ? 'selected' : ''}>${esc(z.label)}</option>`).join('')}</select></div>
       <div class="rowpick"><label>Supply air transition</label><select id="takeoffs">${takeoffOptions()}</select></div>
@@ -2603,7 +2686,7 @@ function designSummary() {
 /// every room, droppers to each floor below, the drain line, then check and send — each with what's left, and a button
 /// to do it.
 function nextSteps(l, v, p) {
-  const rooms = v.rooms.filter((r) => r.conditioned && r.designerType !== 'none');
+  const rooms = v.rooms.filter((r) => r.conditioned && r.designerType !== 'none' && !onB(r.id));
   const got = rooms.filter((r) => { const q = l.outlets.filter((o) => o.roomId === r.id && !o.spill && !o.dropper).reduce((t, o) => t + o.designLps, 0); return r.lps <= 0 || q / r.lps >= 0.85; }).length;
   const below = v.twoStorey ? [...new Set(v.rooms.filter((r) => (r.level ?? 0) < (v.topLevel ?? 1)).map((r) => r.level ?? 0))] : [];
   const dry = below.filter((lv) => !(v.droppers ?? []).some((d) => (d.level ?? 0) === lv));
@@ -2623,7 +2706,7 @@ function nextSteps(l, v, p) {
 /// Each room that takes a vent, and how it's going: no vent yet, short of air, or right (85% or more of what it needs).
 /// The heart of designing by hand — what's still to do. Tap a row to see the room and add a vent in it.
 function roomsCard(l, v) {
-  const rooms = v.rooms.filter((r) => r.conditioned && r.designerType !== 'none');
+  const rooms = v.rooms.filter((r) => r.conditioned && r.designerType !== 'none' && !onB(r.id));
   if (!rooms.length) return '';
   const rows = rooms.map((r) => {
     const outs = l.outlets.filter((o) => o.roomId === r.id && !o.spill && !o.dropper);
@@ -2829,7 +2912,7 @@ function renderSplitDesign(c) {
         <button class="btn2 small" id="b-undo" title="Undo the last change" ${app.undo.length ? '' : 'disabled'}>${icon('undo').replace('<svg', '<svg width="15" height="15"')} Back</button>
         <button class="btn2 small" id="b-redo" title="Redo it" ${app.redo.length ? '' : 'disabled'}>Forward ${icon('redo').replace('<svg', '<svg width="15" height="15"')}</button>
         <div class="seg" title="Show how far each head's air reaches"><button data-sair="0" class="${splitAir() ? '' : 'on'}">Plan</button><button data-sair="1" class="${splitAir() ? 'on' : ''}">Air</button></div>
-        ${systemSwitch()}
+        ${isMixed() ? sysTabs() + (app.sysView === 'B' ? bKindSeg() : '') : systemSwitch()}
       </div>
       <div class="canvas-card"><canvas id="cv"></canvas>${zoomCtl()}
         <div class="north">${'<svg width="14" height="16" viewBox="0 0 14 16"><path d="M7 0l6 16-6-4-6 4z" fill="#E0342F"/></svg>'}<div>N</div></div>
@@ -2854,6 +2937,7 @@ function renderSplitDesign(c) {
   $('#t-fit', c).onclick = () => plan.fit();
   bindZoomCtl(c, { zoomBy: (k) => plan.zoomBy(k), fit: () => plan.fit(), setHand: (on) => plan.setHand(on) });
   bindSystemSwitch(c);
+  bindSysTabs(c);
   c.querySelectorAll('[data-sair]').forEach((b) => (b.onclick = () => {
     app.layers.splitAir = b.dataset.sair === '1'; saveLayers();
     c.querySelectorAll('[data-sair]').forEach((x) => x.classList.toggle('on', x === b));
@@ -3163,7 +3247,7 @@ function openReport(kind) {
   const close = () => o.remove();
   $('#rp-close', o).onclick = close;
   o.addEventListener('keydown', (e) => e.key === 'Escape' && close());
-  import('./reports.js?v=3907973-202611162145').then(async (m) => {
+  import('./reports.js?v=d766353-202611191235').then(async (m) => {
     // Reports are always the design as installed: every zone open, balanced. A multi-head job has no ducted design to
     // route (routing one threw, and the bar stayed on "Building the report…" for good).
     app.designLayout = isSplit() ? null : await call('route', { project: app.project, closed: [], balanced: true });

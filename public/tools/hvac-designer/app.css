@@ -496,3 +496,12 @@ table.mat td.qty { font-weight: 600; font-family: var(--mono); font-size: 13px; 
 .q-body { overflow-x: auto; }
 .top:empty + .content { padding: 22px 20px 20px; }
 .two-col { margin: 4px auto 0; }
+
+/* Two systems on a job: A ducted, B a split (step 3) */
+.sys-row { display: flex; align-items: center; gap: 10px; padding: 9px 0; border-bottom: 1px solid var(--line); }
+.sys-row .grow { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.sys-row small { color: var(--muted); font-size: 12.5px; }
+.sys-tag { flex: none; width: 24px; height: 24px; border-radius: 8px; display: inline-grid; place-items: center; font: 600 12px/1 var(--head); font-style: normal; color: #fff; }
+.sys-tag.a { background: #3E6CF0; } .sys-tag.b { background: #0FA37A; }
+.sys-tabs button { display: inline-flex; align-items: center; gap: 6px; }
+.sys-tabs .sys-tag { width: 18px; height: 18px; border-radius: 6px; font-size: 10.5px; }

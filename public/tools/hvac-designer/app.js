@@ -1,11 +1,11 @@
 // Trust Trade Pro — the HVAC Designer in the browser. The same five steps as the app (House · Capture · Check · Design ·
 // Send) on the app's own engine (engine.wasm, run in a worker): the same loads, zones, ducts, checks and materials.
 
-import { call as engineCall, latest } from './engine.js?v=8b21a40-202611222135';
-import { jobCalls, isMixed as mixedJob, ductedPart, ductedPartOf, splitSet, withSplitRooms, defaultRange, isDuctedB, activeSys, swapSystems, isVrfB, sharesVrf, pickVrf } from './systems.js?v=8b21a40-202611222135';
-import * as store from './store.js?v=8b21a40-202611222135';
-import { Plan, inkImage, zoneColour, ductColour, splitColour, T, pointInPolygon, SIDE_STYLES, movesOnly, wheelMoves, ZOOM_MAX } from './plan.js?v=8b21a40-202611222135';
-import { RoomEditor, metres, signedArea, onLine } from './roomeditor.js?v=8b21a40-202611222135';
+import { call as engineCall, latest } from './engine.js?v=8b4d96a-202611222237';
+import { jobCalls, isMixed as mixedJob, ductedPart, ductedPartOf, splitSet, withSplitRooms, defaultRange, isDuctedB, activeSys, swapSystems, isVrfB, sharesVrf, pickVrf } from './systems.js?v=8b4d96a-202611222237';
+import * as store from './store.js?v=8b4d96a-202611222237';
+import { Plan, inkImage, zoneColour, ductColour, splitColour, T, pointInPolygon, SIDE_STYLES, movesOnly, wheelMoves, ZOOM_MAX } from './plan.js?v=8b4d96a-202611222237';
+import { RoomEditor, metres, signedArea, onLine } from './roomeditor.js?v=8b4d96a-202611222237';
 
 /// Every engine call: a two-system job's go with the part they're about (systems.js).
 const call = jobCalls(engineCall);
@@ -2063,11 +2063,11 @@ async function closeEditor() {
 function renderRoomEditor(c) {
   const st = app.editorOpen, p = app.project;
   const hasImage = !!((p.backdrop && app.backdrop) || (p.upperBackdrop && app.upperBackdrop) || (p.topBackdrop && app.topBackdrop));
-  c.innerHTML = `<div class="work">
+  c.innerHTML = `<div class="work with-rail ed-work">
+    <div class="rail lab" id="ed-tools">${[['edit', 'cursor', 'Select'], ['draw', 'pen', 'Room'], ['window', 'window', 'Windows'], ['measure', 'ruler', 'Size']]
+      .map(([k, ic, l]) => `<button data-tool="${k}">${icon(ic)}<span>${l}</span></button>`).join('')}</div>
     <div class="stage">
       <div class="bar">
-        <div class="tools" id="ed-tools">${[['edit', 'cursor', 'Select', 'Move walls, rename'], ['draw', 'pen', 'Draw a room', 'Corner by corner'], ['window', 'window', 'Windows', 'Along outside walls'], ['measure', 'ruler', 'Set the size', 'From a wall you know']]
-          .map(([k, ic, l, sub]) => `<button data-tool="${k}"><span class="ti">${icon(ic)}</span><span class="tt"><b>${l}</b><small>${sub}</small></span></button>`).join('')}</div>
         <div class="spacer" style="flex:1"></div>
         <button class="btn2 small" id="ed-undo" title="Undo the last change">${icon('undo').replace('<svg', '<svg width="15" height="15"')} Back</button>
         <button class="btn2 small" id="ed-redo" title="Redo it">Forward ${icon('redo').replace('<svg', '<svg width="15" height="15"')}</button>
@@ -2641,7 +2641,7 @@ async function mount3D(c) {
   app.h3d?.destroy(); app.h3d = null;
   const host = $('#h3d', c);
   if (!host || !app.three) return;
-  H3D ??= (await import('./house3d.js?v=8b21a40-202611222135')).House3D;
+  H3D ??= (await import('./house3d.js?v=8b4d96a-202611222237')).House3D;
   if (!host.isConnected) return;
   app.h3d = new H3D(host, { select: (item) => select(item), changed: (cam) => { app.cam3d = cam; } }, app.cam3d ?? null);
   app.h3d.set({ view: app.view, layout: app.layout, air: app.air, selection: app.selection, heat: !!app.heat3d, sound: app.layers.sound !== false, airOn: true });
@@ -2663,7 +2663,7 @@ async function openCustomer3D() {
     <div class="c3-stage" id="c3-stage"></div>
     <div class="c3-card" id="c3-card"></div>`;
   document.body.append(o);
-  H3D ??= (await import('./house3d.js?v=8b21a40-202611222135')).House3D;
+  H3D ??= (await import('./house3d.js?v=8b4d96a-202611222237')).House3D;
   let layout = all, pick = null, mode = 'all', heat = false, only = null;
   const u = ductedView().totals.unit, vents = all.outlets.filter((x) => !x.dropper && !x.spill).length;
   const card = () => {
@@ -3082,6 +3082,15 @@ function renderInspector() {
   }
   if (s?.kind === 'room' && room(s.id)) {
     html = '';                                             // opens in the list, in place
+  } else if (s?.kind === 'outlet' && s.duct && l?.runs.some((x) => x.outlet === s.id)) {
+    const run = l.runs.find((x) => x.outlet === s.id), o = l.outlets.find((x) => x.id === s.id), r = room(o?.roomId);
+    const sp = run.sizeMM && run.lps > 0 ? velocity(run.lps, run.sizeMM) : null, over = o?.open && legOver(run), auto = run.autoMM ?? run.sizeMM;
+    html = `<div class="card is">${cardHead(close, 'Duct · to a vent', `Flex to ${esc(r?.name ?? 'the vent')}`, `Ø${run.sizeMM} · ${fmt(run.length, 1)} m`, `${fmt(run.lps)} L/s`)}
+      <div class="tiles3"><div><span>Size${o?.overridden ? ' · set' : ''}</span><b>Ø${run.sizeMM}</b></div><div class="${over ? 'warn' : ''}"><span>Speed${over ? ' · over' : ''}</span><b>${sp != null ? fmt(sp, 1) : '—'}<i>m/s</i></b></div><div><span>Length</span><b>${fmt(run.length, 1)}<i>m</i></b></div></div>
+      <div class="seg fill"><button data-vsize="0" class="${o?.overridden ? '' : 'on'}" title="Sized for its air: Ø${auto}">Auto</button>${app.options.ventSizes.map((mm) => `<button data-vsize="${mm}" class="${o?.overridden && o.sizeMM === mm ? 'on' : !o?.overridden && mm === auto ? 'auto' : ''}">Ø${mm}</button>`).join('')}</div>
+      <div class="lnote">Drag the duct to bend it where you hold it, or drag a + on it.</div>
+      ${bendLine()}
+      <div class="rowbtns"><button class="btn2" id="open-vent">Open its vent</button>${l.handDrawn && run.hand ? '<button class="btn2 danger" id="delrun">Take this duct out</button>' : ''}</div></div>`;
   } else if (s?.kind === 'outlet' && l?.outlets.find((o) => o.id === s.id)) {
     html = '';
   } else if (s?.kind === 'box' && l?.boxes.find((b) => b.bid === s.id)) {
@@ -3175,7 +3184,7 @@ function renderInspector() {
   // its sound and its load; the one tapped opens in place. Anything else picked (a BDO, a duct, the fan coil) sits above.
   // A room or vent picked: only that room (Jake, 22 Nov 2026: "when I click the room I want it to only show stuff about
   // that room"), with the way back to the list. Nothing else about the house until it's closed.
-  const focus = app.selection?.kind === 'room' || app.selection?.kind === 'outlet';
+  const focus = app.selection?.kind === 'room' || (app.selection?.kind === 'outlet' && !app.selection.duct);
   el.innerHTML = focus
     ? `<div class="iscroll"><div class="card is" style="padding-bottom:0"><button class="lback" id="insp-close">${icon('back')} All rooms</button></div>${roomList(l, v, p)}</div>${fanFoot(l)}`
     : `<div class="iscroll">${issueList(l, v, p)}${runSeg(l)}${html}${roomList(l, v, p)}${extrasCards(l, v, p)}${flexCard(l)}${optionsCard(l, p)}</div>${fanFoot(l)}`;
@@ -3250,6 +3259,8 @@ async function runOne(zone) {
   await refresh(); render();
 }
 
+/// Supply air a kW of cooling (the engine's `Designer.lpsPerKW`).
+const LPS_PER_KW = 50;
 /// How a vent's sound sits against its room's target: under by a margin, under, or over.
 const soundWord = (db, target) => (db == null ? '' : db > target + 0.5 ? 'loud' : db > target - 5 ? 'fine' : 'quiet');
 
@@ -3258,7 +3269,7 @@ function roomList(l, v, p) {
   const rooms = v.rooms.filter((r) => r.conditioned && r.designerType !== 'none' && onDucts(r.id));
   if (!rooms.length) return '';
   const fed = l.handDrawn ? new Set(l.runs.map((x) => x.outlet).filter(Boolean)) : null;
-  const sel = app.selection, selVent = sel?.kind === 'outlet' ? l.outlets.find((o) => o.id === sel.id) : null;
+  const sel = app.selection, selVent = sel?.kind === 'outlet' && !sel.duct ? l.outlets.find((o) => o.id === sel.id) : null;
   const selRoom = sel?.kind === 'room' ? sel.id : selVent?.roomId ?? null;
   const all = rooms.map((r) => {
     const outs = l.outlets.filter((o) => o.roomId === r.id && !o.spill && !o.dropper), live = fed ? outs.filter((o) => fed.has(o.id)) : outs;
@@ -3288,10 +3299,31 @@ function roomOpen(x, l, v, p, selVent) {
   const r = x.r, byHand = p.design?.zoneOverrides ?? {};
   const mates = v.rooms.filter((m) => m.id !== r.id && m.conditioned && r.zone != null && m.zone === r.zone);
   const joined = byHand[r.id] != null || mates.some((m) => byHand[m.id] != null);
-  const vent = (o, i) => `<button class="lvent ${selVent?.id === o.id ? 'on' : ''}" data-vent="${o.id}"><span>Vent${x.outs.length > 1 ? ' ' + (i + 1) : ''}</span><b>Ø${o.sizeMM}</b><b>${o.open ? fmt(o.lps) + ' L/s' : 'shut'}</b><b class="${o.open && o.dbA > r.soundTarget + 0.5 ? 'bad' : ''}">${o.open ? fmt(o.dbA) + ' dB' : '—'}</b></button>
+  // Each vent: its size, its air, the cooling that air carries (50 L/s a kW) and its sound.
+  const kwOf = (lps) => lps / LPS_PER_KW;
+  const vent = (o, i) => `<button class="lvent ${selVent?.id === o.id ? 'on' : ''}" data-vent="${o.id}"><span>Vent${x.outs.length > 1 ? ' ' + (i + 1) : ''} · Ø${o.sizeMM}</span><b>${o.open ? fmt(o.lps) + ' L/s' : 'shut'}</b><b>${o.open ? fmt(kwOf(o.lps), 1) + ' kW' : '—'}</b><b class="${o.open && o.dbA > r.soundTarget + 0.5 ? 'bad' : ''}">${o.open ? fmt(o.dbA) + ' dB' : '—'}</b></button>
     ${selVent?.id === o.id ? ventOpen(o, r, l) : ''}`;
+  // Should a vent go up a size? When it has more air than its size takes, or it's over the room's sound target.
+  const sizes = app.options.ventSizes ?? [];
+  const up = x.outs.map((o, i) => {
+    const run = l.runs.find((q) => q.outlet === o.id), over = run && o.open && legOver(run), loud = o.open && o.dbA > r.soundTarget + 0.5;
+    const next = sizes.find((mm) => mm > o.sizeMM);
+    return (over || loud) ? { name: `Vent${x.outs.length > 1 ? ' ' + (i + 1) : ''}`, next, why: over && loud ? 'too much air for its size, and loud' : over ? 'too much air for its size' : 'loud' } : null;
+  }).filter(Boolean);
+  const advice = !x.outs.length ? { cls: 'w', text: 'No vents yet: add one.' }
+    : !x.zoneOpen ? { cls: '', text: 'Its zone is shut.' }
+    : up.length ? { cls: 'w', text: up.map((u) => `${u.name}: ${u.next ? 'go up to Ø' + u.next : 'add a vent to share the air'} (${u.why})`).join('. ') + '.' }
+    : x.short ? { cls: 'w', text: `Short of air (${fmt(x.share * 100)}%): add a vent, or go up a size.` }
+    : { cls: 'ok', text: 'Vent sizes are right: no need to go up.' };
   return `<div class="lopen">
-    <div class="lnote">${r.zone === 0 ? 'Always on, no damper' : r.zone != null ? 'Zone ' + r.zone : 'No zone'}${mates.length ? ', with ' + mates.map((m) => esc(m.name)).join(', ') : ''} · ${fmt(r.area, 1)} m² · sound target ${fmt(r.soundTarget)} dB(A)</div>
+    <div class="lnote">${r.zone === 0 ? 'Always on, no damper' : r.zone != null ? 'Zone ' + r.zone : 'No zone'}${mates.length ? ', with ' + mates.map((m) => esc(m.name)).join(', ') : ''} · ${fmt(r.area, 1)} m²</div>
+    ${selVent ? '' : `<div class="lbig six"><div><b>${x.outs.length}</b><span>outlet${x.outs.length === 1 ? '' : 's'}</span></div>
+      <div><b>${fmt(r.lps)}</b><span>L/s it needs</span></div>
+      <div class="${x.zoneOpen && x.short ? 'bad' : ''}"><b>${x.zoneOpen ? fmt(x.gets) : '—'}</b><span>L/s it gets${x.zoneOpen && r.lps > 0 ? ' · ' + fmt(x.share * 100) + '%' : ''}</span></div>
+      <div><b>${fmt(r.kw, 1)}</b><span>kW heat load</span></div>
+      <div class="${x.zoneOpen && x.short ? 'bad' : ''}"><b>${x.zoneOpen ? fmt(kwOf(x.gets), 1) : '—'}</b><span>kW the vents deliver</span></div>
+      <div class="${x.loud ? 'bad' : ''}"><b>${x.db != null ? fmt(x.db) : '—'}</b><span>dB(A) loudest${x.db != null ? ' · ' + soundWord(x.db, r.soundTarget) : ''}</span></div></div>
+    <div class="ladvice ${advice.cls}">${advice.text}</div>`}
     ${x.outs.length ? x.outs.map(vent).join('') : '<div class="lnote" style="color:var(--accent-deep);font-weight:600">No vents in it yet.</div>'}
     ${selVent ? '' : `<div class="seg fill"><button data-zoned="own" class="${r.zone != null && r.zone !== 0 && !mates.length ? 'on' : ''}">Its own zone</button>
         <button data-zoned="none" class="${r.zone === 0 ? 'on' : ''}">Always on</button>${mates.length ? '<button class="on" disabled>Shared</button>' : ''}</div>
@@ -3568,7 +3600,8 @@ async function setTakeoffs(n) {
   toast(`Laying the ducts out as a ${n}-way…`, 8000);
   const r = await edit('relay', { n });
   document.querySelector('.toast')?.remove();
-  if (r) toast(hand ? `Laid out again as a ${n}-way, the cleanest the router finds. Back puts your ducts back.` : `Laid out as a ${n}-way: ${n === 1 ? 'one duct' : n + ' ducts'} off the fan coil.`, 6000);
+  const how = n === 2 ? 'living areas off one duct, bedrooms and the rest off the other' : `${n === 1 ? 'one duct' : n + ' ducts'} off the fan coil`;
+  if (r) toast(hand ? `Laid out again as a ${n}-way: ${how}. Back puts your ducts back.` : `Laid out as a ${n}-way: ${how}.`, 6000);
 }
 
 function bindInspector(el) {
@@ -3658,6 +3691,7 @@ function bindInspector(el) {
   el.querySelectorAll('[data-tko]').forEach((b) => (b.onclick = () => setTakeoffs(b.dataset.tko ? +b.dataset.tko : null)));
   $('#opts', el)?.addEventListener('toggle', (e) => { app.optsOpen = e.target.open; });
   $('#flex-more', el)?.addEventListener('toggle', (e) => { app.flexOpen = e.target.open; });
+  $('#open-vent', el)?.addEventListener('click', () => select({ kind: 'outlet', id: app.selection.id }));
   $('#room-more', el)?.addEventListener('click', () => { app.loadOpen = !app.loadOpen; renderInspector(); });
   $('#vent-more', el)?.addEventListener('click', () => { app.ventMore = !app.ventMore; renderInspector(); });
   $('#bal', el)?.addEventListener('change', async (e) => { app.balanced = e.target.value === '1'; await refresh(); render(); });
@@ -4130,7 +4164,7 @@ function openReport(kind) {
   const close = () => o.remove();
   $('#rp-close', o).onclick = close;
   o.addEventListener('keydown', (e) => e.key === 'Escape' && close());
-  import('./reports.js?v=8b21a40-202611222135').then(async (m) => {
+  import('./reports.js?v=8b4d96a-202611222237').then(async (m) => {
     // Reports are always the design as installed: every zone open, balanced. A multi-head job has no ducted design to
     // route (routing one threw, and the bar stayed on "Building the report…" for good).
     app.designLayout = isSplit() ? null : await call('route', { project: app.project, closed: [], balanced: true });

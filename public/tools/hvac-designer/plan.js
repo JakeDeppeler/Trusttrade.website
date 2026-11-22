@@ -1947,7 +1947,7 @@ export class Plan {
         if (r.kind === 'return') continue;
         const dropper = r.keyOutlet != null && l.outlets.some((o) => o.dropper && o.id === r.keyOutlet);
         const key = r.keyBox != null ? { kind: 'feed', id: r.keyBox } : dropper ? { kind: 'dropper', id: r.keyOutlet }
-          : r.keyOutlet != null ? { kind: 'outlet', id: r.keyOutlet } : null;
+          : r.keyOutlet != null ? { kind: 'outlet', id: r.keyOutlet, duct: true } : null;
         if (!key) continue;
         const pts = curves[ri].map(x.pt), w = ductWidth(r.sizeMM, x.s);
         for (let i = 1; i < pts.length; i++) {
@@ -1984,7 +1984,12 @@ export class Plan {
       }
       const interactive = this.data?.interactive !== false;
       // Placing a dropper: a tap anywhere in a room places it, over a vent or the fan coil too.
-      const item = interactive && this.data?.addMode !== 'dropper' && this.data?.addMode !== 'bdo' && this.data?.addMode !== 'pen' && (this.data?.layout || this.data?.split) ? this.hitMarker(q) : null;
+      let item = interactive && this.data?.addMode !== 'dropper' && this.data?.addMode !== 'bdo' && this.data?.addMode !== 'pen' && (this.data?.layout || this.data?.split) ? this.hitMarker(q) : null;
+      // A duct grabbed (Jake, 22 Nov 2026: "when I click the duct to move it"): dragging it bends it where it's held.
+      if (!item && interactive && !this.data?.addMode && this.data?.layout) {
+        const h = this.hit(q);
+        if (h && (h.kind === 'feed' || (h.kind === 'outlet' && h.duct))) item = { kind: 'duct', key: h };
+      }
       this.drag = { start: q, last: q, item, active: false, pan: { ...this.pan } };
     });
     c.addEventListener('pointermove', (e) => {
@@ -2006,6 +2011,17 @@ export class Plan {
       if (!d.active && Math.hypot(q.x - d.start.x, q.y - d.start.y) > 4) {
         d.active = true;
         d.screen = q;
+        if (d.item?.kind === 'duct') {
+          // Picked, then held as a new bend in the stretch that was grabbed (its handles come with being picked).
+          this.on.select?.(d.item.key);
+          const hb = this.data?.handBends, w = this.x.world(d.start);
+          if (hb) {
+            const pts = [hb.start, ...hb.via, hb.end];
+            let best = 0, bd = Infinity;
+            for (let k = 0; k < pts.length - 1; k++) { const dd = segDist(w, pts[k], pts[k + 1]); if (dd < bd) { bd = dd; best = k; } }
+            d.item = { kind: 'bendAdd', id: hb.id, i: best };
+          } else d.item = null;
+        }
         if (d.item && d.item.kind !== 'edit') this.on.select?.(d.item);
       }
       if (!d.active) return;

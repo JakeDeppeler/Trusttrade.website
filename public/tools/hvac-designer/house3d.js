@@ -4,7 +4,7 @@
 // Air moves along the open ducts and falls out of each vent, following whichever zones are on. Drag to spin, scroll to
 // zoom, tap a room or a vent. Drawn with WebGL directly: no library to load.
 
-import { zoneColour, ductColour } from './plan.js?v=8b21a40-202611222135';
+import { zoneColour, ductColour } from './plan.js?v=8b4d96a-202611222237';
 
 const rgb = (hex, a = 1) => { const n = parseInt(String(hex).replace('#', ''), 16); return [(n >> 16 & 255) / 255, (n >> 8 & 255) / 255, (n & 255) / 255, a]; };
 const mix = (a, b, t) => [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, a[2] + (b[2] - a[2]) * t, a[3] ?? 1];

@@ -34,6 +34,9 @@ function rgba(hex, a) {
   return `rgba(${(n >> 16) & 255},${(n >> 8) & 255},${n & 255},${a})`;
 }
 
+/// Side-blow bar grilles (in a wall, or a bulkhead's face): drawn along their wall.
+export const SIDE_STYLES = new Set(['sideWall', 'sideBulkhead']);
+
 export function pointInPolygon(p, poly) {
   let inside = false;
   for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
@@ -321,6 +324,16 @@ export class Plan {
     this.drawFloorLabels(g, x, d.view);
     if (d.gaps) this.drawGaps(g, x, d.gaps);
     this.drawWindows(g, x, view, d.editor?.pickedWindow?.());
+    // Two ducted systems: the other one's ducts and vents, faint, behind the one being worked on (not tappable).
+    if (d.ghost && !d.editor && !d.report) this.guard('other system', () => {
+      g.save(); g.globalAlpha = 0.3;
+      if (d.ghost.outdoor) this.drawPipes(g, x, d.ghost.unit, d.ghost.outdoor);
+      this.drawDucts(g, x, d.ghost, { legSizes: false, flow: null });
+      this.drawReportMarks(g, x, { ...d.ghost, outdoor: null });
+      const u = x.pt(d.ghost.unit);
+      g.beginPath(); g.roundRect(u.x - 12, u.y - 7, 24, 14, 3); g.fillStyle = '#fff'; g.fill(); g.strokeStyle = T.ink; g.lineWidth = 1.5; g.stroke();
+      g.restore();
+    });
     if (layout) {
       if (d.showAir && d.air) this.guard('throw', () => this.drawThrow(g, x, d.view, layout, d.air));
       if (layout.outdoor) this.guard('pipes', () => this.drawPipes(g, x, layout.unit, layout.outdoor));
@@ -451,13 +464,13 @@ export class Plan {
       const z = zoneOf[r.id];
       // A two-system job: system B's rooms in B's own green, hatched, whatever the ducts' zones say.
       const onB = this.data?.splitRooms?.includes(r.id);
-      const fill = onB ? SYS_B : z !== undefined ? (closed.has(z) ? T.line : zoneColour(z)) : roomFill(r);
+      const fill = onB ? (this.data?.hatch ?? SYS_B) : z !== undefined ? (closed.has(z) ? T.line : zoneColour(z)) : roomFill(r);
       this.path(g, pts, true);
       g.fillStyle = rgba(fill, onB ? 0.2 : layout && z !== undefined && !closed.has(z) ? 0.22 : 0.14); g.fill();
       if (onB) {
         g.save(); this.path(g, pts, true); g.clip();
         const bb = pts.reduce((b, q) => [Math.min(b[0], q.x), Math.min(b[1], q.y), Math.max(b[2], q.x), Math.max(b[3], q.y)], [Infinity, Infinity, -Infinity, -Infinity]);
-        g.strokeStyle = rgba(SYS_B, 0.28); g.lineWidth = 1;
+        g.strokeStyle = rgba(this.data?.hatch ?? SYS_B, 0.28); g.lineWidth = 1;
         for (let k = bb[0] - (bb[3] - bb[1]); k < bb[2]; k += 9) { g.beginPath(); g.moveTo(k, bb[3]); g.lineTo(k + (bb[3] - bb[1]), bb[1]); g.stroke(); }
         g.restore();
         this.path(g, pts, true);
@@ -550,7 +563,9 @@ export class Plan {
 
   curves(l, x) {
     const sc = x?.s ?? 0;
-    if (this._curves?.l === l && this._curves.s === sc) return this._curves.c;
+    // Kept per layout (two ducted systems draw two), until the scale changes.
+    const hit = (this._curves ??= new WeakMap()).get(l);
+    if (hit?.s === sc) return hit.c;
     const fe = x ? this.fittingEnds(l, x) : { start: {}, end: {} };
     const c = l.runs.map((r, i) => {
       let pts = simplify(r.path, 0.12);
@@ -588,7 +603,7 @@ export class Plan {
       }
       return out;
     });
-    this._curves = { l, s: sc, c };
+    this._curves.set(l, { s: sc, c });
     return c;
   }
 
@@ -1325,6 +1340,59 @@ export class Plan {
 
   /// An outlet's face, by its kind: a round ceiling diffuser (rings), a linear slot (two slots), a linear bar grille
   /// (fine bars) or a floor grille (a square grid on a darker face).
+  /// A side grille's wall (Jake, 22 Nov 2026: "bar grills as side ways blow air"): the nearest wall of the room the
+  /// vent is in, as screen directions along it (u) and into the room (v), and how far off it the vent sits (px).
+  sideWall(x, c) {
+    const w = x.world(c), room = this.data?.view?.rooms.find((r) => r.polygon?.length >= 3 && pointInPolygon(w, r.polygon));
+    if (!room) return null;
+    const P = room.polygon;
+    let best = null;
+    for (let i = 0; i < P.length; i++) {
+      const a = P[i], b = P[(i + 1) % P.length], dx = b.x - a.x, dy = b.y - a.y, L = Math.hypot(dx, dy);
+      if (L < 0.05) continue;
+      const t = Math.max(0, Math.min(L, ((w.x - a.x) * dx + (w.y - a.y) * dy) / L));
+      const q = { x: a.x + dx / L * t, y: a.y + dy / L * t }, d = Math.hypot(w.x - q.x, w.y - q.y);
+      if (!best || d < best.d) best = { d, q, t: { x: dx / L, y: dy / L } };
+    }
+    if (!best) return null;
+    let n = { x: -best.t.y, y: best.t.x };
+    if (!pointInPolygon({ x: best.q.x + n.x * 0.05, y: best.q.y + n.y * 0.05 }, P)) n = { x: -n.x, y: -n.y };
+    const q0 = x.pt(best.q), along = x.pt({ x: best.q.x + best.t.x, y: best.q.y + best.t.y }), into = x.pt({ x: best.q.x + n.x, y: best.q.y + n.y });
+    const unit = (p) => { const L = Math.hypot(p.x - q0.x, p.y - q0.y) || 1; return { x: (p.x - q0.x) / L, y: (p.y - q0.y) / L }; };
+    return { u: unit(along), v: unit(into), off: best.d * x.s, m: x.s };
+  }
+
+  /// A side-blow bar grille, seen from above: edge on, along its wall, with its air thrown into the room. In a bulkhead
+  /// face it sits out from the wall, with the bulkhead (shaded) behind it back to the wall.
+  drawSideGrille(g, c, size, style, w) {
+    const ink = '#3A3F45', len = size * 2.1, t = Math.max(4, size * 0.3);
+    const near = w.off <= 0.9 * w.m;                       // snapped to its wall (else: drawn where it is)
+    const wallY = near ? -w.off : 0, face = style === 'sideBulkhead' || !near ? 0 : wallY + t / 2;
+    g.save();
+    g.transform(w.u.x, w.u.y, w.v.x, w.v.y, c.x, c.y);     // x: along the wall · y: into the room
+    if (style === 'sideBulkhead' && near && w.off > 2) {
+      const bl = len + size * 1.4;
+      g.beginPath(); g.rect(-bl / 2, wallY, bl, -wallY);
+      g.fillStyle = 'rgba(120,128,138,0.22)'; g.fill();
+      g.setLineDash([4, 3]); g.strokeStyle = ink; g.lineWidth = 1; g.stroke(); g.setLineDash([]);
+    }
+    g.beginPath(); g.roundRect(-len / 2, face - t / 2, len, t, 1.5);
+    g.fillStyle = '#fff'; g.fill(); g.strokeStyle = ink; g.lineWidth = Math.max(1, size * 0.08); g.stroke();
+    g.lineWidth = Math.max(0.8, size * 0.05);
+    for (let k = -len / 2 + t * 0.6; k <= len / 2 - t * 0.5; k += Math.max(3, size * 0.2)) {
+      g.beginPath(); g.moveTo(k, face - t * 0.3); g.lineTo(k, face + t * 0.3); g.stroke();
+    }
+    // The throw: three arrows out into the room.
+    g.strokeStyle = '#2E7CF6'; g.fillStyle = '#2E7CF6'; g.lineWidth = Math.max(1.2, size * 0.07);
+    const y0 = face + t / 2 + 2, y1 = y0 + size * 0.95, hd = Math.max(3, size * 0.18);
+    for (const k of [-0.32, 0, 0.32]) {
+      const ax = k * len;
+      g.beginPath(); g.moveTo(ax, y0); g.lineTo(ax, y1 - hd * 0.6); g.stroke();
+      g.beginPath(); g.moveTo(ax, y1); g.lineTo(ax - hd * 0.6, y1 - hd); g.lineTo(ax + hd * 0.6, y1 - hd); g.closePath(); g.fill();
+    }
+    g.restore();
+  }
+
   drawGrille(g, c, size, style = 'round') {
     const h = size / 2, ink = '#3A3F45';
     g.strokeStyle = ink;
@@ -1458,7 +1526,8 @@ export class Plan {
     for (const o of l.outlets) {
       if (o.dropper) continue;
       const c = at('outlet', o.id, x.pt(o.pos)), size = Math.min(Math.max((o.sizeMM + 150) / 1000 * x.s, 15), 34);
-      shadow(() => this.drawGrille(g, c, size, o.style));
+      const sw = SIDE_STYLES.has(o.style) ? this.sideWall(x, c) : null;
+      shadow(() => sw ? this.drawSideGrille(g, c, size, o.style, sw) : this.drawGrille(g, c, size, o.style));
       const ring = size / 2 + 5;
       if (sel?.kind === 'outlet' && sel.id === o.id) { g.beginPath(); g.roundRect(c.x - ring, c.y - ring, ring * 2, ring * 2, 5); g.strokeStyle = T.accent; g.lineWidth = 3; g.stroke(); }
       const pk = this.data?.picked?.indexOf(o.id) ?? -1;
@@ -1584,7 +1653,11 @@ export class Plan {
 
   /// The reports' plan (the app's `Reports.planImage`): grilles and the outdoor unit, no handles or tags.
   drawReportMarks(g, x, l) {
-    for (const o of l.outlets) if (!o.dropper) this.drawGrille(g, x.pt(o.pos), 13, o.style);
+    for (const o of l.outlets) {
+      if (o.dropper) continue;
+      const c = x.pt(o.pos), sw = SIDE_STYLES.has(o.style) ? this.sideWall(x, c) : null;
+      sw ? this.drawSideGrille(g, c, 13, o.style, sw) : this.drawGrille(g, c, 13, o.style);
+    }
     if (l.outdoor) {
       const [, out, condenser] = l.outdoor, c = x.pt(condenser), size = 22;
       g.save(); g.translate(c.x, c.y); g.rotate(-Math.atan2(out.y, out.x));

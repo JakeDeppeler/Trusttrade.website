@@ -10,16 +10,51 @@ export const splitSet = (p) => new Set(p?.splitRooms ?? []);
 /// Two systems: a ducted job with rooms on a split as well.
 export const isMixed = (p) => !!p && p.system !== 'multiSplit' && (p.splitRooms?.length ?? 0) > 0;
 
-/// The ducted system on its own: the house less B's rooms, and no outlet or zone pick left in them.
-export function ductedPart(p) {
-  const off = splitSet(p);
-  const out = { ...p, rooms: p.rooms.filter((r) => !off.has(r.id)), system: 'ducted' };
-  delete out.splitRooms; delete out.split;
-  if (p.design) out.design = { ...p.design, outlets: (p.design.outlets ?? []).filter((o) => !off.has(o.roomId)) };
-  if (p.zonePlan) out.zonePlan = Object.fromEntries(Object.entries(p.zonePlan).filter(([k, v]) => !off.has(k) && !off.has(v)));
-  if (p.spill?.room && off.has(p.spill.room)) delete out.spill;
+// System B ducted as well (Jake, 22 Nov 2026: "the front half a ducted split and then the back half as a different roof
+// high and also a ducted split"): two ducted systems, each in its own roof space, on one VRF outdoor unit. The system
+// being worked on (project.activeSys, A unless it says B) keeps its design, zones, spill and unit picks where a
+// one-system job keeps them, so every screen works on it as it is; the other system's wait in project.other until the
+// A/B tab swaps them over.
+
+/// System B is ducted too.
+export const isDuctedB = (p) => isMixed(p) && p.systemB === 'ducted';
+/// The ducted system being worked on: 'A' or 'B'.
+export const activeSys = (p) => (isDuctedB(p) && p.activeSys === 'B' ? 'B' : 'A');
+/// The unit picks that are each system's own (the brand, duct speeds and the rest are the job's).
+export const SYS_SITE = ['unitSizingPref', 'unitKWPref', 'zoningPref'];
+const sysSite = (site) => Object.fromEntries(SYS_SITE.map((k) => [k, site?.[k] ?? null]));
+/// Keys only the page knows: carried through every engine reply.
+const PAGE_KEYS = ['zoneCards', 'systemB', 'activeSys', 'other', 'vrfSpot'];
+
+/// The other ducted system to the front: its design, zones, spill and unit picks swapped with the active one's.
+export function swapSystems(p) {
+  const o = p.other ?? {}, out = { ...p, activeSys: activeSys(p) === 'B' ? 'A' : 'B' };
+  out.other = { design: p.design ?? null, zonePlan: p.zonePlan ?? null, spill: p.spill ?? null, site: sysSite(p.site) };
+  for (const k of ['design', 'zonePlan', 'spill']) { if (o[k] != null) out[k] = o[k]; else delete out[k]; }
+  out.site = { ...p.site, ...sysSite(o.site) };
+  if (out.activeSys === 'A') delete out.activeSys;
   return out;
 }
+
+/// One ducted system on its own ('A': the house less B's rooms; 'B': B's rooms, when B is ducted), with its own design,
+/// zones and spill, and no outlet or zone pick left in the other's rooms.
+export function ductedPartOf(p, sys) {
+  const off = splitSet(p), mineB = sys === 'B', have = new Set(p.rooms.map((r) => r.id));
+  const mine = (id) => have.has(id) && off.has(id) === mineB;
+  const src = !isDuctedB(p) || sys === activeSys(p) ? p
+    : { ...p, design: p.other?.design ?? undefined, zonePlan: p.other?.zonePlan ?? undefined, spill: p.other?.spill ?? undefined, site: { ...p.site, ...sysSite(p.other?.site) } };
+  const out = { ...src, rooms: p.rooms.filter((r) => mine(r.id)), system: 'ducted' };
+  for (const k of ['splitRooms', 'split', ...PAGE_KEYS]) delete out[k];
+  for (const k of ['design', 'zonePlan', 'spill']) if (out[k] == null) delete out[k];
+  if (src.design) out.design = { ...src.design, outlets: (src.design.outlets ?? []).filter((o) => mine(o.roomId)) };
+  if (src.zonePlan) out.zonePlan = Object.fromEntries(Object.entries(src.zonePlan).filter(([k, v]) => mine(k) && mine(v)));
+  if (src.spill?.room && !mine(src.spill.room)) delete out.spill;
+  // B's fan coil is piped to A's outdoor unit: the one VRF outdoor (p.vrfSpot: where A's stands, and its way out).
+  if (mineB && isDuctedB(p) && out.design && p.vrfSpot) out.design = { ...out.design, outdoor: p.vrfSpot[0], outdoorOut: p.vrfSpot[1] };
+  return out;
+}
+/// The ducted system being worked on, on its own (system A, unless B is ducted and in front).
+export const ductedPart = (p) => ductedPartOf(p, activeSys(p));
 
 /// The split on its own: B's rooms only, its range and heads. The extras and drawn lines stay with A, so the materials
 /// don't list them twice.
@@ -36,8 +71,8 @@ export const defaultRange = 'mitsubishi-mxz';
 /// deleted goes, one it added joins in), everything else it owns. The engine doesn't know splitRooms; they're kept,
 /// less any room that's gone, and spread to the whole of an open area (an open area is one space: one system).
 export function mergePart(full, got, kind) {
-  const off = splitSet(full);
-  const mine = kind === 'split' ? (r) => off.has(r.id) : kind === 'ducted' ? (r) => !off.has(r.id) : () => true;
+  const off = splitSet(full), bDucts = activeSys(full) === 'B';
+  const mine = kind === 'split' ? (r) => off.has(r.id) : kind === 'ducted' ? (r) => off.has(r.id) === bDucts : () => true;
   const gotRooms = new Map(got.rooms.map((r) => [r.id, r]));
   const rooms = kind === 'whole' ? got.rooms : [];
   if (kind !== 'whole') for (const r of full.rooms) {
@@ -91,13 +126,62 @@ export function jobCalls(call) {
     const part = kind === 'ducted' ? ductedPart(full) : kind === 'split' ? splitPart(full) : full;
     const r = await call(cmd, { ...args, project: part });
     if (mixed && r?.project?.rooms) r.project = mergePart(full, r.project, kind);   // a one-system job's come back as they are
-    // Where the zone cards were moved to by hand: the page's, not the engine's, so it's carried through every reply.
-    if (r?.project?.rooms && full.zoneCards && r.project.zoneCards == null) r.project.zoneCards = full.zoneCards;
+    // What only the page keeps (where the zone cards were moved to, the second ducted system): carried through every reply.
+    if (r?.project?.rooms) for (const k of PAGE_KEYS) if (full[k] != null && r.project[k] == null) r.project[k] = full[k];
     return r;
   }
 
+  /// Two ducted systems on one VRF outdoor: A's checks, materials and reports, then B's (once it has a design), with the
+  /// two ducted splits' outdoor units swapped for the one VRF outdoor and its branch joint.
+  async function bothDucted(cmd, args, full) {
+    const pa = ductedPartOf(full, 'A'), pb = ductedPartOf(full, 'B');
+    // B's materials are its own: the job's extras and drawn lines are listed once, with A.
+    delete pb.extras; delete pb.lines;
+    const [a, b] = await Promise.all([call(cmd, { ...args, project: pa }).catch((e) => ({ error: e })),
+      pb.design ? call(cmd, { ...args, project: pb }).catch((e) => ({ error: e })) : null]);
+    const vrf = await vrfPlan(full).catch(() => null);
+    if (cmd === 'checks') {
+      // The job's own (the climate and such) are said once, with A.
+      const seen = new Set((a.checks ?? []).map((c) => c.title + '|' + c.detail));
+      const bChecks = b && !b.error ? b.checks.filter((c) => !seen.has(c.title + '|' + c.detail)).map((c) => ({ ...c, id: 'B-' + c.id, title: 'System B: ' + c.title })) : [];
+      if (!pb.design) bChecks.push({ id: 'B-design', level: 'warn', title: 'System B: not designed yet', detail: 'Its fan coil, ducts and vents go in on Air & pipes, under B.' });
+      return { checks: [...(a.checks ?? []), ...bChecks, ...(vrf?.checks ?? [])] };
+    }
+    if (a.error) throw a.error;
+    if (cmd === 'takeoff') {
+      const bGroups = b && !b.error ? b.groups.map((grp) => ({ ...grp, name: 'System B · ' + grp.name })) : [];
+      const groups = vrfMaterials([...a.groups.map((grp) => ({ ...grp, name: (pb.design ? 'System A · ' : '') + grp.name })), ...bGroups], vrf);
+      return { groups, csv: takeoffCSV(groups) };
+    }
+    const bBlocks = b && !b.error ? (b.blocks ?? []).filter((x) => !['letterhead', 'title', 'subtitle'].includes(x.type)) : [];
+    const vrfBlocks = vrf?.pick ? [{ type: 'text', text: `Both systems run off one ${vrf.pick.model} VRF outdoor unit (${vrf.pick.kw} kW), with a refrigerant branch joint splitting its pipes to the two fan coils.` }] : [];
+    return { ...a, blocks: [...(a.blocks ?? []), ...vrfBlocks, ...(bBlocks.length ? [{ type: 'page' }, { type: 'heading', text: 'System B: the back ducted system' }, ...bBlocks] : [])] };
+  }
+
+  /// The one VRF outdoor for two ducted systems: the smallest City Multi PUMY that covers the whole home's load and
+  /// takes both fan coils within its connectable range (single phase: the SP models only).
+  async function vrfPlan(full) {
+    const [opts, va, vb] = await Promise.all([options ??= call('options'), call('view', { project: ductedPartOf(full, 'A') }),
+      call('view', { project: ductedPartOf(full, 'B') })]);
+    const range = opts.splitRanges?.find((r) => r.id === 'mitsubishi-pumy');
+    const ua = va?.totals?.unit, ub = vb?.totals?.unit;
+    const load = (va?.totals?.wholeHomeKW ?? va?.totals?.connectedKW ?? 0) + (vb?.totals?.wholeHomeKW ?? vb?.totals?.connectedKW ?? 0);
+    const indoor = (ua?.kw ?? 0) + (ub?.kw ?? 0);
+    const single = !full.site?.threePhasePref;
+    const fits = (range?.outdoors ?? []).filter((o) => (!single || o.phase !== '3Ø') && o.kw >= load - 0.05 && indoor >= o.connect[0] - 0.05 && indoor <= o.connect[1] + 0.05)
+      .sort((x, y) => x.kw - y.kw);
+    const pick = fits[0] ?? null, checks = [];
+    if (!pick) checks.push({ id: 'vrf-size', level: 'warn', title: 'VRF outdoor: none fits',
+      detail: `${Math.round(load * 10) / 10} kW of home on ${Math.round(indoor * 10) / 10} kW of fan coils is past what a ${single ? 'single phase ' : ''}PUMY takes. ${single ? 'Three phase opens up the P200–P300 (Equipment), or split' : 'Split'} the job across two outdoor units.` });
+    for (const [n, u] of [['A', ua], ['B', ub]]) if (u && u.kw > 14.05) checks.push({ id: 'vrf-indoor-' + n, level: 'warn', title: `System ${n}: fan coil for the VRF`,
+      detail: `${u.kw} kW is past the City Multi slim ducted range: check a PEFY of this size is on the PUMY's connection list.` });
+    return { pick, load, indoor, units: [ua, ub], checks, single };
+  }
+  let options = null;
+
   /// The send checks, the materials and the reports: system A's then system B's.
   async function both(cmd, args, full) {
+    if (isDuctedB(full)) return bothDucted(cmd, args, full);
     const [a, b0] = await Promise.all([call(cmd, { ...args, project: ductedPart(full) }).catch((e) => ({ error: e })),
       call(cmd, { ...args, project: splitPart(full) }).catch((e) => ({ error: e }))]);
     let b = b0;
@@ -136,4 +220,28 @@ function splitCustomerBlocks(sp) {
     { type: 'table', cols: [{ title: 'Outdoor unit', width: 0.4 }, { title: 'Runs', width: 0.4 }, { title: 'Capacity', width: 0.2, align: 'right' }],
       rows: outs.map((o) => [o.model, `${o.heads.length} head${o.heads.length === 1 ? '' : 's'}`, kw(o.coolKW)]) },
   ];
+}
+
+/// Two ducted systems on one VRF: the materials' outdoor units (one per ducted split) out, the one VRF outdoor and its
+/// branch joint in, and each fan coil marked as a City Multi ducted indoor of its size.
+function vrfMaterials(groups, vrf) {
+  const out = groups.map((grp) => ({ ...grp, lines: grp.lines.filter((l) => !/^Outdoor unit · /.test(l.desc)).map((l) => /^Indoor unit \(ducted\) · /.test(l.desc)
+    ? { ...l, desc: l.desc.replace('Indoor unit (ducted) · ', 'Indoor unit (ducted, on the VRF) · '), note: l.note + ' · a City Multi ducted indoor (PEFY/PEAD) of this size to suit the PUMY' }
+    : l) }));
+  const kw = (n) => `${Math.round(n * 10) / 10} kW`;
+  const line = (desc, note, term) => ({ desc, note, qty: 1, uom: 'ea', qtyText: '1', term, url: 'https://www.reece.com.au/search?query=' + encodeURIComponent(term) });
+  const lines = vrf?.pick
+    ? [line(`VRF outdoor unit · Mitsubishi Electric ${vrf.pick.model}`, `${kw(vrf.pick.kw)} City Multi, ${vrf.pick.phase === '3Ø' ? 'three phase, 400 V' : 'single phase, 230 V'} · runs both systems (${kw(vrf.indoor)} of fan coils on a ${kw(vrf.load)} home)`, `mitsubishi ${vrf.pick.model}`),
+      line(`Refrigerant branch joint · Mitsubishi Electric ${vrf.indoor <= 20.2 ? 'CMY-Y62-G-E' : 'CMY-Y64-G-E'}`, 'splits the VRF pipes to the two fan coils · check the size against the install manual', `mitsubishi ${vrf.indoor <= 20.2 ? 'CMY-Y62-G-E' : 'CMY-Y64-G-E'}`)]
+    : [line('VRF outdoor unit · to be picked', `no PUMY fits ${kw(vrf?.indoor ?? 0)} of fan coils on a ${kw(vrf?.load ?? 0)} home`, 'mitsubishi pumy')];
+  out.unshift({ name: 'VRF outdoor', lines });
+  return out.filter((grp) => grp.lines.length);
+}
+
+/// The materials as CSV, the engine's way (Takeoff.csv).
+function takeoffCSV(groups) {
+  const esc = (s) => '"' + String(s).replace(/"/g, '""') + '"';
+  const rows = [['Group', 'Item', 'Detail', 'Qty', 'Unit', 'Reece search']];
+  for (const grp of groups) for (const l of grp.lines) rows.push([grp.name, l.desc, l.note, l.qty === Math.round(l.qty) ? String(l.qty) : String(l.qty), l.uom, l.url]);
+  return rows.map((r) => r.map(esc).join(',')).join('\r\n') + '\r\n';
 }

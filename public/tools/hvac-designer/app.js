@@ -1,11 +1,11 @@
 // Trust Trade Pro — the HVAC Designer in the browser. The same five steps as the app (House · Capture · Check · Design ·
 // Send) on the app's own engine (engine.wasm, run in a worker): the same loads, zones, ducts, checks and materials.
 
-import { call as engineCall, latest } from './engine.js?v=3017b39-202611192046';
-import { jobCalls, isMixed as mixedJob, ductedPart, splitSet, withSplitRooms, defaultRange } from './systems.js?v=3017b39-202611192046';
-import * as store from './store.js?v=3017b39-202611192046';
-import { Plan, inkImage, zoneColour, ductColour, splitColour, T, pointInPolygon, movesOnly, wheelMoves, ZOOM_MAX } from './plan.js?v=3017b39-202611192046';
-import { RoomEditor, metres, signedArea, onLine } from './roomeditor.js?v=3017b39-202611192046';
+import { call as engineCall, latest } from './engine.js?v=18782d7-202611221516';
+import { jobCalls, isMixed as mixedJob, ductedPart, ductedPartOf, splitSet, withSplitRooms, defaultRange, isDuctedB, activeSys, swapSystems } from './systems.js?v=18782d7-202611221516';
+import * as store from './store.js?v=18782d7-202611221516';
+import { Plan, inkImage, zoneColour, ductColour, splitColour, T, pointInPolygon, SIDE_STYLES, movesOnly, wheelMoves, ZOOM_MAX } from './plan.js?v=18782d7-202611221516';
+import { RoomEditor, metres, signedArea, onLine } from './roomeditor.js?v=18782d7-202611221516';
 
 /// Every engine call: a two-system job's go with the part they're about (systems.js).
 const call = jobCalls(engineCall);
@@ -131,14 +131,33 @@ async function refresh() {
   const viewP = call('view', { project: p });
   const split = isSplit(), mixed = isMixed();
   const layoutP = p.design && !split ? call('route', { project: p, closed: [...app.closed], balanced: app.balanced }) : Promise.resolve(null);
-  const splitP = (split || mixed) && p.rooms.length ? call('splitPlan', { project: p }) : Promise.resolve(null);
-  // Two systems: system A's own loads and unit, the house less B's rooms.
+  const ductB = isDuctedB(p);
+  const splitP = (split || mixed) && !ductB && p.rooms.length ? call('splitPlan', { project: p }) : Promise.resolve(null);
+  // Two systems: the ducted system's own loads and unit (A's, the house less B's rooms; or B's, when B is ducted and in front).
   const ductViewP = mixed ? call('view', { project: ductedPart(p) }) : Promise.resolve(null);
-  const [view, layout, sp, ductView] = await Promise.all([viewP, layoutP.catch(() => null), splitP.catch(() => null), ductViewP.catch(() => null)]);
+  // Two ducted systems: the other one too (its unit for the Systems card, its ducts drawn faint behind).
+  const other = ductB ? (activeSys(p) === 'B' ? 'A' : 'B') : null;
+  const otherP = other ? ductedPartOf(p, other) : null;
+  const otherViewP = otherP ? call('view', { project: otherP }) : Promise.resolve(null);
+  const otherLayoutP = otherP?.design ? call('route', { project: otherP, closed: [], balanced: true }) : Promise.resolve(null);
+  const [view, layout, sp, ductView, otherView, otherLayout] = await Promise.all([viewP, layoutP.catch(() => null), splitP.catch(() => null),
+    ductViewP.catch(() => null), otherViewP.catch(() => null), otherLayoutP.catch(() => null)]);
   app.view = view;
   app.ductView = ductView;
   app.layout = layout;
   app.split = sp;
+  app.otherView = otherView;
+  app.otherLayout = otherLayout;
+  // One VRF outdoor for both: where A's stands is where B's fan coil is piped to. Kept on the job (B's part reads it);
+  // when it moves, B is routed again to it.
+  if (ductB) {
+    const aOut = (other === 'A' ? otherLayout : layout)?.outdoor, spot = aOut ? [aOut[0], aOut[1]] : null;
+    if (JSON.stringify(spot) !== JSON.stringify(p.vrfSpot ?? null)) {
+      if (spot) p.vrfSpot = spot; else delete p.vrfSpot;
+      if (other === 'A' && p.design) app.layout = await call('route', { project: p, closed: [...app.closed], balanced: app.balanced }).catch(() => app.layout);
+      else if (other === 'B' && otherP?.design) app.otherLayout = await call('route', { project: ductedPartOf(p, 'B'), closed: [], balanced: true }).catch(() => app.otherLayout);
+    }
+  }
   app.air = layout ? await call('air', { project: p, closed: [...app.closed], balanced: app.balanced }).catch(() => null) : null;
 }
 
@@ -148,11 +167,19 @@ const isSplit = () => app.project?.system === 'multiSplit';
 const isMixed = () => mixedJob(app.project);
 /// A room on system B.
 const onB = (id) => splitSet(app.project).has(id);
-/// System A's view: its own unit and loads on a two-system job, the job's otherwise.
+/// A room on the ducted system on screen (A's, or B's when B is ducted and in front).
+const onDucts = (id) => (ductedB() && activeSys(app.project) === 'B' ? onB(id) : !onB(id));
+/// The ducted system's view: its own unit and loads on a two-system job (A's, or B's when B is ducted and in front),
+/// the job's otherwise.
 const ductedView = () => (isMixed() && app.ductView) || app.view;
-/// What system B is: bulkhead heads, wall heads or VRF.
-const bKind = () => SPLIT_KIND[app.project?.split?.range ?? defaultRange] ?? 'bulkhead';
-const B_KINDS = [['bulkhead', 'Bulkhead'], ['vrf', 'VRF'], ['wall', 'Wall split']];
+/// System B is ducted too: two ducted systems, each in its own roof space, on one VRF outdoor.
+const ductedB = () => isDuctedB(app.project);
+/// Which system's on screen on a two-system job: a ducted B's is the job's own (it swaps the designs over), a split
+/// B's the page's.
+const sysView = () => (ductedB() ? activeSys(app.project) : app.sysView ?? 'A');
+/// What system B is: ducted, bulkhead heads, wall heads or VRF.
+const bKind = () => (ductedB() ? 'ducted' : SPLIT_KIND[app.project?.split?.range ?? defaultRange] ?? 'bulkhead');
+const B_KINDS = [['ducted', 'Ducted'], ['bulkhead', 'Bulkhead'], ['vrf', 'VRF'], ['wall', 'Wall split']];
 /// The helpers (the AI plan read, Auto-design) are off the main path for now (Jake, 15 Nov 2026: build the system and
 /// the workflow first, the AI to help later). localStorage ttpro.assist = 1 brings them back for a look.
 const ASSIST = () => { try { return localStorage.getItem('ttpro.assist') === '1'; } catch (_) { return false; } };
@@ -418,7 +445,7 @@ function render() {
   renderTop();
   const c = $('#content');
   if (app.editorOpen) { renderRoomEditor(c); return; }
-  ({ job: renderJob, plan: renderPlan, equipment: renderEquipment, design: isSplit() ? renderEquipment : isMixed() && app.sysView === 'B' ? renderSplitDesign : renderDesign, send: renderSend })[app.step]?.(c);
+  ({ job: renderJob, plan: renderPlan, equipment: renderEquipment, design: isSplit() ? renderEquipment : isMixed() && sysView() === 'B' && !ductedB() ? renderSplitDesign : renderDesign, send: renderSend })[app.step]?.(c);
 }
 
 // MARK: Jobs
@@ -1526,19 +1553,19 @@ async function renderEquipment(c) {
     <div class="stage">
       <div class="bar"><div class="stats"><div><b>${t.unit ? g(t.unit.kw) + ' kW' : '—'}</b><span>unit</span></div><div><b>${fmt(t.wholeHomeKW ?? t.connectedKW, 1)} kW</b><span>whole home</span></div>
         <div><b>${pct != null ? pct + '%' : '—'}</b><span>of the load</span></div><div><b>${zones || '—'}</b><span>zones</span></div></div>
-        <div class="spacer" style="flex:1"></div>${systemSwitch()}</div>
+        <div class="spacer" style="flex:1"></div>${ductedB() ? sysTabs() : systemSwitch()}</div>
       <div class="canvas-card"><canvas id="cv"></canvas>${zoomCtl()}</div>
       <div class="hint">${app.assigning ? `<b>Tap a room to put it on system B</b> (green), and tap it again to put it back on the ducts. An open area moves as one. <button class="link" id="assign-done">Done</button>`
         : `Rooms are coloured by zone${mixed ? '; system B\'s are green' : ''}.${app.project.design?.outlets?.length ? ' The ducts are changed on Air &amp; pipes.' : ' The ducts, outlets and fan coil come next, on Air &amp; pipes.'}`}</div>
     </div>
     <div class="panel q-panel">
-      ${sec('unit', 1, mixed ? 'Unit · system A' : 'Unit', t.unit ? esc(t.unit.label) : 'Not sized yet', unitBody)}
+      ${sec('unit', 1, mixed ? `Unit · system ${ductedB() ? sysView() : 'A'}` : 'Unit', t.unit ? esc(t.unit.label) : 'Not sized yet', unitBody)}
       ${sec('zoning', 2, 'Zoning', esc(zl?.label ?? ''), zoningBody)}
       ${sec('spill', 3, 'Spill', cards?.needsSpill === false ? 'Nothing more to fit' : cards?.oneZone ? 'One zone' : 'Where spare air goes', spillCard(cards, p))}
       ${sec('systems', 4, 'Systems', mixed ? `A ducted · B ${esc(B_KINDS.find(([k]) => k === bKind())[1].toLowerCase())}` : 'One system: ducted', systemsBody(p, dv))}
     </div></div>`;
   const plan = mountPlan($('#cv', c), {
-    interactive: false, labels: true, compact: true, split: mixed ? app.split : null, both: mixed, splitAir: false,
+    interactive: false, labels: true, compact: true, split: mixed && !ductedB() ? app.split : null, both: mixed && !ductedB(), splitAir: false,
     handlers: { tapRoom: (w) => { if (app.assigning && w) toggleRoomOnB(w); } },
   });
   bindSystems(c);
@@ -1559,6 +1586,7 @@ function systemsBody(p, dv) {
       ${app.assigning ? '<p class="small" style="margin:0 0 8px;font-weight:600">Tap the rooms for system B on the plan.</p><button class="btn2 small" id="sys-cancel">Cancel</button>'
         : '<button class="btn2" id="sys-add">+ Add a second system</button>'}`;
   }
+  if (ductedB()) return ductedSystemsBody(p);
   const sp = app.split, heads = sp?.heads ?? [], kw = heads.reduce((s, h) => s + h.coolKW, 0);
   const aRooms = dv.rooms.filter((r) => r.conditioned).length, bRooms = p.rooms.filter((r) => onB(r.id));
   return `<div class="sys-row"><span class="sys-tag a">A</span><span class="grow"><b>Ducted</b><small>${aRooms} room${aRooms === 1 ? '' : 's'} · ${dv.totals.unit ? g(dv.totals.unit.kw) + ' kW unit' : 'not sized yet'}</small></span></div>
@@ -1567,13 +1595,44 @@ function systemsBody(p, dv) {
     <div style="display:flex;gap:8px;align-items:center;margin-top:10px"><button class="btn2 small" id="sys-assign">${app.assigning ? 'Done moving rooms' : 'Move rooms between A and B'}</button><span style="flex:1"></span><button class="link" id="sys-remove">Remove system B</button></div>
     <p class="small muted" style="margin:8px 0 0">B's heads and outdoor unit are laid out on Air &amp; pipes, under B.</p>`;
 }
+/// Two ducted systems on one VRF outdoor: each one's rooms and unit, and the outdoor that runs both.
+function ductedSystemsBody(p) {
+  const views = activeSys(p) === 'A' ? { A: app.ductView, B: app.otherView } : { A: app.otherView, B: app.ductView };
+  const row = (n) => {
+    const v = views[n], rooms = p.rooms.filter((r) => onB(r.id) === (n === 'B') && v?.rooms.find((q) => q.id === r.id)?.conditioned);
+    const u = v?.totals?.unit, designed = n === activeSys(p) ? !!p.design : !!p.other?.design;
+    return `<div class="sys-row"><span class="sys-tag ${n.toLowerCase()}">${n}</span><span class="grow"><b>Ducted${n === activeSys(p) ? ' · on screen' : ''}</b><small>${rooms.map((r) => esc(r.name)).join(', ') || 'No rooms'} · ${u ? g(u.kw) + ' kW fan coil' : 'not sized yet'}${designed ? '' : ' · not designed yet'}</small></span></div>`;
+  };
+  const vrf = vrfPick(views.A, views.B);
+  return `${row('A')}${row('B')}
+    <div class="sys-row"><span class="sys-tag" style="background:var(--ink,#1B1F24);color:#fff">V</span><span class="grow"><b>${vrf.pick ? 'VRF outdoor · Mitsubishi Electric ' + esc(vrf.pick.model) : 'VRF outdoor · none fits'}</b><small>${vrf.pick ? g(vrf.pick.kw) + ' kW, runs both fan coils' : 'Past a ' + (vrf.single ? 'single phase ' : '') + 'PUMY'} · ${fmt(vrf.load, 1)} kW of home, ${fmt(vrf.indoor, 1)} kW of fan coils</small></span></div>
+    ${bKindSeg()}
+    <div style="display:flex;gap:8px;align-items:center;margin-top:10px"><button class="btn2 small" id="sys-assign">${app.assigning ? 'Done moving rooms' : 'Move rooms between A and B'}</button><span style="flex:1"></span><button class="link" id="sys-remove">Remove system B</button></div>
+    <p class="small muted" style="margin:8px 0 0">Each has its own fan coil and ducts in its own roof space. Pick A or B up top to size and lay out that one; the outdoor unit is A's (B's pipes run to it).</p>`;
+}
+/// The one VRF outdoor for two ducted systems: the smallest City Multi PUMY that covers the whole home and takes both
+/// fan coils (single phase: the SP models).
+function vrfPick(va, vb) {
+  const range = app.options?.splitRanges?.find((r) => r.id === 'mitsubishi-pumy');
+  const load = (va?.totals?.wholeHomeKW ?? va?.totals?.connectedKW ?? 0) + (vb?.totals?.wholeHomeKW ?? vb?.totals?.connectedKW ?? 0);
+  const indoor = (va?.totals?.unit?.kw ?? 0) + (vb?.totals?.unit?.kw ?? 0), single = !app.project?.site?.threePhasePref;
+  const pick = (range?.outdoors ?? []).filter((o) => (!single || o.phase !== '3Ø') && o.kw >= load - 0.05 && indoor >= o.connect[0] - 0.05 && indoor <= o.connect[1] + 0.05)
+    .sort((x, y) => x.kw - y.kw)[0] ?? null;
+  return { pick, load, indoor, single };
+}
 function bindSystems(c) {
   const on = (sel, f) => { const b = $(sel, c); if (b) b.onclick = f; };
   on('#sys-add', () => { app.assigning = true; app.equipOpen = 'systems'; render(); });
   on('#sys-cancel', () => { app.assigning = false; render(); });
   on('#assign-done', () => { app.assigning = false; render(); });
   on('#sys-assign', () => { app.assigning = !app.assigning; render(); });
-  on('#sys-remove', async () => { app.assigning = false; app.sysView = 'A'; await commit(withSplitRooms(app.project, []), { undoable: true }); });
+  on('#sys-remove', async () => {
+    app.assigning = false; app.sysView = 'A';
+    let p = app.project;
+    if (ductedB() && activeSys(p) === 'B') p = swapSystems(p);
+    p = { ...p }; delete p.systemB; delete p.other; delete p.vrfSpot; delete p.activeSys;
+    await commit(withSplitRooms(p, []), { undoable: true });
+  });
   bindSysTabs(c);
 }
 /// B's kind: bulkhead, VRF or wall heads (each brand's own range).
@@ -1582,16 +1641,37 @@ function bKindSeg() {
 }
 /// Air & pipes on a two-system job: the ducts (A) or the split's heads (B).
 function sysTabs() {
-  return `<div class="seg sys-tabs"><button data-sysview="A" class="${app.sysView !== 'B' ? 'on' : ''}"><i class="sys-tag a">A</i>Ducts</button><button data-sysview="B" class="${app.sysView === 'B' ? 'on' : ''}"><i class="sys-tag b">B</i>${esc(B_KINDS.find(([k]) => k === bKind())[1])}</button></div>`;
+  return `<div class="seg sys-tabs"><button data-sysview="A" class="${sysView() !== 'B' ? 'on' : ''}"><i class="sys-tag a">A</i>Ducts</button><button data-sysview="B" class="${sysView() === 'B' ? 'on' : ''}"><i class="sys-tag b">B</i>${ductedB() ? 'Ducts' : esc(B_KINDS.find(([k]) => k === bKind())[1])}</button></div>`;
 }
 function bindSysTabs(c) {
-  c.querySelectorAll('[data-sysview]').forEach((b) => (b.onclick = () => { app.sysView = b.dataset.sysview; app.selection = null; app.addMode = false; render(); }));
+  c.querySelectorAll('[data-sysview]').forEach((b) => (b.onclick = () => showSys(b.dataset.sysview)));
   c.querySelectorAll('[data-bkind]').forEach((b) => (b.onclick = () => setBKind(b.dataset.bkind)));
 }
 async function setBKind(kind) {
   if (kind === bKind()) return;
+  app.selection = null; app.addMode = false;
+  if (kind === 'ducted') {
+    // Ducted: B gets a fan coil, ducts and vents of its own (Air & pipes, under B), on the same VRF outdoor as A.
+    await commit({ ...app.project, systemB: 'ducted' }, { undoable: true });
+    toast('System B is ducted: its own fan coil and ducts, on one VRF outdoor with A.');
+    return;
+  }
+  // From ducted: A back in front, B's ducted design kept aside (back if it's made ducted again).
+  let p = app.project;
+  if (ductedB()) { if (activeSys(p) === 'B') p = swapSystems(p); p = { ...p }; delete p.systemB; delete p.vrfSpot; }
   const kaden = brandId() === 'kaden';
-  await edit('setSplitRange', { key: kind === 'vrf' ? 'mitsubishi-pumy' : kind === 'wall' ? (kaden ? 'kaden-ksi' : 'mitsubishi-msz') : (kaden ? 'kaden-km' : 'mitsubishi-mxz') });
+  const key = kind === 'vrf' ? 'mitsubishi-pumy' : kind === 'wall' ? (kaden ? 'kaden-ksi' : 'mitsubishi-msz') : (kaden ? 'kaden-km' : 'mitsubishi-mxz');
+  const r = await call('edit', { project: p, op: 'setSplitRange', key }).catch(() => null);
+  await commit(r?.ok === false || !r?.project ? p : r.project, { undoable: true });
+}
+/// A two-system job's A or B on screen. Two ducted systems: their designs swap over, so every screen works on the one
+/// in front; B's ducts start (fan coil and return in its rooms) the first time it's opened on Air & pipes.
+async function showSys(sys) {
+  app.selection = null; app.addMode = false;
+  if (!ductedB()) { app.sysView = sys; render(); return; }
+  if (sys === activeSys(app.project)) return;
+  await commit(swapSystems(app.project));
+  if (app.step === 'design' && !app.project.design) startDesign();
 }
 /// A tap on Equipment's plan while moving rooms: the room (or its whole open area) to system B, or back to the ducts.
 async function toggleRoomOnB(w) {
@@ -2285,9 +2365,18 @@ function mountPlan(cv, opts) {
   if (was) { plan.zoom = was.zoom; plan.pan = { ...was.pan }; }
   plan.set({
     project: app.project, view: app.view, layout: layout === false ? null : app.layout, air: app.air, backdrop: app.backdrop,
-    upperBackdrop: app.upperBackdrop, topBackdrop: app.topBackdrop, showPlan: true, splitRooms: app.project.splitRooms ?? null, allSizes: app.layers.allSizes, zoneCards: app.layers.zones, showAir: false, selection: null, ...rest,
+    upperBackdrop: app.upperBackdrop, topBackdrop: app.topBackdrop, showPlan: true, splitRooms: otherRooms(), allSizes: app.layers.allSizes, zoneCards: app.layers.zones, showAir: false, selection: null,
+    ghost: ductedB() ? app.otherLayout : null, hatch: ductedB() ? T.line : null, ...rest,
   });
   return plan;
+}
+
+/// The rooms of the system not on screen, hatched on the plan: B's (a split, or ducted B behind A), or A's when ducted
+/// B is in front.
+function otherRooms() {
+  const p = app.project;
+  if (!p?.splitRooms?.length) return null;
+  return ductedB() && activeSys(p) === 'B' ? p.rooms.filter((r) => !onB(r.id)).map((r) => r.id) : p.splitRooms;
 }
 
 let liveRoute = latest(call);
@@ -2323,7 +2412,7 @@ function renderDesign(c) {
         <button class="btn2 small" id="b-undo" title="Undo the last change" ${app.undo.length ? '' : 'disabled'}>${icon('undo').replace('<svg', '<svg width="15" height="15"')} Back</button>
         <button class="btn2 small" id="b-redo" title="Redo it" ${app.redo.length ? '' : 'disabled'}>Forward ${icon('redo').replace('<svg', '<svg width="15" height="15"')}</button>
         <div class="seg"><button data-mode="plan" class="${app.layers.air ? '' : 'on'}">Plan</button><button data-mode="air" class="${app.layers.air ? 'on' : ''}">Air</button></div>
-        ${isMixed() ? sysTabs() + (app.sysView === 'B' ? bKindSeg() : '') : systemSwitch()}
+        ${isMixed() ? sysTabs() + (sysView() === 'B' ? bKindSeg() : '') : systemSwitch()}
       </div>
       <div class="canvas-card"><canvas id="cv"></canvas>${zoomCtl()}
         <div class="north">${'<svg width="14" height="16" viewBox="0 0 14 16"><path d="M7 0l6 16-6-4-6 4z" fill="#E0342F"/></svg>'}<div>N</div></div>
@@ -2595,6 +2684,8 @@ async function makeBoxFromPick() {
 }
 
 async function addVent(pos) {
+  const st = app.project?.design?.outletStyle;
+  if (SIDE_STYLES.has(st)) pos = wallSnap(pos, st);
   const r = await edit('addOutlet', { pos });
   if (r?.id) { app.selection = { kind: 'outlet', id: r.id }; render(); }
 }
@@ -2704,9 +2795,18 @@ async function drop(item, pos) {
     if (!(await edit('moveDropper', { id: item.id, pos, choice: item.kind === 'dropFoot' ? 'foot' : 'top' }))) app.plan?.set({ view: app.view });
     return;
   }
+  if (item.kind === 'outdoor' && ductedB() && activeSys(app.project) === 'B') {
+    toast('That\'s the VRF outdoor both systems share: move it on system A.');
+    app.plan?.set({ layout: app.layout });
+    return;
+  }
   const ops = { unit: ['dropUnit', {}], ret: ['dropReturn', {}], outdoor: ['dropOutdoor', {}], box: ['dropBox', { bid: item.id }], outlet: ['dropOutlet', { id: item.id }] };
   const op = ops[item.kind];
   if (!op) return;
+  if (item.kind === 'outlet') {
+    const st = app.layout?.outlets.find((o) => o.id === item.id)?.style;
+    if (SIDE_STYLES.has(st)) pos = wallSnap(pos, st);       // a side grille stays on a wall
+  }
   const r = await edit(op[0], { ...op[1], pos });
   if (!r) app.plan?.set({ layout: app.layout });            // didn't take: back where it was
 }
@@ -2927,8 +3027,54 @@ function sizeBreakdown() {
   d.querySelector('.dialog').classList.add('wide');
 }
 
-const OUTLET_STYLES = [['round', 'Round'], ['slot', 'Linear slot'], ['bar', 'Linear bar'], ['floor', 'Floor grille']];
-const OUTLET_NAMES = { round: 'Round ceiling diffuser', slot: 'Linear slot diffuser', bar: 'Linear bar grille', floor: 'Floor grille' };
+const OUTLET_STYLES = [['round', 'Round'], ['slot', 'Linear slot'], ['bar', 'Linear bar'], ['floor', 'Floor grille'], ['sideWall', 'Side · wall'], ['sideBulkhead', 'Side · bulkhead']];
+const OUTLET_NAMES = { round: 'Round ceiling diffuser', slot: 'Linear slot diffuser', bar: 'Linear bar grille', floor: 'Floor grille', sideWall: 'Side-blow bar grille · wall', sideBulkhead: 'Side-blow bar grille · bulkhead' };
+/// How far into the room a side grille's vent sits: in the wall itself, or out on a bulkhead's face.
+const SIDE_INSET = { sideWall: 0.15, sideBulkhead: 0.45 };
+
+/// A side-blow grille goes on a wall (Jake, 22 Nov 2026): the nearest wall of the room it's in, clear of the corners,
+/// set into the room by its inset. Anywhere else (no room there): left where it is.
+function wallSnap(pos, style) {
+  const room = app.view?.rooms.find((r) => r.polygon?.length >= 3 && pointInPolygon(pos, r.polygon));
+  if (!room) return pos;
+  const P = room.polygon, k = SIDE_INSET[style] ?? 0.15;
+  let best = null;
+  for (let i = 0; i < P.length; i++) {
+    const a = P[i], b = P[(i + 1) % P.length], dx = b.x - a.x, dy = b.y - a.y, L = Math.hypot(dx, dy);
+    if (L < 0.8) continue;                                  // a stub of wall: no grille on it
+    const t = Math.max(0.35, Math.min(L - 0.35, ((pos.x - a.x) * dx + (pos.y - a.y) * dy) / L));
+    const q = { x: a.x + dx / L * t, y: a.y + dy / L * t }, d = Math.hypot(pos.x - q.x, pos.y - q.y);
+    let n = { x: -dy / L, y: dx / L };
+    if (!pointInPolygon({ x: q.x + n.x * 0.05, y: q.y + n.y * 0.05 }, P)) n = { x: -n.x, y: -n.y };
+    const at = { x: q.x + n.x * k, y: q.y + n.y * k };
+    if (!pointInPolygon(at, P)) continue;                  // too tight there
+    if (!best || d < best.d) best = { d, at };
+  }
+  return best?.at ?? pos;
+}
+
+/// Edits in a row, as one change (one undo): each on the last one's project. The first refusal stops it; later ones
+/// are skipped (the rest still stands).
+async function edits(steps) {
+  let p = app.project;
+  try {
+    for (const [op, args] of steps) {
+      const r = await call('edit', { project: p, op, ...args });
+      if (r.ok === false) { if (p === app.project) { toast(editRefusal(op)); return null; } continue; }
+      p = r.project;
+    }
+  } catch (e) { toast(e.message); return null; }
+  if (p !== app.project) await commit(p, { undoable: true });
+  return p;
+}
+
+/// A vent's style (or every vent's, no id); a side grille also moves onto its wall.
+function setVentStyle(id, st) {
+  const steps = [['setOutletStyle', id ? { id, choice: st } : { choice: st }]];
+  if (SIDE_STYLES.has(st))
+    for (const o of app.layout?.outlets ?? []) if (!o.dropper && (!id || o.id === id)) steps.push(['dropOutlet', { id: o.id, pos: wallSnap(o.pos, st) }]);
+  return edits(steps);
+}
 
 function velocity(lps, mm) { return lps / 1000 / (Math.PI * (mm / 2000) ** 2); }
 /// The router sizes a run up to 12% over its class's limit before taking the next size (Router.sizes, ventTol), so a
@@ -3011,7 +3157,7 @@ function designSummary() {
 /// every room, droppers to each floor below, the drain line, then check and send — each with what's left, and a button
 /// to do it.
 function nextSteps(l, v, p) {
-  const rooms = v.rooms.filter((r) => r.conditioned && r.designerType !== 'none' && !onB(r.id));
+  const rooms = v.rooms.filter((r) => r.conditioned && r.designerType !== 'none' && onDucts(r.id));
   const got = rooms.filter((r) => { const q = l.outlets.filter((o) => o.roomId === r.id && !o.spill && !o.dropper).reduce((t, o) => t + o.designLps, 0); return r.lps <= 0 || q / r.lps >= 0.85; }).length;
   const below = v.twoStorey ? [...new Set(v.rooms.filter((r) => (r.level ?? 0) < (v.topLevel ?? 1)).map((r) => r.level ?? 0))] : [];
   const dry = below.filter((lv) => !(v.droppers ?? []).some((d) => (d.level ?? 0) === lv));
@@ -3031,7 +3177,7 @@ function nextSteps(l, v, p) {
 /// Each room that takes a vent, and how it's going: no vent yet, short of air, or right (85% or more of what it needs).
 /// The heart of designing by hand — what's still to do. Tap a row to see the room and add a vent in it.
 function roomsCard(l, v) {
-  const rooms = v.rooms.filter((r) => r.conditioned && r.designerType !== 'none' && !onB(r.id));
+  const rooms = v.rooms.filter((r) => r.conditioned && r.designerType !== 'none' && onDucts(r.id));
   if (!rooms.length) return '';
   const rows = rooms.map((r) => {
     const outs = l.outlets.filter((o) => o.roomId === r.id && !o.spill && !o.dropper);
@@ -3142,12 +3288,12 @@ function bindInspector(el) {
     await refresh(); render();
   }));
   el.querySelectorAll('[data-bal]').forEach((b) => (b.onclick = async () => { app.balanced = b.dataset.bal === '1'; await refresh(); render(); }));
-  el.querySelectorAll('[data-ostyle]').forEach((b) => (b.onclick = () => edit('setOutletStyle', { id: s.id, choice: b.dataset.ostyle })));
-  $('#ostyle-all', el)?.addEventListener('change', (e) => edit('setOutletStyle', { choice: e.target.value }));
+  el.querySelectorAll('[data-ostyle]').forEach((b) => (b.onclick = () => setVentStyle(s.id, b.dataset.ostyle)));
+  $('#ostyle-all', el)?.addEventListener('change', (e) => setVentStyle(null, e.target.value));
   $('#cards-back', el)?.addEventListener('click', () => { const { zoneCards, ...rest } = app.project; commit(rest, { undoable: true }); });
   $('#ostyle-every', el)?.addEventListener('click', () => {
     const st = (app.layout?.outlets ?? []).find((q) => q.id === s.id)?.style ?? 'round';
-    edit('setOutletStyle', { choice: st }).then((r) => r && toast(`Every vent is ${(OUTLET_STYLES.find(([k]) => k === st) ?? ['', 'round'])[1].toLowerCase()} now`));
+    setVentStyle(null, st).then((r) => r && toast(`Every vent is ${(OUTLET_STYLES.find(([k]) => k === st) ?? ['', 'round'])[1].toLowerCase()} now`));
   });
   el.querySelectorAll('[data-cat]').forEach((b) => (b.onclick = () => openCatalogue()));
   $('#brand', el)?.addEventListener('change', (e) => commit({ ...app.project, site: { ...app.project.site, brandPref: e.target.value === 'mitsubishi' ? null : e.target.value, unitKWPref: null } }, { undoable: true }));
@@ -3270,7 +3416,7 @@ function renderSplitDesign(c) {
         <button class="btn2 small" id="b-undo" title="Undo the last change" ${app.undo.length ? '' : 'disabled'}>${icon('undo').replace('<svg', '<svg width="15" height="15"')} Back</button>
         <button class="btn2 small" id="b-redo" title="Redo it" ${app.redo.length ? '' : 'disabled'}>Forward ${icon('redo').replace('<svg', '<svg width="15" height="15"')}</button>
         <div class="seg" title="Show how far each head's air reaches"><button data-sair="0" class="${splitAir() ? '' : 'on'}">Plan</button><button data-sair="1" class="${splitAir() ? 'on' : ''}">Air</button></div>
-        ${isMixed() ? sysTabs() + (app.sysView === 'B' ? bKindSeg() : '') : systemSwitch()}
+        ${isMixed() ? sysTabs() + (sysView() === 'B' ? bKindSeg() : '') : systemSwitch()}
       </div>
       <div class="canvas-card"><canvas id="cv"></canvas>${zoomCtl()}
         <div class="north">${'<svg width="14" height="16" viewBox="0 0 14 16"><path d="M7 0l6 16-6-4-6 4z" fill="#E0342F"/></svg>'}<div>N</div></div>
@@ -3605,7 +3751,7 @@ function openReport(kind) {
   const close = () => o.remove();
   $('#rp-close', o).onclick = close;
   o.addEventListener('keydown', (e) => e.key === 'Escape' && close());
-  import('./reports.js?v=3017b39-202611192046').then(async (m) => {
+  import('./reports.js?v=18782d7-202611221516').then(async (m) => {
     // Reports are always the design as installed: every zone open, balanced. A multi-head job has no ducted design to
     // route (routing one threw, and the bar stayed on "Building the report…" for good).
     app.designLayout = isSplit() ? null : await call('route', { project: app.project, closed: [], balanced: true });

@@ -1,11 +1,11 @@
 // Trust Trade Pro — the HVAC Designer in the browser. The same five steps as the app (House · Capture · Check · Design ·
 // Send) on the app's own engine (engine.wasm, run in a worker): the same loads, zones, ducts, checks and materials.
 
-import { call as engineCall, latest } from './engine.js?v=2312452-202611222111';
-import { jobCalls, isMixed as mixedJob, ductedPart, ductedPartOf, splitSet, withSplitRooms, defaultRange, isDuctedB, activeSys, swapSystems, isVrfB, sharesVrf, pickVrf } from './systems.js?v=2312452-202611222111';
-import * as store from './store.js?v=2312452-202611222111';
-import { Plan, inkImage, zoneColour, ductColour, splitColour, T, pointInPolygon, SIDE_STYLES, movesOnly, wheelMoves, ZOOM_MAX } from './plan.js?v=2312452-202611222111';
-import { RoomEditor, metres, signedArea, onLine } from './roomeditor.js?v=2312452-202611222111';
+import { call as engineCall, latest } from './engine.js?v=8b21a40-202611222135';
+import { jobCalls, isMixed as mixedJob, ductedPart, ductedPartOf, splitSet, withSplitRooms, defaultRange, isDuctedB, activeSys, swapSystems, isVrfB, sharesVrf, pickVrf } from './systems.js?v=8b21a40-202611222135';
+import * as store from './store.js?v=8b21a40-202611222135';
+import { Plan, inkImage, zoneColour, ductColour, splitColour, T, pointInPolygon, SIDE_STYLES, movesOnly, wheelMoves, ZOOM_MAX } from './plan.js?v=8b21a40-202611222135';
+import { RoomEditor, metres, signedArea, onLine } from './roomeditor.js?v=8b21a40-202611222135';
 
 /// Every engine call: a two-system job's go with the part they're about (systems.js).
 const call = jobCalls(engineCall);
@@ -2543,7 +2543,7 @@ function renderDesign(c) {
   const bags = (l?.flex ?? []).reduce((s, f) => s + f.bags, 0);
   const zones = (l?.zones ?? []).filter((z) => z.number !== 0).length;
   c.innerHTML = `<div class="work with-rail">
-    <div class="rail">
+    <div class="rail ${app.three ? 'off' : ''}">
       <button id="t-select" class="${app.addMode ? '' : 'on'}">${icon('cursor')}<span class="tip">Select and drag</span></button>
       <button id="t-add" class="${app.addMode === true ? 'on' : ''}">${icon('addvent')}<span class="tip">${app.addMode === true ? 'Done adding outlets' : 'Add an outlet'}</span></button>
       <button id="t-pen" class="${app.addMode === 'pen' ? 'on' : ''}">${icon('pen')}<span class="tip">${app.addMode === 'pen' ? 'Done drawing ducts' : 'Draw the ducts'}</span></button>
@@ -2562,14 +2562,16 @@ function renderDesign(c) {
         <div class="spacer" style="flex:1"></div>
         <button class="btn2 small" id="b-undo" title="Undo the last change" ${app.undo.length ? '' : 'disabled'}>${icon('undo').replace('<svg', '<svg width="15" height="15"')} Back</button>
         <button class="btn2 small" id="b-redo" title="Redo it" ${app.redo.length ? '' : 'disabled'}>Forward ${icon('redo').replace('<svg', '<svg width="15" height="15"')}</button>
-        <div class="seg"><button data-mode="plan" class="${app.layers.air ? '' : 'on'}">Plan</button><button data-mode="air" class="${app.layers.air ? 'on' : ''}">Air</button></div>
+        <div class="seg"><button data-dim="2" class="${app.three ? '' : 'on'}">2D</button><button data-dim="3" class="${app.three ? 'on' : ''}">3D</button></div>
+        ${app.three ? `<div class="seg"><button data-tint="zone" class="${app.heat3d ? '' : 'on'}">Zones</button><button data-tint="heat" class="${app.heat3d ? 'on' : ''}">Heat</button></div>`
+          : `<div class="seg"><button data-mode="plan" class="${app.layers.air ? '' : 'on'}">Plan</button><button data-mode="air" class="${app.layers.air ? 'on' : ''}">Air</button></div>`}
         ${isMixed() ? sysTabs() + (sysView() === 'B' ? bKindSeg() : '') : systemSwitch()}
       </div>
-      <div class="canvas-card"><canvas id="cv"></canvas>${zoomCtl()}
+      <div class="canvas-card"><canvas id="cv"></canvas>${app.three ? '<div class="h3d" id="h3d"></div>' : ''}${zoomCtl()}
         <div class="north">${'<svg width="14" height="16" viewBox="0 0 14 16"><path d="M7 0l6 16-6-4-6 4z" fill="#E0342F"/></svg>'}<div>N</div></div>
         ${app.designing ? '<div class="busy"><div><div class="spinner"></div>Placing the fan coil…</div></div>' : ''}
       </div>
-      <div class="hint">${lineHint() || (app.joining ? `Tap the room to join ${esc(v.rooms.find((r) => r.id === app.joining)?.name ?? '')} with. <button class="link" id="cancel-join">Cancel</button>`
+      <div class="hint">${app.three ? 'The house in 3D, to look at: drag to spin it, scroll to zoom, Shift-drag to slide it, tap a room or a vent. Switch back to 2D to change the design.' : lineHint() || (app.joining ? `Tap the room to join ${esc(v.rooms.find((r) => r.id === app.joining)?.name ?? '')} with. <button class="link" id="cancel-join">Cancel</button>`
         : app.addMode === 'pen' ? penHint()
         : app.addMode === 'bdo' ? `Tap 2 or 3 vents to put on one BDO. They can be on different zones: each leg gets its own damper. ${app.bdoPick?.length ? `<b>${app.bdoPick.length} picked</b> · <button class="link" id="bdo-make" ${app.bdoPick.length < 2 ? 'disabled' : ''}>Make the BDO</button> · <button class="link" id="bdo-clear">Clear</button>` : ''}`
         : app.addMode === 'dropper' ? 'Tap where a dropper goes: on the top floor where it leaves the roof, or on the floor below where it comes out. It lands in the same spot on both: the dashed outline is the floor above.'
@@ -2598,6 +2600,9 @@ function renderDesign(c) {
   });
   app.plan = plan;
   renderInspector();
+  mount3D(c, plan);
+  c.querySelectorAll('[data-dim]').forEach((b) => (b.onclick = () => { app.three = b.dataset.dim === '3'; if (app.three) app.addMode = false; render(); }));
+  c.querySelectorAll('[data-tint]').forEach((b) => (b.onclick = () => { app.heat3d = b.dataset.tint === 'heat'; render(); }));
   $('#t-select', c).onclick = () => { app.addMode = false; render(); };
   $('#t-add', c).onclick = () => { app.addMode = app.addMode === true ? false : true; if (app.addMode) app.selection = null; render(); };
   $('#t-pen', c).onclick = () => { app.addMode = app.addMode === 'pen' ? false : 'pen'; app.pen = null; if (app.addMode) app.selection = null; render(); };
@@ -2616,7 +2621,7 @@ function renderDesign(c) {
   $('#t-redo', c).onclick = redo;
   $('#b-undo', c).onclick = undo;
   $('#b-redo', c).onclick = redo;
-  bindZoomCtl(c, { zoomBy: (k) => plan.zoomBy(k), fit: () => plan.fit(), setHand: (on) => plan.setHand(on) });
+  bindZoomCtl(c, { zoomBy: (k) => (app.three ? app.h3d?.zoomBy(k) : plan.zoomBy(k)), fit: () => (app.three ? app.h3d?.fit() : plan.fit()), setHand: (on) => plan.setHand(on) });
   $('#t-fit', c).onclick = () => plan.fit();
   $('#t-layers', c).onclick = (e) => layersMenu(e.currentTarget);
   $('#cancel-join', c)?.addEventListener('click', () => { app.joining = null; render(); });
@@ -2627,6 +2632,84 @@ function renderDesign(c) {
     if (app.layers.air && !app.air && app.layout) app.air = await call('air', { project: app.project, closed: [...app.closed], balanced: app.balanced });
     render();
   }));
+}
+
+/// The 3D house over the plan on Air & pipes (the 2D / 3D switch): the same job, the same side list, to look at. The
+/// camera's kept between redraws.
+let H3D = null;
+async function mount3D(c) {
+  app.h3d?.destroy(); app.h3d = null;
+  const host = $('#h3d', c);
+  if (!host || !app.three) return;
+  H3D ??= (await import('./house3d.js?v=8b21a40-202611222135')).House3D;
+  if (!host.isConnected) return;
+  app.h3d = new H3D(host, { select: (item) => select(item), changed: (cam) => { app.cam3d = cam; } }, app.cam3d ?? null);
+  app.h3d.set({ view: app.view, layout: app.layout, air: app.air, selection: app.selection, heat: !!app.heat3d, sound: app.layers.sound !== false, airOn: true });
+}
+
+/// The customer's view (Jake, 22 Nov 2026: a 3D page "for the customer"): their home filling the screen with the system
+/// in the roof and the air moving, the whole home or one room on its own, and a plain line about whatever they tap.
+async function openCustomer3D() {
+  const p = app.project, v = app.view;
+  const all = await call('route', { project: p, closed: [], balanced: true });
+  const air = await call('air', { project: p, closed: [], balanced: true }).catch(() => null);
+  const zones = all.zones.filter((z) => z.number !== 0 && z.outlets > 0);
+  const o = document.createElement('div');
+  o.className = 'overlay cust3d';
+  o.innerHTML = `<div class="c3-top"><div class="c3-title"><b>${esc(p.customer?.name || v.title || 'Your home')}</b><span>${esc(p.customer?.address || '')}</span></div>
+      <div class="seg"><button data-c3run="all" class="on">Whole home</button><button data-c3run="one" ${zones.length < 2 ? 'disabled' : ''}>One room</button></div>
+      <div class="seg"><button data-c3tint="zone" class="on">Zones</button><button data-c3tint="heat">Heat</button></div>
+      <button class="iconbtn" id="c3-close" aria-label="Close" style="background:#fff">${icon('x')}</button></div>
+    <div class="c3-stage" id="c3-stage"></div>
+    <div class="c3-card" id="c3-card"></div>`;
+  document.body.append(o);
+  H3D ??= (await import('./house3d.js?v=8b21a40-202611222135')).House3D;
+  let layout = all, pick = null, mode = 'all', heat = false, only = null;
+  const u = ductedView().totals.unit, vents = all.outlets.filter((x) => !x.dropper && !x.spill).length;
+  const card = () => {
+    const el = $('#c3-card', o), room = pick?.kind === 'room' ? v.rooms.find((r) => r.id === pick.id) : pick?.kind === 'outlet' ? v.rooms.find((r) => r.id === layout.outlets.find((x) => x.id === pick.id)?.roomId) : null;
+    if (room && room.conditioned) {
+      const outs = layout.outlets.filter((x) => x.roomId === room.id && !x.spill && !x.dropper), on = outs.filter((x) => x.open && x.lps > 0);
+      const gets = on.reduce((t, x) => t + x.lps, 0), db = on.length ? Math.max(...on.map((x) => x.dbA)) : null;
+      el.innerHTML = `<span class="eyebrow">${room.zone ? 'Zone ' + room.zone : 'Always on'}</span><h2>${esc(room.name)}</h2>
+        <div class="c3-nums"><div><b>${on.length ? fmt(gets) : '—'}</b><span>L/s of air${on.length ? '' : ' (off)'}</span></div><div><b>${db != null ? fmt(db) : '—'}</b><span>dB(A) at the vent</span></div>
+          <div><b>${outs.length}</b><span>vent${outs.length === 1 ? '' : 's'}</span></div><div><b>${fmt(room.kw, 1)}</b><span>kW on the hottest day</span></div></div>`;
+    } else if (room) {
+      el.innerHTML = `<h2>${esc(room.name)}</h2><p>Not air conditioned.</p>`;
+    } else {
+      const sp = layout.spill, one = mode === 'one' && only != null ? zones.find((z) => z.number === only) : null;
+      el.innerHTML = `<span class="eyebrow">${one ? 'One room on its own' : 'The whole home'}</span><h2>${one ? 'Only ' + esc(one.name) + ' on' : esc(u ? `${g(u.kw)} kW ducted system` : 'Ducted system')}</h2>
+        <div class="c3-nums"><div><b>${fmt(layout.totalLps)}</b><span>L/s from the fan</span></div><div><b>${fmt(layout.totalLps / Math.max(all.fanLps, 1) * 100)}%</b><span>of full fan speed</span></div>
+          <div><b>${one ? 1 : zones.length}</b><span>zone${one || zones.length === 1 ? '' : 's'} on</span></div><div><b>${vents}</b><span>vents in the home</span></div></div>
+        <p>${one && sp?.spilling ? `The fan slows right down. It can't go below about ${fmt(sp.floorLps)} L/s, so the spare air spills ${sp.kind === 'outlet' ? 'out a spill outlet' : 'into ' + esc(sp.name)}.` : one ? 'The fan slows right down for just this zone.' : 'The fan coil sits in the roof space and feeds every room through its own vent. Tap a room to see its air and sound.'}</p>`;
+    }
+  };
+  const h = new H3D($('#c3-stage', o), { select: async (item) => {
+    pick = item && (item.kind === 'room' || item.kind === 'outlet') ? item : null;
+    if (mode === 'one' && pick) {
+      const z = pick.kind === 'room' ? v.rooms.find((r) => r.id === pick.id)?.zone : layout.outlets.find((x) => x.id === pick.id)?.zone;
+      if (z && z !== only && zones.some((q) => q.number === z)) { only = z; await run(); return; }
+    }
+    h.set({ selection: pick }); card();
+  } });
+  const run = async () => {
+    const closed = mode === 'one' && only != null ? zones.filter((z) => z.number !== only).map((z) => z.number) : [];
+    layout = closed.length ? await call('route', { project: p, closed, balanced: true }) : all;
+    const a = closed.length ? await call('air', { project: p, closed, balanced: true }).catch(() => air) : air;
+    if (!o.isConnected) return;
+    h.set({ view: v, layout, air: a, selection: pick, heat, sound: true, airOn: true });
+    card();
+  };
+  o.querySelectorAll('[data-c3run]').forEach((b) => (b.onclick = async () => {
+    mode = b.dataset.c3run;
+    if (mode === 'one') only = (pick?.kind === 'room' ? v.rooms.find((r) => r.id === pick.id)?.zone : null) || only || [...zones].sort((x, y) => x.designLps - y.designLps)[0]?.number;
+    o.querySelectorAll('[data-c3run]').forEach((x) => x.classList.toggle('on', x === b));
+    await run();
+  }));
+  o.querySelectorAll('[data-c3tint]').forEach((b) => (b.onclick = () => { heat = b.dataset.c3tint === 'heat'; o.querySelectorAll('[data-c3tint]').forEach((x) => x.classList.toggle('on', x === b)); h.set({ heat }); }));
+  const close = () => { h.destroy(); o.remove(); };
+  $('#c3-close', o).onclick = close;
+  await run();
 }
 
 /// The class's limits for the plan's speed labels (branch, trunk, return m/s), or null.
@@ -2675,6 +2758,7 @@ function select(item) {
   app.selection = item;
   if (item) app.addingUnit = false;
   app.plan?.set({ selection: item, handBends: handBends() });
+  app.h3d?.set({ selection: item });
   // A split's heads: a split job's, or system B's on a two-system job (its own panel, not the ducts').
   if (isSplit() || (isMixed() && sysView() === 'B' && !ductedB())) renderSplitInspector(); else renderInspector();
 }
@@ -3089,7 +3173,12 @@ function renderInspector() {
   el.dataset.sel = JSON.stringify(app.selection ?? null);
   // One list for the home, a room and a vent (Jake, 22 Nov 2026, picked from four layouts): every room with its air,
   // its sound and its load; the one tapped opens in place. Anything else picked (a BDO, a duct, the fan coil) sits above.
-  el.innerHTML = `<div class="iscroll">${issueList(l, v, p)}${runSeg(l)}${html}${roomList(l, v, p)}${extrasCards(l, v, p)}${flexCard(l)}${optionsCard(l, p)}</div>${fanFoot(l)}`;
+  // A room or vent picked: only that room (Jake, 22 Nov 2026: "when I click the room I want it to only show stuff about
+  // that room"), with the way back to the list. Nothing else about the house until it's closed.
+  const focus = app.selection?.kind === 'room' || app.selection?.kind === 'outlet';
+  el.innerHTML = focus
+    ? `<div class="iscroll"><div class="card is" style="padding-bottom:0"><button class="lback" id="insp-close">${icon('back')} All rooms</button></div>${roomList(l, v, p)}</div>${fanFoot(l)}`
+    : `<div class="iscroll">${issueList(l, v, p)}${runSeg(l)}${html}${roomList(l, v, p)}${extrasCards(l, v, p)}${flexCard(l)}${optionsCard(l, p)}</div>${fanFoot(l)}`;
   if (same) el.querySelector('.iscroll').scrollTop = top;
   bindInspector(el);
 }
@@ -3179,7 +3268,7 @@ function roomList(l, v, p) {
     return { r, outs, zoneOpen, gets, share, db, short: zoneOpen && share < 0.85, loud: db != null && db > r.soundTarget + 0.5 };
   });
   const f = app.listFilter ?? 'all', nShort = all.filter((x) => x.short).length, nLoud = all.filter((x) => x.loud).length;
-  const shown = all.filter((x) => f === 'all' || (f === 'short' ? x.short : x.loud) || x.r.id === selRoom);
+  const shown = selRoom ? all.filter((x) => x.r.id === selRoom) : all.filter((x) => f === 'all' || (f === 'short' ? x.short : x.loud));
   const chip = (k, t, n) => `<button data-lfilter="${k}" class="${f === k ? 'on' : ''}">${t}${n != null ? ` <i>${n}</i>` : ''}</button>`;
   const row = (x) => {
     const r = x.r, z = r.zone, on = r.id === selRoom;
@@ -3189,7 +3278,7 @@ function roomList(l, v, p) {
       ${on ? roomOpen(x, l, v, p, selVent) : ''}`;
   };
   return `<div class="card is" style="gap:0;padding-top:10px">
-    <div class="lfilter">${chip('all', 'All', null)}${chip('short', 'Short of air', nShort)}${chip('loud', 'Loud', nLoud)}</div>
+    ${selRoom ? '' : `<div class="lfilter">${chip('all', 'All', null)}${chip('short', 'Short of air', nShort)}${chip('loud', 'Loud', nLoud)}</div>`}
     <div class="lcols"><span></span><span>Room</span><span>Air L/s</span><span>dB</span><span>kW</span></div>
     ${shown.map(row).join('') || `<div class="lnote" style="padding:10px 0">${f === 'short' ? 'No room is short of air.' : 'No vent is over its room\'s sound target.'}</div>`}</div>`;
 }
@@ -3624,6 +3713,7 @@ async function renderSend(c) {
         <p class="small muted" style="margin:8px 0 0">Amber warnings don't stop you sending.</p></div>` : ''}
     </div>
     <div class="card"><span class="eyebrow">Job file</span>
+      <div class="file"><div class="ic">${icon('house')}</div><div><b>3D for the customer</b><span>Their home, the system in the roof, the air moving</span></div><div class="go"><button class="btn2 small" id="show3d">Show</button></div></div>
       <div class="file"><div class="ic">${icon('file')}</div><div><b>Customer report</b><span>Loads, the design and your logo</span></div><div class="go"><button class="btn2 small" data-report="customer">Open</button></div></div>
       <div class="file"><div class="ic">${icon('aircon')}</div><div><b>Duct drawing</b><span>Sizes, zones, dampers</span></div><div class="go"><button class="btn2 small" id="png">PNG</button></div></div>
       <div class="file"><div class="ic">${icon('ruler')}</div><div><b>Materials</b><span>Flex, fittings, return air</span></div><div class="go"><button class="btn2 small" data-report="materials">Print</button><button class="btn2 small" id="csv">CSV</button></div></div>
@@ -3638,6 +3728,7 @@ async function renderSend(c) {
   c.querySelectorAll('[data-report]').forEach((b) => (b.onclick = () => openReport(b.dataset.report)));
   $('#csv', c).onclick = () => download(`${v.title} — materials.csv`, new Blob([takeoff.csv], { type: 'text/csv' }));
   $('#png', c).onclick = drawingPNG;
+  $('#show3d', c)?.addEventListener('click', () => openCustomer3D().catch((e) => toast(e.message)));
   $('#quoted', c)?.addEventListener('click', () => commit({ ...p, status: 'quoted' }));
   $('#unquote', c)?.addEventListener('click', () => commit({ ...p, status: null }));
 }
@@ -3994,6 +4085,7 @@ async function renderSplitSend(c) {
   c.querySelectorAll('[data-report]').forEach((b) => (b.onclick = () => openReport(b.dataset.report)));
   $('#csv', c).onclick = () => download(`${v.title} — materials.csv`, new Blob([sp.csv], { type: 'text/csv' }));
   $('#png', c).onclick = drawingPNG;
+  $('#show3d', c)?.addEventListener('click', () => openCustomer3D().catch((e) => toast(e.message)));
   $('#quoted', c)?.addEventListener('click', () => commit({ ...p, status: 'quoted' }));
   $('#unquote', c)?.addEventListener('click', () => commit({ ...p, status: null }));
 }
@@ -4038,7 +4130,7 @@ function openReport(kind) {
   const close = () => o.remove();
   $('#rp-close', o).onclick = close;
   o.addEventListener('keydown', (e) => e.key === 'Escape' && close());
-  import('./reports.js?v=2312452-202611222111').then(async (m) => {
+  import('./reports.js?v=8b21a40-202611222135').then(async (m) => {
     // Reports are always the design as installed: every zone open, balanced. A multi-head job has no ducted design to
     // route (routing one threw, and the bar stayed on "Building the report…" for good).
     app.designLayout = isSplit() ? null : await call('route', { project: app.project, closed: [], balanced: true });

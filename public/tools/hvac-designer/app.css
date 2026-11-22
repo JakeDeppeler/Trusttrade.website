@@ -754,3 +754,49 @@ details.more[open] > summary svg { transform: rotate(90deg); }
 @media (max-width: 1020px) { .nj { grid-template-columns: minmax(0, 1fr); } }
 @media (max-width: 640px) { .nj-main { padding: 22px 18px 20px; } .nj-main > h1 { font-size: 28px; } .nj-grid { grid-template-columns: minmax(0, 1fr); } .ptiles { grid-template-columns: minmax(0, 1fr); } .ptile { min-height: 0; } .nj-clim { grid-template-columns: 1fr 1fr; } .zbadge { grid-column: 1 / -1; } }
 @media (max-width: 640px) { .nj-grid .seg { flex-wrap: wrap; } .nj-grid .seg.fill > button { flex: 1 1 30%; } }
+
+/* ── Air & pipes: one list for the home, a room and a vent (Jake picked this layout, 22 Nov) ── */
+.lnote { font-size: 13px; color: var(--muted); line-height: 1.4; }
+.lnote b { color: var(--ink); font-weight: 600; }
+.lfilter { display: flex; gap: 6px; flex-wrap: wrap; padding: 2px 0 10px; }
+.lfilter button { border: 0; border-radius: 99px; background: var(--tile); color: var(--body); font: 500 12.5px var(--sans); height: 30px; padding: 0 12px; display: inline-flex; align-items: center; gap: 6px; }
+.lfilter button.on { background: var(--ink); color: #fff; }
+.lfilter button i { font: 600 11.5px var(--mono); font-style: normal; opacity: .7; }
+.lcols, .lrow { display: grid; grid-template-columns: 24px minmax(0, 1fr) 76px 34px 38px; gap: 8px; align-items: center; }
+.lcols { font-size: 11px; font-weight: 500; letter-spacing: .05em; text-transform: uppercase; color: #7A808C; padding: 0 0 6px; border-bottom: 1px solid rgba(14,17,22,.08); }
+.lcols span:nth-child(n+3), .lrow > b { text-align: right; }
+.lrow { padding: 9px 0; border-bottom: 1px solid rgba(14,17,22,.06); cursor: pointer; }
+.lrow .nm { font-size: 14.5px; font-weight: 500; color: var(--ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.lrow > b { font: 500 13.5px var(--mono); color: var(--ink); white-space: nowrap; letter-spacing: -.01em; }
+.lrow > b i { font-style: normal; color: #8A909B; font-weight: 400; }
+.lrow > b.low { color: var(--accent-deep); font-weight: 700; }
+.lrow > b.bad, .lvent b.bad { color: var(--danger); font-weight: 700; }
+.lrow:hover .nm { text-decoration: underline; }
+.lrow.on { border-bottom-color: transparent; }
+.lrow.on .nm { font-weight: 700; }
+.lrow.shut .nm, .lrow.shut > b { color: #A3A8B1; }
+.zb { width: 22px; height: 22px; border-radius: 7px; border: 0; background: #8A909B; color: #fff; font: 700 11.5px var(--head); display: grid; place-items: center; padding: 0; cursor: pointer; }
+.zb.shut { background: #fff; color: #A3A8B1; box-shadow: inset 0 0 0 1.5px #C6CBD3; text-decoration: line-through; }
+.zb.none { background: none; cursor: default; }
+.lopen { display: flex; flex-direction: column; gap: 10px; padding: 2px 0 14px 32px; border-bottom: 1px solid rgba(14,17,22,.06); }
+.lvent { display: grid; grid-template-columns: minmax(0, 1fr) 46px 64px 50px; gap: 8px; align-items: center; border: 0; border-radius: 10px; background: var(--tile); padding: 9px 11px; text-align: left; font-size: 13.5px; color: var(--ink); cursor: pointer; width: 100%; }
+.lvent b { font: 500 12.5px var(--mono); text-align: right; white-space: nowrap; }
+.lvent:hover { background: #ECEEF2; }
+.lvent.on { background: var(--ink); color: #fff; }
+.lvent.on b.bad { color: #FF9B8A; }
+.lvopen { display: flex; flex-direction: column; gap: 10px; padding: 2px 0 4px; }
+.lbig { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.lbig b { display: block; font: 700 26px var(--head); letter-spacing: -.03em; line-height: 1.1; color: var(--ink); }
+.lbig span { font-size: 12px; color: var(--muted); }
+.lbig .bad b, .lbig .bad span { color: var(--danger); }
+.lmore { display: flex; flex-direction: column; gap: 10px; padding-top: 4px; }
+.lmore .kv { font-size: 13px; padding: 7px 0; }
+.lsum { display: inline-flex; align-items: center; gap: 6px; font: 500 12.5px var(--mono); color: var(--muted); }
+details.more > summary .lsum svg { margin: 0; }
+/* Anything else picked (a BDO, a duct, the fan coil, the return): plain figures, no tiles */
+.card.is .tiles3 > div { background: none; padding: 0; border-radius: 0; }
+.card.is .tiles3 > div.warn b, .card.is .tiles3 > div.warn span { color: var(--accent-deep); }
+.card.is .tiles3 b { font-size: 24px; font-weight: 700; }
+.card.is .tiles3 span { font-size: 12px; color: var(--muted); }
+.card.is .isub { font-size: 13.5px; color: var(--body); }
+.card.is .imono { font-size: 13px; }

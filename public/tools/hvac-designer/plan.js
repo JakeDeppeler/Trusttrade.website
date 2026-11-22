@@ -1788,6 +1788,11 @@ export class Plan {
         g.font = `800 9.5px ${FONT}`; g.fillStyle = '#fff'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(String(pk + 1), bx, by + 0.5);
       }
       this.hits.push({ item: { kind: 'outlet', id: o.id }, x: c.x, y: c.y, r: Math.max(17, ring) });
+      // Its sound, beside it (a layer): red over its room's target.
+      if (d.sound && !d.report && o.open && o.lps > 0 && o.dbA != null && x.s >= 14) {
+        const target = d.view?.rooms?.find((r) => r.id === o.roomId)?.soundTarget;
+        this.tag(g, `${Math.round(o.dbA)} dB`, c.x, c.y + ring + 9, target != null && o.dbA > target + 0.5 ? T.danger : '#5B6170');
+      }
     }
     if (d.handBends) this.guard('bends', () => this.drawBends(g, x, d.handBends, drag));
     // The picked BDO's turn knob (Jake, 19 Nov 2026: "click and rotate the BDO"): drag it round and the BDO turns with

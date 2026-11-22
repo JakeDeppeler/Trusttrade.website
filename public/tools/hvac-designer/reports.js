@@ -1,7 +1,7 @@
 // The printable reports: the customer's design report, the install sheet and the materials list, laid out as A4 pages
 // from the engine's report blocks (ReportText.swift — the app's wording). The browser's print window saves them as PDF.
 
-import * as store from './store.js?v=e7fbb96-202611222042';
+import * as store from './store.js?v=2312452-202611222111';
 
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const DUCT = (mm) => mm <= 150 ? '#E0342F' : mm <= 200 ? '#6A8DDB' : mm <= 250 ? '#F0CB2E' : mm <= 300 ? '#7DC242' : mm <= 350 ? '#BFC4C9' : mm <= 400 ? '#D35FD0' : '#7B3FE4';
@@ -28,6 +28,32 @@ function planImage(app, Plan, w, h) {
   const url = cv.toDataURL('image/png');
   cv.remove();
   return url;
+}
+
+/// The report's "How it runs" blocks: the whole home open, then each zone on its own — the air the fan moves, how far
+/// it's turned down, the air that zone gets of what it needs, and its loudest vent. Each is the engine's own airflow
+/// solve with the other zones shut (the spill opening when the fan can't slow any further).
+async function runBlocks(app, call) {
+  const p = app.project, n0 = (x) => Math.round(x).toString();
+  const all = await call('route', { project: p, closed: [], balanced: true });
+  const zones = all.zones.filter((z) => z.number !== 0 && z.outlets > 0);
+  if (zones.length < 2 || !all.fanLps) return [];
+  const loudest = (l, pick) => { const d = l.outlets.filter((o) => o.open && o.lps > 0 && !o.dropper && pick(o)).map((o) => o.dbA); return d.length ? n0(Math.max(...d)) + ' dB(A)' : '—'; };
+  const rows = [['Whole home open', `${n0(all.totalLps)} L/s`, `${n0(all.totalLps / all.fanLps * 100)}%`, 'every room', loudest(all, () => true)]];
+  let spillNote = null;
+  for (const z of zones) {
+    const l = await call('route', { project: p, closed: zones.filter((x) => x.number !== z.number).map((x) => x.number), balanced: true });
+    const mine = l.zones.find((x) => x.number === z.number);
+    rows.push([`Only ${z.name}`, `${n0(l.totalLps)} L/s`, `${n0(l.totalLps / all.fanLps * 100)}%`, `${n0(mine?.lps ?? 0)} of ${n0(z.designLps)} L/s`, loudest(l, (o) => o.zone === z.number)]);
+    if (!spillNote && l.spill?.spilling) spillNote = `With only a room or two on, the fan can't slow below about ${n0(l.spill.floorLps)} L/s. The spare air ${l.spill.kind === 'outlet' ? 'goes out a spill outlet' : 'spills into ' + l.spill.name}, so the rooms that are on get what they need, not the lot.`;
+  }
+  return [
+    { type: 'heading', text: 'How it runs: the whole home, or one room', size: 15 },
+    { type: 'text', style: 'body', text: 'The fan slows down as zones shut, so a room on its own gets its own air, not the whole home\'s. This is the air and the sound with everything open, and with each zone running by itself.' },
+    { type: 'table', cols: [{ title: "What's on", width: 0.34, align: 'left' }, { title: 'Fan air', width: 0.15, align: 'right' }, { title: 'Of full fan', width: 0.14, align: 'right' },
+      { title: 'Air to it', width: 0.2, align: 'right' }, { title: 'Loudest vent', width: 0.17, align: 'right' }], rows },
+    ...(spillNote ? [{ type: 'text', style: 'note', text: spillNote }] : []),
+  ];
 }
 
 function block(b, ctx) {
@@ -65,6 +91,18 @@ export async function build(kind, { app, call, Plan }) {
       business: { name: biz.name ?? '', contact: biz.contact ?? '', phone: biz.phone ?? '', email: biz.email ?? '', abn: biz.abn ?? '', licence: biz.licence ?? '', website: biz.website ?? '' } });
   } catch (e) {
     return { error: e.message };
+  }
+  // The customer's report on a ducted job: how it runs with the whole home open and down to each zone on its own
+  // (Jake, 22 Nov 2026: "see what it would look like with down to one room vs the whole home open and generate a
+  // report for the homeowner so they can see this").
+  if (kind === 'customer' && app.project?.system !== 'multiSplit' && !(app.project?.splitRooms?.length) && app.project?.design) {
+    try {
+      const blocks = await runBlocks(app, call);
+      if (blocks.length) {
+        const at = doc.blocks.findIndex((b) => b.type === 'page');
+        doc.blocks.splice(at >= 0 ? at : doc.blocks.length, 0, ...blocks);
+      }
+    } catch (_) { /* the report still goes out without it */ }
   }
   // The plan at the report's size: the house's own shape on the install sheet.
   let plan = null;

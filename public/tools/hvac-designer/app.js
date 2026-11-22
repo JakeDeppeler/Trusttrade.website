@@ -1,11 +1,11 @@
 // Trust Trade Pro — the HVAC Designer in the browser. The same five steps as the app (House · Capture · Check · Design ·
 // Send) on the app's own engine (engine.wasm, run in a worker): the same loads, zones, ducts, checks and materials.
 
-import { call as engineCall, latest } from './engine.js?v=e7fbb96-202611222042';
-import { jobCalls, isMixed as mixedJob, ductedPart, ductedPartOf, splitSet, withSplitRooms, defaultRange, isDuctedB, activeSys, swapSystems, isVrfB, sharesVrf, pickVrf } from './systems.js?v=e7fbb96-202611222042';
-import * as store from './store.js?v=e7fbb96-202611222042';
-import { Plan, inkImage, zoneColour, ductColour, splitColour, T, pointInPolygon, SIDE_STYLES, movesOnly, wheelMoves, ZOOM_MAX } from './plan.js?v=e7fbb96-202611222042';
-import { RoomEditor, metres, signedArea, onLine } from './roomeditor.js?v=e7fbb96-202611222042';
+import { call as engineCall, latest } from './engine.js?v=2312452-202611222111';
+import { jobCalls, isMixed as mixedJob, ductedPart, ductedPartOf, splitSet, withSplitRooms, defaultRange, isDuctedB, activeSys, swapSystems, isVrfB, sharesVrf, pickVrf } from './systems.js?v=2312452-202611222111';
+import * as store from './store.js?v=2312452-202611222111';
+import { Plan, inkImage, zoneColour, ductColour, splitColour, T, pointInPolygon, SIDE_STYLES, movesOnly, wheelMoves, ZOOM_MAX } from './plan.js?v=2312452-202611222111';
+import { RoomEditor, metres, signedArea, onLine } from './roomeditor.js?v=2312452-202611222111';
 
 /// Every engine call: a two-system job's go with the part they're about (systems.js).
 const call = jobCalls(engineCall);
@@ -100,7 +100,7 @@ const app = {
   jobId: null, project: null, view: null, layout: null, air: null, cards: null, checks: null,
   backdrop: null, backdropFile: null, upperBackdrop: null, upperBackdropFile: null, topBackdrop: null, topBackdropFile: null,
   step: 'job', selection: null, closed: new Set(), balanced: true,
-  layers: { plan: true, allSizes: true, air: false, zones: true }, addMode: false, joining: null,
+  layers: { plan: true, allSizes: true, air: false, zones: true, sound: true }, addMode: false, joining: null,
   undo: [], redo: [], designing: false, read: null, jobsTab: 'progress', jobsSearch: '', jobsPick: null,
   plan: null, checkAnswers: null,
   /// The room editor while it's open (it shows in place of the step), and whether rooms changed since the design.
@@ -1563,16 +1563,18 @@ async function renderEquipment(c) {
       <p class="small muted">Check the switchboard if you're not sure.</p>`;
   const ch = t.choices ?? {}, load = t.wholeHomeKW ?? t.connectedKW;
   const pct = t.unit && load ? Math.round(t.unit.kw / load * 100) : null;
-  const sizeTag = (u) => (u.kw === ch.wholeHome?.kw ? 'Recommended' : u.kw === ch.zoned?.kw ? 'Zoned use' : u.kw === ch.margin?.kw ? 'More margin' : '');
+  const rec = ch.balanced ?? ch.wholeHome, share = t.homeShare ?? 0.75, sized = t.balancedKW ?? load * share;
+  const sizeTag = (u) => (u.kw === rec?.kw ? 'Recommended' : u.kw === ch.zoned?.kw ? 'Zoned use' : u.kw === ch.margin?.kw ? 'More margin' : u.kw === ch.wholeHome?.kw ? 'Whole home peak' : '');
   const zl2 = (zl?.label ?? '').toLowerCase();
   const why = !t.unit ? '' : t.byHand ? `Picked by hand: ${pct}% of the full open home's ${fmt(load, 1)} kW.`
     : t.sizing === 'zoned' ? `Zoned use only: ${fmt(t.designKW, 1)} kW with never every zone on at once (${zl2} zoning, ${fmt(t.diversity * 100)}% diversity). The full open home is ${fmt(load, 1)} kW.`
-    : t.sizing === 'margin' ? `One size up from the full open home's ${fmt(load, 1)} kW: the hottest days, bigger windows than the plan shows, a room added later.`
-    : `Runs the full open home (${fmt(load, 1)} kW) on a design day and turns down as zones shut.`;
-  const over = load > biggestUnitKW(site) * 1.06;
-  const sizeBody = `<div class="tilegrid sizes-grid">${unitsOnSupply(site).map((u) => tile(`data-unitkw="${u.kw}"`, t.unit?.kw === u.kw, `${g(u.kw)} kW`, `${fmt(u.lps)} L/s · ${load ? Math.round(u.kw / load * 100) : '—'}% of load`, sizeTag(u))).join('')}</div>
+    : t.sizing === 'margin' ? `One size up from the recommended: the hottest days, bigger windows than the plan shows, a room added later.`
+    : t.sizing === 'wholeHome' ? `Sized for every room flat out at the same moment (${fmt(load, 1)} kW). It turns down as zones shut.`
+    : `Sized for ${fmt(sized, 1)} kW: three-quarters of the ${fmt(load, 1)} kW with every room flat out at once. It runs the whole home open and brings a zone or two down quickly.`;
+  const over = sized > biggestUnitKW(site) * 1.06;
+  const sizeBody = `<div class="tilegrid sizes-grid">${unitsOnSupply(site).map((u) => tile(`data-unitkw="${u.kw}"`, t.unit?.kw === u.kw, `${g(u.kw)} kW`, `${fmt(u.lps)} L/s · ${load ? Math.round(u.kw / load * 100) : '—'}% of peak`, sizeTag(u))).join('')}</div>
     <p class="small muted">${why}</p>
-    ${over ? `<p class="small" style="color:var(--accent-deep);font-weight:600">The full open home is more than ${g(biggestUnitKW(site))} kW, the biggest ${!kaden && !site.threePhasePref ? 'unit on single phase: go three phase if the switchboard has it, or add a second system below.' : 'ducted unit: add a second system below.'}</p>` : ''}
+    ${over ? `<p class="small" style="color:var(--accent-deep);font-weight:600">This home wants more than ${g(biggestUnitKW(site))} kW, the biggest ${!kaden && !site.threePhasePref ? 'unit on single phase: go three phase if the switchboard has it, or add a second system below.' : 'ducted unit: add a second system below.'}</p>` : ''}
     ${needsThreePhase(t, site) ? `<p class="small" style="color:var(--danger);font-weight:600">${g(t.unit.kw)} kW needs a three-phase supply.</p>` : ''}
     ${t.unit ? `<div class="kv" style="margin-top:8px"><span>Fan on high</span><b>${fmt(t.unit.lps)} L/s · up to ${fmt(t.unit.esp)} Pa${t.unit.espConfirmed === false ? ' <span class="muted small" style="font-weight:500">(check the manual)</span>' : ''}</b></div>` : ''}
     <div class="actions-row"><button class="btn2 small" data-sizehow>How it's worked out</button><button class="btn2 small" data-cat>Browse the catalogue</button></div>`;
@@ -1582,8 +1584,8 @@ async function renderEquipment(c) {
   const unitTitle = mixed ? `Size · system ${ductedB() ? sysView() : 'A'}` : 'Size';
   c.innerHTML = `<div class="work check-work">
     <div class="stage">
-      <div class="bar"><div class="stats"><div><b>${t.unit ? g(t.unit.kw) + ' kW' : '—'}</b><span>unit</span></div><div><b>${fmt(t.wholeHomeKW ?? t.connectedKW, 1)} kW</b><span>whole home</span></div>
-        <div><b>${pct != null ? pct + '%' : '—'}</b><span>of the load</span></div><div><b>${zones || '—'}</b><span>zones</span></div></div>
+      <div class="bar"><div class="stats"><div><b>${t.unit ? g(t.unit.kw) + ' kW' : '—'}</b><span>unit</span></div><div><b>${fmt(t.wholeHomeKW ?? t.connectedKW, 1)} kW</b><span>whole home peak</span></div>
+        <div><b>${pct != null ? pct + '%' : '—'}</b><span>of the peak</span></div><div><b>${zones || '—'}</b><span>zones</span></div></div>
         <div class="spacer" style="flex:1"></div>${ductedB() ? sysTabs() : ''}</div>
       <div class="canvas-card"><canvas id="cv"></canvas>${zoomCtl()}</div>
       <div class="hint">${app.assigning ? `<b>Tap a room to put it on system B</b> (green), and tap it again to put it back on the ducts. An open area moves as one. <button class="link" id="assign-done">Done</button>`
@@ -1612,7 +1614,7 @@ async function renderEquipment(c) {
   // A size tapped: the recommended, zoned or margin pick by name (so it follows the load), any other by hand.
   c.querySelectorAll('[data-unitkw]').forEach((b) => (b.onclick = () => {
     const kw = parseFloat(b.dataset.unitkw);
-    const sizing = kw === ch.wholeHome?.kw ? 'wholeHome' : kw === ch.zoned?.kw ? 'zoned' : kw === ch.margin?.kw ? 'margin' : null;
+    const sizing = kw === (ch.balanced ?? ch.wholeHome)?.kw ? (ch.balanced ? 'balanced' : 'wholeHome') : kw === ch.zoned?.kw ? 'zoned' : kw === ch.margin?.kw ? 'margin' : kw === ch.wholeHome?.kw ? 'wholeHome' : null;
     commit({ ...app.project, site: { ...app.project.site, ...(sizing ? { unitSizingPref: sizing, unitKWPref: null } : { unitKWPref: kw }) } });
   }));
   c.querySelectorAll('[data-zoning]').forEach((b) => (b.onclick = async () => { await commit({ ...app.project, site: { ...app.project.site, zoningPref: b.dataset.zoning } }, { rerender: false }); render(); }));
@@ -2200,7 +2202,7 @@ function ring(share, tone) {
 /// under it and a line of figures.
 function cardHead(close, eyebrow, title, sub, mono = '', gauge = '') {
   return `<div class="ih"><span class="eyebrow">${eyebrow}</span>${close}</div>
-    <div class="ihero">${gauge}<div class="grow"><h2>${title}</h2>${sub ? `<div class="isub">${sub}</div>` : ''}${mono ? `<div class="imono" style="margin-top:2px">${mono}</div>` : ''}</div></div>`;
+    <div class="ihero"><div class="grow"><h2>${title}</h2>${sub ? `<div class="isub">${sub}</div>` : ''}${mono ? `<div class="imono" style="margin-top:2px">${mono}</div>` : ''}</div></div>`;
 }
 
 const HEAT_TONES = { Windows: '#E8826B', Walls: '#F2B09C', Roof: '#F7D2C6', Floor: '#D9C8B8', 'Air leakage': '#C3CAD5', 'People and appliances': '#E3E6EB' };
@@ -2507,7 +2509,7 @@ function mountPlan(cv, opts) {
   if (was) { plan.zoom = was.zoom; plan.pan = { ...was.pan }; }
   plan.set({
     project: app.project, view: app.view, layout: layout === false ? null : app.layout, air: app.air, backdrop: app.backdrop,
-    upperBackdrop: app.upperBackdrop, topBackdrop: app.topBackdrop, showPlan: true, splitRooms: otherRooms(), allSizes: app.layers.allSizes, zoneCards: app.layers.zones, showAir: false, selection: null,
+    upperBackdrop: app.upperBackdrop, topBackdrop: app.topBackdrop, showPlan: true, splitRooms: otherRooms(), allSizes: app.layers.allSizes, zoneCards: app.layers.zones, sound: app.layers.sound !== false, showAir: false, selection: null,
     ghost: ductedB() ? app.otherLayout : null, hatch: ductedB() ? T.line : null, vrfLabel: vrfLabel(), ...rest,
   });
   return plan;
@@ -2638,6 +2640,7 @@ function layersMenu(anchor) {
   m.style.left = r.right + 8 + 'px'; m.style.top = r.top + 'px'; m.style.position = 'fixed';
   m.innerHTML = `<label><input type="checkbox" data-l="allSizes" ${app.layers.allSizes ? 'checked' : ''}> All duct sizes</label>
     <label><input type="checkbox" data-l="zones" ${app.layers.zones ? 'checked' : ''}> Zone cards (kW, L/s, m²)</label>
+    <label><input type="checkbox" data-l="sound" ${app.layers.sound !== false ? 'checked' : ''}> Vent sound (dB)</label>
     <label><input type="checkbox" data-l="speeds" ${app.layers.speeds ? 'checked' : ''}> Air speed on the ducts (m/s)</label>
     <label><input type="checkbox" data-l="air" ${app.layers.air ? 'checked' : ''}> Airflow</label>`;
   document.body.append(m);
@@ -2645,7 +2648,7 @@ function layersMenu(anchor) {
     const k = e.target.dataset.l;
     app.layers[k] = e.target.checked; saveLayers();
     if (k === 'air' && app.layers.air && !app.air) app.air = await call('air', { project: app.project, closed: [...app.closed], balanced: app.balanced });
-    app.plan?.set({ allSizes: app.layers.allSizes || app.layers.speeds, speeds: app.layers.speeds ? speedLimits() : null, zoneCards: app.layers.zones, showAir: app.layers.air, air: app.air });
+    app.plan?.set({ allSizes: app.layers.allSizes || app.layers.speeds, speeds: app.layers.speeds ? speedLimits() : null, zoneCards: app.layers.zones, sound: app.layers.sound !== false, showAir: app.layers.air, air: app.air });
   };
   setTimeout(() => document.addEventListener('pointerdown', function off(e) { if (!m.contains(e.target)) { m.remove(); document.removeEventListener('pointerdown', off); render(); } }), 0);
 }
@@ -2994,54 +2997,9 @@ function renderInspector() {
     return;
   }
   if (s?.kind === 'room' && room(s.id)) {
-    const r = room(s.id);
-    const mates = v.rooms.filter((m) => m.id !== r.id && m.conditioned && r.zone != null && m.zone === r.zone);
-    const byHand = p.design?.zoneOverrides ?? {};
-    const joined = byHand[r.id] != null || mates.some((m) => byHand[m.id] != null);
-    const outs = (l?.outlets ?? []).filter((o) => o.roomId === r.id && !o.spill);
-    const gets = outs.reduce((sum, o) => sum + o.lps, 0);
-    const share = r.lps > 0 ? gets / r.lps : 0;
-    const dens = r.area > 0 ? r.kw * 1000 / r.area : 0;
-    const sizes = [...new Set(outs.map((o) => o.sizeMM))].sort((x, y) => x - y).map((mm) => 'Ø' + mm).join(', ');
-    html = `<div class="card is">${cardHead(close, `Room · ${r.zone === 0 ? 'always on' : r.zone != null ? 'zone ' + r.zone : 'no zone'}`, esc(r.name),
-        `${fmt(r.area, 1)} m² · ${fmt(dens)} W/m²${mates.length ? ' · with ' + mates.map((m) => esc(m.name)).join(', ') : ''}`,
-        `${fmt(gets)} of ${fmt(r.lps)} L/s${outs.length ? ` · ${outs.length} vent${outs.length === 1 ? '' : 's'} ${sizes}` : ' · no vents yet'}`, ring(outs.length ? share : null, r.zone ? zoneColour(r.zone) : undefined))}
-      <div class="tiles3"><div><span>Heat load</span><b>${fmt(r.kw, 1)}<i>kW</i></b></div><div><span>Needs</span><b>${fmt(r.lps)}<i>L/s</i></b></div>
-        <div><span>Gets</span><b>${fmt(gets)}<i>L/s</i></b></div></div>
-      <div class="seg fill"><button data-zoned="own" class="${r.zone != null && r.zone !== 0 && !mates.length ? 'on' : ''}">Its own zone</button>
-        <button data-zoned="none" class="${r.zone === 0 ? 'on' : ''}">Always on</button>${mates.length ? '<button class="on" disabled>Shares a zone</button>' : ''}</div>
-      ${byHand[r.id] != null ? '<button class="link" data-zoned="auto" style="padding:0;text-align:left">Back to how the zoning has it</button>' : ''}
-      <div class="rowbtns"><button class="btn2 soft" id="addhere">${icon('plus').replace('<svg', '<svg width="15" height="15"')} Add a vent</button>
-        ${joined && mates.length ? '<button class="btn2" id="unjoin">Unjoin</button>' : '<button class="btn2" id="join">Join a room</button>'}
-        <button class="btn2" id="reshape">Shape</button></div>
-      <details class="more" id="load-more" ${app.loadOpen ? 'open' : ''}><summary>Where the heat comes from ${icon('chev')}</summary>
-        <div style="padding-top:12px;display:flex;flex-direction:column;gap:10px">${roomFacts(r, { tiles: false, built: false })}
-        <div class="rowpick" style="margin:0"><label style="font-size:13.5px">Built</label><select id="r-built">${eraOptions(r.era)}</select></div>
-        ${r.openArea && v.rooms.some((m) => m.id !== r.id && m.openArea === r.openArea) ? '<label class="small muted" style="display:flex;gap:6px;align-items:center;margin:0"><input type="checkbox" id="r-built-area" checked> and the rest of its open area</label>' : ''}</div></details></div>`;
+    html = '';                                             // opens in the list, in place
   } else if (s?.kind === 'outlet' && l?.outlets.find((o) => o.id === s.id)) {
-    const o = l.outlets.find((x) => x.id === s.id), r = room(o.roomId), a = app.air?.outlets.find((x) => x.id === o.id);
-    const run = l.runs.find((x) => x.outlet === o.id);
-    const auto = run?.autoMM ?? o.sizeMM;
-    const targets = (o.moveTargets ?? []).map((bid) => l.boxes.find((b) => b.bid === bid)).filter(Boolean);
-    const sp = run && o.open && run.sizeMM ? velocity(run.lps, run.sizeMM) : null, over = run && o.open && legOver(run);
-    const st = o.style ?? 'round';
-    html = `<div class="card is">${cardHead(close, `Outlet · ${o.zone === 0 ? 'always on' : o.zone != null ? 'zone ' + o.zone : 'no zone'}`, esc(r?.name ?? 'Outlet'),
-        esc(OUTLET_NAMES[st] ?? 'Round ceiling diffuser') + (st !== 'round' && o.face ? ' · ' + esc(o.face) + ' mm' : ''),
-        o.open ? `${fmt(o.lps)} of ${fmt(o.designLps)} L/s · ${fmt(o.dbA)} dB(A)` : `Zone shut · sized for ${fmt(o.designLps)} L/s`,
-        ring(o.open && o.designLps > 0 ? o.lps / o.designLps : null, o.zone ? zoneColour(o.zone) : undefined))}
-      <div class="tiles3"><div><span>Flex</span><b>${run ? fmt(run.length, 1) : '—'}<i>m</i></b></div>
-        <div class="${over ? 'warn' : ''}"><span>Speed${over ? ' · over' : ''}</span><b>${sp != null ? fmt(sp, 1) : '—'}<i>m/s</i></b></div>
-        <div><span>Throw</span><b>${a ? fmt(a.throwM, 1) : '—'}<i>m</i></b></div></div>
-      <div class="seg fill"><button data-vsize="0" class="${o.overridden ? '' : 'on'}" title="Sized for its air: Ø${auto}">Auto</button>${app.options.ventSizes.map((mm) => `<button data-vsize="${mm}" class="${o.overridden && o.sizeMM === mm ? 'on' : !o.overridden && mm === auto ? 'auto' : ''}">Ø${mm}</button>`).join('')}</div>
-      <div class="seg grid3">${OUTLET_STYLES.map(([k, t]) => `<button data-ostyle="${k}" class="${st === k ? 'on' : ''}">${t}</button>`).join('')}</div>
-      ${over ? `<p class="small" style="margin:0;color:var(--accent-deep);font-weight:600">More air than a Ø${run.sizeMM} vent takes (${fmt(app.options.ventCap?.[run.sizeMM])} L/s): go up a size or add a vent.</p>` : ''}
-      ${l.handDrawn && !run?.hand ? '<p class="small" style="margin:0;color:var(--accent-deep);font-weight:600">Not connected: draw a duct to it with the pen.</p>' : ''}
-      ${a ? `<div class="imono mut">NC ${fmt(a.nc)} ${esc(a.ncWord)} · ${esc(a.coverage === 'good' ? 'mixes well' : a.coverage === 'short' ? 'falls short' : 'strong throw')}${o.faceNR != null ? ` · face ${fmt(o.facePa)} Pa` : ''}</div>` : ''}
-      ${targets.length && !l.handDrawn ? `<div class="rowpick" style="margin:0;padding:0;border:0"><label style="font-size:13px">Put it on another BDO</label><select id="movebox"><option value="">Choose…</option>${targets.map((b) => `<option value="${esc(b.bid)}">BDO with ${esc(feeds(b))}</option>`).join('')}</select></div>` : ''}
-      ${bendLine()}
-      <div class="rowbtns"><button class="btn2" id="ostyle-every">Every vent ${esc((OUTLET_STYLES.find(([k]) => k === st) ?? ['', 'Round'])[1].toLowerCase())}</button>
-        ${l.handDrawn && run?.hand ? '<button class="btn2" id="delrun">Take its duct out</button>' : ''}
-        <button class="btn2 danger" id="delvent">${icon('trash').replace('<svg', '<svg width="15" height="15"')} Take out</button></div></div>`;
+    html = '';
   } else if (s?.kind === 'box' && l?.boxes.find((b) => b.bid === s.id)) {
     const b = l.boxes.find((x) => x.bid === s.id), feed = [...l.runs].reverse().find((r) => r.keyBox === b.bid);
     const fsp = feed?.sizeMM ? velocity(feed.designLps, feed.sizeMM) : null;
@@ -3129,7 +3087,9 @@ function renderInspector() {
   if (!l) { el.innerHTML = designSummary(); bindInspector(el); return; }
   const picked = !!app.selection, top = el.querySelector('.iscroll')?.scrollTop ?? 0, same = el.dataset.sel === JSON.stringify(app.selection ?? null);
   el.dataset.sel = JSON.stringify(app.selection ?? null);
-  el.innerHTML = `<div class="iscroll">${issueList(l, v, p)}${html}${picked ? '' : extrasCards(l, v, p) + zonesCard(l)}${roomsCard(l, v)}${picked ? '' : flexCard(l) + optionsCard(l, p)}</div>${fanFoot(l)}`;
+  // One list for the home, a room and a vent (Jake, 22 Nov 2026, picked from four layouts): every room with its air,
+  // its sound and its load; the one tapped opens in place. Anything else picked (a BDO, a duct, the fan coil) sits above.
+  el.innerHTML = `<div class="iscroll">${issueList(l, v, p)}${runSeg(l)}${html}${roomList(l, v, p)}${extrasCards(l, v, p)}${flexCard(l)}${optionsCard(l, p)}</div>${fanFoot(l)}`;
   if (same) el.querySelector('.iscroll').scrollTop = top;
   bindInspector(el);
 }
@@ -3159,8 +3119,6 @@ function issueList(l, v, p) {
   if (n.limitedByFan || n.espSetting == null) out.push(row('w', 'The ducts need more than the fan pushes', `${fmt(n.externalPa)} Pa of its ${fmt(n.ratedEsp)} Pa: go up a duct size or shorten a run`));
   if (sp.over) out.push(row('n', `${sp.over} run${sp.over === 1 ? '' : 's'} over the air speed limit`, 'A size up, or fewer vents on that run'));
   if (l.handDrawn && l.crossings) out.push(row('n', `${l.crossings} pair${l.crossings === 1 ? '' : 's'} of ducts cross`, 'Tap one and drag a bend round the other'));
-  if (!drain) out.push(row('n', 'Drain line not drawn', 'Optional: draw it for an exact length', '<button data-next="drain">Draw</button>'));
-  if (!short.length && !unfed && !dry.length && l.outlets.some((o) => !o.dropper)) out.unshift(row('ok', 'Every room has its air', 'Check &amp; send is top right'));
   return out.length ? `<div class="card is" style="gap:8px;padding-top:16px">${out.slice(0, 3).join('')}</div>` : '';
 }
 
@@ -3177,21 +3135,121 @@ function extrasCards(l, v, p) {
   return reduct + floors;
 }
 
-/// Every zone and the air it carries; tap one to shut or open it.
-function zonesCard(l) {
-  const zones = l.zones.filter((z) => z.outlets > 0 || l.outlets.some((o) => o.dropper && o.zone === z.number));
-  if (!zones.length) return '';
-  return `<div class="card is" style="gap:8px"><div class="ih"><b>Zones</b><span class="imono mut">${app.closed.size ? '<button class="link" id="openall" style="padding:0;font-size:11.5px">open all</button> · ' : ''}L/s · tap to shut</span></div>
-    <div>${zones.map((z) => `<button class="zr ${z.open ? '' : 'shut'}" data-zone="${z.number}"><i class="dash" style="background:${z.open ? zoneColour(z.number) : '#C6CBD3'}"></i><span>${z.number === 0 ? 'Always on · ' : ''}${esc(z.name)}</span><b>${z.open ? fmt(z.lps) : 'shut'}</b></button>`).join('')}</div>
-    <div class="seg fill"><button data-bal="1" class="${app.balanced ? 'on' : ''}">Balanced</button><button data-bal="0" class="${app.balanced ? '' : 'on'}">As installed</button></div></div>`;
+/// How it's run: the whole home open, or down to one room (Jake, 22 Nov 2026: "see what it would look like with down
+/// to one room vs the whole home open"). The list, the plan and the fan along the bottom all follow.
+function runState(l) {
+  const zones = l.zones.filter((z) => z.number !== 0 && (z.outlets > 0 || l.outlets.some((o) => o.dropper && o.zone === z.number)));
+  // Asked for, not as it ends up: the spill zone opens by itself when too few are on.
+  const asked = zones.filter((z) => !app.closed.has(z.number));
+  return { zones, open: asked, mode: !app.closed.size ? 'all' : asked.length === 1 ? 'one' : 'mix' };
+}
+function runSeg(l) {
+  const { zones, open, mode } = runState(l);
+  if (zones.length < 2) return '';
+  const sp = l.spill, spilling = mode !== 'all' && sp?.spilling;
+  return `<div class="card is" style="gap:6px;padding-bottom:10px"><div class="seg fill"><button data-run="all" class="${mode === 'all' ? 'on' : ''}">Whole home</button><button data-run="one" class="${mode === 'one' ? 'on' : ''}">One room</button></div>
+    <div class="lnote">${mode === 'all' ? 'Every zone open. Tap a zone\'s number to shut it.' : mode === 'one' ? `Only <b>${esc(open[0].name)}</b> on. Tap another zone's number to switch to it.` : `${open.length} of ${zones.length} zones on.`}
+      ${spilling ? ` The fan won't slow below about ${fmt(sp.floorLps)} L/s, so the spare air spills ${sp.kind === 'outlet' ? 'out the spill outlet' : 'into <b>' + esc(sp.name) + '</b>'}.` : ''}</div></div>`;
+}
+/// Down to one zone: the one given, or the picked room's, or the smallest (the hardest for the fan to turn down to).
+async function runOne(zone) {
+  const l = app.layout, { zones } = runState(l), s = app.selection;
+  const mine = zone ?? (s?.kind === 'room' ? app.view.rooms.find((r) => r.id === s.id)?.zone : s?.kind === 'outlet' ? l.outlets.find((o) => o.id === s.id)?.zone : null);
+  const keep = zones.find((z) => z.number === mine) ?? [...zones].sort((a, b) => a.designLps - b.designLps)[0];
+  if (!keep) return;
+  app.closed = new Set(zones.filter((z) => z.number !== keep.number).map((z) => z.number));
+  await refresh(); render();
+}
+
+/// How a vent's sound sits against its room's target: under by a margin, under, or over.
+const soundWord = (db, target) => (db == null ? '' : db > target + 0.5 ? 'loud' : db > target - 5 ? 'fine' : 'quiet');
+
+/// Every room on the ducts, a row each: its zone, the air it gets of what it needs, its loudest vent, its load.
+function roomList(l, v, p) {
+  const rooms = v.rooms.filter((r) => r.conditioned && r.designerType !== 'none' && onDucts(r.id));
+  if (!rooms.length) return '';
+  const fed = l.handDrawn ? new Set(l.runs.map((x) => x.outlet).filter(Boolean)) : null;
+  const sel = app.selection, selVent = sel?.kind === 'outlet' ? l.outlets.find((o) => o.id === sel.id) : null;
+  const selRoom = sel?.kind === 'room' ? sel.id : selVent?.roomId ?? null;
+  const all = rooms.map((r) => {
+    const outs = l.outlets.filter((o) => o.roomId === r.id && !o.spill && !o.dropper), live = fed ? outs.filter((o) => fed.has(o.id)) : outs;
+    const zoneOpen = r.zone == null || r.zone === 0 || l.zones.find((z) => z.number === r.zone)?.open !== false;
+    const gets = live.reduce((t, o) => t + (o.open ? o.lps : 0), 0), share = r.lps > 0 ? gets / r.lps : 1;
+    const dbs = live.filter((o) => o.open && o.lps > 0).map((o) => o.dbA), db = dbs.length ? Math.max(...dbs) : null;
+    return { r, outs, zoneOpen, gets, share, db, short: zoneOpen && share < 0.85, loud: db != null && db > r.soundTarget + 0.5 };
+  });
+  const f = app.listFilter ?? 'all', nShort = all.filter((x) => x.short).length, nLoud = all.filter((x) => x.loud).length;
+  const shown = all.filter((x) => f === 'all' || (f === 'short' ? x.short : x.loud) || x.r.id === selRoom);
+  const chip = (k, t, n) => `<button data-lfilter="${k}" class="${f === k ? 'on' : ''}">${t}${n != null ? ` <i>${n}</i>` : ''}</button>`;
+  const row = (x) => {
+    const r = x.r, z = r.zone, on = r.id === selRoom;
+    const badge = z == null ? '<span class="zb none"></span>' : `<button class="zb ${x.zoneOpen ? '' : 'shut'}" data-zone="${z}" style="${x.zoneOpen && z !== 0 ? 'background:' + zoneColour(z) : ''}" title="${z === 0 ? 'Always on: no damper' : x.zoneOpen ? 'Zone ' + z + ': tap to shut it' : 'Zone ' + z + ' is shut: tap to open it'}">${z === 0 ? '∞' : z}</button>`;
+    return `<div class="lrow ${on ? 'on' : ''} ${x.zoneOpen ? '' : 'shut'}" data-room="${r.id}">${badge}<span class="nm" title="${esc(r.name)}">${esc(r.name)}</span>
+        <b class="${x.short ? 'low' : ''}">${x.zoneOpen ? `${fmt(x.gets)}<i>/${fmt(r.lps)}</i>` : 'shut'}</b><b class="${x.loud ? 'bad' : ''}">${x.db != null ? fmt(x.db) : '—'}</b><b>${fmt(r.kw, 1)}</b></div>
+      ${on ? roomOpen(x, l, v, p, selVent) : ''}`;
+  };
+  return `<div class="card is" style="gap:0;padding-top:10px">
+    <div class="lfilter">${chip('all', 'All', null)}${chip('short', 'Short of air', nShort)}${chip('loud', 'Loud', nLoud)}</div>
+    <div class="lcols"><span></span><span>Room</span><span>Air L/s</span><span>dB</span><span>kW</span></div>
+    ${shown.map(row).join('') || `<div class="lnote" style="padding:10px 0">${f === 'short' ? 'No room is short of air.' : 'No vent is over its room\'s sound target.'}</div>`}</div>`;
+}
+
+/// A room opened in the list: its zone, its vents (tap one for its size and type), and what can be done to it.
+function roomOpen(x, l, v, p, selVent) {
+  const r = x.r, byHand = p.design?.zoneOverrides ?? {};
+  const mates = v.rooms.filter((m) => m.id !== r.id && m.conditioned && r.zone != null && m.zone === r.zone);
+  const joined = byHand[r.id] != null || mates.some((m) => byHand[m.id] != null);
+  const vent = (o, i) => `<button class="lvent ${selVent?.id === o.id ? 'on' : ''}" data-vent="${o.id}"><span>Vent${x.outs.length > 1 ? ' ' + (i + 1) : ''}</span><b>Ø${o.sizeMM}</b><b>${o.open ? fmt(o.lps) + ' L/s' : 'shut'}</b><b class="${o.open && o.dbA > r.soundTarget + 0.5 ? 'bad' : ''}">${o.open ? fmt(o.dbA) + ' dB' : '—'}</b></button>
+    ${selVent?.id === o.id ? ventOpen(o, r, l) : ''}`;
+  return `<div class="lopen">
+    <div class="lnote">${r.zone === 0 ? 'Always on, no damper' : r.zone != null ? 'Zone ' + r.zone : 'No zone'}${mates.length ? ', with ' + mates.map((m) => esc(m.name)).join(', ') : ''} · ${fmt(r.area, 1)} m² · sound target ${fmt(r.soundTarget)} dB(A)</div>
+    ${x.outs.length ? x.outs.map(vent).join('') : '<div class="lnote" style="color:var(--accent-deep);font-weight:600">No vents in it yet.</div>'}
+    ${selVent ? '' : `<div class="seg fill"><button data-zoned="own" class="${r.zone != null && r.zone !== 0 && !mates.length ? 'on' : ''}">Its own zone</button>
+        <button data-zoned="none" class="${r.zone === 0 ? 'on' : ''}">Always on</button>${mates.length ? '<button class="on" disabled>Shared</button>' : ''}</div>
+      <div class="rowbtns"><button class="btn2 soft" id="addhere">${icon('plus').replace('<svg', '<svg width="15" height="15"')} Add a vent</button>
+        ${joined && mates.length ? '<button class="btn2" id="unjoin">Unjoin</button>' : '<button class="btn2" id="join">Join a room</button>'}
+        <button class="btn2" id="room-more">${app.loadOpen ? 'Less' : 'More'}</button></div>
+      ${app.loadOpen ? `<div class="lmore">${byHand[r.id] != null ? '<button class="link" data-zoned="auto" style="padding:0;text-align:left">Zone it as the zoning has it</button>' : ''}
+        ${heatSplit(r)}<div>${roomRows(r, { built: false })}
+        <div class="rowpick" style="margin:0"><label>Built</label><select id="r-built">${eraOptions(r.era)}</select></div></div>
+        ${r.openArea && v.rooms.some((m) => m.id !== r.id && m.openArea === r.openArea) ? '<label class="small muted" style="display:flex;gap:6px;align-items:center;margin:0"><input type="checkbox" id="r-built-area" checked> and the rest of its open area</label>' : ''}
+        <div class="rowbtns"><button class="btn2" id="reshape">Change its shape</button></div></div>` : ''}`}
+  </div>`;
+}
+
+/// A vent opened under its room: its sound and air in big figures, then its size and its type.
+function ventOpen(o, r, l) {
+  const a = app.air?.outlets.find((x) => x.id === o.id), run = l.runs.find((x) => x.outlet === o.id), auto = run?.autoMM ?? o.sizeMM;
+  const targets = (o.moveTargets ?? []).map((bid) => l.boxes.find((b) => b.bid === bid)).filter(Boolean);
+  const sp = run && o.open && run.sizeMM ? velocity(run.lps, run.sizeMM) : null, over = run && o.open && legOver(run), st = o.style ?? 'round';
+  const word = o.open ? soundWord(o.dbA, r?.soundTarget ?? 40) : '';
+  return `<div class="lvopen">
+    <div class="lbig"><div class="${word === 'loud' ? 'bad' : ''}"><b>${o.open ? fmt(o.dbA) : '—'}</b><span>dB(A)${word ? ' · ' + word : ''}</span></div>
+      <div><b>${o.open ? fmt(o.lps) : '—'}</b><span>of ${fmt(o.designLps)} L/s</span></div>
+      <div class="${over ? 'bad' : ''}"><b>${sp != null ? fmt(sp, 1) : '—'}</b><span>m/s${over ? ' · over' : ''}</span></div></div>
+    <div class="seg fill"><button data-vsize="0" class="${o.overridden ? '' : 'on'}" title="Sized for its air: Ø${auto}">Auto</button>${app.options.ventSizes.map((mm) => `<button data-vsize="${mm}" class="${o.overridden && o.sizeMM === mm ? 'on' : !o.overridden && mm === auto ? 'auto' : ''}">Ø${mm}</button>`).join('')}</div>
+    <div class="seg grid3">${OUTLET_STYLES.map(([k, t]) => `<button data-ostyle="${k}" class="${st === k ? 'on' : ''}">${t}</button>`).join('')}</div>
+    ${word === 'loud' ? `<div class="lnote" style="color:var(--danger);font-weight:600">Over this room's ${fmt(r.soundTarget)} dB(A): go up a vent size, or add a vent to share the air.</div>` : ''}
+    ${over ? `<div class="lnote" style="color:var(--accent-deep);font-weight:600">More air than a Ø${run.sizeMM} vent takes (${fmt(app.options.ventCap?.[run.sizeMM])} L/s).</div>` : ''}
+    ${l.handDrawn && !run?.hand ? '<div class="lnote" style="color:var(--accent-deep);font-weight:600">Not connected: draw a duct to it with the pen.</div>' : ''}
+    <div class="rowbtns"><button class="btn2 danger" id="delvent">${icon('trash').replace('<svg', '<svg width="15" height="15"')} Take out</button>
+      ${l.handDrawn && run?.hand ? '<button class="btn2" id="delrun">Take its duct out</button>' : ''}<button class="btn2" id="vent-more">${app.ventMore ? 'Less' : 'More'}</button></div>
+    ${app.ventMore ? `<div class="lmore">
+      <div class="kv"><span>Flex to it</span><b>${run ? fmt(run.length, 1) + ' m of Ø' + run.sizeMM : 'none'}</b></div>
+      ${a ? `<div class="kv"><span>Throw</span><b>${fmt(a.throwM, 1)} m · ${esc(a.coverage === 'good' ? 'mixes well' : a.coverage === 'short' ? 'falls short' : 'strong')}</b></div><div class="kv"><span>Noise rating</span><b>NC ${fmt(a.nc)} · ${esc(a.ncWord)}</b></div>` : ''}
+      ${st !== 'round' && o.face ? `<div class="kv"><span>${esc(OUTLET_NAMES[st])}</span><b>${esc(o.face)} mm</b></div>` : ''}
+      ${targets.length && !l.handDrawn ? `<div class="rowpick" style="margin:0"><label>Put it on another BDO</label><select id="movebox"><option value="">Choose…</option>${targets.map((b) => `<option value="${esc(b.bid)}">BDO with ${esc(feeds(b))}</option>`).join('')}</select></div>` : ''}
+      ${bendLine()}
+      <div class="rowbtns"><button class="btn2" id="ostyle-every">Make every vent ${esc((OUTLET_STYLES.find(([k]) => k === st) ?? ['', 'Round'])[1].toLowerCase())}</button></div></div>` : ''}
+  </div>`;
 }
 
 /// The flex to order, a line a size.
 function flexCard(l) {
   if (!l.flex.length) return '';
-  const bags = l.flex.reduce((t, f) => t + f.bags, 0);
-  return `<div class="card is" style="gap:8px"><div class="ih"><b>Flex to order</b><span class="imono mut">${bags} bag${bags === 1 ? '' : 's'}</span></div>
-    <div>${l.flex.map((f) => `<div class="zr"><i class="dash" style="background:${ductColour(f.sizeMM)}"></i><span>Ø${f.sizeMM}</span><b>${fmt(f.metres, 1)} m · ${f.bags} bag${f.bags === 1 ? '' : 's'}</b></div>`).join('')}</div></div>`;
+  const bags = l.flex.reduce((t, f) => t + f.bags, 0), m = l.flex.reduce((t, f) => t + f.metres, 0);
+  return `<div class="card is" style="gap:0"><details class="more" id="flex-more" ${app.flexOpen ? 'open' : ''}><summary><span>Flex to order</span><span class="lsum">${bags} bag${bags === 1 ? '' : 's'} · ${fmt(m)} m ${icon('chev')}</span></summary>
+    <div style="padding-top:8px">${l.flex.map((f) => `<div class="zr"><i class="dash" style="background:${ductColour(f.sizeMM)}"></i><span>Ø${f.sizeMM}</span><b>${fmt(f.metres, 1)} m · ${f.bags} bag${f.bags === 1 ? '' : 's'}</b></div>`).join('')}</div></details></div>`;
 }
 
 /// The air speed in the ducts against the class's limits: the fastest trunk and feed, the return, and how many are over.
@@ -3217,12 +3275,14 @@ function optionsCard(l, p) {
       <div class="rowpick"><label>Every vent</label><select id="ostyle-all">${OUTLET_STYLES.map(([k, t]) => `<option value="${k}" ${(p.design?.outletStyle ?? 'round') === k ? 'selected' : ''}>${t}</option>`).join('')}</select></div>
       <div class="rowpick"><label>Zoning</label><select id="zoning">${app.options.zonings.map((z) => `<option value="${z.id}" ${z.id === zoning ? 'selected' : ''}>${esc(z.label)}</option>`).join('')}</select></div>
       <div class="rowpick"><label>Supply air transition</label><select id="takeoffs">${takeoffOptions()}</select></div>
+      <div class="rowpick"><label>Air shown</label><select id="bal"><option value="1" ${app.balanced ? 'selected' : ''}>Balanced</option><option value="0" ${app.balanced ? '' : 'selected'}>As installed</option></select></div>
       <div class="rowpick"><label>Air speed</label><select id="velocity">${app.options.velocities.map((x) => `<option value="${x.id}" ${x.id === (p.site.velocityPref ?? 'standard') ? 'selected' : ''}>${esc(x.label)}</option>`).join('')}</select></div>
       ${sp.rows.map((x) => `<div class="kv"><span>${x.name} · ${x.w.r.count > 1 ? `${x.w.r.count} × Ø${x.w.r.sizeMM}` : `fastest, Ø${x.w.r.sizeMM}`}</span><b style="${x.over ? 'color:var(--danger)' : ''}">${fmt(x.w.sp, 1)} m/s <span class="muted small" style="font-weight:500">of ${x.cap}</span></b></div>`).join('')}
       ${sp.legs ? `<div class="kv"><span>Legs to the vents</span><b style="${sp.legsOver ? 'color:var(--danger)' : ''}">${sp.legsOver ? `${sp.legsOver} over what the vent takes` : 'all within their vents'}</b></div>` : ''}
       <div class="rowbtns" style="margin-top:12px"><button class="btn2" data-sizehow>How it's sized</button><button class="btn2" data-cat>Catalogue</button>
         ${(p.design?.boxPins || p.design?.stations) ? '<button class="btn2" id="unhand">Undo hand-placed BDOs</button>' : ''}
         ${p.zoneCards && Object.keys(p.zoneCards).length ? '<button class="btn2" id="cards-back">Put the zone cards back</button>' : ''}
+        ${(p.lines ?? []).some((x) => x.kind === 'drain') ? '' : '<button class="btn2" data-next="drain">Draw the drain line</button>'}
         <button class="btn2" id="restart">Clear the outlets</button>${ASSIST() ? '<button class="btn2" id="redesign">Lay it out for me</button>' : ''}</div>
     </div></details></div>`;
 }
@@ -3278,10 +3338,10 @@ function sizeBreakdown() {
   const noGlass = live.filter((r) => !r.windows.length);
   const insul = factor(live[0] ?? { factors: [] }, 'insulation');
   const ch = t.choices ?? {};
-  const pickedBy = t.byHand ? 'picked by hand' : ({ wholeHome: 'whole home open', margin: 'more margin', zoned: 'zoned use only' })[t.sizing] ?? t.sizing;
+  const pickedBy = t.byHand ? 'picked by hand' : ({ balanced: 'recommended', wholeHome: 'whole home at its peak', margin: 'more margin', zoned: 'zoned use only' })[t.sizing] ?? t.sizing;
   const lows = [];
   const big = biggestUnitKW();
-  if (t.wholeHomeKW > big * 1.06) lows.push(`<b>The full open home needs ${fmt(t.wholeHomeKW, 1)} kW — more than the biggest ${esc(brandNow().label)} ducted unit (${g(big)} kW).</b> Split it into two systems (say living and sleeping), or size it for zoned use and tell the customer it won't run every room flat out at once on the hottest day.`);
+  if ((t.balancedKW ?? t.wholeHomeKW) > big * 1.06) lows.push(`<b>The home wants ${fmt(t.balancedKW ?? t.wholeHomeKW, 1)} kW — more than the biggest ${esc(brandNow().label)} ducted unit (${g(big)} kW).</b> Split it into two systems (say living and sleeping), or size it for zoned use and tell the customer it won't run every room flat out at once on the hottest day.`);
   if (needsThreePhase(t, p.site)) lows.push(`<b>${g(t.unit.kw)} kW needs a three-phase supply.</b> 18 kW is the biggest Mitsubishi Electric ducted unit on single phase; 20 and 24.5 kW are three phase only. Check the switchboard (and set it on the Equipment step), or split the house into two systems.`);
   if (noGlass.length) lows.push(`<b>${noGlass.length} of ${live.length} rooms have no windows drawn.</b> They count as typical glass (× 1.00) facing no particular way — a west-facing room is × 1.16 and a glassy one × 1.22. Add the windows for a truer size: Edit the rooms → pick a wall → Add a window.`);
   if (/good/.test(insul?.[0] ?? '')) lows.push(`<b>Ceiling insulation R3.5 or better</b> takes 15% off every room (× 0.85). Check it on New job if you're not sure what's up there.`);
@@ -3297,11 +3357,12 @@ function sizeBreakdown() {
     </tbody></table>
     <div class="card" style="margin:14px 0 0;padding:12px 14px;background:var(--tile);box-shadow:none">
       <div class="kv"><span>Every room at its peak (connected)</span><b>${fmt(t.connectedKW, 1)} kW · ${perM2(t.connectedKW, t.area)} over ${fmt(t.area)} m²</b></div>
-      <div class="kv"><span>Whole home open: every room at once (the full open home)</span><b>${fmt(t.wholeHomeKW, 1)} kW</b></div>
+      <div class="kv"><span>Whole home at its peak: every room flat out at once</span><b>${fmt(t.wholeHomeKW, 1)} kW</b></div>
+      <div class="kv"><span>Recommended: × ${pct(t.homeShare ?? 0.75)} of that (rooms peak at different times; holding takes less than pulling down)</span><b>${fmt(t.balancedKW ?? t.wholeHomeKW * 0.75, 1)} kW</b></div>
       <div class="kv"><span>Zoned use only: × ${pct(v.coincidence)} × ${pct(zmult)} for ${esc((zoning?.label ?? '').toLowerCase())} zoning</span><b>${fmt(t.designKW, 1)} kW</b></div>
     </div>
     <span class="eyebrow" style="display:block;margin:14px 0 4px">The unit — the next size up from the load</span>
-    ${opt('wholeHome', 'Whole home open')}${opt('margin', 'More margin (one size up)')}${opt('zoned', 'Zoned use only')}
+    ${opt('balanced', 'Recommended')}${opt('margin', 'More margin (one size up)')}${opt('wholeHome', 'Whole home at its peak')}${opt('zoned', 'Zoned use only')}
     ${t.byHand ? `<div class="kv"><span>Picked by hand <span class="tag">PICKED</span></span><b>${esc(t.unit?.label ?? '')}</b></div>` : ''}
     <p class="small muted" style="margin:6px 0 0">${t.unit ? `${esc(t.unit.label)} (${pickedBy}) is ${perM2(t.unit.kw, t.area)} of conditioned floor.` : ''}</p>
     <span class="eyebrow" style="display:block;margin:14px 0 4px">Worth checking on this job</span>
@@ -3407,23 +3468,6 @@ function designSummary() {
   return `<div class="card"><h2>Duct design</h2><p class="muted small">${app.designing ? 'Placing the fan coil…' : 'No design yet.'}</p>${app.designing ? '' : '<button class="btn" id="startdesign">Start the design</button>'}</div>`;
 }
 
-/// Air to each room, as the mock has it: a bar in the room's zone colour against a mark at what it needs, and the
-/// L/s it gets of that. Tap a room to open it; a + drops a vent in one that's short.
-function roomsCard(l, v) {
-  const rooms = v.rooms.filter((r) => r.conditioned && r.designerType !== 'none' && onDucts(r.id));
-  if (!rooms.length) return '';
-  const fed = l.handDrawn ? new Set(l.runs.map((x) => x.outlet).filter(Boolean)) : null;
-  const sel = app.selection, selRoom = sel?.kind === 'room' ? sel.id : sel?.kind === 'outlet' ? l.outlets.find((o) => o.id === sel.id)?.roomId : null;
-  const row = (r) => {
-    const outs = l.outlets.filter((o) => o.roomId === r.id && !o.spill && !o.dropper), live = fed ? outs.filter((o) => fed.has(o.id)) : outs;
-    const gets = live.reduce((t, o) => t + o.designLps, 0), share = r.lps > 0 ? gets / r.lps : 1, low = share < 0.85;
-    return `<div class="ar ${r.id === selRoom ? 'on' : ''}" data-room="${r.id}"><span title="${esc(r.name)}">${esc(r.name)}</span>
-      <span class="track"><i style="width:${(Math.min(share, 1.1) * 90).toFixed(1)}%;background:${r.zone === 0 || r.zone == null ? '#8A909B' : zoneColour(r.zone)}"></i><em></em></span>
-      <b class="${low ? 'low' : ''}">${fmt(gets)}/${fmt(r.lps)}</b>${low && !app.selection ? `<button class="plus" data-quickvent="${r.id}" title="Put a vent in the middle of the room: drag it where it goes">+</button>` : '<span></span>'}</div>`;
-  };
-  return `<div class="card is" style="gap:6px"><div class="ih"><b>Air to each room</b><span class="imono mut">L/s · mark = need</span></div><div>${rooms.map(row).join('')}</div></div>`;
-}
-
 /// The supply transition: 1, 2 or 3 ducts off the fan coil (or auto). With the ducts drawn by hand and more of them
 /// off the fan coil than the transition takes, the router lays them out again to suit (Jake, 22 Nov 2026: "when I click
 /// two the duct still shows 3-way and doesn't change the design"); Back puts the hand-drawn ducts back.
@@ -3488,7 +3532,7 @@ function bindInspector(el) {
   $('#redesign', el)?.addEventListener('click', () => designNow(true));
   $('#startdesign', el)?.addEventListener('click', () => startDesign());
   $('#restart', el)?.addEventListener('click', () => confirmDialog('Clear the outlets?', 'Every outlet comes out and the fan coil and return go back to the starting spots. You can undo this.', 'Clear them', () => startDesign()));
-  el.querySelectorAll('[data-room]').forEach((r) => (r.onclick = (e) => { if (e.target.closest('[data-quickvent]')) return; select({ kind: 'room', id: r.dataset.room }); }));
+  el.querySelectorAll('[data-room]').forEach((r) => (r.onclick = (e) => { if (e.target.closest('[data-quickvent], [data-zone]')) return; select(app.selection?.kind === 'room' && app.selection.id === r.dataset.room ? null : { kind: 'room', id: r.dataset.room }); }));
   el.querySelectorAll('[data-quickvent]').forEach((b) => (b.onclick = (e) => {
     e.stopPropagation();
     const r = app.view.rooms.find((x) => x.id === b.dataset.quickvent);
@@ -3501,9 +3545,11 @@ function bindInspector(el) {
     render();
   }));
   $('#openall', el)?.addEventListener('click', async () => { app.closed = new Set(); await refresh(); render(); });
-  el.querySelectorAll('[data-zone]').forEach((r) => (r.onclick = async () => {
+  el.querySelectorAll('[data-zone]').forEach((r) => (r.onclick = async (e) => {
+    e.stopPropagation();
     const z = +r.dataset.zone;
     if (z === 0) { toast('The constant zone has no damper — it\'s always on.'); return; }
+    if (app.layout && runState(app.layout).mode === 'one') { runOne(z); return; }
     app.closed.has(z) ? app.closed.delete(z) : app.closed.add(z);
     await refresh(); render();
   }));
@@ -3522,6 +3568,15 @@ function bindInspector(el) {
   $('#takeoffs', el)?.addEventListener('change', (e) => setTakeoffs(e.target.value ? +e.target.value : null));
   el.querySelectorAll('[data-tko]').forEach((b) => (b.onclick = () => setTakeoffs(b.dataset.tko ? +b.dataset.tko : null)));
   $('#opts', el)?.addEventListener('toggle', (e) => { app.optsOpen = e.target.open; });
+  $('#flex-more', el)?.addEventListener('toggle', (e) => { app.flexOpen = e.target.open; });
+  $('#room-more', el)?.addEventListener('click', () => { app.loadOpen = !app.loadOpen; renderInspector(); });
+  $('#vent-more', el)?.addEventListener('click', () => { app.ventMore = !app.ventMore; renderInspector(); });
+  $('#bal', el)?.addEventListener('change', async (e) => { app.balanced = e.target.value === '1'; await refresh(); render(); });
+  el.querySelectorAll('[data-lfilter]').forEach((b) => (b.onclick = () => { app.listFilter = b.dataset.lfilter; renderInspector(); }));
+  el.querySelectorAll('[data-vent]').forEach((b) => (b.onclick = (e) => { e.stopPropagation(); select(app.selection?.kind === 'outlet' && app.selection.id === b.dataset.vent ? { kind: 'room', id: app.layout.outlets.find((o) => o.id === b.dataset.vent)?.roomId } : { kind: 'outlet', id: b.dataset.vent }); }));
+  el.querySelectorAll('[data-run]').forEach((b) => (b.onclick = async () => {
+    if (b.dataset.run === 'all') { app.closed = new Set(); await refresh(); render(); } else runOne();
+  }));
   $('#load-more', el)?.addEventListener('toggle', (e) => { app.loadOpen = e.target.open; });
   $('#opts-btn', el)?.addEventListener('click', () => {
     if (app.selection) { app.optsOpen = true; select(null); }
@@ -3983,7 +4038,7 @@ function openReport(kind) {
   const close = () => o.remove();
   $('#rp-close', o).onclick = close;
   o.addEventListener('keydown', (e) => e.key === 'Escape' && close());
-  import('./reports.js?v=e7fbb96-202611222042').then(async (m) => {
+  import('./reports.js?v=2312452-202611222111').then(async (m) => {
     // Reports are always the design as installed: every zone open, balanced. A multi-head job has no ducted design to
     // route (routing one threw, and the bar stayed on "Building the report…" for good).
     app.designLayout = isSplit() ? null : await call('route', { project: app.project, closed: [], balanced: true });

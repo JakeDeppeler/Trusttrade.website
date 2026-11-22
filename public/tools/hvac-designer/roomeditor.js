@@ -5,7 +5,7 @@
 // (plan.js calls down/move/up/tap/hover and draws underlay/overlay); every change goes through the engine's edits
 // (JobEdits — the ones the app's plan editor makes), so the house stays one the designer can lay ducts in.
 
-import { T, pointInPolygon, drawWindowMark } from './plan.js?v=3f25c41-202611221857';
+import { T, pointInPolygon, drawWindowMark } from './plan.js?v=7da676a-202611221907';
 
 const FONT = '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif';
 const dist = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);

@@ -152,6 +152,110 @@ function nearestOn(p, a, b) {
   return { x: a.x + ex * t, y: a.y + ey * t };
 }
 
+/// Ducts drawn by hand never lie on top of each other (Jake, 22 Nov 2026: "stop the hand drawn supply ducts from
+/// overlapping too"): wherever two run closer than their widths, each is eased sideways until they sit side by side,
+/// still landing on their own fittings. Two that truly cross (one over the other, once) are left to cross.
+/// `c`: each run's drawn line in plan metres, changed in place. `s`: pixels a metre.
+function spreadApart(l, c, s) {
+  const STEP = 0.1, GAP = Math.max(0.03, 2 / s), EASE = 0.6;
+  const runs = [];
+  l.runs.forEach((r, i) => {
+    if (r.kind === 'return' || !(c[i]?.length >= 2)) return;
+    // The line at even steps, with how far each point is from the nearer end (it eases off to nothing at its fittings).
+    const src = c[i], pts = [src[0]];
+    let carry = 0;
+    for (let k = 1; k < src.length; k++) {
+      const a = src[k - 1], b = src[k], d = Math.hypot(b.x - a.x, b.y - a.y);
+      if (d < 1e-9) continue;
+      let at = STEP - carry;
+      while (at < d) { pts.push({ x: a.x + (b.x - a.x) * at / d, y: a.y + (b.y - a.y) * at / d }); at += STEP; }
+      carry = d - (at - STEP);
+    }
+    const last = src[src.length - 1], tail = pts[pts.length - 1];
+    if (Math.hypot(last.x - tail.x, last.y - tail.y) > STEP * 0.3 || pts.length < 2) pts.push(last); else pts[pts.length - 1] = last;
+    const n = pts.length, total = (n - 1) * STEP;
+    const ease = pts.map((_, k) => { const e = Math.min(1, Math.min(k, n - 1 - k) * STEP / Math.min(EASE, total / 2 || EASE)); return e * e * (3 - 2 * e); });
+    runs.push({ i, base: pts, pts: pts.map((q) => ({ ...q })), off: pts.map(() => ({ x: 0, y: 0 })), ease, w: ductWidth(r.sizeMM, s) / s });
+  });
+  if (runs.length < 2) return;
+  const box = (R) => {
+    let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+    for (const q of R.pts) { if (q.x < x0) x0 = q.x; if (q.x > x1) x1 = q.x; if (q.y < y0) y0 = q.y; if (q.y > y1) y1 = q.y; }
+    R.box = [x0, y0, x1, y1];
+  };
+  const tangent = (R, k) => { const a = R.pts[Math.max(k - 1, 0)], b = R.pts[Math.min(k + 1, R.pts.length - 1)]; return unitVec({ x: b.x - a.x, y: b.y - a.y }) ?? { x: 1, y: 0 }; };
+  /// The nearest point of run B to `p`: how far, which side of B it's on, B's direction there and how free B is to move.
+  const nearest = (p, B) => {
+    let best = null;
+    for (let k = 1; k < B.pts.length; k++) {
+      const a = B.pts[k - 1], b = B.pts[k], ex = b.x - a.x, ey = b.y - a.y, l2 = ex * ex + ey * ey;
+      const t = l2 > 0 ? Math.max(0, Math.min(1, ((p.x - a.x) * ex + (p.y - a.y) * ey) / l2)) : 0;
+      const qx = a.x + ex * t, qy = a.y + ey * t, d = Math.hypot(p.x - qx, p.y - qy);
+      if (!best || d < best.d) best = { d, k, t, qx, qy };
+    }
+    const tg = tangent(B, best.t < 0.5 ? best.k - 1 : best.k);
+    const cross = tg.x * (p.y - best.qy) - tg.y * (p.x - best.qx);
+    return { d: best.d, side: best.d < 0.012 ? 0 : Math.sign(cross), tg, ease: B.ease[best.k - 1] * (1 - best.t) + B.ease[best.k] * best.t };
+  };
+  /// One run's points eased off another: A's points against B. `lead`: A is the first of the pair (it breaks a dead heat).
+  const push = (A, B, need, lead, force) => {
+    const [bx0, by0, bx1, by1] = B.box;
+    const near = A.pts.map((p, k) => (A.ease[k] <= 0 || p.x < bx0 - need || p.x > bx1 + need || p.y < by0 - need || p.y > by1 + need) ? null : nearest(p, B));
+    for (let k = 0; k < near.length; k++) {
+      if (!near[k] || near[k].d >= need) continue;
+      let e = k;
+      while (e + 1 < near.length && near[e + 1] && near[e + 1].d < need) e++;
+      // One stretch of A inside B's width. On both sides of B within it: A crosses B there, and is left to.
+      let plus = 0, minus = 0;
+      for (let j = k; j <= e; j++) { if (near[j].side > 0) plus++; else if (near[j].side < 0) minus++; }
+      if (!(plus && minus)) {
+        for (let j = k; j <= e; j++) {
+          const m = near[j], share = A.ease[j] + m.ease;
+          if (share <= 0) continue;
+          let dir;
+          if (plus || minus) { const sg = plus ? 1 : -1; dir = { x: -m.tg.y * sg, y: m.tg.x * sg }; }
+          else if (lead) { const t = tangent(A, j); dir = { x: -t.y, y: t.x }; }      // dead on top: the first goes left of itself,
+          else dir = { x: m.tg.y, y: -m.tg.x };                                        // the other right of the first
+          const by = (need - m.d) * A.ease[j] / share;
+          force[j].x += dir.x * by; force[j].y += dir.y * by;
+        }
+      }
+      k = e;
+    }
+  };
+  for (let it = 0; it < 14; it++) {
+    runs.forEach(box);
+    const forces = runs.map((R) => R.pts.map(() => ({ x: 0, y: 0 })));
+    let moved = false;
+    for (let a = 0; a < runs.length; a++) {
+      for (let b = a + 1; b < runs.length; b++) {
+        const A = runs[a], B = runs[b], need = (A.w + B.w) / 2 + GAP;
+        if (A.box[0] > B.box[2] + need || B.box[0] > A.box[2] + need || A.box[1] > B.box[3] + need || B.box[1] > A.box[3] + need) continue;
+        push(A, B, need, true, forces[a]);
+        push(B, A, need, false, forces[b]);
+      }
+    }
+    runs.forEach((R, ri) => {
+      const f = forces[ri], n = R.pts.length;
+      for (let k = 1; k < n - 1; k++) {
+        if (f[k].x || f[k].y) moved = true;
+        R.off[k].x += f[k].x * 0.7; R.off[k].y += f[k].y * 0.7;
+      }
+      // Smoothed along the duct, so it eases over rather than steps.
+      for (let pass = 0; pass < 2; pass++) {
+        const o = R.off.map((q) => ({ ...q }));
+        for (let k = 1; k < n - 1; k++) {
+          R.off[k].x = (o[k - 1].x + 2 * o[k].x + o[k + 1].x) / 4;
+          R.off[k].y = (o[k - 1].y + 2 * o[k].y + o[k + 1].y) / 4;
+        }
+      }
+      for (let k = 1; k < n - 1; k++) R.pts[k] = { x: R.base[k].x + R.off[k].x, y: R.base[k].y + R.off[k].y };
+    });
+    if (!moved) break;
+  }
+  for (const R of runs) if (R.off.some((q) => Math.abs(q.x) > 1e-4 || Math.abs(q.y) > 1e-4)) c[R.i] = R.pts;
+}
+
 /// The point a fraction `f` of the way along a polyline (screen points).
 function pointAlong(pts, f) {
   let len = 0;
@@ -392,8 +496,19 @@ export class Plan {
       g.beginPath(); g.arc(c.x, c.y, 7, 0, Math.PI * 2); g.fillStyle = picked ? T.accent : '#fff'; g.fill(); g.restore();
       g.beginPath(); g.arc(c.x, c.y, 7, 0, Math.PI * 2); g.strokeStyle = T.ink; g.lineWidth = 2; g.stroke();
     };
+    // A handle sits on the duct as it's drawn (eased aside where another duct runs along it).
+    const onDuct = (p) => {
+      const at = x.pt(p);
+      if (!drawn) return at;
+      let best = null;
+      for (let k = 1; k < drawn.length; k++) {
+        const q = nearestOn(at, x.pt(drawn[k - 1]), x.pt(drawn[k])), d = Math.hypot(q.x - at.x, q.y - at.y);
+        if (!best || d < best.d) best = { d, q };
+      }
+      return best && best.d < 0.8 * x.s ? best.q : at;
+    };
     hb.via.forEach((p, i) => {
-      const c = dragging('bend', i) ? drag.screen : x.pt(p);
+      const c = dragging('bend', i) ? drag.screen : onDuct(p);
       handle(c, hb.picked === i);
       this.hits.push({ item: { kind: 'bend', id: hb.id, i }, x: c.x, y: c.y, r: 12 });
     });
@@ -633,6 +748,7 @@ export class Plan {
       }
       return out;
     });
+    if (l.handDrawn && x) this.guard('spread', () => spreadApart(l, c, sc));
     this._curves.set(l, { s: sc, c });
     return c;
   }

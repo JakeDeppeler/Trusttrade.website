@@ -1,11 +1,11 @@
 // Trust Trade Pro — the HVAC Designer in the browser. The same five steps as the app (House · Capture · Check · Design ·
 // Send) on the app's own engine (engine.wasm, run in a worker): the same loads, zones, ducts, checks and materials.
 
-import { call as engineCall, latest } from './engine.js?v=3f25c41-202611221857';
-import { jobCalls, isMixed as mixedJob, ductedPart, ductedPartOf, splitSet, withSplitRooms, defaultRange, isDuctedB, activeSys, swapSystems, isVrfB, sharesVrf, pickVrf } from './systems.js?v=3f25c41-202611221857';
-import * as store from './store.js?v=3f25c41-202611221857';
-import { Plan, inkImage, zoneColour, ductColour, splitColour, T, pointInPolygon, SIDE_STYLES, movesOnly, wheelMoves, ZOOM_MAX } from './plan.js?v=3f25c41-202611221857';
-import { RoomEditor, metres, signedArea, onLine } from './roomeditor.js?v=3f25c41-202611221857';
+import { call as engineCall, latest } from './engine.js?v=7da676a-202611221907';
+import { jobCalls, isMixed as mixedJob, ductedPart, ductedPartOf, splitSet, withSplitRooms, defaultRange, isDuctedB, activeSys, swapSystems, isVrfB, sharesVrf, pickVrf } from './systems.js?v=7da676a-202611221907';
+import * as store from './store.js?v=7da676a-202611221907';
+import { Plan, inkImage, zoneColour, ductColour, splitColour, T, pointInPolygon, SIDE_STYLES, movesOnly, wheelMoves, ZOOM_MAX } from './plan.js?v=7da676a-202611221907';
+import { RoomEditor, metres, signedArea, onLine } from './roomeditor.js?v=7da676a-202611221907';
 
 /// Every engine call: a two-system job's go with the part they're about (systems.js).
 const call = jobCalls(engineCall);
@@ -2547,7 +2547,7 @@ function renderDesign(c) {
         : app.addMode ? 'Tap inside a room to drop an outlet.'
         : l && !l.outlets.some((o) => !o.dropper) ? 'Tap <b>Add an outlet</b> on the left, then tap inside each room. The rooms still waiting for air are listed on the right, and the ducts draw and size themselves as you go.'
         : p.existing ? `Re-duct: drag the fan coil to where the ${p.existing.kind === 'heater' ? 'heater' : 'unit'} is in the roof.`
-        : l?.handDrawn ? `Ducts drawn by hand: the router's off.${unfedCount() ? ` <b>${unfedCount()} vent${unfedCount() === 1 ? '' : 's'} not connected.</b>` : ''} Draw with the pen, drag a BDO, tap a duct to take it out. <button class="link" id="hand-off">Let the router lay them out again</button>`
+        : l?.handDrawn ? `Ducts drawn by hand: the router's off.${unfedCount() ? ` <b>${unfedCount()} vent${unfedCount() === 1 ? '' : 's'} not connected.</b>` : ''}${l.crossings ? ` <b>${l.crossings} pair${l.crossings === 1 ? '' : 's'} of ducts cross:</b> tap one and drag a bend to take it round the other.` : ''} Ducts that run along each other sit side by side. Draw with the pen, drag a BDO, tap a duct to take it out. <button class="link" id="hand-off">Let the router lay them out again</button>`
         : 'Drag a vent, a BDO, the fan coil or the return and the ducts re-route as you go. Tap a room, vent or duct to see it on the right.')}</div>
     </div>
     <div class="panel" id="insp"></div>
@@ -3918,7 +3918,7 @@ function openReport(kind) {
   const close = () => o.remove();
   $('#rp-close', o).onclick = close;
   o.addEventListener('keydown', (e) => e.key === 'Escape' && close());
-  import('./reports.js?v=3f25c41-202611221857').then(async (m) => {
+  import('./reports.js?v=7da676a-202611221907').then(async (m) => {
     // Reports are always the design as installed: every zone open, balanced. A multi-head job has no ducted design to
     // route (routing one threw, and the bar stayed on "Building the report…" for good).
     app.designLayout = isSplit() ? null : await call('route', { project: app.project, closed: [], balanced: true });

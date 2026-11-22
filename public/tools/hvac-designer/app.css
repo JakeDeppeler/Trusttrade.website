@@ -609,3 +609,66 @@ table.mat td.qty { font-weight: 600; font-family: var(--mono); font-size: 13px; 
 .q-body table.rooms th.num, .q-body table.rooms td.num { width: 84px; }
 .q-body table.rooms select { max-width: 100%; width: 100%; }
 .q-body table.rooms td { padding: 6px 5px; }
+
+/* ── Air & pipes side panel, as mock 4 has it: one clean column, the fan along the bottom ── */
+#insp.ipanel { display: flex; flex-direction: column; overflow: hidden; padding: 0; }
+.ipanel .iscroll { flex: 1; min-height: 0; overflow: auto; scrollbar-width: thin; }
+.panel .card.is { display: flex; flex-direction: column; gap: 12px; padding: 16px 20px; }
+.ih { display: flex; align-items: center; justify-content: space-between; gap: 10px; min-height: 22px; }
+.ih > b { font-weight: 600; font-size: 14px; letter-spacing: -.01em; }
+.ih .iconbtn { width: 30px; height: 30px; }
+.ih .eyebrow { margin: 0; }
+.card.is h2 { font-size: 21px; font-weight: 600; letter-spacing: -.025em; margin: 0; line-height: 1.15; }
+.isub { font-size: 12.5px; color: #6B7280; margin-top: 3px; }
+.imono { font: 500 12px var(--mono); letter-spacing: -.01em; color: var(--ink); }
+.imono.mut { color: #7A808C; font-size: 11px; font-weight: 400; }
+.card.is .tiles3 { margin: 0; }
+.card.is .tiles3 b { font-size: 19px; }
+.card.is .seg { margin: 0; border-radius: 11px; }
+.seg.grid3 { display: grid !important; grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.seg.grid3 > button, .card.is .seg.fill > button { font-size: 12.5px; padding: 0 6px; min-height: 32px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.seg.fill > button.auto { color: var(--ink); box-shadow: inset 0 0 0 1px rgba(14,17,22,.14); }
+.issue { display: flex; gap: 10px; align-items: flex-start; font-size: 12.5px; padding: 10px 12px; border-radius: 12px; background: #FFFBF0; box-shadow: inset 0 0 0 1px rgba(245,158,11,.22); }
+.issue.n { background: #F7F8FA; box-shadow: inset 0 0 0 1px rgba(14,17,22,.06); }
+.issue.ok { background: var(--green-bg); box-shadow: inset 0 0 0 1px rgba(15,163,122,.2); }
+.issue .gr { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+.issue .gr > span { font-weight: 500; }
+.issue small { color: #6B7280; font-size: 11.5px; }
+.issue .idot { width: 18px; height: 18px; border-radius: 50%; display: grid; place-items: center; flex: none; margin-top: 1px; font: 700 11px var(--head); }
+.issue.w .idot { background: var(--accent); color: #fff; }
+.issue.n .idot { box-shadow: inset 0 0 0 1.5px #C6CBD3; }
+.issue.ok .idot { background: #0FA37A; color: #fff; font-size: 10px; }
+.issue button { height: 28px; border: 0; border-radius: 10px; background: #fff; box-shadow: 0 0 0 1px rgba(14,17,22,.08); font: 500 12.5px var(--sans); padding: 0 12px; white-space: nowrap; flex: none; }
+.issue button:hover { background: var(--tile); }
+.zr { display: flex; align-items: center; gap: 9px; font-size: 12.5px; border: 0; background: none; padding: 4.5px 0; width: 100%; text-align: left; color: var(--body); }
+button.zr { cursor: pointer; }
+button.zr:hover > span { color: var(--ink); text-decoration: underline; }
+.zr .dash { width: 16px; height: 6px; border-radius: 99px; flex: none; }
+.zr > span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.zr b { margin-left: auto; font: 500 11.5px var(--mono); color: var(--ink); white-space: nowrap; }
+.zr.shut > span { text-decoration: line-through; color: var(--faint); }
+.zr.shut b { color: var(--faint); }
+.ar { display: grid; grid-template-columns: minmax(0, 92px) minmax(30px, 1fr) 54px 22px; gap: 10px; align-items: center; font-size: 12px; padding: 4.5px 0; cursor: pointer; color: var(--body); }
+.ar > span:first-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ar:hover > span:first-child { color: var(--ink); text-decoration: underline; }
+.ar.on > span:first-child { color: var(--ink); font-weight: 600; }
+.ar .track { height: 6px; border-radius: 99px; background: #EEF0F3; position: relative; }
+.ar .track i { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 99px; max-width: 100%; }
+.ar .track em { position: absolute; left: 90%; top: -3px; width: 2px; height: 12px; border-radius: 1px; background: var(--ink); }
+.ar b { font: 500 11.5px var(--mono); text-align: right; color: var(--ink); white-space: nowrap; }
+.ar b.low { color: var(--accent-deep); }
+.ar .plus { width: 22px; height: 22px; border-radius: 7px; border: 0; background: var(--accent-soft); color: var(--accent-deep); display: grid; place-items: center; font: 600 15px/1 var(--head); padding: 0 0 1px; }
+.ar .plus:hover { background: var(--accent); color: var(--ink); }
+.rowbtns { display: flex; gap: 6px; flex-wrap: wrap; }
+.rowbtns .btn2 { height: 34px; padding: 0 12px; font-size: 12.5px; border-radius: 10px; }
+details.more > summary { cursor: pointer; font-weight: 600; font-size: 14px; list-style: none; display: flex; align-items: center; justify-content: space-between; }
+details.more > summary::-webkit-details-marker { display: none; }
+details.more > summary svg { width: 16px; height: 16px; color: var(--muted); transition: transform .25s var(--ease); }
+details.more[open] > summary svg { transform: rotate(90deg); }
+.card.is details.more > summary { font-weight: 500; font-size: 13px; color: var(--muted); }
+.card.is details#opts > summary { font-weight: 600; font-size: 14px; color: var(--ink); }
+.ifoot { flex: none; padding: 14px 16px; background: rgba(245,246,248,.9); border-top: 1px solid rgba(14,17,22,.06); display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.ifoot > span { display: flex; flex-direction: column; line-height: 1.3; min-width: 0; }
+.ifoot small { font-size: 11.5px; color: #6B7280; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ifoot b { font-size: 15px; font-weight: 600; letter-spacing: -.01em; }
+@media (max-width: 959px) { #insp.ipanel { overflow: visible; } .ipanel .iscroll { overflow: visible; } }

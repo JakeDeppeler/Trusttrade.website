@@ -1,11 +1,11 @@
 // Trust Trade Pro — the HVAC Designer in the browser. The same five steps as the app (House · Capture · Check · Design ·
 // Send) on the app's own engine (engine.wasm, run in a worker): the same loads, zones, ducts, checks and materials.
 
-import { call as engineCall, latest } from './engine.js?v=18782d7-202611221516';
-import { jobCalls, isMixed as mixedJob, ductedPart, ductedPartOf, splitSet, withSplitRooms, defaultRange, isDuctedB, activeSys, swapSystems } from './systems.js?v=18782d7-202611221516';
-import * as store from './store.js?v=18782d7-202611221516';
-import { Plan, inkImage, zoneColour, ductColour, splitColour, T, pointInPolygon, SIDE_STYLES, movesOnly, wheelMoves, ZOOM_MAX } from './plan.js?v=18782d7-202611221516';
-import { RoomEditor, metres, signedArea, onLine } from './roomeditor.js?v=18782d7-202611221516';
+import { call as engineCall, latest } from './engine.js?v=b524442-202611221818';
+import { jobCalls, isMixed as mixedJob, ductedPart, ductedPartOf, splitSet, withSplitRooms, defaultRange, isDuctedB, activeSys, swapSystems, isVrfB, sharesVrf, pickVrf } from './systems.js?v=b524442-202611221818';
+import * as store from './store.js?v=b524442-202611221818';
+import { Plan, inkImage, zoneColour, ductColour, splitColour, T, pointInPolygon, SIDE_STYLES, movesOnly, wheelMoves, ZOOM_MAX } from './plan.js?v=b524442-202611221818';
+import { RoomEditor, metres, signedArea, onLine } from './roomeditor.js?v=b524442-202611221818';
 
 /// Every engine call: a two-system job's go with the part they're about (systems.js).
 const call = jobCalls(engineCall);
@@ -148,6 +148,14 @@ async function refresh() {
   app.split = sp;
   app.otherView = otherView;
   app.otherLayout = otherLayout;
+  // B's heads on A's VRF outdoor: piped to where A's outdoor stands (B's plan again once that's known or moves).
+  if (isVrfB(p)) {
+    const aOut = layout?.outdoor, spot = aOut ? [aOut[0], aOut[1]] : null;
+    if (JSON.stringify(spot) !== JSON.stringify(p.vrfSpot ?? null)) {
+      if (spot) p.vrfSpot = spot; else delete p.vrfSpot;
+      app.split = await call('splitPlan', { project: p }).catch(() => app.split);
+    }
+  }
   // One VRF outdoor for both: where A's stands is where B's fan coil is piped to. Kept on the job (B's part reads it);
   // when it moves, B is routed again to it.
   if (ductB) {
@@ -174,6 +182,8 @@ const onDucts = (id) => (ductedB() && activeSys(app.project) === 'B' ? onB(id) :
 const ductedView = () => (isMixed() && app.ductView) || app.view;
 /// System B is ducted too: two ducted systems, each in its own roof space, on one VRF outdoor.
 const ductedB = () => isDuctedB(app.project);
+/// The whole job on one VRF outdoor (ducted B, or B's heads on the PUMY).
+const vrfShared = () => sharesVrf(app.project);
 /// Which system's on screen on a two-system job: a ducted B's is the job's own (it swaps the designs over), a split
 /// B's the page's.
 const sysView = () => (ductedB() ? activeSys(app.project) : app.sysView ?? 'A');
@@ -1589,9 +1599,13 @@ function systemsBody(p, dv) {
   if (ductedB()) return ductedSystemsBody(p);
   const sp = app.split, heads = sp?.heads ?? [], kw = heads.reduce((s, h) => s + h.coolKW, 0);
   const aRooms = dv.rooms.filter((r) => r.conditioned).length, bRooms = p.rooms.filter((r) => onB(r.id));
+  const vrf = isVrfB(p) ? vrfPick(dv, null, heads) : null;
+  const kinds = [...new Set(heads.map((h) => HEAD_KINDS[h.kind]).filter(Boolean))].join(', ').toLowerCase();
   return `<div class="sys-row"><span class="sys-tag a">A</span><span class="grow"><b>Ducted</b><small>${aRooms} room${aRooms === 1 ? '' : 's'} · ${dv.totals.unit ? g(dv.totals.unit.kw) + ' kW unit' : 'not sized yet'}</small></span></div>
-    <div class="sys-row"><span class="sys-tag b">B</span><span class="grow"><b>${esc(sp?.range?.name ?? B_KINDS.find(([k]) => k === bKind())[1])}</b><small>${bRooms.map((r) => esc(r.name)).join(', ')} · ${heads.length} head${heads.length === 1 ? '' : 's'}${kw ? ', ' + g(Math.round(kw * 10) / 10) + ' kW' : ''} · ${sp?.outdoors?.length ?? 0} outdoor</small></span></div>
+    <div class="sys-row"><span class="sys-tag b">B</span><span class="grow"><b>${vrf ? 'VRF heads' + (kinds ? ' · ' + esc(kinds) : '') : esc(sp?.range?.name ?? B_KINDS.find(([k]) => k === bKind())[1])}</b><small>${bRooms.map((r) => esc(r.name)).join(', ')} · ${heads.length} head${heads.length === 1 ? '' : 's'}${kw ? ', ' + g(Math.round(kw * 10) / 10) + ' kW' : ''} · ${vrf ? "on A's outdoor" : (sp?.outdoors?.length ?? 0) + ' outdoor'}</small></span></div>
+    ${vrf ? vrfRow(vrf, 'fan coil and heads') : ''}
     ${bKindSeg()}
+    ${vrf ? '<p class="small muted" style="margin:8px 0 0">On the VRF each room\'s head can be a bulkhead, wall head, cassette or ducted unit: tap a head on Air &amp; pipes, under B.</p>' : ''}
     <div style="display:flex;gap:8px;align-items:center;margin-top:10px"><button class="btn2 small" id="sys-assign">${app.assigning ? 'Done moving rooms' : 'Move rooms between A and B'}</button><span style="flex:1"></span><button class="link" id="sys-remove">Remove system B</button></div>
     <p class="small muted" style="margin:8px 0 0">B's heads and outdoor unit are laid out on Air &amp; pipes, under B.</p>`;
 }
@@ -1605,20 +1619,24 @@ function ductedSystemsBody(p) {
   };
   const vrf = vrfPick(views.A, views.B);
   return `${row('A')}${row('B')}
-    <div class="sys-row"><span class="sys-tag" style="background:var(--ink,#1B1F24);color:#fff">V</span><span class="grow"><b>${vrf.pick ? 'VRF outdoor · Mitsubishi Electric ' + esc(vrf.pick.model) : 'VRF outdoor · none fits'}</b><small>${vrf.pick ? g(vrf.pick.kw) + ' kW, runs both fan coils' : 'Past a ' + (vrf.single ? 'single phase ' : '') + 'PUMY'} · ${fmt(vrf.load, 1)} kW of home, ${fmt(vrf.indoor, 1)} kW of fan coils</small></span></div>
+    ${vrfRow(vrf, 'fan coils')}
     ${bKindSeg()}
     <div style="display:flex;gap:8px;align-items:center;margin-top:10px"><button class="btn2 small" id="sys-assign">${app.assigning ? 'Done moving rooms' : 'Move rooms between A and B'}</button><span style="flex:1"></span><button class="link" id="sys-remove">Remove system B</button></div>
     <p class="small muted" style="margin:8px 0 0">Each has its own fan coil and ducts in its own roof space. Pick A or B up top to size and lay out that one; the outdoor unit is A's (B's pipes run to it).</p>`;
 }
 /// The one VRF outdoor for two ducted systems: the smallest City Multi PUMY that covers the whole home and takes both
 /// fan coils (single phase: the SP models).
-function vrfPick(va, vb) {
+function vrfPick(va, vb, heads = null) {
   const range = app.options?.splitRanges?.find((r) => r.id === 'mitsubishi-pumy');
-  const load = (va?.totals?.wholeHomeKW ?? va?.totals?.connectedKW ?? 0) + (vb?.totals?.wholeHomeKW ?? vb?.totals?.connectedKW ?? 0);
-  const indoor = (va?.totals?.unit?.kw ?? 0) + (vb?.totals?.unit?.kw ?? 0), single = !app.project?.site?.threePhasePref;
-  const pick = (range?.outdoors ?? []).filter((o) => (!single || o.phase !== '3Ø') && o.kw >= load - 0.05 && indoor >= o.connect[0] - 0.05 && indoor <= o.connect[1] + 0.05)
-    .sort((x, y) => x.kw - y.kw)[0] ?? null;
-  return { pick, load, indoor, single };
+  const load = (va?.totals?.wholeHomeKW ?? va?.totals?.connectedKW ?? 0)
+    + (heads ? heads.reduce((t, h) => t + h.loadKW, 0) : (vb?.totals?.wholeHomeKW ?? vb?.totals?.connectedKW ?? 0));
+  const indoor = (va?.totals?.unit?.kw ?? 0) + (heads ? heads.reduce((t, h) => t + h.coolKW, 0) : (vb?.totals?.unit?.kw ?? 0));
+  const single = !app.project?.site?.threePhasePref, branch = !!heads?.some((h) => h.kind !== 'ducted');
+  return { pick: pickVrf(range, load, indoor, single, branch), load, indoor, single, branch };
+}
+/// The Systems card's VRF outdoor row.
+function vrfRow(vrf, what) {
+  return `<div class="sys-row"><span class="sys-tag" style="background:var(--ink,#1B1F24);color:#fff">V</span><span class="grow"><b>${vrf.pick ? 'VRF outdoor · Mitsubishi Electric ' + esc(vrf.pick.model) : 'VRF outdoor · none fits'}</b><small>${vrf.pick ? g(vrf.pick.kw) + ' kW, runs the ' + what : 'Past a ' + (vrf.single ? 'single phase ' : '') + 'PUMY'} · ${fmt(vrf.load, 1)} kW of home, ${fmt(vrf.indoor, 1)} kW of indoor units${vrf.branch ? ' (100% most with branch boxes)' : ''}</small></span></div>`;
 }
 function bindSystems(c) {
   const on = (sel, f) => { const b = $(sel, c); if (b) b.onclick = f; };
@@ -2366,9 +2384,16 @@ function mountPlan(cv, opts) {
   plan.set({
     project: app.project, view: app.view, layout: layout === false ? null : app.layout, air: app.air, backdrop: app.backdrop,
     upperBackdrop: app.upperBackdrop, topBackdrop: app.topBackdrop, showPlan: true, splitRooms: otherRooms(), allSizes: app.layers.allSizes, zoneCards: app.layers.zones, showAir: false, selection: null,
-    ghost: ductedB() ? app.otherLayout : null, hatch: ductedB() ? T.line : null, ...rest,
+    ghost: ductedB() ? app.otherLayout : null, hatch: ductedB() ? T.line : null, vrfLabel: vrfLabel(), ...rest,
   });
   return plan;
+}
+
+/// B's heads on A's VRF outdoor: the plan names the outdoor that runs the lot, not what B alone would need.
+function vrfLabel() {
+  if (!isVrfB(app.project) || !app.project.vrfSpot || !app.split) return null;
+  const v = vrfPick(app.ductView, null, app.split.heads);
+  return `VRF · ${v.pick?.model ?? 'none fits'} · with A`;
 }
 
 /// The rooms of the system not on screen, hatched on the plan: B's (a split, or ducted B behind A), or A's when ducted
@@ -2523,7 +2548,8 @@ function select(item) {
   app.selection = item;
   if (item) app.addingUnit = false;
   app.plan?.set({ selection: item, handBends: handBends() });
-  if (isSplit()) renderSplitInspector(); else renderInspector();
+  // A split's heads: a split job's, or system B's on a two-system job (its own panel, not the ducts').
+  if (isSplit() || (isMixed() && sysView() === 'B' && !ductedB())) renderSplitInspector(); else renderInspector();
 }
 
 async function addDropper(pos) {
@@ -2786,6 +2812,11 @@ async function drop(item, pos) {
     if (h && !(await edit('moveHead', { room: h.room, n: h.nth, pos }))) app.plan?.set({ split: app.split });
     return;
   }
+  if (item.kind === 'odu' && isVrfB(app.project) && app.project.vrfSpot) {
+    toast('B\'s heads run off the VRF outdoor A uses: move it on A.');
+    app.plan?.set({ split: app.split });
+    return;
+  }
   if (item.kind === 'odu') {
     const o = app.split?.outdoors[item.id];
     if (o && !(await edit('moveSplitOutdoor', { rooms: o.rooms, pos }))) app.plan?.set({ split: app.split });
@@ -3027,6 +3058,9 @@ function sizeBreakdown() {
   d.querySelector('.dialog').classList.add('wide');
 }
 
+/// A VRF's kinds of head (Jake, 22 Nov 2026: "a VRF you should be able to run ducted, split, cassette, bulkhead anything").
+const HEAD_KINDS = { bulkhead: 'Bulkhead', wall: 'Wall', cassette: 'Cassette', ducted: 'Ducted' };
+const HEAD_KIND_NAMES = { bulkhead: 'bulkhead head', wall: 'wall head', cassette: 'ceiling cassette', ducted: 'ducted unit' };
 const OUTLET_STYLES = [['round', 'Round'], ['slot', 'Linear slot'], ['bar', 'Linear bar'], ['floor', 'Floor grille'], ['sideWall', 'Side · wall'], ['sideBulkhead', 'Side · bulkhead']];
 const OUTLET_NAMES = { round: 'Round ceiling diffuser', slot: 'Linear slot diffuser', bar: 'Linear bar grille', floor: 'Floor grille', sideWall: 'Side-blow bar grille · wall', sideBulkhead: 'Side-blow bar grille · bulkhead' };
 /// How far into the room a side grille's vent sits: in the wall itself, or out on a bulkhead's face.
@@ -3549,10 +3583,12 @@ function renderSplitInspector() {
     const tone = splitColour(h.outdoor);
     const enough = h.coolKW * 1.06 >= h.loadKW;
     html = `<div class="card"><div class="insp-head"><h2>${esc(h.roomName)}</h2>${close}</div>
-      <div class="insp-sub">${esc(shortModel(h.model))} · ${g(h.coolKW)} kW ${h.wall ? 'wall head' : 'bulkhead head'}${h.outdoor >= 0 ? ` · <span style="color:${tone};font-weight:700">outdoor ${h.outdoor + 1}</span>` : ''}</div>
+      <div class="insp-sub">${esc(shortModel(h.model))} · ${g(h.coolKW)} kW ${HEAD_KIND_NAMES[h.kind] ?? (h.wall ? 'wall head' : 'bulkhead head')}${h.outdoor >= 0 ? ` · <span style="color:${tone};font-weight:700">${vrfShared() ? 'VRF outdoor' : 'outdoor ' + (h.outdoor + 1)}</span>` : ''}</div>
+      ${(sp.range.kinds?.length ?? 0) > 1 ? `<label class="field"><span>Kind of head</span></label><div class="seg" style="flex-wrap:wrap;margin:-4px 0 10px">${sp.range.kinds.map((k) =>
+        `<button data-hkind="${k}" class="${h.kind === k ? 'on' : ''}">${esc(HEAD_KINDS[k] ?? k)}</button>`).join('')}</div>` : ''}
       <label class="field"><span>Head size</span><select id="hs-size">
         <option value="0" ${auto ? 'selected' : ''}>Auto — sized to the room</option>
-        ${sp.headModels.map((m) => `<option value="${m.kw}" ${!auto && Math.abs(m.kw - h.coolKW) < 0.01 ? 'selected' : ''}>${esc(shortModel(m.model))} · ${g(m.kw)} kW${m.handOnly ? ' (small)' : ''}</option>`).join('')}</select></label>
+        ${sp.headModels.filter((m) => !m.kind || m.kind === h.kind).map((m) => `<option value="${m.kw}" ${!auto && Math.abs(m.kw - h.coolKW) < 0.01 ? 'selected' : ''}>${esc(shortModel(m.model))} · ${g(m.kw)} kW${m.handOnly ? ' (small)' : ''}</option>`).join('')}</select></label>
       ${true ? `<label class="field"><span>Heads in ${h.spaceRooms.length > 1 ? 'this area' : 'this room'}</span><select id="hs-count">
         <option value="0" ${h.countByHand ? '' : 'selected'}>Auto — ${h.autoHeads} for its load</option>
         ${[1, 2, 3, 4].map((n) => `<option value="${n}" ${h.countByHand && h.spaceHeads === n ? 'selected' : ''}>${n} head${n === 1 ? '' : 's'}</option>`).join('')}</select></label>` : ''}
@@ -3567,11 +3603,11 @@ function renderSplitInspector() {
     </div>
     ${h.grilles ? bulkheadCard(h) : ''}
     <div class="card"><h2>Where it goes</h2>
-      <div class="kv"><span>Wall</span><b>${h.wall ? (h.onOutside ? 'Outside wall' : 'Internal wall') : 'Bulkhead'}</b></div>
+      <div class="kv"><span>${h.kind === 'cassette' ? 'Where' : 'Wall'}</span><b>${h.wall ? (h.onOutside ? 'Outside wall' : 'Internal wall') : h.kind === 'cassette' ? 'In the ceiling, mid-room' : h.kind === 'ducted' ? 'In the roof, ducted' : 'Bulkhead'}</b></div>
       <div class="kv"><span>Pipe run</span><b>${fmt(h.pipeM, 1)} m · ${esc(h.pipes)}</b></div>
       <div class="kv"><span>Drain</span><b>${fmt(h.drainM, 1)} m${h.pump ? ' · <span style="color:var(--cool)">pumped</span>' : ''}</b></div>
       <p class="small muted" style="margin:8px 0 0">${h.wall ? (h.onOutside ? 'Pipes, cable and drain go straight out through the wall behind it, then along the outside wall in duct cover to the outdoor unit.'
-        : 'On an internal wall: the pipes go up into the roof and across, and the drain needs a condensate pump. Drag it onto an outside wall to do without.') : 'In a bulkhead: pipes and drain across the roof.'}</p>
+        : 'On an internal wall: the pipes go up into the roof and across, and the drain needs a condensate pump. Drag it onto an outside wall to do without.') : h.kind === 'cassette' ? 'Flush in the ceiling: pipes across the roof, and its own pump lifts the drain into the roof.' : 'In a bulkhead: pipes and drain across the roof.'}</p>
       <div class="actions-row">${h.pinned ? '<button class="btn2" id="hs-back">Put it back</button>' : ''}<button class="btn2" id="hs-none">No head in this room</button></div></div>`;
   } else if (o) {
     const tone = splitColour(s.id);
@@ -3627,6 +3663,7 @@ function renderSplitInspector() {
   $('#sp-reset', el)?.addEventListener('click', () => confirmDialog('Start the heads again?', 'Every head and outdoor unit goes back where the plan puts it, at the size it picks. You can undo this.', 'Start again', () => edit('resetSplit')));
   if (h) {
     $('#hs-size', el).onchange = (e) => edit('setHeadSize', { room: h.room, kw: +e.target.value || null });
+    el.querySelectorAll('[data-hkind]').forEach((b) => (b.onclick = () => b.dataset.hkind !== h.kind && edit('setHeadKind', { room: h.room, choice: b.dataset.hkind })));
     // How many heads the area gets (Jake, 31 Oct: one 8 kW head instead of two 5s); the heads are laid out again.
     $('#hs-count', el)?.addEventListener('change', (e) => { app.selection = null; edit('setHeadCount', { key: h.spaceKey, n: +e.target.value || null }); });
     $('#hs-unit', el).onchange = (e) => edit('setHeadUnit', { key: h.key, unit: +e.target.value });
@@ -3665,8 +3702,9 @@ function unitsCard(sp, noHead) {
     ? `Set by hand. <button class="link inline" id="sp-auto">${sp.autoOutdoors === 1 ? 'Put them all back on one' : `Back to the plan's ${sp.autoOutdoors}`}</button>`
     : n === 1 ? 'Every head runs off the one outdoor unit.'
     : n > 1 ? `One outdoor unit can't take all these heads within its limits, so they're on ${n}.` : '';
-  return `<div class="card"><h2>${n === 1 ? 'One outdoor unit' : `${n} outdoor units`}</h2>
-    <p class="small muted" style="margin:0 0 4px">${lead}</p>
+  const shared = isVrfB(app.project) && app.project.vrfSpot;
+  return `<div class="card"><h2>${shared ? 'On the VRF outdoor with A' : n === 1 ? 'One outdoor unit' : `${n} outdoor units`}</h2>
+    <p class="small muted" style="margin:0 0 4px">${shared ? `These heads run off the same PUMY as A's ducted fan coil, through branch boxes. The outdoor that fits the lot is on Equipment, under Systems; below is what B alone would need.` : lead}</p>
     ${sp.outdoors.map((o, i) => `<div class="unit">
       <button class="unit-head" data-odu="${i}"><span class="dot" style="background:${splitColour(i)}"></span>
         <span class="grow"><b style="color:${splitColour(i)}">Outdoor ${i + 1} · ${esc(o.model)}</b>
@@ -3675,7 +3713,7 @@ function unitsCard(sp, noHead) {
       ${o.heads.map((id) => unitHeadRow(sp, sp.heads[id])).join('')}</div>`).join('')}
     ${loose.length ? `<div class="unit"><div class="unit-head"><span class="dot" style="background:var(--danger)"></span><span class="grow"><b style="color:var(--danger)">On no outdoor unit</b></span></div>
       ${loose.map((x) => unitHeadRow(sp, x)).join('')}</div>` : ''}
-    <div class="actions-row"><button class="btn2 small" id="sp-add-unit" ${sp.heads.length < 2 ? 'disabled' : ''}>+ Add another outdoor unit</button></div>
+    ${shared ? '' : `<div class="actions-row"><button class="btn2 small" id="sp-add-unit" ${sp.heads.length < 2 ? 'disabled' : ''}>+ Add another outdoor unit</button></div>`}
     ${noHead.length ? `<p class="small muted" style="margin:10px 0 0">No head: ${noHead.map(esc).join(', ')}. Tap a room on the plan to give it one.</p>` : ''}</div>`;
 }
 
@@ -3751,7 +3789,7 @@ function openReport(kind) {
   const close = () => o.remove();
   $('#rp-close', o).onclick = close;
   o.addEventListener('keydown', (e) => e.key === 'Escape' && close());
-  import('./reports.js?v=18782d7-202611221516').then(async (m) => {
+  import('./reports.js?v=b524442-202611221818').then(async (m) => {
     // Reports are always the design as installed: every zone open, balanced. A multi-head job has no ducted design to
     // route (routing one threw, and the bar stayed on "Building the report…" for good).
     app.designLayout = isSplit() ? null : await call('route', { project: app.project, closed: [], balanced: true });

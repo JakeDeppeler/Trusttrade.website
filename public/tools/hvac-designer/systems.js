@@ -18,6 +18,19 @@ export const isMixed = (p) => !!p && p.system !== 'multiSplit' && (p.splitRooms?
 
 /// System B is ducted too.
 export const isDuctedB = (p) => isMixed(p) && p.systemB === 'ducted';
+/// System B's heads on a VRF (the City Multi PUMY range): they run off the same outdoor unit as A's ducted fan coil
+/// (Jake, 22 Nov 2026: "build the bulkhead on the same vrf outdoor" — a VRF runs any kind of head).
+export const isVrfB = (p) => isMixed(p) && !isDuctedB(p) && (p.split?.range ?? defaultRange) === 'mitsubishi-pumy';
+/// The whole job on one VRF outdoor: ducted B, or B's heads on the PUMY.
+export const sharesVrf = (p) => isDuctedB(p) || isVrfB(p);
+
+/// The one VRF outdoor: the smallest PUMY that covers the home's load and takes what's on it, within its connectable
+/// range (single phase: the SP models; heads on branch boxes with a ducted unit as well: no more than 100% of its size).
+export function pickVrf(range, load, indoor, single, branch) {
+  return (range?.outdoors ?? []).filter((o) => (!single || o.phase !== '3Ø') && o.kw >= load - 0.05 && indoor >= o.connect[0] - 0.05
+    && indoor <= (branch ? Math.min(o.connect[1], o.kw) : o.connect[1]) + 0.05).sort((x, y) => x.kw - y.kw)[0] ?? null;
+}
+
 /// The ducted system being worked on: 'A' or 'B'.
 export const activeSys = (p) => (isDuctedB(p) && p.activeSys === 'B' ? 'B' : 'A');
 /// The unit picks that are each system's own (the brand, duct speeds and the rest are the job's).
@@ -62,6 +75,8 @@ export function splitPart(p) {
   const on = splitSet(p);
   const out = { ...p, rooms: p.rooms.filter((r) => on.has(r.id)), system: 'multiSplit', split: p.split ?? { range: defaultRange } };
   for (const k of ['splitRooms', 'design', 'spill', 'zonePlan', 'twoStorey', 'existing', 'extras', 'lines']) delete out[k];
+  // On the VRF with A: its heads piped to A's outdoor unit, wherever that stands.
+  if (isVrfB(p)) { out.split = { ...out.split }; if (p.vrfSpot) out.split.fixedOutdoor = p.vrfSpot; else delete out.split.fixedOutdoor; }
   return out;
 }
 /// A new system B: slim ducted heads in bulkheads (the mock's "B · Bulkhead").
@@ -105,7 +120,7 @@ export function withSplitRooms(p, ids) {
 const DUCTED_CMDS = new Set(['autoDesign', 'startDesign', 'route', 'balance', 'systemCards', 'air']);
 const SPLIT_CMDS = new Set(['splitPlan']);
 const SPLIT_OPS = new Set(['setSplitRange', 'setHeadRoom', 'setHeadSize', 'moveHead', 'moveSplitOutdoor', 'addSplitOutdoor',
-  'setHeadUnit', 'removeSplitOutdoor', 'autoSplitUnits', 'resetSplit', 'setHeadCount']);
+  'setHeadUnit', 'removeSplitOutdoor', 'autoSplitUnits', 'resetSplit', 'setHeadCount', 'setHeadKind']);
 const DUCTED_OPS = new Set(['setZone', 'joinRooms', 'unjoinRoom', 'setZonePlan', 'removeOutlet', 'moveOutletToBox', 'setSpill',
   'setOutletStyle', 'setRunSize', 'pinBox', 'dropUnit', 'dropReturn', 'dropOutdoor', 'resetOutdoor', 'dropBox', 'dropOutlet',
   'addOutlet', 'rotateUnit', 'setTakeoffs', 'resetHandBoxes', 'setExisting', 'addDropper', 'moveDropper', 'removeDropper',
@@ -161,33 +176,51 @@ export function jobCalls(call) {
   /// The one VRF outdoor for two ducted systems: the smallest City Multi PUMY that covers the whole home's load and
   /// takes both fan coils within its connectable range (single phase: the SP models only).
   async function vrfPlan(full) {
-    const [opts, va, vb] = await Promise.all([options ??= call('options'), call('view', { project: ductedPartOf(full, 'A') }),
-      call('view', { project: ductedPartOf(full, 'B') })]);
+    const ductB = isDuctedB(full);
+    const [opts, va, vb, sp] = await Promise.all([options ??= call('options'), call('view', { project: ductedPartOf(full, 'A') }),
+      ductB ? call('view', { project: ductedPartOf(full, 'B') }) : null, ductB ? null : call('splitPlan', { project: splitPart(full) })]);
     const range = opts.splitRanges?.find((r) => r.id === 'mitsubishi-pumy');
     const ua = va?.totals?.unit, ub = vb?.totals?.unit;
-    const load = (va?.totals?.wholeHomeKW ?? va?.totals?.connectedKW ?? 0) + (vb?.totals?.wholeHomeKW ?? vb?.totals?.connectedKW ?? 0);
-    const indoor = (ua?.kw ?? 0) + (ub?.kw ?? 0);
-    const single = !full.site?.threePhasePref;
-    const fits = (range?.outdoors ?? []).filter((o) => (!single || o.phase !== '3Ø') && o.kw >= load - 0.05 && indoor >= o.connect[0] - 0.05 && indoor <= o.connect[1] + 0.05)
-      .sort((x, y) => x.kw - y.kw);
-    const pick = fits[0] ?? null, checks = [];
+    const heads = sp?.heads ?? [];
+    const load = (va?.totals?.wholeHomeKW ?? va?.totals?.connectedKW ?? 0)
+      + (ductB ? (vb?.totals?.wholeHomeKW ?? vb?.totals?.connectedKW ?? 0) : heads.reduce((t, h) => t + h.loadKW, 0));
+    const indoor = (ua?.kw ?? 0) + (ductB ? (ub?.kw ?? 0) : heads.reduce((t, h) => t + h.coolKW, 0));
+    const single = !full.site?.threePhasePref, branch = heads.some((h) => h.kind !== 'ducted');
+    const pick = pickVrf(range, load, indoor, single, branch), checks = [];
     if (!pick) checks.push({ id: 'vrf-size', level: 'warn', title: 'VRF outdoor: none fits',
-      detail: `${Math.round(load * 10) / 10} kW of home on ${Math.round(indoor * 10) / 10} kW of fan coils is past what a ${single ? 'single phase ' : ''}PUMY takes. ${single ? 'Three phase opens up the P200–P300 (Equipment), or split' : 'Split'} the job across two outdoor units.` });
+      detail: `${Math.round(load * 10) / 10} kW of home on ${Math.round(indoor * 10) / 10} kW of indoor units is past what a ${single ? 'single phase ' : ''}PUMY takes. ${single ? 'Three phase opens up the P200–P300 (Equipment), or split' : 'Split'} the job across two outdoor units.` });
+    if (branch && ua) checks.push({ id: 'vrf-mix', level: 'info', title: 'VRF: heads on branch boxes with a ducted unit',
+      detail: `With A's fan coil on the PUMY as well, everything on it adds up to no more than the outdoor's own size: ${Math.round(indoor * 10) / 10} kW${pick ? ` on the ${pick.kw} kW ${pick.model}` : ''}.` });
     for (const [n, u] of [['A', ua], ['B', ub]]) if (u && u.kw > 14.05) checks.push({ id: 'vrf-indoor-' + n, level: 'warn', title: `System ${n}: fan coil for the VRF`,
       detail: `${u.kw} kW is past the City Multi slim ducted range: check a PEFY of this size is on the PUMY's connection list.` });
-    return { pick, load, indoor, units: [ua, ub], checks, single };
+    return { pick, load, indoor, units: [ua, ub], checks, single, branch };
   }
   let options = null;
 
   /// The send checks, the materials and the reports: system A's then system B's.
   async function both(cmd, args, full) {
     if (isDuctedB(full)) return bothDucted(cmd, args, full);
+    const r = await bothSplit(cmd, args, full);
+    if (!isVrfB(full)) return r;
+    // B's heads on A's VRF outdoor: the two outdoor units (A's ducted split's, B's PUMY) become the one PUMY that runs both.
+    const vrf = await vrfPlan(full).catch(() => null);
+    // B's own outdoor (what its heads alone would need) isn't what goes in: the one VRF outdoor's check stands for it.
+    if (cmd === 'checks') return { checks: [...r.checks.filter((c) => !/^System B: Outdoor \d/.test(c.title)), ...(vrf?.checks ?? []),
+      ...(vrf?.pick ? [{ id: 'vrf-ok', level: 'ok', title: `VRF outdoor: ${vrf.pick.model}`, detail: `${Math.round(vrf.indoor * 10) / 10} kW of indoor units (A's fan coil and B's heads) on a ${vrf.pick.kw} kW PUMY, for a ${Math.round(vrf.load * 10) / 10} kW home.` }] : [])] };
+    if (cmd === 'takeoff') { const groups = vrfMaterials(r.groups, vrf); return { groups, csv: takeoffCSV(groups) }; }
+    const at = (r.blocks ?? []).findIndex((x) => x.type === 'page');
+    const note = vrf?.pick ? [{ type: 'text', text: `Both systems run off one ${vrf.pick.model} VRF outdoor unit (${vrf.pick.kw} kW): the ducted fan coil and system B's heads.` }] : [];
+    const blocks = [...(r.blocks ?? [])];
+    blocks.splice(at < 0 ? blocks.length : at, 0, ...note);
+    return { ...r, blocks };
+  }
+  async function bothSplit(cmd, args, full) {
     const [a, b0] = await Promise.all([call(cmd, { ...args, project: ductedPart(full) }).catch((e) => ({ error: e })),
       call(cmd, { ...args, project: splitPart(full) }).catch((e) => ({ error: e }))]);
     let b = b0;
     if (b.error && cmd === 'report' && args.kind === 'customer') {
       // The engine's customer report is the ducted one; B's part is its heads and outdoor units, set out here.
-      b = { blocks: splitCustomerBlocks(await call('splitPlan', { project: splitPart(full) })) };
+      b = { blocks: splitCustomerBlocks(await call('splitPlan', { project: splitPart(full) }), isVrfB(full)) };
     }
     if (b.error) throw b.error;
     if (cmd === 'checks') {
@@ -209,31 +242,31 @@ export function jobCalls(call) {
 }
 
 /// System B on the customer report: what goes in each room, and the outdoor units.
-function splitCustomerBlocks(sp) {
+function splitCustomerBlocks(sp, shared = false) {
   const r = sp.range ?? {}, heads = sp.heads ?? [], outs = sp.outdoors ?? [];
   const what = r.vrf ? 'a slim ducted head in a bulkhead, on a VRF system' : r.wall ? 'a wall-mounted head' : 'a slim ducted head in a bulkhead';
   const kw = (n) => `${Math.round(n * 10) / 10} kW`;
   return [
-    { type: 'text', text: `${[...new Set(heads.map((h) => h.roomName))].join(', ')}: each gets ${what}, sized to the room and run on its own controller, on ${outs.length === 1 ? 'an outdoor unit' : outs.length + ' outdoor units'} of ${outs.length === 1 ? 'its' : 'their'} own. ${r.brand ?? ''} ${r.name ?? ''}.` },
+    { type: 'text', text: `${[...new Set(heads.map((h) => h.roomName))].join(', ')}: each gets ${what}, sized to the room and run on its own controller, ${shared ? 'on the same VRF outdoor unit as the ducted system' : `on ${outs.length === 1 ? 'an outdoor unit' : outs.length + ' outdoor units'} of ${outs.length === 1 ? 'its' : 'their'} own`}. ${r.brand ?? ''} ${r.name ?? ''}.` },
     { type: 'table', cols: [{ title: 'Room', width: 0.4 }, { title: 'Head', width: 0.4 }, { title: 'Cooling', width: 0.2, align: 'right' }],
       rows: heads.map((h) => [h.roomName, h.model, kw(h.coolKW)]) },
-    { type: 'table', cols: [{ title: 'Outdoor unit', width: 0.4 }, { title: 'Runs', width: 0.4 }, { title: 'Capacity', width: 0.2, align: 'right' }],
-      rows: outs.map((o) => [o.model, `${o.heads.length} head${o.heads.length === 1 ? '' : 's'}`, kw(o.coolKW)]) },
+    ...(shared ? [] : [{ type: 'table', cols: [{ title: 'Outdoor unit', width: 0.4 }, { title: 'Runs', width: 0.4 }, { title: 'Capacity', width: 0.2, align: 'right' }],
+      rows: outs.map((o) => [o.model, `${o.heads.length} head${o.heads.length === 1 ? '' : 's'}`, kw(o.coolKW)]) }]),
   ];
 }
 
 /// Two ducted systems on one VRF: the materials' outdoor units (one per ducted split) out, the one VRF outdoor and its
 /// branch joint in, and each fan coil marked as a City Multi ducted indoor of its size.
 function vrfMaterials(groups, vrf) {
-  const out = groups.map((grp) => ({ ...grp, lines: grp.lines.filter((l) => !/^Outdoor unit · /.test(l.desc)).map((l) => /^Indoor unit \(ducted\) · /.test(l.desc)
+  const out = groups.map((grp) => ({ ...grp, lines: grp.lines.filter((l) => !/^Outdoor unit · /.test(l.desc) && !/^VRF outdoor unit PUMY/.test(l.desc)).map((l) => /^Indoor unit \(ducted\) · /.test(l.desc)
     ? { ...l, desc: l.desc.replace('Indoor unit (ducted) · ', 'Indoor unit (ducted, on the VRF) · '), note: l.note + ' · a City Multi ducted indoor (PEFY/PEAD) of this size to suit the PUMY' }
     : l) }));
   const kw = (n) => `${Math.round(n * 10) / 10} kW`;
   const line = (desc, note, term) => ({ desc, note, qty: 1, uom: 'ea', qtyText: '1', term, url: 'https://www.reece.com.au/search?query=' + encodeURIComponent(term) });
   const lines = vrf?.pick
-    ? [line(`VRF outdoor unit · Mitsubishi Electric ${vrf.pick.model}`, `${kw(vrf.pick.kw)} City Multi, ${vrf.pick.phase === '3Ø' ? 'three phase, 400 V' : 'single phase, 230 V'} · runs both systems (${kw(vrf.indoor)} of fan coils on a ${kw(vrf.load)} home)`, `mitsubishi ${vrf.pick.model}`),
-      line(`Refrigerant branch joint · Mitsubishi Electric ${vrf.indoor <= 20.2 ? 'CMY-Y62-G-E' : 'CMY-Y64-G-E'}`, 'splits the VRF pipes to the two fan coils · check the size against the install manual', `mitsubishi ${vrf.indoor <= 20.2 ? 'CMY-Y62-G-E' : 'CMY-Y64-G-E'}`)]
-    : [line('VRF outdoor unit · to be picked', `no PUMY fits ${kw(vrf?.indoor ?? 0)} of fan coils on a ${kw(vrf?.load ?? 0)} home`, 'mitsubishi pumy')];
+    ? [line(`VRF outdoor unit · Mitsubishi Electric ${vrf.pick.model}`, `${kw(vrf.pick.kw)} City Multi, ${vrf.pick.phase === '3Ø' ? 'three phase, 400 V' : 'single phase, 230 V'} · runs both systems (${kw(vrf.indoor)} of indoor units on a ${kw(vrf.load)} home)`, `mitsubishi ${vrf.pick.model}`),
+      line(`Refrigerant branch joint · Mitsubishi Electric ${vrf.indoor <= 20.2 ? 'CMY-Y62-G-E' : 'CMY-Y64-G-E'}`, `splits the VRF pipes to ${vrf.branch ? "A's fan coil and B's branch box" : 'the two fan coils'} · check the size against the install manual`, `mitsubishi ${vrf.indoor <= 20.2 ? 'CMY-Y62-G-E' : 'CMY-Y64-G-E'}`)]
+    : [line('VRF outdoor unit · to be picked', `no PUMY fits ${kw(vrf?.indoor ?? 0)} of indoor units on a ${kw(vrf?.load ?? 0)} home`, 'mitsubishi pumy')];
   out.unshift({ name: 'VRF outdoor', lines });
   return out.filter((grp) => grp.lines.length);
 }

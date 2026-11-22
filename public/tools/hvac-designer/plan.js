@@ -1297,7 +1297,7 @@ export class Plan {
       g.beginPath(); g.arc(w * 0.18, 0, dep * 0.32, 0, Math.PI * 2); g.lineWidth = 1.5; g.stroke();
       if (sel?.kind === 'odu' && sel.id === i) { g.beginPath(); g.roundRect(-w / 2 - 4, -dep / 2 - 4, w + 8, dep + 8, 6); g.strokeStyle = T.accent; g.lineWidth = 3; g.stroke(); }
       g.restore();
-      this.tag(g, `${i + 1} · ${o.model}`, at.x, at.y + dep / 2 + 14, tone);
+      this.tag(g, d.vrfLabel ?? `${i + 1} · ${o.model}`, at.x, at.y + dep / 2 + 14, tone);
       this.hits.push({ item: { kind: 'odu', id: i }, x: at.x, y: at.y, r: Math.max(w / 2, 20) });
     });
     for (const h of sp.heads) {
@@ -1305,6 +1305,7 @@ export class Plan {
       const tone = h.outdoor >= 0 ? splitColour(h.outdoor) : T.danger;
       const len = Math.max((h.widthMM ?? 800) / 1000 * x.s, 26), dep = Math.max(0.22 * x.s, 9);
       const ang = Math.atan2(-h.blow.y, h.blow.x);            // the way it blows, on screen
+      if (h.kind === 'cassette') { this.drawCassette(g, x, h, at, tone, sel, drag, d); continue; }
       if (!h.wall) { this.drawBulkhead(g, x, h, at, ang, tone, sel, drag, d); continue; }
       g.save(); g.translate(at.x, at.y); g.rotate(ang);
       // The unit along its wall (long side across the way it blows), louvres on the room side.
@@ -1336,6 +1337,32 @@ export class Plan {
       }
       this.hits.push({ item: { kind: 'head', id: h.id }, x: at.x, y: at.y, r: Math.max(len / 2, 16) });
     }
+  }
+
+  /// A ceiling cassette, from below: its square grille panel in the middle of the room, the return in the centre and a
+  /// slot along each edge blowing out four ways.
+  drawCassette(g, x, h, at, tone, sel, drag, d) {
+    const S = Math.max(0.625 * x.s, 24), r = S / 2, slot = S * 0.11;
+    g.save(); g.translate(at.x, at.y);
+    g.beginPath(); g.roundRect(-r, -r, S, S, 3); g.fillStyle = '#fff'; g.fill(); g.strokeStyle = tone; g.lineWidth = 2.2; g.stroke();
+    g.strokeStyle = rgba(tone, 0.75); g.lineWidth = 1.2;
+    for (let k = 0; k < 4; k++) {
+      g.save(); g.rotate(k * Math.PI / 2);
+      g.beginPath(); g.roundRect(-r * 0.62, -r + slot * 0.7, r * 1.24, slot, 1.5); g.stroke();
+      // Its air, out past the edge.
+      const reach = Math.max(0.5 * x.s, 12);
+      g.strokeStyle = rgba(tone, 0.5); g.lineWidth = 1.4; g.setLineDash([3, 3]);
+      g.beginPath(); g.moveTo(0, -r - 2); g.lineTo(0, -r - reach); g.stroke(); g.setLineDash([]);
+      g.beginPath(); g.moveTo(0, -r - reach - 5); g.lineTo(-4, -r - reach + 1); g.lineTo(4, -r - reach + 1); g.closePath(); g.fillStyle = rgba(tone, 0.7); g.fill();
+      g.restore();
+      g.strokeStyle = rgba(tone, 0.75); g.lineWidth = 1.2;
+    }
+    g.beginPath(); g.roundRect(-r * 0.42, -r * 0.42, r * 0.84, r * 0.84, 2); g.stroke();
+    for (let k = -2; k <= 2; k++) { g.beginPath(); g.moveTo(-r * 0.34, k * r * 0.14); g.lineTo(r * 0.34, k * r * 0.14); g.stroke(); }
+    if (sel?.kind === 'head' && sel.id === h.id) { g.beginPath(); g.roundRect(-r - 4, -r - 4, S + 8, S + 8, 6); g.strokeStyle = T.accent; g.lineWidth = 3; g.stroke(); }
+    g.restore();
+    if (!drag) this.tag(g, this.headTag(h, d, x), at.x, at.y + r + Math.max(0.5 * x.s, 12) + 16, tone);
+    this.hits.push({ item: { kind: 'head', id: h.id }, x: at.x, y: at.y, r: Math.max(r, 16) });
   }
 
   /// An outlet's face, by its kind: a round ceiling diffuser (rings), a linear slot (two slots), a linear bar grille

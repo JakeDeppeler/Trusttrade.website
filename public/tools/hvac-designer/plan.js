@@ -152,6 +152,62 @@ function nearestOn(p, a, b) {
   return { x: a.x + ex * t, y: a.y + ey * t };
 }
 
+/// A line at even steps along its length (its two ends kept).
+function resample(src, step) {
+  const pts = [src[0]];
+  let carry = 0;
+  for (let k = 1; k < src.length; k++) {
+    const a = src[k - 1], b = src[k], d = Math.hypot(b.x - a.x, b.y - a.y);
+    if (d < 1e-9) continue;
+    let at = step - carry;
+    while (at < d) { pts.push({ x: a.x + (b.x - a.x) * at / d, y: a.y + (b.y - a.y) * at / d }); at += step; }
+    carry = d - (at - step);
+  }
+  const last = src[src.length - 1], tail = pts[pts.length - 1];
+  if (Math.hypot(last.x - tail.x, last.y - tail.y) > step * 0.3 || pts.length < 2) pts.push(last); else pts[pts.length - 1] = last;
+  return pts;
+}
+
+/// A flex duct never bends tighter than it can (Jake, 22 Nov 2026: "I had to add bends to move the duct round and it
+/// now has a pinch point"): wherever the drawn line turns inside `rmin` (about the duct's own width, so its inside
+/// edge never folds on itself) it's eased out into a rounder sweep. It still leaves each fitting straight, and gentle
+/// bends are left exactly as drawn.
+function limitBends(src, rmin) {
+  if (!src || src.length < 3 || !(rmin > 0)) return src;
+  let pts = src, eased = false;
+  // Coarse first (a hairpin's tip draws back quickly), then fine.
+  for (const h of [Math.max(0.08, rmin / 2.5), Math.max(0.04, rmin / 6)]) {
+    const lead = Math.max(1, Math.round(rmin * 0.45 / h));
+    let cur = resample(pts, h), changed = false;
+    for (let it = 0; it < 220; it++) {
+      const n = cur.length;
+      if (n < 2 * lead + 3) break;
+      const bad = new Uint8Array(n);
+      let any = false;
+      for (let i = 1; i < n - 1; i++) {
+        const a = cur[i - 1], b = cur[i], c = cur[i + 1];
+        const area2 = Math.abs((b.x - a.x) * (c.y - a.y) - (b.y - a.y) * (c.x - a.x));
+        if (area2 < 1e-12) continue;
+        const R = Math.hypot(b.x - a.x, b.y - a.y) * Math.hypot(c.x - b.x, c.y - b.y) * Math.hypot(a.x - c.x, a.y - c.y) / (2 * area2);
+        if (R < rmin * 0.97) { bad[i] = 1; any = true; }
+      }
+      if (!any) break;
+      const next = cur.map((q) => ({ x: q.x, y: q.y }));
+      let moved = false;
+      for (let i = lead; i < n - lead; i++) {
+        if (!(bad[i] || bad[i - 1] || bad[i + 1] || bad[i - 2] || bad[i + 2])) continue;
+        next[i] = { x: 0.25 * cur[i - 1].x + 0.5 * cur[i].x + 0.25 * cur[i + 1].x, y: 0.25 * cur[i - 1].y + 0.5 * cur[i].y + 0.25 * cur[i + 1].y };
+        moved = true;
+      }
+      if (!moved) break;
+      changed = true;
+      cur = it % 3 === 2 ? resample(next, h) : next;
+    }
+    if (changed) { pts = cur; eased = true; }
+  }
+  return eased ? pts : src;
+}
+
 /// Ducts drawn by hand never lie on top of each other (Jake, 22 Nov 2026: "stop the hand drawn supply ducts from
 /// overlapping too"): wherever two run closer than their widths, each is eased sideways until they sit side by side,
 /// still landing on their own fittings. Two that truly cross (one over the other, once) are left to cross.
@@ -162,17 +218,7 @@ function spreadApart(l, c, s) {
   l.runs.forEach((r, i) => {
     if (r.kind === 'return' || !(c[i]?.length >= 2)) return;
     // The line at even steps, with how far each point is from the nearer end (it eases off to nothing at its fittings).
-    const src = c[i], pts = [src[0]];
-    let carry = 0;
-    for (let k = 1; k < src.length; k++) {
-      const a = src[k - 1], b = src[k], d = Math.hypot(b.x - a.x, b.y - a.y);
-      if (d < 1e-9) continue;
-      let at = STEP - carry;
-      while (at < d) { pts.push({ x: a.x + (b.x - a.x) * at / d, y: a.y + (b.y - a.y) * at / d }); at += STEP; }
-      carry = d - (at - STEP);
-    }
-    const last = src[src.length - 1], tail = pts[pts.length - 1];
-    if (Math.hypot(last.x - tail.x, last.y - tail.y) > STEP * 0.3 || pts.length < 2) pts.push(last); else pts[pts.length - 1] = last;
+    const pts = resample(c[i], STEP);
     const n = pts.length, total = (n - 1) * STEP;
     const ease = pts.map((_, k) => { const e = Math.min(1, Math.min(k, n - 1 - k) * STEP / Math.min(EASE, total / 2 || EASE)); return e * e * (3 - 2 * e); });
     runs.push({ i, base: pts, pts: pts.map((q) => ({ ...q })), off: pts.map(() => ({ x: 0, y: 0 })), ease, w: ductWidth(r.sizeMM, s) / s });
@@ -748,6 +794,7 @@ export class Plan {
       }
       return out;
     });
+    if (x) this.guard('bends', () => l.runs.forEach((r, i) => { if (r.kind !== 'return' && c[i]?.length >= 3) c[i] = limitBends(c[i], ductWidth(r.sizeMM, sc) / sc); }));
     if (l.handDrawn && x) this.guard('spread', () => spreadApart(l, c, sc));
     this._curves.set(l, { s: sc, c });
     return c;

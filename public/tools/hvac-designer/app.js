@@ -1,11 +1,11 @@
 // Trust Trade Pro — the HVAC Designer in the browser. The same five steps as the app (House · Capture · Check · Design ·
 // Send) on the app's own engine (engine.wasm, run in a worker): the same loads, zones, ducts, checks and materials.
 
-import { call as engineCall, latest } from './engine.js?v=eca554b-202611222032';
-import { jobCalls, isMixed as mixedJob, ductedPart, ductedPartOf, splitSet, withSplitRooms, defaultRange, isDuctedB, activeSys, swapSystems, isVrfB, sharesVrf, pickVrf } from './systems.js?v=eca554b-202611222032';
-import * as store from './store.js?v=eca554b-202611222032';
-import { Plan, inkImage, zoneColour, ductColour, splitColour, T, pointInPolygon, SIDE_STYLES, movesOnly, wheelMoves, ZOOM_MAX } from './plan.js?v=eca554b-202611222032';
-import { RoomEditor, metres, signedArea, onLine } from './roomeditor.js?v=eca554b-202611222032';
+import { call as engineCall, latest } from './engine.js?v=e7fbb96-202611222042';
+import { jobCalls, isMixed as mixedJob, ductedPart, ductedPartOf, splitSet, withSplitRooms, defaultRange, isDuctedB, activeSys, swapSystems, isVrfB, sharesVrf, pickVrf } from './systems.js?v=e7fbb96-202611222042';
+import * as store from './store.js?v=e7fbb96-202611222042';
+import { Plan, inkImage, zoneColour, ductColour, splitColour, T, pointInPolygon, SIDE_STYLES, movesOnly, wheelMoves, ZOOM_MAX } from './plan.js?v=e7fbb96-202611222042';
+import { RoomEditor, metres, signedArea, onLine } from './roomeditor.js?v=e7fbb96-202611222042';
 
 /// Every engine call: a two-system job's go with the part they're about (systems.js).
 const call = jobCalls(engineCall);
@@ -3983,7 +3983,7 @@ function openReport(kind) {
   const close = () => o.remove();
   $('#rp-close', o).onclick = close;
   o.addEventListener('keydown', (e) => e.key === 'Escape' && close());
-  import('./reports.js?v=eca554b-202611222032').then(async (m) => {
+  import('./reports.js?v=e7fbb96-202611222042').then(async (m) => {
     // Reports are always the design as installed: every zone open, balanced. A multi-head job has no ducted design to
     // route (routing one threw, and the bar stayed on "Building the report…" for good).
     app.designLayout = isSplit() ? null : await call('route', { project: app.project, closed: [], balanced: true });

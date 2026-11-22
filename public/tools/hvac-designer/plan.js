@@ -567,7 +567,37 @@ export class Plan {
     const hit = (this._curves ??= new WeakMap()).get(l);
     if (hit?.s === sc) return hit.c;
     const fe = x ? this.fittingEnds(l, x) : { start: {}, end: {} };
+    // The return's ducts lie side by side the whole way (Jake, 22 Nov 2026: "the ducts shouldn't overlap"): one sweep
+    // from the filter box to the fan coil's return box, and each duct a parallel of it onto its own spigot. The sweep
+    // turns in tight to the box, so it doesn't swing out past the eaves.
+    const sweep = {};
+    const rets = l.runs.map((r, i) => i).filter((i) => l.runs[i].kind === 'return' && fe.end[i] && l.runs[i].path.length > 1);
+    if (rets.length) {
+      const mean = (ps) => ({ x: ps.reduce((t, q) => t + q.x, 0) / ps.length, y: ps.reduce((t, q) => t + q.y, 0) / ps.length });
+      const A = mean(rets.map((i) => l.runs[i].path[0])), B = mean(rets.map((i) => fe.end[i].p)), tN = fe.end[rets[0]].t;
+      const dist = Math.hypot(B.x - A.x, B.y - A.y), chord = unitVec({ x: B.x - A.x, y: B.y - A.y }) ?? tN;
+      const turn = chord.x * tN.y - chord.y * tN.x;
+      const rot = (v, a) => ({ x: v.x * Math.cos(a) - v.y * Math.sin(a), y: v.x * Math.sin(a) + v.y * Math.cos(a) });
+      const t0 = rot(chord, Math.abs(turn) < 0.15 ? 0.34 : -Math.sign(turn) * 0.3);
+      const arm = Math.min(dist * 0.48, Math.max(1.1, dist * 0.22));
+      const c1 = { x: A.x + t0.x * arm, y: A.y + t0.y * arm }, c2 = { x: B.x - tN.x * arm, y: B.y - tN.y * arm };
+      const steps = Math.max(10, Math.min(36, Math.ceil(dist / 0.12))), C = [], Nn = [];
+      for (let st = 0; st <= steps; st++) {
+        const t = st / steps, u = 1 - t;
+        C.push({ x: u * u * u * A.x + 3 * u * u * t * c1.x + 3 * u * t * t * c2.x + t * t * t * B.x,
+          y: u * u * u * A.y + 3 * u * u * t * c1.y + 3 * u * t * t * c2.y + t * t * t * B.y });
+        const d = unitVec({ x: 3 * u * u * (c1.x - A.x) + 6 * u * t * (c2.x - c1.x) + 3 * t * t * (B.x - c2.x),
+          y: 3 * u * u * (c1.y - A.y) + 6 * u * t * (c2.y - c1.y) + 3 * t * t * (B.y - c2.y) }) ?? tN;
+        Nn.push({ x: -d.y, y: d.x });
+      }
+      const nEnd = { x: -tN.y, y: tN.x };
+      for (const i of rets) {
+        const e = fe.end[i].p, off = (e.x - B.x) * nEnd.x + (e.y - B.y) * nEnd.y;
+        sweep[i] = C.map((q, k) => ({ x: q.x + Nn[k].x * off, y: q.y + Nn[k].y * off }));
+      }
+    }
     const c = l.runs.map((r, i) => {
+      if (sweep[i]) return sweep[i];
       let pts = simplify(r.path, 0.12);
       if (pts.length < 2) return r.path;
       const S = fe.start[i], E = fe.end[i];
@@ -833,16 +863,40 @@ export class Plan {
     const sup = l.runs.map((r, ri) => ({ r, ri })).filter(({ r }) => r.parent == null && r.kind !== 'return' && r.path.length > 1)
       .map((o) => ({ ...o, y: toL(o.r.path[0]).y })).sort((a, b) => a.y - b.y);
     const n = sup.length, r2 = Math.SQRT1_2;
-    const side = (sgn) => ({ base: { x: x0 + dT / 2, y: sgn * (W / 2 - dT / 2) }, dir: { x: r2, y: sgn * r2 } });
-    // No supply ducts yet (a new job) gives no slots: the bare unit still draws and ducts can be added.
-    const fronts = n === 1 ? 1 : Math.max(n - 2, 0);
-    const slots = n === 0 ? [] : n === 1 ? [null] : [side(-1), ...Array(fronts).fill(null), side(1)];
-    let fk = 0;
+    const side = (sgn) => ({ angled: true, base: { x: x0 + dT / 2, y: sgn * (W / 2 - dT / 2) }, dir: { x: r2, y: sgn * r2 } });
+    // A transition picked by hand (1, 2 or 3-way) has that many spigots whether or not a duct's on each yet (Jake,
+    // 22 Nov 2026: picking 3, 2 or 1-way changed nothing until the ducts happened to match): the spare ones are capped.
+    // On auto it has one for each duct off the unit; none yet (a new job) and the bare unit still draws.
+    const N = Math.max(l.takeoffs ?? 0, n);
+    const fronts = N === 1 ? 1 : Math.max(N - 2, 0);
+    const front = (k) => ({ base: { x: x0 + dT, y: -fw + (k + 0.5) * (2 * fw / Math.max(fronts, 1)) }, dir: { x: 1, y: 0 } });
+    const slots = N === 0 ? [] : N === 1 ? [front(0)] : [side(-1), ...Array.from({ length: fronts }, (_, k) => front(k)), side(1)];
+    const slotW = (sl) => (sl.angled ? dT * 1.3 : (2 * fw) / Math.max(fronts, 1) - 2);
+    // Fewer ducts than spigots: each duct on the spigot nearest the way it heads, kept in order along the unit.
+    let take = slots.map((_, k) => k);
+    if (n < N) {
+      const want = sup.map((o) => { const q = toL(o.r.path[o.r.path.length - 1]); return Math.max(-W / 2, Math.min(W / 2, q.y)); });
+      let best = null;
+      const pick = (from, chosen) => {
+        if (chosen.length === n) {
+          const cost = chosen.reduce((t, si, k) => t + Math.abs(slots[si].base.y - want[k]), 0);
+          if (!best || cost < best.cost - 1e-6) best = { cost, chosen: chosen.slice() };
+          return;
+        }
+        for (let si = from; si < N; si++) pick(si + 1, [...chosen, si]);
+      };
+      pick(0, []);
+      take = best?.chosen ?? [];
+    }
     const supply = sup.map((o, k) => {
-      const w = Math.min(ductWidth(o.r.sizeMM, x.s), slots[k] ? dT * 1.3 : (2 * fw) / Math.max(fronts, 1) - 2);
-      const sl = slots[k] ?? { base: { x: x0 + dT, y: -fw + (fk++ + 0.5) * (2 * fw / Math.max(fronts, 1)) }, dir: { x: 1, y: 0 } };
+      const sl = slots[take[k]], w = Math.min(ductWidth(o.r.sizeMM, x.s), slotW(sl));
       const len = Math.max(w * 0.55, 4), endL = { x: sl.base.x + sl.dir.x * len, y: sl.base.y + sl.dir.y * len };
       return { ri: o.ri, w, len, baseL: sl.base, dirL: sl.dir, end: toS(endL), dir: dirS(sl.dir) };
+    });
+    const used = new Set(take.slice(0, n));
+    const spare = slots.map((sl, k) => ({ sl, k })).filter(({ k }) => !used.has(k)).map(({ sl }) => {
+      const w = Math.min(ductWidth(300, x.s), slotW(sl));
+      return { w, len: Math.max(w * 0.55, 4), baseL: sl.base, dirL: sl.dir, capped: true };
     });
     // Return: a flat box on the back, a spigot per return duct, spread along it.
     const rets = l.runs.map((r, ri) => ({ r, ri })).filter(({ r }) => r.kind === 'return' && r.path.length > 1)
@@ -855,7 +909,7 @@ export class Plan {
       const len = Math.max(w * 0.45, 4), base = { x: rb.x0, y }, endL = { x: rb.x0 - len, y };
       return { ri: o.ri, w, len, baseL: base, dirL: { x: -1, y: 0 }, end: toS(endL), dir: dirS({ x: -1, y: 0 }) };
     });
-    return { c, turn, depth, width, W, x0, dT, fw, supply, ret, rb };
+    return { c, turn, depth, width, W, x0, dT, fw, supply, spare, ret, rb };
   }
 
   /// Draws the supply transition and the return box in the unit's turned frame (already translated and rotated).
@@ -867,6 +921,10 @@ export class Plan {
       g.beginPath(); g.rect(-1, -sp.w / 2, sp.len + 1, sp.w); g.fillStyle = galv(-sp.w / 2, sp.w / 2); g.fill();
       g.strokeStyle = edge; g.lineWidth = 0.9; g.stroke();
       g.strokeStyle = 'rgba(70,78,88,0.6)'; g.beginPath(); g.moveTo(sp.len * 0.6, -sp.w / 2); g.lineTo(sp.len * 0.6, sp.w / 2); g.stroke();
+      if (sp.capped) {
+        // No duct on it yet: an end cap, so it reads as a spigot waiting for its duct.
+        g.beginPath(); g.rect(sp.len - 1.5, -sp.w / 2 - 1, 3, sp.w + 2); g.fillStyle = '#3A4048'; g.fill();
+      }
       g.restore();
     };
     // Supply transition: flat on the unit, 45° sides, flat end.
@@ -877,6 +935,7 @@ export class Plan {
     g.strokeStyle = 'rgba(90,98,108,0.35)'; g.lineWidth = 0.8;
     g.beginPath(); g.moveTo(x0 + 1.5, -W / 2 + 3); g.lineTo(x0 + dT - 1.5, -fw + 1); g.moveTo(x0 + 1.5, W / 2 - 3); g.lineTo(x0 + dT - 1.5, fw - 1); g.stroke();
     U.supply.forEach(spigot);
+    U.spare.forEach(spigot);
     // Return box: flat, on the back.
     const { rb } = U;
     g.beginPath(); g.rect(rb.x0, -rb.half, rb.x1 - rb.x0, rb.half * 2); g.fillStyle = galv(-rb.half, rb.half); g.fill();

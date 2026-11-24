@@ -1745,6 +1745,7 @@ export class Plan {
       this.hits.push({ item: { kind: 'unit' }, x: c.x, y: c.y, r: Math.max(width / 2, 27) });
     }
     // BDO handles: a ring when picked, a pin once moved by hand.
+    const ductOf = sel?.kind === 'feed' ? sel.id : sel?.kind === 'outlet' && sel.duct ? l.boxes.find((b) => b.outlets?.includes(sel.id))?.bid ?? '-' : null;
     for (const b of l.boxes) {
       if (!b.bid || (b.branches < 2 && !b.bid.startsWith('H:'))) continue;
       const c = at('box', b.bid, x.pt(b.pos));
@@ -1752,6 +1753,12 @@ export class Plan {
       if (sel?.kind === 'box' && sel.id === b.bid) {
         g.save(); g.translate(c.x, c.y); g.rotate(Math.atan2(-(b.axis?.y ?? 0), b.axis?.x ?? 1));
         g.beginPath(); g.roundRect(-len / 2 - 5, -wid / 2 - 5, len + 10, wid + 10, 7); g.strokeStyle = T.accent; g.lineWidth = 3; g.stroke();
+        g.restore();
+      }
+      // A duct's picked: the BDOs it could come off instead, ringed (tap one and it does).
+      if (ductOf && ductOf !== b.bid && d.interactive !== false && !d.addMode) {
+        g.save(); g.translate(c.x, c.y); g.rotate(Math.atan2(-(b.axis?.y ?? 0), b.axis?.x ?? 1));
+        g.setLineDash([5, 4]); g.beginPath(); g.roundRect(-len / 2 - 6, -wid / 2 - 6, len + 12, wid + 12, 8); g.strokeStyle = T.accent; g.lineWidth = 1.5; g.stroke();
         g.restore();
       }
       if (drag?.item.kind === 'box' && drag.item.id === b.bid) this.drawBdo(g, c, b, x);
@@ -1952,7 +1959,7 @@ export class Plan {
         const pts = curves[ri].map(x.pt), w = ductWidth(r.sizeMM, x.s);
         for (let i = 1; i < pts.length; i++) {
           const dd = segDist(q, pts[i - 1], pts[i]);
-          if (dd <= Math.max(14, w / 2 + 8) && (!best || dd < best.d)) best = { key, d: dd };
+          if (dd <= Math.max(14, w / 2 + 12) && (!best || dd < best.d)) best = { key, d: dd };
         }
       }
       if (best) return best.key;

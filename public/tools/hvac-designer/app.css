@@ -863,3 +863,15 @@ details.more > summary .lsum svg { margin: 0; }
 .lrow.bars .track em { position: absolute; left: 90%; top: -3px; width: 2px; height: 12px; border-radius: 1px; background: var(--ink); }
 .lrow.bars.shut .track i { background: #C6CBD3 !important; }
 .card.is .lvent + .lvent { margin-top: 6px; }
+
+/* A room's ceiling, changed in its card: style, then the height (or the low and the high side). */
+.ceil .rowpick { padding: 7px 0; }
+.ceil .rowpick:first-child { border-top: 1px dashed rgba(14,17,22,.08); }
+.ceil .seg { flex: none; }
+.ceil .seg button { height: 28px; padding: 0 10px; font-size: 12.5px; }
+.numin { display: inline-flex; align-items: center; gap: 5px; background: var(--tint); border-radius: 9px; padding: 0 9px 0 4px; flex: none; }
+.numin input { width: 62px; border: 0; background: none; font: 500 13px var(--mono, ui-monospace, monospace); color: var(--ink); text-align: right; padding: 6px 0; appearance: textfield; -moz-appearance: textfield; }
+.numin input::-webkit-inner-spin-button, .numin input::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+.numin input:focus { outline: 0; }
+.numin:focus-within { background: #fff; box-shadow: 0 0 0 2px rgba(14,17,22,.14); }
+.numin i { font-style: normal; font-size: 12px; color: var(--muted); }

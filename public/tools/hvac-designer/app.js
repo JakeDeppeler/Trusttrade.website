@@ -1,11 +1,11 @@
 // Trust Trade Pro — the HVAC Designer in the browser. The same five steps as the app (House · Capture · Check · Design ·
 // Send) on the app's own engine (engine.wasm, run in a worker): the same loads, zones, ducts, checks and materials.
 
-import { call as engineCall, latest } from './engine.js?v=bdf8c12-202611222250';
-import { jobCalls, isMixed as mixedJob, ductedPart, ductedPartOf, splitSet, withSplitRooms, defaultRange, isDuctedB, activeSys, swapSystems, isVrfB, sharesVrf, pickVrf } from './systems.js?v=bdf8c12-202611222250';
-import * as store from './store.js?v=bdf8c12-202611222250';
-import { Plan, inkImage, zoneColour, ductColour, splitColour, T, pointInPolygon, SIDE_STYLES, movesOnly, wheelMoves, ZOOM_MAX } from './plan.js?v=bdf8c12-202611222250';
-import { RoomEditor, metres, signedArea, onLine } from './roomeditor.js?v=bdf8c12-202611222250';
+import { call as engineCall, latest } from './engine.js?v=f11c00d-202611241727';
+import { jobCalls, isMixed as mixedJob, ductedPart, ductedPartOf, splitSet, withSplitRooms, defaultRange, isDuctedB, activeSys, swapSystems, isVrfB, sharesVrf, pickVrf } from './systems.js?v=f11c00d-202611241727';
+import * as store from './store.js?v=f11c00d-202611241727';
+import { Plan, inkImage, zoneColour, ductColour, splitColour, T, pointInPolygon, SIDE_STYLES, movesOnly, wheelMoves, ZOOM_MAX } from './plan.js?v=f11c00d-202611241727';
+import { RoomEditor, metres, signedArea, onLine } from './roomeditor.js?v=f11c00d-202611241727';
 
 /// Every engine call: a two-system job's go with the part they're about (systems.js).
 const call = jobCalls(engineCall);
@@ -226,6 +226,7 @@ function editRefusal(op) {
     dropOutlet: 'An outlet goes in a conditioned room.', dropBox: 'A BDO sits over the house.',
     dropOutdoor: 'No outside wall near there.', addOutlet: 'Tap inside a conditioned room.',
     moveOutletToBox: 'That BDO can\'t take it: a BDO takes three legs at most.',
+    refeed: 'It won\'t go from that BDO: a BDO takes three ducts at most, and a duct can\'t go round in a circle.',
     makeBox: 'Those vents can\'t share a BDO: pick 2 or 3 vents on the ducted system.',
     addHandRun: 'That duct won\'t go: three ducts off the fan coil or a BDO at most, never round in a circle, and a new BDO goes over the house.',
     joinRooms: 'That room isn\'t on a zone.',
@@ -585,7 +586,7 @@ async function importJobFile(text) {
     toast('That job file couldn\'t be read: ' + e.message);
   }
 }
-if (/^(localhost|127\.0\.0\.1)$/.test(location.hostname)) window.__ttImport = importJobFile;
+if (/^(localhost|127\.0\.0\.1)$/.test(location.hostname)) { window.__ttImport = importJobFile; window.__ttApp = () => app; }
 
 function duplicate(id) {
   const p = store.loadJob(id);
@@ -1358,12 +1359,12 @@ async function renderCheck(c) {
           <td><select data-type="${r.id}">${o.roomTypes.map((x) => `<option value="${x.id}" ${x.id === r.type ? 'selected' : ''}>${esc(x.label)}</option>`).join('')}</select></td>
           ${storeyCount() > 1 ? `<td><select data-level="${r.id}">${Array.from({ length: Math.max(storeyCount(), (r.level ?? 0) + 1) }, (_, lv) => `<option value="${lv}" ${lv === (r.level ?? 0) ? 'selected' : ''}>${FloorName(lv).replace(' floor', '')}</option>`).join('')}</select></td>` : ''}
           <td><select data-built="${r.id}" title="An extension or the old part: built at another time than the house">${eraOptions(r.era)}</select></td>
-          <td class="num"><input class="text" data-ceil="${r.id}" type="number" min="2.1" max="6" step="0.05" value="${(r.ceiling ?? 2.4).toFixed(2)}" style="width:68px;text-align:right" title="Ceiling height, m"></td></tr>`).join('')}
+          <td class="num"><input class="text" data-ceil="${r.id}" type="number" min="2.1" max="6" step="0.05" value="${(r.ceiling ?? 2.4).toFixed(2)}" style="width:68px;text-align:right" title="Ceiling height, m${r.ceilingHigh ? ' (its low side)' : ''}">${r.ceilingHigh ? `<div class="small muted" style="white-space:nowrap">${r.ceilingStyle === 'cathedral' ? 'cathedral' : 'raked'}, to ${fmt(r.ceilingHigh, 2)}</div>` : ''}</td></tr>`).join('')}
       </tbody></table>
       ${a.pc.gaps.length ? `<span class="eyebrow" style="display:block;margin:12px 0 4px">Gaps between rooms</span><p class="small muted" style="margin:0 0 6px">Floor no room covers. On, it becomes part of the room it opens off.</p>
         ${a.pc.gaps.map((x) => `<label class="kv" style="cursor:pointer"><span><b style="font-weight:700">${x.outdoorish ? 'Outside, by the look of it' : x.joins ? 'Part of the ' + esc(roomName(x.joins)) : 'A hallway of its own'}</b><br><span class="small muted">${fmt(x.area, 1)} m²</span></span>
           <input type="checkbox" data-gap="${esc(x.key)}" ${a.gapsOn.has(x.key) ? 'checked' : ''} style="width:20px;height:20px;accent-color:var(--ink)"></label>`).join('')}` : ''}
-      <p class="small muted" style="margin:8px 0 0">Ceilings come from New job; change a room's here (a raked or high ceiling adds to its load). An extension? Set <b>Built</b> on its rooms: their walls, insulation and glass then go by that era, not the house's.</p>
+      <p class="small muted" style="margin:8px 0 0">Ceilings come from New job; change a room's here, or tap the room on the plan to make it raked or cathedral (a high ceiling adds to its load). An extension? Set <b>Built</b> on its rooms: their walls, insulation and glass then go by that era, not the house's.</p>
       <div class="actions-row"><button class="btn2" id="editrooms">Edit the rooms on the plan</button></div>`;
   const areasBody = `<p class="small muted" style="margin:0 0 8px">Rooms with no doors between them, say kitchen, dining and family, are heated and cooled as one space, on one zone.</p>
       ${a.openAreas.map((grp, i) => `<div class="kv"><span>${grp.map(roomName).map(esc).join(' + ')}</span><button class="link" data-split="${i}">Split</button></div>`).join('') || '<p class="small muted">No open areas.</p>'}
@@ -2224,11 +2225,41 @@ function roomRows(r, { built = true } = {}) {
   const era = o.eras.find((e) => e.id === r.era), houseCeil = site.ceilingPref ?? 2.4;
   const roof = o.roofTypes?.find((x) => x.id === (site.roofTypePref ?? 'tile'))?.label ?? 'Roof';
   const floor = o.floorTypes?.find((x) => x.id === site.floorType)?.label ?? '';
-  return `<div class="kv"><span>Ceiling</span><b>${fmt(r.ceiling ?? 2.4, 2)} m${Math.abs((r.ceiling ?? 2.4) - houseCeil) > 0.01 ? ' <span class="chip mini">not the house\'s</span>' : ''}</b></div>
-    <div class="kv"><span>Above</span><b>${r.underRoof === false ? 'Another floor' : esc(roof) + ', roof space'}</b></div>
+  return `<div class="kv"><span>Above</span><b>${r.underRoof === false ? 'Another floor' : esc(roof) + ', roof space'}</b></div>
     <div class="kv"><span>Windows</span><b class="imono">${glass.length ? `${glass.length} · ${fmt(glassM2, 1)} m²${faces.length ? ' · ' + faces.join(', ') : ''}` : 'none drawn'}</b></div>
     <div class="kv"><span>Floor</span><b>${r.onGround === false ? 'Over the floor below' : esc(floor)}</b></div>
     ${built ? `<div class="kv"><span>Built</span><b>${era ? esc(era.short) + ', its own' : 'As the house'}</b></div>` : ''}`;
+}
+/// A room's ceiling, changed where it's shown (Jake, 24 Nov 2026: "click the room and change the roof height and also
+/// the roof style, so flat or raked"): its style, then its height; a raked ceiling its low and high side, a cathedral
+/// one its walls and its ridge. The load goes by the average of the two.
+const CEIL_SIDES = { raked: ['Low side', 'High side'], cathedral: ['At the walls', 'At the ridge'] };
+function ceilingRows(r) {
+  const houseCeil = app.project.site.ceilingPref ?? 2.4;
+  const styles = app.options.ceilingStyles ?? [{ id: 'flat', label: 'Flat' }], st = r.ceilingStyle ?? 'flat';
+  const low = r.ceiling ?? 2.4, high = r.ceilingHigh ?? low, sides = CEIL_SIDES[st];
+  const num = (key, v, max) => `<span class="numin"><input data-ceilnum="${key}" type="number" inputmode="decimal" min="2.1" max="${max}" step="0.05" value="${v.toFixed(2)}" aria-label="${key === 'high' ? 'High side' : 'Ceiling height'}, metres"><i>m</i></span>`;
+  return `<div class="ceil" data-ceilroom="${r.id}">
+    <div class="rowpick"><label>Ceiling</label><div class="seg">${styles.map((x) => `<button data-ceilstyle="${x.id}" class="${x.id === st ? 'on' : ''}">${esc(x.label)}</button>`).join('')}</div></div>
+    <div class="rowpick"><label>${sides ? sides[0] : 'Height'}${!sides && Math.abs(low - houseCeil) > 0.01 ? ' <span class="chip mini">not the house\'s</span>' : ''}</label>${num('low', low, 6)}</div>
+    ${sides ? `<div class="rowpick"><label>${sides[1]}</label>${num('high', high, 9)}</div>
+      <p class="small muted" style="margin:2px 0 8px">Sized on its average, ${fmt(r.ceilingMean ?? (low + high) / 2, 2)} m. A sloped ceiling can leave little roof space over it: check the ducts and the vent fit.</p>` : ''}</div>`;
+}
+/// The ceiling rows' taps and typing, saved with `save(room, change)` (the page's own edit, or the room editor's).
+function bindCeiling(el, save) {
+  el.querySelectorAll('.ceil[data-ceilroom]').forEach((box) => {
+    const id = box.dataset.ceilroom;
+    box.querySelectorAll('[data-ceilstyle]').forEach((b) => (b.onclick = () => { if (!b.classList.contains('on')) save(id, { style: b.dataset.ceilstyle }); }));
+    box.querySelectorAll('[data-ceilnum]').forEach((inp) => inp.addEventListener('change', () => {
+      const h = parseFloat(inp.value), high = inp.dataset.ceilnum === 'high';
+      const low = parseFloat(box.querySelector('[data-ceilnum="low"]').value);
+      if (!(h >= 2.1 && h <= (high ? 9 : 6))) { toast(high ? 'A high side between 2.1 and 9 m.' : 'A ceiling between 2.1 and 6 m.'); inp.value = inp.defaultValue; return; }
+      if (high && h <= low) { toast('The high side goes over the low side.'); inp.value = inp.defaultValue; return; }
+      const top = parseFloat(box.querySelector('[data-ceilnum="high"]')?.value);
+      if (!high && top && h >= top) { toast(`The low side stays under the high side (${top.toFixed(2)} m).`); inp.value = inp.defaultValue; return; }
+      save(id, high ? { high: h } : { height: h });
+    }));
+  });
 }
 /// A room's numbers as the side panel shows them (the mock's Rooms panel): its load, how hard it works per m², its
 /// floor; where that heat comes from; then how it's built.
@@ -2357,6 +2388,7 @@ function edPanel() {
         <div><div class="rowpick"><label>Name</label><input id="ed-name" class="rowin" value="${esc(r.name)}"></div>
           <div class="rowpick"><label>Room type</label><select id="ed-type">${o.roomTypes.map((x) => `<option value="${x.id}" ${x.id === r.type ? 'selected' : ''}>${esc(x.label)}</option>`).join('')}</select></div>
           ${r.conditioned ? `<div class="rowpick"><label>Zone</label><select id="ed-zone">${zoneOptions(r, r.zonePlan ?? '')}</select></div>` : ''}</div>
+        ${unsized ? '' : ceilingRows(r)}
         <div class="imono mut" style="font-family:var(--sans);font-size:12px">Pick a corner to cut it out, a wall for its windows, or drag a + to bend a wall.</div></div>
       ${corner}${wall}
       <div class="actions-row"><button class="btn2 danger" id="ed-del">${icon('trash').replace('<svg', '<svg width="16" height="16"')} Delete this room</button></div>`;
@@ -2410,6 +2442,7 @@ function edPanel() {
   $('#go-size', el)?.addEventListener('click', () => ed.setMode('measure'));
   $('#dr-next', el)?.addEventListener('click', closeEditor);
   $('#ed-name', el)?.addEventListener('change', (e) => { const r = room(); if (r && e.target.value.trim()) edEdit('setRoom', { room: r.id, name: e.target.value.trim() }); });
+  bindCeiling(el, (id, change) => edEdit('setRoom', { room: id, ...change }));
   $('#ed-type', el)?.addEventListener('change', (e) => { const r = room(); if (r) edEdit('setRoom', { room: r.id, type: e.target.value }); });
   $('#ed-zone', el)?.addEventListener('change', (e) => { const r = room(); if (r) edEdit('setZonePlan', { room: r.id, choice: e.target.value || null }); });
   $('#c-square', el)?.addEventListener('click', () => ed.squareCorner());
@@ -2641,7 +2674,7 @@ async function mount3D(c) {
   app.h3d?.destroy(); app.h3d = null;
   const host = $('#h3d', c);
   if (!host || !app.three) return;
-  H3D ??= (await import('./house3d.js?v=bdf8c12-202611222250')).House3D;
+  H3D ??= (await import('./house3d.js?v=f11c00d-202611241727')).House3D;
   if (!host.isConnected) return;
   app.h3d = new H3D(host, { select: (item) => select(item), changed: (cam) => { app.cam3d = cam; } }, app.cam3d ?? null);
   app.h3d.set({ view: app.view, layout: app.layout, air: app.air, selection: app.selection, heat: !!app.heat3d, sound: app.layers.sound !== false, airOn: true });
@@ -2663,7 +2696,7 @@ async function openCustomer3D() {
     <div class="c3-stage" id="c3-stage"></div>
     <div class="c3-card" id="c3-card"></div>`;
   document.body.append(o);
-  H3D ??= (await import('./house3d.js?v=bdf8c12-202611222250')).House3D;
+  H3D ??= (await import('./house3d.js?v=f11c00d-202611241727')).House3D;
   let layout = all, pick = null, mode = 'all', heat = false, only = null;
   const u = ductedView().totals.unit, vents = all.outlets.filter((x) => !x.dropper && !x.spill).length;
   const card = () => {
@@ -2754,6 +2787,11 @@ function select(item) {
     else render();
     return;
   }
+  // A duct picked, then a BDO tapped: the duct comes off that BDO (the BDO it's on already is just picked).
+  if (item?.kind === 'box' && !app.addMode && !app.three) {
+    const key = ductKey(app.selection);
+    if (key && refeedable(key, item.id)) { refeed(key, item.id); return; }
+  }
   if (item?.kind === 'dropTop' || item?.kind === 'dropFoot') item = { kind: 'dropper', id: item.id };
   app.selection = item;
   if (item) app.addingUnit = false;
@@ -2761,6 +2799,40 @@ function select(item) {
   app.h3d?.set({ selection: item });
   // A split's heads: a split job's, or system B's on a two-system job (its own panel, not the ducts').
   if (isSplit() || (isMixed() && sysView() === 'B' && !ductedB())) renderSplitInspector(); else renderInspector();
+}
+
+/// What a picked duct feeds, as the engine's `refeed` names it: a vent ("outlet:<id>") or a BDO ("box:<bid>"). Null
+/// when what's picked isn't a duct.
+function ductKey(s) {
+  const l = app.layout;
+  if (!l || !s) return null;
+  if (s.kind === 'outlet' && s.duct && l.runs.some((r) => r.outlet === s.id)) return 'outlet:' + s.id;
+  if (s.kind === 'feed' && l.runs.some((r) => r.keyBox === s.id)) return 'box:' + s.id;
+  return null;
+}
+/// The BDO a duct comes off now (null: the fan coil, or not known).
+function ductSource(key) {
+  const l = app.layout;
+  if (key.startsWith('outlet:')) return l.boxes.find((b) => b.outlets?.includes(key.slice(7)))?.bid ?? null;
+  let r = [...l.runs].reverse().find((x) => x.keyBox === key.slice(4));
+  for (let n = 0; r && n < 16; n++) { r = l.runs[r.parent]; if (r?.keyBox) return r.keyBox; }
+  return null;
+}
+/// A BDO the picked duct could be fed from instead: not its own, and not the one it's on.
+function refeedable(key, bid) { return key !== 'box:' + bid && ductSource(key) !== bid; }
+/// A duct picked, then a BDO tapped (Jake, 24 Nov 2026: "click a duct and then click the BDO and make it go from that
+/// BDO"). Ducts the router laid out become drawn by hand as they lie, so only this duct moves.
+async function refeed(key, bid) {
+  const was = app.layout, hand = was.handDrawn, old = was.boxes.find((b) => b.bid === key.slice(4))?.pos;
+  if (!(await edit('refeed', { key, bid }))) return;
+  const l = app.layout;
+  if (key.startsWith('box:')) {
+    // Its BDO has a new id once the ducts are by hand: found again by where it sits.
+    const near = old && [...l.boxes].sort((a, b) => Math.hypot(a.pos.x - old.x, a.pos.y - old.y) - Math.hypot(b.pos.x - old.x, b.pos.y - old.y))[0];
+    app.selection = near ? { kind: 'feed', id: near.bid } : null;
+  }
+  render();
+  toast(l.handDrawn && !hand ? 'Now off that BDO. The ducts are drawn by hand from here: the router\'s off.' : 'Now off that BDO. Back undoes it.');
 }
 
 async function addDropper(pos) {
@@ -3088,7 +3160,7 @@ function renderInspector() {
     html = `<div class="card is">${cardHead(close, 'Duct · to a vent', `Flex to ${esc(r?.name ?? 'the vent')}`, `Ø${run.sizeMM} · ${fmt(run.length, 1)} m`, `${fmt(run.lps)} L/s`)}
       <div class="tiles3"><div><span>Size${o?.overridden ? ' · set' : ''}</span><b>Ø${run.sizeMM}</b></div><div class="${over ? 'warn' : ''}"><span>Speed${over ? ' · over' : ''}</span><b>${sp != null ? fmt(sp, 1) : '—'}<i>m/s</i></b></div><div><span>Length</span><b>${fmt(run.length, 1)}<i>m</i></b></div></div>
       <div class="seg fill"><button data-vsize="0" class="${o?.overridden ? '' : 'on'}" title="Sized for its air: Ø${auto}">Auto</button>${app.options.ventSizes.map((mm) => `<button data-vsize="${mm}" class="${o?.overridden && o.sizeMM === mm ? 'on' : !o?.overridden && mm === auto ? 'auto' : ''}">Ø${mm}</button>`).join('')}</div>
-      <div class="lnote">Drag the duct to bend it where you hold it, or drag a + on it.</div>
+      <div class="lnote">Drag the duct to bend it where you hold it, or drag a + on it. <b>Tap another BDO</b> to feed it from there.</div>
       ${bendLine()}
       <div class="rowbtns"><button class="btn2" id="open-vent">Open its vent</button>${l.handDrawn && run.hand ? '<button class="btn2 danger" id="delrun">Take this duct out</button>' : ''}</div></div>`;
   } else if (s?.kind === 'outlet' && l?.outlets.find((o) => o.id === s.id)) {
@@ -3112,6 +3184,7 @@ function renderInspector() {
     html = `<div class="card is">${cardHead(close, r.kind === 'trunk' ? 'Duct · trunk' : 'Duct · feed', 'Flex to the BDO', b ? `Into a ${b.branches}-way: ${esc(feeds(b))}` : '', `${fmt(r.designLps)} L/s${cap != null ? ` · limit ${cap} m/s` : ''}`)}
       <div class="tiles3"><div><span>Size${r.manual ? ' · set' : ''}</span><b>Ø${r.sizeMM}</b></div><div class="${fover ? 'warn' : ''}"><span>Speed${fover ? ' · over' : ''}</span><b>${fsp != null ? fmt(fsp, 1) : '—'}<i>m/s</i></b></div><div><span>Length</span><b>${fmt(len, 1)}<i>m</i></b></div></div>
       ${b ? `<div class="seg grid4"><button data-fsize="0" data-bid="${esc(b.bid)}" class="${r.manual ? '' : 'on'}" title="Sized for its air: Ø${r.autoMM}">Auto</button>${app.options.ductSizes.filter((mm) => mm <= 450).map((mm) => `<button data-fsize="${mm}" data-bid="${esc(b.bid)}" class="${r.manual && r.sizeMM === mm ? 'on' : !r.manual && mm === r.autoMM ? 'auto' : ''}">Ø${mm}</button>`).join('')}</div>` : ''}
+      <div class="lnote"><b>Tap another BDO</b> to feed this duct from there.</div>
       ${bendLine()}
       ${r.hand ? '<div class="rowbtns"><button class="btn2 danger" id="delrun">Take this duct out</button></div>' : ''}</div>`;
   } else if (s?.kind === 'dropper' && v.droppers?.some((x) => x.id === s.id)) {
@@ -3395,7 +3468,7 @@ function focusCard(l, v, p) {
         ${joined && mates.length ? '<button class="btn2" id="unjoin">Unjoin</button>' : '<button class="btn2" id="join">Join a room</button>'}<button class="btn2" id="reshape">Shape</button></div>
       ${byHand[r.id] != null ? '<button class="link" data-zoned="auto" style="padding:0;text-align:left">Zone it as the zoning has it</button>' : ''}
     </div>
-    <div class="card is">${heatSplit(r)}<div>${roomRows(r, { built: false })}
+    <div class="card is">${ceilingRows(r)}${heatSplit(r)}<div>${roomRows(r, { built: false })}
       <div class="rowpick" style="margin:0"><label>Built</label><select id="r-built">${eraOptions(r.era)}</select></div></div>
       ${r.openArea && v.rooms.some((m) => m.id !== r.id && m.openArea === r.openArea) ? '<label class="small muted" style="display:flex;gap:6px;align-items:center;margin:0"><input type="checkbox" id="r-built-area" checked> and the rest of its open area</label>' : ''}</div>`;
 }
@@ -3644,6 +3717,7 @@ function bindInspector(el) {
   $('#insp-close', el)?.addEventListener('click', () => select(null));
   $('#join', el)?.addEventListener('click', () => { app.joining = s.id; app.selection = null; render(); });
   $('#unjoin', el)?.addEventListener('click', () => edit('unjoinRoom', { room: s.id }));
+  bindCeiling(el, (id, change) => edit('setRoom', { room: id, ...change }));
   $('#r-built', el)?.addEventListener('change', (e) => {
     const r = app.view.rooms.find((x) => x.id === s.id), area = $('#r-built-area', el)?.checked && r?.openArea;
     edit('setRoom', { room: s.id, era: e.target.value, ...(area ? { rooms: app.view.rooms.filter((m) => m.openArea === r.openArea).map((m) => m.id) } : {}) });
@@ -4203,7 +4277,7 @@ function openReport(kind) {
   const close = () => o.remove();
   $('#rp-close', o).onclick = close;
   o.addEventListener('keydown', (e) => e.key === 'Escape' && close());
-  import('./reports.js?v=bdf8c12-202611222250').then(async (m) => {
+  import('./reports.js?v=f11c00d-202611241727').then(async (m) => {
     // Reports are always the design as installed: every zone open, balanced. A multi-head job has no ducted design to
     // route (routing one threw, and the bar stayed on "Building the report…" for good).
     app.designLayout = isSplit() ? null : await call('route', { project: app.project, closed: [], balanced: true });

@@ -1,11 +1,11 @@
 // Trust Trade Pro — the HVAC Designer in the browser. The same five steps as the app (House · Capture · Check · Design ·
 // Send) on the app's own engine (engine.wasm, run in a worker): the same loads, zones, ducts, checks and materials.
 
-import { call as engineCall, latest } from './engine.js?v=f11c00d-202611241727';
-import { jobCalls, isMixed as mixedJob, ductedPart, ductedPartOf, splitSet, withSplitRooms, defaultRange, isDuctedB, activeSys, swapSystems, isVrfB, sharesVrf, pickVrf } from './systems.js?v=f11c00d-202611241727';
-import * as store from './store.js?v=f11c00d-202611241727';
-import { Plan, inkImage, zoneColour, ductColour, splitColour, T, pointInPolygon, SIDE_STYLES, movesOnly, wheelMoves, ZOOM_MAX } from './plan.js?v=f11c00d-202611241727';
-import { RoomEditor, metres, signedArea, onLine } from './roomeditor.js?v=f11c00d-202611241727';
+import { call as engineCall, latest } from './engine.js?v=2d2ac5b-202611252120';
+import { jobCalls, isMixed as mixedJob, ductedPart, ductedPartOf, splitSet, withSplitRooms, defaultRange, isDuctedB, activeSys, swapSystems, isVrfB, sharesVrf, pickVrf } from './systems.js?v=2d2ac5b-202611252120';
+import * as store from './store.js?v=2d2ac5b-202611252120';
+import { Plan, inkImage, zoneColour, ductColour, splitColour, T, pointInPolygon, SIDE_STYLES, movesOnly, wheelMoves, ZOOM_MAX } from './plan.js?v=2d2ac5b-202611252120';
+import { RoomEditor, metres, signedArea, onLine } from './roomeditor.js?v=2d2ac5b-202611252120';
 
 /// Every engine call: a two-system job's go with the part they're about (systems.js).
 const call = jobCalls(engineCall);
@@ -760,20 +760,27 @@ function renderJob(c) {
 
 /// The house as chips (the mock's "House defaults"): what the build era filled in, and Change to set any of it.
 function houseCard() {
-  const s = app.project.site, o = app.options, open = !!app.houseOpen;
-  const label = (list, id) => list?.find((x) => x.id === id)?.label ?? '';
-  const chips = [label(o.wallTypes, s.wallType), 'Ceiling ' + label(o.ceilingInsulation, s.ceilingInsulation).replace(/^None$/, 'not insulated'), 'Windows ' + label(o.glazing, s.glazing).toLowerCase(),
-    `${(s.ceilingPref ?? 2.4).toFixed(1)} m ceilings`, label(o.roofTypes, s.roofTypePref ?? 'tile') + ', ' + label(o.roofColours, s.roofColour).toLowerCase(),
-    label(o.floorTypes, s.floorType), label(o.airtightness, s.airtightness)].filter(Boolean);
-  const row = (title, key, list, value) => `<div class="rowpick"><label>${title}</label><select data-site="${key}">
-    ${list.map((it) => `<option value="${it.id}" ${it.id === value ? 'selected' : ''}>${esc(it.label)}</option>`).join('')}</select></div>`;
-  return `<div class="card"><div class="ih"><b>House defaults</b><span class="imono mut">${s.eraPref ? 'from the build era' : 'pick when it was built'}</span></div>
-    <div class="nj-chips">${chips.map((x) => `<span class="chip">${esc(x)}</span>`).join('')}<button class="chip link2" id="house-edit">${open ? 'Done' : 'Change'}</button></div>
-    ${open ? `<div style="margin-top:10px">
-      <div class="rowpick"><label>Ceiling height</label><span style="display:flex;align-items:center;gap:6px"><input class="text" id="ceiling" type="number" min="2.1" max="6" step="0.05" value="${(s.ceilingPref ?? 2.4).toFixed(2)}" style="width:84px;text-align:right;padding:7px 9px"><span class="small muted">m</span></span></div>
-      ${row('Walls', 'wallType', o.wallTypes, s.wallType)}${row('Roof', 'roofTypePref', o.roofTypes, s.roofTypePref ?? 'tile')}${row('Roof colour', 'roofColour', o.roofColours, s.roofColour)}
-      ${row('Floor', 'floorType', o.floorTypes, s.floorType)}${row('Ceiling insulation', 'ceilingInsulation', o.ceilingInsulation, s.ceilingInsulation)}${row('Windows', 'glazing', o.glazing, s.glazing)}${row('Draughtiness', 'airtightness', o.airtightness, s.airtightness)}
-      <p class="small muted" style="margin:8px 0 0">An extension built later gets its own on the Rooms step: tap its rooms.</p></div>` : ''}</div>`;
+  const s = app.project.site, o = app.options;
+  // Each setting's choices as buttons in a row, the one in use picked (Jake, 25 Nov 2026: "can we make these button
+  // options that are preselected and are in line"). The names are short so a row fits; the long ones are the tooltips.
+  const SHORT = { slab: 'Slab', suspendedInsulated: 'Timber, insulated', suspendedUninsulated: 'Timber, bare', singleClear: 'Single', singleTinted: 'Tinted',
+    doubleClear: 'Double', doubleLowE: 'Double low-E', tight: 'Tight', average: 'Average', leaky: 'Leaky', none: 'None' };
+  const seg = (title, key, list, value, note = '') => `<div class="field"><span>${title}${note}</span><div class="seg fill">${(list ?? []).map((it) =>
+    `<button data-siteset="${key}" data-val="${it.id}" class="${it.id === value ? 'on' : ''}" title="${esc(it.label)}">${esc(SHORT[it.id] ?? it.label)}</button>`).join('')}</div></div>`;
+  // Walls: what they're made of, then insulated or not (double brick never is here, lightweight cladding always is).
+  const WALLS = { brick: ['Brick veneer', 'brickVeneerInsulated', 'brickVeneerUninsulated'], board: ['Weatherboard', 'weatherboardInsulated', 'weatherboardUninsulated'],
+    double: ['Double brick', null, 'doubleBrick'], clad: ['Cladding', 'claddingInsulated', null] };
+  const wall = Object.entries(WALLS).find(([, w]) => w.includes(s.wallType)) ?? ['brick', WALLS.brick], insulated = wall[1][1] === s.wallType;
+  const ceil = s.ceilingPref ?? 2.4, heights = [2.4, 2.55, 2.7, 3.0], own = !heights.some((h) => Math.abs(h - ceil) < 0.005);
+  return `<div class="card hd"><div class="ih"><b>House defaults</b><span class="imono mut">${s.eraPref ? 'from the build era' : 'pick when it was built'}</span></div>
+    <div class="field"><span>Ceiling height</span><div class="hd-ceil"><div class="seg fill">${heights.map((h) => `<button data-ceilset="${h}" class="${Math.abs(h - ceil) < 0.005 ? 'on' : ''}">${h.toFixed(h === 2.55 ? 2 : 1)} m</button>`).join('')}</div>
+      <span class="numin ${own ? 'on' : ''}"><input id="ceiling" type="number" inputmode="decimal" min="2.1" max="6" step="0.05" value="${ceil.toFixed(2)}" aria-label="Ceiling height, metres"><i>m</i></span></div></div>
+    <div class="field"><span>Walls</span><div class="seg fill">${Object.entries(WALLS).map(([k, w]) => `<button data-wall="${k}" class="${k === wall[0] ? 'on' : ''}">${w[0]}</button>`).join('')}</div></div>
+    <div class="field"><span>Wall insulation</span><div class="seg fill"><button data-wallins="1" class="${insulated ? 'on' : ''}" ${wall[1][1] ? '' : 'disabled'}>Insulated</button><button data-wallins="0" class="${insulated ? '' : 'on'}" ${wall[1][2] ? '' : 'disabled'}>None</button></div></div>
+    <div class="hd-two">${seg('Roof', 'roofTypePref', o.roofTypes?.map((x) => ({ ...x, label: x.id === 'metal' ? 'Metal' : x.label })), s.roofTypePref ?? 'tile')}${seg('Roof colour', 'roofColour', o.roofColours, s.roofColour)}</div>
+    ${seg('Floor', 'floorType', o.floorTypes, s.floorType)}${seg('Ceiling insulation', 'ceilingInsulation', o.ceilingInsulation, s.ceilingInsulation)}
+    ${seg('Windows', 'glazing', o.glazing, s.glazing)}${seg('Draughtiness', 'airtightness', o.airtightness, s.airtightness)}
+    <p class="small muted" style="margin:2px 0 0">An extension built later gets its own on the Rooms step: tap its rooms.</p></div>`;
 }
 
 /// New job's plan: three ways in, each a tile that acts when it's tapped (a plan can be dropped anywhere on the card).
@@ -871,6 +878,15 @@ function bindHouse(c) {
   $('#ceiling', c)?.addEventListener('change', (e) => { const h = parseFloat(e.target.value); if (h >= 2.1 && h <= 6) edit('setCeiling', { by: h }); else toast('A ceiling between 2.1 and 6 m.'); });
   c.querySelectorAll('[data-era]').forEach((b) => (b.onclick = () => edit('setEra', { era: b.dataset.era })));
   c.querySelectorAll('[data-site]').forEach((s) => (s.onchange = () => commit({ ...p(), site: { ...p().site, [s.dataset.site]: s.value } })));
+  // The house's settings as buttons: one tap sets it (the one in use does nothing).
+  c.querySelectorAll('[data-siteset]').forEach((b) => (b.onclick = () => { if (!b.classList.contains('on')) commit({ ...p(), site: { ...p().site, [b.dataset.siteset]: b.dataset.val } }); }));
+  c.querySelectorAll('[data-ceilset]').forEach((b) => (b.onclick = () => { if (!b.classList.contains('on')) edit('setCeiling', { by: +b.dataset.ceilset }); }));
+  const WALL_IDS = { brick: ['brickVeneerInsulated', 'brickVeneerUninsulated'], board: ['weatherboardInsulated', 'weatherboardUninsulated'], double: [null, 'doubleBrick'], clad: ['claddingInsulated', null] };
+  const wallNow = () => Object.entries(WALL_IDS).find(([, w]) => w.includes(p().site.wallType)) ?? ['brick', WALL_IDS.brick];
+  const setWall = (id) => id && id !== p().site.wallType && commit({ ...p(), site: { ...p().site, wallType: id } });
+  // A new wall keeps its insulation where that wall comes both ways.
+  c.querySelectorAll('[data-wall]').forEach((b) => (b.onclick = () => { const w = WALL_IDS[b.dataset.wall], ins = wallNow()[1][0] === p().site.wallType; setWall((ins ? w[0] : w[1]) ?? w[0] ?? w[1]); }));
+  c.querySelectorAll('[data-wallins]').forEach((b) => (b.onclick = () => setWall(wallNow()[1][b.dataset.wallins === '1' ? 0 : 1])));
   c.querySelectorAll('[data-go]').forEach((b) => (b.onclick = () => go(b.dataset.go)));
   $('#replace', c)?.addEventListener('click', () => pickPlan(true));
   c.querySelectorAll('[data-kind]').forEach((b) => (b.onclick = () => setJobKind(b.dataset.kind)));
@@ -881,7 +897,6 @@ function bindHouse(c) {
     if (app.step === 'job') render();
   }));
   c.querySelectorAll('[data-storeys]').forEach((b) => (b.onclick = () => commit({ ...p(), site: { ...p().site, storeysPref: b.dataset.storeys } })));
-  $('#house-edit', c)?.addEventListener('click', () => { app.houseOpen = !app.houseOpen; render(); });
   $('#nj-go', c)?.addEventListener('click', async () => {
     await flush();
     const pick = $('#planfile', c);
@@ -2674,7 +2689,7 @@ async function mount3D(c) {
   app.h3d?.destroy(); app.h3d = null;
   const host = $('#h3d', c);
   if (!host || !app.three) return;
-  H3D ??= (await import('./house3d.js?v=f11c00d-202611241727')).House3D;
+  H3D ??= (await import('./house3d.js?v=2d2ac5b-202611252120')).House3D;
   if (!host.isConnected) return;
   app.h3d = new H3D(host, { select: (item) => select(item), changed: (cam) => { app.cam3d = cam; } }, app.cam3d ?? null);
   app.h3d.set({ view: app.view, layout: app.layout, air: app.air, selection: app.selection, heat: !!app.heat3d, sound: app.layers.sound !== false, airOn: true });
@@ -2696,7 +2711,7 @@ async function openCustomer3D() {
     <div class="c3-stage" id="c3-stage"></div>
     <div class="c3-card" id="c3-card"></div>`;
   document.body.append(o);
-  H3D ??= (await import('./house3d.js?v=f11c00d-202611241727')).House3D;
+  H3D ??= (await import('./house3d.js?v=2d2ac5b-202611252120')).House3D;
   let layout = all, pick = null, mode = 'all', heat = false, only = null;
   const u = ductedView().totals.unit, vents = all.outlets.filter((x) => !x.dropper && !x.spill).length;
   const card = () => {
@@ -3574,6 +3589,10 @@ function sizeBreakdown() {
   if (needsThreePhase(t, p.site)) lows.push(`<b>${g(t.unit.kw)} kW needs a three-phase supply.</b> 18 kW is the biggest Mitsubishi Electric ducted unit on single phase; 20 and 24.5 kW are three phase only. Check the switchboard (and set it on the Equipment step), or split the house into two systems.`);
   if (noGlass.length) lows.push(`<b>${noGlass.length} of ${live.length} rooms have no windows drawn.</b> They count as typical glass (× 1.00) facing no particular way — a west-facing room is × 1.16 and a glassy one × 1.22. Add the windows for a truer size: Edit the rooms → pick a wall → Add a window.`);
   if (/good/.test(insul?.[0] ?? '')) lows.push(`<b>Ceiling insulation R3.5 or better</b> takes 15% off every room (× 0.85). Check it on New job if you're not sure what's up there.`);
+  // A newer home's glass and sealing count too: say so where they aren't set (a new home left as the 2000s default).
+  const site = app.project.site, newer = site.ceilingInsulation === 'r50' || /^double/.test(site.glazing ?? '') || site.airtightness === 'tight';
+  if (/good/.test(insul?.[0] ?? '') && !(site.glazing === 'doubleLowE' && site.airtightness === 'tight' && site.ceilingInsulation === 'r50'))
+    lows.push(`<b>A brand-new home?</b> Set <b>Built</b> to 2020 or newer on New job: R5.0 batts (× 0.98), low-E double glazing (× 0.91) and a tight build (× 0.96) take a further 14% off every room${newer ? ' (some of that is on already)' : ''}. A 2010s home, double glazed and tight, takes 9% off.`);
   lows.push(`<b>People and appliances are in each room's W/m² rate</b> (a typical household), not added on top. Bedrooms are × 0.92 because they're mostly used at night; a home office, a gym or a west-facing bedroom may want a size up.`);
   if (/cool/i.test(climate?.[0] ?? '')) lows.push(`<b>${esc(climate[0])} sizes from ${esc(base)}</b> for the summer peak. The winter heating load isn't worked out separately, and in a cool climate it can be the bigger one — allow for it on an old or draughty house.`);
   const opt = (key, label) => ch[key] ? `<div class="kv"><span>${label}${!t.byHand && t.sizing === key ? ' <span class="tag">PICKED</span>' : ''}</span><b>${esc(ch[key].label)}</b></div>` : '';
@@ -4277,7 +4296,7 @@ function openReport(kind) {
   const close = () => o.remove();
   $('#rp-close', o).onclick = close;
   o.addEventListener('keydown', (e) => e.key === 'Escape' && close());
-  import('./reports.js?v=f11c00d-202611241727').then(async (m) => {
+  import('./reports.js?v=2d2ac5b-202611252120').then(async (m) => {
     // Reports are always the design as installed: every zone open, balanced. A multi-head job has no ducted design to
     // route (routing one threw, and the bar stayed on "Building the report…" for good).
     app.designLayout = isSplit() ? null : await call('route', { project: app.project, closed: [], balanced: true });

@@ -1,11 +1,11 @@
 // Trust Trade Pro — the HVAC Designer in the browser. The same five steps as the app (House · Capture · Check · Design ·
 // Send) on the app's own engine (engine.wasm, run in a worker): the same loads, zones, ducts, checks and materials.
 
-import { call as engineCall, latest } from './engine.js?v=2d2ac5b-202611252120';
-import { jobCalls, isMixed as mixedJob, ductedPart, ductedPartOf, splitSet, withSplitRooms, defaultRange, isDuctedB, activeSys, swapSystems, isVrfB, sharesVrf, pickVrf } from './systems.js?v=2d2ac5b-202611252120';
-import * as store from './store.js?v=2d2ac5b-202611252120';
-import { Plan, inkImage, zoneColour, ductColour, splitColour, T, pointInPolygon, SIDE_STYLES, movesOnly, wheelMoves, ZOOM_MAX } from './plan.js?v=2d2ac5b-202611252120';
-import { RoomEditor, metres, signedArea, onLine } from './roomeditor.js?v=2d2ac5b-202611252120';
+import { call as engineCall, latest } from './engine.js?v=59523e6-202611252140';
+import { jobCalls, isMixed as mixedJob, ductedPart, ductedPartOf, splitSet, withSplitRooms, defaultRange, isDuctedB, activeSys, swapSystems, isVrfB, sharesVrf, pickVrf } from './systems.js?v=59523e6-202611252140';
+import * as store from './store.js?v=59523e6-202611252140';
+import { Plan, inkImage, zoneColour, ductColour, splitColour, T, pointInPolygon, SIDE_STYLES, movesOnly, wheelMoves, ZOOM_MAX } from './plan.js?v=59523e6-202611252140';
+import { RoomEditor, metres, signedArea, onLine } from './roomeditor.js?v=59523e6-202611252140';
 
 /// Every engine call: a two-system job's go with the part they're about (systems.js).
 const call = jobCalls(engineCall);
@@ -2689,7 +2689,7 @@ async function mount3D(c) {
   app.h3d?.destroy(); app.h3d = null;
   const host = $('#h3d', c);
   if (!host || !app.three) return;
-  H3D ??= (await import('./house3d.js?v=2d2ac5b-202611252120')).House3D;
+  H3D ??= (await import('./house3d.js?v=59523e6-202611252140')).House3D;
   if (!host.isConnected) return;
   app.h3d = new H3D(host, { select: (item) => select(item), changed: (cam) => { app.cam3d = cam; } }, app.cam3d ?? null);
   app.h3d.set({ view: app.view, layout: app.layout, air: app.air, selection: app.selection, heat: !!app.heat3d, sound: app.layers.sound !== false, airOn: true });
@@ -2711,7 +2711,7 @@ async function openCustomer3D() {
     <div class="c3-stage" id="c3-stage"></div>
     <div class="c3-card" id="c3-card"></div>`;
   document.body.append(o);
-  H3D ??= (await import('./house3d.js?v=2d2ac5b-202611252120')).House3D;
+  H3D ??= (await import('./house3d.js?v=59523e6-202611252140')).House3D;
   let layout = all, pick = null, mode = 'all', heat = false, only = null;
   const u = ductedView().totals.unit, vents = all.outlets.filter((x) => !x.dropper && !x.spill).length;
   const card = () => {
@@ -3592,7 +3592,7 @@ function sizeBreakdown() {
   // A newer home's glass and sealing count too: say so where they aren't set (a new home left as the 2000s default).
   const site = app.project.site, newer = site.ceilingInsulation === 'r50' || /^double/.test(site.glazing ?? '') || site.airtightness === 'tight';
   if (/good/.test(insul?.[0] ?? '') && !(site.glazing === 'doubleLowE' && site.airtightness === 'tight' && site.ceilingInsulation === 'r50'))
-    lows.push(`<b>A brand-new home?</b> Set <b>Built</b> to 2020 or newer on New job: R5.0 batts (× 0.98), low-E double glazing (× 0.91) and a tight build (× 0.96) take a further 14% off every room${newer ? ' (some of that is on already)' : ''}. A 2010s home, double glazed and tight, takes 9% off.`);
+    lows.push(`<b>A brand-new home?</b> Set <b>Built</b> to 2020 or newer on New job: R5.0 batts (× 0.97), low-E double glazing (× 0.81) and a tight build (× 0.93) take a further 27% off every room${newer ? ' (some of that is on already)' : ''}. A 2010s home, double glazed and tight, takes 16% off.`);
   lows.push(`<b>People and appliances are in each room's W/m² rate</b> (a typical household), not added on top. Bedrooms are × 0.92 because they're mostly used at night; a home office, a gym or a west-facing bedroom may want a size up.`);
   if (/cool/i.test(climate?.[0] ?? '')) lows.push(`<b>${esc(climate[0])} sizes from ${esc(base)}</b> for the summer peak. The winter heating load isn't worked out separately, and in a cool climate it can be the bigger one — allow for it on an old or draughty house.`);
   const opt = (key, label) => ch[key] ? `<div class="kv"><span>${label}${!t.byHand && t.sizing === key ? ' <span class="tag">PICKED</span>' : ''}</span><b>${esc(ch[key].label)}</b></div>` : '';
@@ -4296,7 +4296,7 @@ function openReport(kind) {
   const close = () => o.remove();
   $('#rp-close', o).onclick = close;
   o.addEventListener('keydown', (e) => e.key === 'Escape' && close());
-  import('./reports.js?v=2d2ac5b-202611252120').then(async (m) => {
+  import('./reports.js?v=59523e6-202611252140').then(async (m) => {
     // Reports are always the design as installed: every zone open, balanced. A multi-head job has no ducted design to
     // route (routing one threw, and the bar stayed on "Building the report…" for good).
     app.designLayout = isSplit() ? null : await call('route', { project: app.project, closed: [], balanced: true });

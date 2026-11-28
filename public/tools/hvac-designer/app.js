@@ -1,11 +1,13 @@
 // Trust Trade Pro — the HVAC Designer in the browser. The same five steps as the app (House · Capture · Check · Design ·
 // Send) on the app's own engine (engine.wasm, run in a worker): the same loads, zones, ducts, checks and materials.
 
-import { call as engineCall, latest } from './engine.js?v=59523e6-202611252140';
-import { jobCalls, isMixed as mixedJob, ductedPart, ductedPartOf, splitSet, withSplitRooms, defaultRange, isDuctedB, activeSys, swapSystems, isVrfB, sharesVrf, pickVrf } from './systems.js?v=59523e6-202611252140';
-import * as store from './store.js?v=59523e6-202611252140';
-import { Plan, inkImage, zoneColour, ductColour, splitColour, T, pointInPolygon, SIDE_STYLES, movesOnly, wheelMoves, ZOOM_MAX } from './plan.js?v=59523e6-202611252140';
-import { RoomEditor, metres, signedArea, onLine } from './roomeditor.js?v=59523e6-202611252140';
+import { call as engineCall, latest } from './engine.js?v=67ed6a5-202611282103';
+import { jobCalls, isMixed as mixedJob, ductedPart, ductedPartOf, splitSet, withSplitRooms, defaultRange, isDuctedB, activeSys, swapSystems, isVrfB, sharesVrf, pickVrf } from './systems.js?v=67ed6a5-202611282103';
+import * as store from './store.js?v=67ed6a5-202611282103';
+import * as portalLink from './portal.js?v=67ed6a5-202611282103';
+const { portal } = portalLink;
+import { Plan, inkImage, zoneColour, ductColour, splitColour, T, pointInPolygon, SIDE_STYLES, movesOnly, wheelMoves, ZOOM_MAX } from './plan.js?v=67ed6a5-202611282103';
+import { RoomEditor, metres, signedArea, onLine } from './roomeditor.js?v=67ed6a5-202611282103';
 
 /// Every engine call: a two-system job's go with the part they're about (systems.js).
 const call = jobCalls(engineCall);
@@ -207,6 +209,7 @@ async function commit(project, { undoable = false, rerender = true } = {}) {
 function save() {
   if (!app.jobId || !app.project) return;
   if (!store.saveJob(app.jobId, app.project, summary())) toast('This browser is out of room to save jobs — delete an old one.');
+  if (portal.on && app.jobId === app.portalJobId) portalLink.saved(app.project, summary());
 }
 
 async function edit(op, args = {}, { quiet = false } = {}) {
@@ -371,6 +374,10 @@ async function designNow(keepOverrides = false) {
 
 async function route() {
   const parts = location.hash.replace(/^#\/?/, '').split('/');
+  if (portal.on) {
+    if (!app.portalJobId) { renderPortalWait(); return; }
+    if (parts[0] !== 'job' || parts[1] !== app.portalJobId) { if (parts[0] !== 'settings') { location.hash = '#/job/' + app.portalJobId; return; } }
+  }
   if (parts[0] === 'job' && parts[1]) {
     await openJob(parts[1], parts[2]);
     if (!app.project) return;
@@ -397,6 +404,7 @@ function go(step) {
 // MARK: Shell
 
 function renderNav(active) {
+  if (portal.on) { renderPortalNav(active); return; }
   $('#nav').innerHTML = `
     <a href="/tools">${icon('grid')}Tools</a>
     <a href="#/jobs" class="${active === 'jobs' ? 'on' : ''}">${icon('aircon')}HVAC Designer</a>
@@ -414,7 +422,7 @@ function renderTop() {
   const sub = [p.customer?.name, p.customer?.address].filter(Boolean).join(' · ') || 'No address yet';
   const primary = primaryAction();
   $('#top').innerHTML = `
-    <div class="jobisl"><a class="back" href="#/jobs">${icon('back')} Jobs</a>
+    <div class="jobisl">${portal.on ? `<span class="back">Job ${esc(portal.job?.number ?? '')}</span>` : `<a class="back" href="#/jobs">${icon('back')} Jobs</a>`}
     <div class="title"><h1>${esc(v?.title ?? 'Job')}</h1><div>${esc(sub)}</div></div></div>
     <div class="spacer"></div>
     <div class="steps">${STEPS.map((s, i) => ({ ...s, i })).filter((s) => !(s.k === 'design' && isSplit())).map((s, n) => { const i = s.i; return `<button data-step="${s.k}" class="${i === cur ? 'cur' : i <= reach ? 'done' : ''}" ${i > reach ? 'disabled' : ''}>
@@ -445,10 +453,93 @@ function primaryAction() {
       return { label: 'Air & pipes →', disabled: !v?.planChecked || !v?.totals?.unit, run: () => go('design') };
     case 'design': return { label: 'Check & send →', disabled: isSplit() ? !app.split?.heads?.length : !app.layout?.outlets?.length, run: () => go('send') };
     case 'send':
+      if (portal.on && app.jobId === app.portalJobId && !isSplit()) return { label: portal.quoted ? 'Update quote →' : 'Build quote →', disabled: !app.layout?.outlets?.length, run: portalQuote };
       if (isSplit()) return { label: 'Install sheet', disabled: !app.split?.heads?.length, run: () => openReport('install') };
       return { label: 'Customer report', disabled: !app.layout?.outlets?.length, run: () => openReport('customer') };
   }
   return null;
+}
+
+// MARK: In the portal (portal.js)
+
+function renderPortalWait() {
+  renderNav(null);
+  $('#top').innerHTML = '';
+  $('#content').innerHTML = `<div class="card empty"><h2>Opening the job…</h2><p class="muted">The portal is sending the job's details.</p></div>`;
+}
+
+function renderPortalNav(active) {
+  const j = portal.job ?? {}, q = portal.quoted;
+  const ready = !!app.portalJobId && app.jobId === app.portalJobId && !!app.layout?.outlets?.length && !isSplit();
+  $('#nav').innerHTML = `
+    <a href="#/job/${esc(app.portalJobId ?? '')}" class="${active !== 'settings' ? 'on' : ''}">${icon('aircon')}Job ${esc(j.number ?? '')}</a>
+    <a href="#/settings" class="${active === 'settings' ? 'on' : ''}">${icon('gear')}Settings</a>
+    <div class="portalq">
+      <b>${q ? 'Quote on the job' : 'No quote yet'}</b>
+      <span>${q ? `${q.estimateId ? `Quote ${esc(q.estimateId)} · ` : ''}$${Number(q.total ?? 0).toLocaleString('en-AU', { maximumFractionDigits: 0 })} ex GST${q.at ? ` · ${esc(new Date(q.at).toLocaleDateString('en-AU', { day: 'numeric', month: 'short' }))}` : ''}` : 'Design it, then build the quote.'}</span>
+      <button class="btn" id="portal-quote" ${ready ? '' : 'disabled'}>${q ? 'Update quote' : 'Build quote'}</button>
+      ${app.project && isSplit() ? '<span class="muted small">The portal quotes ducted jobs for now.</span>' : ''}
+    </div>`;
+  $('#portal-quote', $('#nav'))?.addEventListener('click', portalQuote);
+  const initials = (j.customer || 'Job').split(/\s+/).map((w) => w[0]).slice(0, 2).join('').toUpperCase();
+  $('#biz').innerHTML = `<div class="logo">${esc(initials)}</div>
+    <div><b>${esc(j.customer || 'Customer')}</b><span>${esc(j.address || '')}</span></div>`;
+}
+
+/// The job from the portal: the design saved on it, or a new one with the customer filled in.
+async function openFromPortal(m) {
+  // The portal may say it twice (on load, and when the designer says it's ready): the first one opens it.
+  if (app.portalOpening) return;
+  app.portalOpening = true;
+  try { await openPortalJob(m); } finally { app.portalOpening = false; }
+}
+async function openPortalJob(m) {
+  const stock = Array.isArray(m.stock?.grilles) ? m.stock.grilles.map(([w, h]) => ({ w, h })) : null;
+  const j = m.job ?? {};
+  let p = m.project && Array.isArray(m.project.rooms) ? m.project : null;
+  if (app.portalJobId && (!p || p.jobId === app.portalJobId)) { renderNav(app.step); return; }   // already open: said again
+  for (const [name, blob] of Object.entries(m.images ?? {})) {
+    if (blob instanceof Blob) { await store.saveImage(name, blob); portalLink.imageKnown(name); }
+  }
+  if (p) {
+    p = { ...p, returnStock: stock ?? p.returnStock ?? null };
+    if (!p.jobId) p.jobId = uuid();
+    const v = await call('view', { project: p }).catch(() => null);
+    if (!v) { $('#content').innerHTML = `<div class="card empty"><h2>The design saved on this job couldn't be read</h2></div>`; return; }
+    store.saveJob(p.jobId, p, { name: v.title, customer: p.customer?.name ?? '', suburb: v.suburb, upTo: v.upTo, status: p.status ?? 'inProgress', hasDesign: !!p.design });
+    app.portalJobId = p.jobId;
+    app.jobId = null;
+    const target = '#/job/' + p.jobId + (p.design ? '/design' : '');
+    if (location.hash === target) route(); else location.hash = target;
+    return;
+  }
+  const name = [j.number ? `Job ${j.number}` : null, j.customer].filter(Boolean).join(' · ') || null;
+  const id = await createJob({ name, customer: { name: j.customer ?? '', phone: j.phone ?? '', email: j.email ?? '', address: j.address ?? '' } },
+    false, { returnStock: stock, portal: true });
+  // The first save tells the portal which design this job now has.
+  const fresh = store.loadJob(id);
+  if (fresh) portalLink.flush(fresh, { name });
+}
+
+/// Build quote / Update quote: the design as it is now, its materials, and what the summary needs.
+async function portalQuote() {
+  if (!app.project?.design || isSplit()) return;
+  portalLink.flush(app.project, summary());
+  let t;
+  try { t = await call('takeoff', { project: app.project }); } catch (e) { toast(e.message); return; }
+  const l = app.layout, v = app.view;
+  const names = new Map((v?.rooms ?? []).map((r) => [r.id, r.name]));
+  const zones = (l?.zones ?? []).filter((z) => z.number !== 0)
+    .map((z) => ({ number: z.number, name: z.name, rooms: z.roomIds.map((id) => names.get(id)).filter(Boolean) }));
+  const u = v?.totals?.unit;
+  portalLink.quote({
+    project: app.project, csv: t.csv,
+    summary: {
+      unit: u?.label ?? null, kw: u?.kw ?? null, outlets: l?.outlets?.filter((o) => !o.dropper).length ?? 0, zones,
+      storeys: storeyCount(), fanLps: l?.fanLps ?? null,
+    },
+  });
+  toast(portal.quoted ? 'Sent to the portal to update the quote.' : 'Sent to the portal to build the quote.');
 }
 
 function render() {
@@ -557,8 +648,9 @@ function newJobDialog() {
   } }]);
 }
 
-async function createJob(args, demo = false) {
+async function createJob(args, demo = false, extra = null) {
   let { project } = await call('newJob', args);
+  if (extra) project = { ...project, ...extra };
   if (args.customer?.address) {
     const { city } = await call('guessCity', { address: args.customer.address });
     if (city) ({ project } = await call('edit', { project, op: 'setCity', city }));
@@ -568,7 +660,9 @@ async function createJob(args, demo = false) {
   app.jobId = null;
   const v = await call('view', { project });
   store.saveJob(id, project, { name: v.title, customer: project.customer?.name ?? '', suburb: v.suburb, upTo: v.upTo, status: 'inProgress' });
+  if (extra?.portal) app.portalJobId = id;
   location.hash = '#/job/' + id + (demo ? '/plan' : '/job');
+  return id;
 }
 
 /// A job file from Trust Trade Pro (the app's own job JSON): opened here as a new job, its design kept as it is.
@@ -1248,6 +1342,7 @@ async function importRead(overallMetres, mpp) {
   try {
     const { project } = await call('importPlan', { project: app.project, result, imageWidth: r.keep.w, imageHeight: r.keep.h, file: r.fileName, overallMetres, mpp, level: r.level });
     await store.saveImage(r.fileName, r.keep.blob);
+    portalLink.image(r.fileName, r.keep.blob);
     dropOldPlan(r.level, r.fileName);
     app.selection = null; app.closed = new Set(); app.checkAnswers = null; app.undo = []; app.redo = [];
     await commit(project, { rerender: false });
@@ -1963,6 +2058,7 @@ async function startDrawing(mpp) {
   try {
     const { project } = await call('blankPlan', { project: app.project, file: r.fileName, imageWidth: r.keep.w, imageHeight: r.keep.h, mpp, north: r.north ?? 'up', level: r.level });
     await store.saveImage(r.fileName, r.keep.blob);
+    portalLink.image(r.fileName, r.keep.blob);
     dropOldPlan(r.level, r.fileName);
     app.selection = null; app.closed = new Set(); app.checkAnswers = null; app.undo = []; app.redo = [];
     await commit(project, { rerender: false });
@@ -2689,7 +2785,7 @@ async function mount3D(c) {
   app.h3d?.destroy(); app.h3d = null;
   const host = $('#h3d', c);
   if (!host || !app.three) return;
-  H3D ??= (await import('./house3d.js?v=59523e6-202611252140')).House3D;
+  H3D ??= (await import('./house3d.js?v=67ed6a5-202611282103')).House3D;
   if (!host.isConnected) return;
   app.h3d = new H3D(host, { select: (item) => select(item), changed: (cam) => { app.cam3d = cam; } }, app.cam3d ?? null);
   app.h3d.set({ view: app.view, layout: app.layout, air: app.air, selection: app.selection, heat: !!app.heat3d, sound: app.layers.sound !== false, airOn: true });
@@ -2711,7 +2807,7 @@ async function openCustomer3D() {
     <div class="c3-stage" id="c3-stage"></div>
     <div class="c3-card" id="c3-card"></div>`;
   document.body.append(o);
-  H3D ??= (await import('./house3d.js?v=59523e6-202611252140')).House3D;
+  H3D ??= (await import('./house3d.js?v=67ed6a5-202611282103')).House3D;
   let layout = all, pick = null, mode = 'all', heat = false, only = null;
   const u = ductedView().totals.unit, vents = all.outlets.filter((x) => !x.dropper && !x.spill).length;
   const card = () => {
@@ -3244,7 +3340,7 @@ function renderInspector() {
   } else if (s?.kind === 'ret' && l) {
     const rn = l.returnCount ?? 1, rsp = velocity(l.fanLps / rn, l.returnMM), rlim = app.options.velocityLimits?.[p.site.velocityPref ?? 'standard']?.ret;
     const rover = rlim != null && rsp > rlim * RETURN_TOL + 0.01, [ac, amm] = l.returnAuto ?? [rn, l.returnMM];
-    html = `<div class="card is">${cardHead(close, 'Return air', 'Return grille', `${l.returnGrilleSize[0]} × ${l.returnGrilleSize[1]} mm · filter box`, `${fmt(l.fanLps)} L/s${rlim != null ? ` · limit ${rlim} m/s` : ''}`)}
+    html = `<div class="card is">${cardHead(close, 'Return air', 'Return grille', `${l.returnGrilleText ?? `${l.returnGrilleSize[0]} × ${l.returnGrilleSize[1]}`} mm · filter box`, `${fmt(l.fanLps)} L/s${rlim != null ? ` · limit ${rlim} m/s` : ''}`)}
       <div class="tiles3"><div><span>Ducts</span><b>${rn}</b></div><div><span>Size${l.returnManual ? ' · set' : ''}</span><b>Ø${l.returnMM}</b></div>
         <div class="${rover ? 'warn' : ''}"><span>Speed${rover ? ' · over' : ''}</span><b>${fmt(rsp, 1)}<i>m/s</i></b></div></div>
       <div class="seg fill"><button data-rcount="0" class="${l.returnManual ? '' : 'on'}" title="Sized for the fan: ${ac > 1 ? ac + ' × ' : ''}Ø${amm}">Auto</button>
@@ -4296,7 +4392,7 @@ function openReport(kind) {
   const close = () => o.remove();
   $('#rp-close', o).onclick = close;
   o.addEventListener('keydown', (e) => e.key === 'Escape' && close());
-  import('./reports.js?v=59523e6-202611252140').then(async (m) => {
+  import('./reports.js?v=67ed6a5-202611282103').then(async (m) => {
     // Reports are always the design as installed: every zone open, balanced. A multi-head job has no ducted design to
     // route (routing one threw, and the bar stayed on "Building the report…" for good).
     app.designLayout = isSplit() ? null : await call('route', { project: app.project, closed: [], balanced: true });
@@ -4368,5 +4464,6 @@ function renderSettings() {
     if ((e.key === 'Delete' || e.key === 'Backspace') && app.bend && pickedHandRun()?.hr.id === app.bend.id) { e.preventDefault(); removeBend(); return; }
     if ((e.key === 'Delete' || e.key === 'Backspace') && app.selection?.kind === 'outlet') { const id = app.selection.id; app.selection = null; edit('removeOutlet', { id }); }
   });
+  if (portal.on) portalLink.listen({ open: openFromPortal, quoted: () => renderNav(app.step) });
   route();
 })();

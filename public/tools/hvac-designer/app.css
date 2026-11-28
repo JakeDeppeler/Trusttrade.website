@@ -891,3 +891,10 @@ details.more > summary .lsum svg { margin: 0; }
 .hd-ceil .numin.on { background: #fff; box-shadow: var(--ring), 0 2px 6px -2px rgba(14,17,22,.16); }
 .hd-ceil .numin input { width: 50px; }
 @media (max-width: 520px) { .hd .seg { flex-wrap: wrap; } .hd .seg.fill > button { flex: 1 1 30%; } .hd-two { grid-template-columns: 1fr; } }
+
+/* In an installer's portal (portal.js): the job's quote, under the nav */
+.portalq { margin-top: 14px; padding: 14px; border-radius: 16px; background: var(--tile); border: 1px solid var(--hair); display: grid; gap: 6px; }
+.portalq b { font-size: 13px; color: var(--ink); }
+.portalq span { font-size: 12px; color: var(--muted); line-height: 1.4; }
+.portalq .btn { margin-top: 6px; width: 100%; justify-content: center; }
+.jobisl span.back { color: var(--muted); font-weight: 600; }
